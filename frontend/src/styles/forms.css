@@ -1,0 +1,38 @@
+.form-card {
+    max-width: 860px;
+    padding: 22px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.form-field label {
+    display: block;
+    margin-bottom: 7px;
+    color: #344054;
+    font-weight: 800;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea,
+.table-toolbar input,
+.table-toolbar select {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 12px;
+    background: #fff;
+    color: var(--text);
+}
+
+.form-field textarea { min-height: 110px; resize: vertical; }
+.form-errors { margin-top: 6px; color: var(--danger); font-size: 13px; }
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
