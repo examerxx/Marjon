@@ -15,8 +15,8 @@ export default function FinancePage() {
   useEffect(() => {
     setError("");
     api.get("/analytics/sales", { params: getDayRange(selectedDate) })
-      .then(({ data }) => setRows(data))
-      .catch((err) => setError(err.response?.data?.detail || "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0444\u0438\u043d\u0430\u043d\u0441\u044b."));
+      .then(({ data }) => setRows(Array.isArray(data) ? data : data.items || []))
+      .catch((err) => setError(err.response?.data?.detail || "Не удалось загрузить финансы."));
   }, [selectedDate]);
 
   const totals = useMemo(() => rows.reduce((acc, row) => {

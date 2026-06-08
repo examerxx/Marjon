@@ -4909,3 +4909,19 @@ body.dashboard-body,
   color: #b91c1c;
   background: #fef2f2;
 }
+
+/* ── Kitchen item cooking state ─────────────────────────────────────── */
+.dish-row.cooking {
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+}
+
+.dish-row.ready {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+}
+
+.cooking-btn {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;
+  color: #fff !important;
+}

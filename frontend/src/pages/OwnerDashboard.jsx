@@ -373,11 +373,12 @@ export default function OwnerDashboard() {
       api.get("/hr/employees"),
     ]).then(([dashboardRes, salesRes, topRes, productsRes, employeesRes]) => {
       if (!mounted) return;
+      const toArray = (d) => (Array.isArray(d) ? d : d.items || []);
       setDashboard(dashboardRes.data);
-      setSales(salesRes.data);
-      setTopProducts(topRes.data);
-      setProducts(productsRes.data);
-      setEmployees(employeesRes.data);
+      setSales(toArray(salesRes.data));
+      setTopProducts(toArray(topRes.data));
+      setProducts(toArray(productsRes.data));
+      setEmployees(toArray(employeesRes.data));
       hasLoadedRef.current = true;
     }).catch((err) => {
       if (mounted) setError(err.response?.data?.detail || "Не удалось загрузить dashboard данные.");

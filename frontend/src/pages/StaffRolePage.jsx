@@ -115,7 +115,8 @@ export default function StaffRolePage({ role = "all" }) {
     api.get("/hr/employees")
       .then(({ data }) => {
         if (!mounted) return;
-        const normalized = Array.isArray(data) ? data.map(normalizeEmployee) : [];
+        const raw = Array.isArray(data) ? data : data.items || [];
+        const normalized = raw.map(normalizeEmployee);
         setEmployees(normalized.length ? normalized : demoEmployees);
       })
       .catch((err) => {
