@@ -1,13 +1,16 @@
-﻿from __future__ import annotations
+from __future__ import annotations
+import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.middleware.tenant_middleware import TenantMiddleware
-from app.infrastructure.database.session import create_tables
+from app.infrastructure.database.session import AsyncSessionLocal
+from app.shared.exceptions import ValidationError
 
-# â”€â”€ Register all models with SQLAlchemy metadata â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Register all models with SQLAlchemy metadata ────────────────────────────
 import app.modules.companies.models       # noqa: F401
 import app.modules.auth.models            # noqa: F401
 import app.modules.rbac.models            # noqa: F401
@@ -25,7 +28,7 @@ import app.modules.fiscal.models          # noqa: F401
 import app.modules.subscriptions.models   # noqa: F401
 import app.modules.printers.models        # noqa: F401
 
-# â”€â”€ Routers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Routers ─────────────────────────────────────────────────────────────────
 from app.modules.auth.router          import router as auth_router
 from app.modules.companies.router     import router as companies_router
 from app.modules.rbac.router          import router as rbac_router
@@ -44,10 +47,20 @@ from app.modules.fiscal.router        import router as fiscal_router
 from app.modules.subscriptions.router import router as subscriptions_router
 from app.modules.printers.router      import router as printers_router
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Schema is managed by Alembic migrations — not create_all
+    # Seed RBAC permissions on startup
+    from app.modules.rbac.permissions import seed_permissions
+    async with AsyncSessionLocal() as db:
+        try:
+            count = await seed_permissions(db)
+            if count:
+                logger.info("Seeded %d new RBAC permissions", count)
+        except Exception as e:
+            logger.warning("Could not seed permissions (table may not exist yet): %s", e)
     yield
 
 

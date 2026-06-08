@@ -1,4 +1,5 @@
-﻿from __future__ import annotations
+from __future__ import annotations
+from typing import Literal
 from uuid import UUID
 
 from pydantic import Field
@@ -22,4 +23,4 @@ class StationResponse(BaseResponseSchema):
 
 class KitchenItemStatusUpdate(BaseSchema):
     order_item_id: UUID
-    status: str
+    status: Literal["pending", "cooking", "ready", "served", "cancelled"]

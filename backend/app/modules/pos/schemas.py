@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 from decimal import Decimal
 from uuid import UUID
 from typing import Literal
@@ -8,7 +8,8 @@ from app.shared.base_schema import BaseSchema, BaseResponseSchema
 
 class OrderItemCreate(BaseSchema):
     product_id: UUID
-    quantity: Decimal
+    quantity: Decimal = Field(..., gt=0)
+    discount: Decimal | None = None
     note: str | None = None
     modifiers: list[dict] = Field(default_factory=list)
     course: int = 1
@@ -22,7 +23,18 @@ class OrderCreate(BaseSchema):
     table_number: str | None = None
     persons_count: int = 1
     note: str | None = None
+    discount_amount: Decimal | None = None
+    service_fee_rate: float | None = None
     items: list[OrderItemCreate] = Field(default_factory=list)
+
+
+class OrderUpdate(BaseSchema):
+    """Partial update for order-level fields."""
+    note: str | None = None
+    table_number: str | None = None
+    persons_count: int | None = None
+    discount_amount: Decimal | None = None
+    service_fee_rate: float | None = None
 
 
 class OrderStatusUpdate(BaseSchema):
@@ -54,6 +66,7 @@ class OrderResponse(BaseResponseSchema):
     subtotal: Decimal
     discount_amount: Decimal
     tax_amount: Decimal
+    service_fee: Decimal
     total_amount: Decimal
     note: str | None
     source: str
