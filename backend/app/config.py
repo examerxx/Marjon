@@ -14,11 +14,15 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 30
 
-    database_url: str = "sqlite+aiosqlite:///./app.db"
+    database_url: str = "postgresql+asyncpg://marjon:marjon_secret@localhost:5432/marjon"
     migration_database_url: str | None = None
     redis_url: str = "redis://localhost:6379/0"
+    port: int = 8000  # Render sets PORT env var
 
-    allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    allowed_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ]
 
     # Бизнес-настройки
     default_tax_rate: float = 0.12  # НДС 12% (Узбекистан)

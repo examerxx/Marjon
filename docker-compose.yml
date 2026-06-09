@@ -12,21 +12,27 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marjon"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   backend:
     build: ./backend
     restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://marjon:marjon_secret@db:5432/marjon
-      SECRET_KEY: change-me-in-production-32-chars-min
+      SECRET_KEY: local-dev-secret-key-change-in-prod
       DEBUG: "true"
+      PORT: "8000"
     command: >
       sh -c "
-        cd /app &&
         alembic upgrade head &&
         uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
       "

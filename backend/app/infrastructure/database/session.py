@@ -15,8 +15,10 @@ def _make_engine():
         connect_args = {
             "prepared_statement_cache_size": 0,
         }
-        # Enable SSL only for Supabase / remote PostgreSQL (not for local Docker)
-        if not settings.debug:
+        # Enable SSL for remote PostgreSQL (Neon, Supabase, etc.)
+        # Skip SSL only for local Docker (DATABASE_URL contains @db: or @localhost)
+        is_local = any(h in url for h in ("@db:", "@localhost", "@127.0.0.1"))
+        if not is_local:
             connect_args["ssl"] = "require"
 
         engine_kwargs.update({
