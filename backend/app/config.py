@@ -1,7 +1,8 @@
 from __future__ import annotations
+import json
 from functools import lru_cache
 
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -31,6 +32,24 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+
+    @field_validator("allowed_origins", mode="before")
+    @classmethod
+    def parse_origins(cls, v):
+        """Accept JSON array, comma-separated string, or empty string."""
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return []
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except (json.JSONDecodeError, TypeError):
+                pass
+            # Comma-separated fallback
+            return [s.strip() for s in v.split(",") if s.strip()]
+        return v
 
     @model_validator(mode="after")
     def validate_security(self):
