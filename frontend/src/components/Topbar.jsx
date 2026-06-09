@@ -1,11 +1,12 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, logout } from "../api/client";
-import { clampToToday, formatDateLabel, shiftDate, todayInputValue } from "../utils/date";
+import { clampToToday, todayInputValue } from "../utils/date";
+import DatePicker from "./DatePicker";
+import GlobalSearch from "./GlobalSearch";
 
 export default function Topbar({ title = "Dashboard", subtitle, selectedDate, onSelectedDateChange }) {
   const navigate = useNavigate();
-  const dateInputRef = useRef(null);
   const notificationsRef = useRef(null);
   const [today] = useState(() => todayInputValue());
   const [stockOpen, setStockOpen] = useState(false);
@@ -13,7 +14,6 @@ export default function Topbar({ title = "Dashboard", subtitle, selectedDate, on
   const [stockError, setStockError] = useState("");
   const [lowStock, setLowStock] = useState([]);
   const [ingredients, setIngredients] = useState([]);
-  const isToday = selectedDate >= today;
   const ingredientById = useMemo(() => new Map(ingredients.map((item) => [item.id, item])), [ingredients]);
   const visibleLowStock = useMemo(
     () => lowStock.filter((item) => Number(item.quantity || 0) <= Number(item.min_quantity || 0)).slice(0, 8),
@@ -47,36 +47,6 @@ export default function Topbar({ title = "Dashboard", subtitle, selectedDate, on
 
   function toggleSidebar() {
     document.getElementById("dashboardSidebar")?.classList.toggle("is-open");
-  }
-
-  function openDatePicker() {
-    const input = dateInputRef.current;
-    if (!input) return;
-
-    if (typeof input.showPicker === "function") {
-      input.showPicker();
-      return;
-    }
-
-    input.focus();
-    input.click();
-  }
-
-  function handleDateKeyDown(event) {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      openDatePicker();
-    }
-  }
-
-  function handleDateStep(event, days) {
-    event.stopPropagation();
-    onSelectedDateChange(clampToToday(shiftDate(selectedDate, days)));
-  }
-
-  function handleDateChange(event) {
-    if (!event.target.value) return;
-    onSelectedDateChange(clampToToday(event.target.value));
   }
 
   function loadLowStock() {
@@ -129,34 +99,12 @@ export default function Topbar({ title = "Dashboard", subtitle, selectedDate, on
         {subtitle ? <p>{subtitle}</p> : null}
       </div>
       <div className="topbar-actions">
-        <div
-          className="period-chip period-chip--date"
-          role="button"
-          tabIndex={0}
-          onClick={openDatePicker}
-          onKeyDown={handleDateKeyDown}
-        >
-          <i className="bi bi-calendar3" />
-          <span>{formatDateLabel(selectedDate)}</span>
-          <div className="period-chip__arrows" aria-label={"\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0434\u0430\u0442\u0443"}>
-            <button type="button" aria-label={"\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0438\u0439 \u0434\u0435\u043d\u044c"} disabled={isToday} onClick={(event) => handleDateStep(event, 1)}>
-              <i className="bi bi-chevron-up" />
-            </button>
-            <button type="button" aria-label={"\u041f\u0440\u0435\u0434\u044b\u0434\u0443\u0449\u0438\u0439 \u0434\u0435\u043d\u044c"} onClick={(event) => handleDateStep(event, -1)}>
-              <i className="bi bi-chevron-down" />
-            </button>
-          </div>
-          <input
-            ref={dateInputRef}
-            aria-label={"\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0434\u0430\u0442\u0443"}
-            className="period-chip__input"
-            type="date"
-            max={today}
-            value={selectedDate}
-            onChange={handleDateChange}
-          />
-        </div>
-        <div className="restaurant-pill">MARJON</div>
+        <DatePicker
+          value={selectedDate}
+          max={today}
+          onChange={(value) => onSelectedDateChange(clampToToday(value))}
+        />
+        <GlobalSearch />
         <div className="lang-switch">
           <button className="is-active" type="button" data-lang="ru">RU</button>
           <button type="button" data-lang="uz">UZ</button>
