@@ -8980,3 +8980,166 @@ html body .staff-manager__photo-upload > span > i {
   color: #e6edf3 !important;
 }
 /* deploy trigger 1781123208 */
+
+/* ── WAREHOUSE PAGE — dark theme ── */
+[data-theme="dark"] .warehouse-workspace {
+  background: #0d1117 !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-workspace__content {
+  background: #0d1117 !important;
+}
+[data-theme="dark"] .warehouse-workspace__toolbar {
+  background: transparent !important;
+}
+[data-theme="dark"] .warehouse-metrics {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-metrics > div {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-metrics span,
+[data-theme="dark"] .warehouse-metrics strong,
+[data-theme="dark"] .warehouse-metrics p {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-board {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-board__head {
+  background: #21262d !important;
+  color: #8b949e !important;
+  border-color: #30363d !important;
+}
+/* Money table (main inventory table) */
+[data-theme="dark"] .warehouse-money-table {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-money-table__head {
+  background: #21262d !important;
+  color: #8b949e !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .warehouse-money-table__row {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-money-table__row:hover {
+  background: #21262d !important;
+}
+[data-theme="dark"] .warehouse-money-table__row.is-total {
+  background: #1c2128 !important;
+  border-color: #30363d !important;
+  font-weight: 600;
+}
+[data-theme="dark"] .warehouse-money-table__row a {
+  color: #58a6ff !important;
+}
+/* Document tables (incoming, transfers, inventory, writeoffs) */
+[data-theme="dark"] .warehouse-document-table {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-document-table__head {
+  background: #21262d !important;
+  color: #8b949e !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .warehouse-document-table__row {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-document-table__row:hover {
+  background: #21262d !important;
+}
+/* Toolbar / filter buttons */
+[data-theme="dark"] .warehouse-date-button {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .warehouse-filter {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .warehouse-global-search {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .warehouse-global-search input {
+  background: transparent !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-icon-button {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .warehouse-create {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .warehouse-search-line {
+  background: #21262d !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .warehouse-search-line input {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-status {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-status.is-draft {
+  color: #f0883e !important;
+}
+[data-theme="dark"] .warehouse-alert {
+  background: #21262d !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-row-actions button {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .warehouse-title-mark {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .is-muted {
+  color: #8b949e !important;
+}
+/* Also catch legacy warehouse classes */
+[data-theme="dark"] .warehouse-page {
+  background: #0d1117 !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-hero {
+  background: #161b22 !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-kpi {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-table {
+  background: #161b22 !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-grid {
+  color: #e6edf3 !important;
+}
