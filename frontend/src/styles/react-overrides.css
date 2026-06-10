@@ -8993,23 +8993,32 @@ html body .staff-manager__photo-upload > span > i {
   background: transparent !important;
 }
 [data-theme="dark"] .warehouse-metrics {
-  background: #161b22 !important;
-  border-color: #30363d !important;
+  background: transparent !important;
   color: #e6edf3 !important;
 }
+[data-theme="dark"] .warehouse-metrics article,
 [data-theme="dark"] .warehouse-metrics > div {
   background: #161b22 !important;
+  background-image: none !important;
   border-color: #30363d !important;
   color: #e6edf3 !important;
 }
-[data-theme="dark"] .warehouse-metrics span,
-[data-theme="dark"] .warehouse-metrics strong,
+[data-theme="dark"] .warehouse-metrics span {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .warehouse-metrics strong {
+  color: #e6edf3 !important;
+}
 [data-theme="dark"] .warehouse-metrics p {
   color: #e6edf3 !important;
 }
 [data-theme="dark"] .warehouse-board {
   background: #161b22 !important;
+  background-image: none !important;
   border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-board h3 {
   color: #e6edf3 !important;
 }
 [data-theme="dark"] .warehouse-board__head {
@@ -9030,19 +9039,28 @@ html body .staff-manager__photo-upload > span > i {
 }
 [data-theme="dark"] .warehouse-money-table__row {
   background: #161b22 !important;
+  background-image: none !important;
   border-color: #30363d !important;
   color: #e6edf3 !important;
 }
 [data-theme="dark"] .warehouse-money-table__row:hover {
   background: #21262d !important;
+  background-image: none !important;
 }
 [data-theme="dark"] .warehouse-money-table__row.is-total {
   background: #1c2128 !important;
+  background-image: none !important;
   border-color: #30363d !important;
   font-weight: 600;
 }
 [data-theme="dark"] .warehouse-money-table__row a {
   color: #58a6ff !important;
+}
+[data-theme="dark"] .warehouse-money-table__row span {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-money-table__row span.is-muted {
+  color: #8b949e !important;
 }
 /* Document tables (incoming, transfers, inventory, writeoffs) */
 [data-theme="dark"] .warehouse-document-table {
@@ -9057,11 +9075,17 @@ html body .staff-manager__photo-upload > span > i {
 }
 [data-theme="dark"] .warehouse-document-table__row {
   background: #161b22 !important;
+  background-image: none !important;
   border-color: #30363d !important;
   color: #e6edf3 !important;
+  box-shadow: none !important;
 }
 [data-theme="dark"] .warehouse-document-table__row:hover {
   background: #21262d !important;
+  background-image: none !important;
+}
+[data-theme="dark"] .warehouse-document-table__row span {
+  color: #e6edf3 !important;
 }
 /* Toolbar / filter buttons */
 [data-theme="dark"] .warehouse-date-button {
