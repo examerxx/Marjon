@@ -41,7 +41,7 @@ const router = createBrowserRouter([
   { path: "/kitchen", element: <ProtectedRoute><KitchenPage /></ProtectedRoute> },
   {
     path: "/",
-    element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
+    element: <ProtectedRoute><RoleGuard allowed={["owner","superadmin","manager","cashier","monoblock"]}><DashboardLayout /></RoleGuard></ProtectedRoute>,
     children: [
       { index: true, element: <OwnerDashboard /> },
       { path: "warehouse", element: <WarehousePage /> },

@@ -120,7 +120,7 @@ export default function StaffRolePage({ role = "all" }) {
       })
       .catch((err) => {
         if (!mounted) return;
-        setError(err.response?.data?.detail || "Backend сотрудников пока недоступен. Данные и действия работают локально в демо-режиме.");
+        setError(err.response?.data?.detail || "Не удалось загрузить данные сотрудников. Проверьте соединение с сервером.");
         setEmployees(demoEmployees);
       });
     return () => { mounted = false; };
