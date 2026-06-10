@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { Search, X, CornerDownLeft } from "lucide-react";
 
 // Static catalog of navigable destinations. Covers the role/terminal entities
 // the owner searches by name ("моноблок", "официант", "кассир", …) plus the
@@ -139,7 +140,7 @@ export default function GlobalSearch() {
   return (
     <div className={`global-search ${open ? "is-open" : ""}`} ref={wrapRef}>
       <div className="global-search__field">
-        <i className="bi bi-search global-search__icon" aria-hidden="true" />
+        <Search size={16} strokeWidth={2.2} className="global-search__icon" aria-hidden="true" />
         <input
           ref={inputRef}
           type="text"
@@ -153,7 +154,7 @@ export default function GlobalSearch() {
         />
         {query ? (
           <button type="button" className="global-search__clear" onClick={() => { setQuery(""); inputRef.current?.focus(); }} aria-label="Очистить">
-            <i className="bi bi-x-lg" />
+            <X size={14} strokeWidth={2.5} />
           </button>
         ) : null}
       </div>
@@ -162,7 +163,7 @@ export default function GlobalSearch() {
         <div className="global-search__panel" role="listbox">
           {results.length === 0 ? (
             <div className="global-search__empty">
-              <i className="bi bi-search" />
+              <Search size={20} strokeWidth={2} />
               <p>Ничего не найдено по «{query}»</p>
             </div>
           ) : (
@@ -185,7 +186,7 @@ export default function GlobalSearch() {
                         <strong>{item.label}</strong>
                         {item.sub ? <small>{item.sub}</small> : null}
                       </span>
-                      <i className="bi bi-arrow-return-left global-search__result-enter" aria-hidden="true" />
+                      <CornerDownLeft size={14} strokeWidth={2} className="global-search__result-enter" aria-hidden="true" />
                     </button>
                   );
                 })}

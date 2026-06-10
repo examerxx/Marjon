@@ -194,10 +194,7 @@ export default function Sidebar({ user, collapsed, onToggle }) {
               <div
                 key={item.key}
                 className={`sidebar-nav-item has-submenu ${active ? "is-active" : ""} ${submenuOpen ? "is-open" : ""}`}
-                onMouseEnter={() => setOpenMenu(item.key)}
-                onMouseLeave={() => {
-                  if (pinnedMenu !== item.key) setOpenMenu("");
-                }}
+                /* hover auto-expand disabled — only click/pin toggles submenu */
               >
                 <button
                   className={`sidebar-link sidebar-link--button ${active ? "is-active" : ""}`}

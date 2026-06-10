@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { todayInputValue } from "../utils/date";
+import { Calendar, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsUpDown } from "lucide-react";
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const MONTHS = [
@@ -118,9 +119,9 @@ export default function DatePicker({ value, max, onChange, onClear }) {
         aria-haspopup="dialog"
         aria-expanded={open}
       >
-        <span className="mj-datepicker__icon"><i className="bi bi-calendar3" /></span>
+        <span className="mj-datepicker__icon"><Calendar size={16} strokeWidth={2.2} /></span>
         <span className="mj-datepicker__value">{label}</span>
-        <i className={`bi bi-chevron-${open ? "up" : "down"} mj-datepicker__caret`} aria-hidden="true" />
+        <span className="mj-datepicker__caret" aria-hidden="true">{open ? <ChevronUp size={14} strokeWidth={2.5} /> : <ChevronDown size={14} strokeWidth={2.5} />}</span>
       </button>
 
       {open ? (
@@ -139,14 +140,14 @@ export default function DatePicker({ value, max, onChange, onClear }) {
             >
               <strong>{MONTHS[viewMonth]}</strong>
               <span>{viewYear}</span>
-              <i className={`bi bi-caret-${showMonthList ? "up" : "down"}-fill`} aria-hidden="true" />
+              {showMonthList ? <ChevronUp size={14} strokeWidth={2.5} /> : <ChevronDown size={14} strokeWidth={2.5} />}
             </button>
             <div className="mj-calendar__nav">
               <button type="button" onClick={() => stepMonth(-1)} aria-label="Предыдущий месяц">
-                <i className="bi bi-chevron-left" />
+                <ChevronLeft size={16} strokeWidth={2.2} />
               </button>
               <button type="button" onClick={() => stepMonth(1)} aria-label="Следующий месяц">
-                <i className="bi bi-chevron-right" />
+                <ChevronRight size={16} strokeWidth={2.2} />
               </button>
             </div>
           </div>
@@ -155,11 +156,11 @@ export default function DatePicker({ value, max, onChange, onClear }) {
             <div className="mj-calendar__months">
               <div className="mj-calendar__year-switch">
                 <button type="button" onClick={() => setView(new Date(viewYear - 1, viewMonth, 1))} aria-label="Прошлый год">
-                  <i className="bi bi-chevron-left" />
+                  <ChevronLeft size={16} strokeWidth={2.2} />
                 </button>
                 <strong>{viewYear}</strong>
                 <button type="button" onClick={() => setView(new Date(viewYear + 1, viewMonth, 1))} aria-label="Следующий год">
-                  <i className="bi bi-chevron-right" />
+                  <ChevronRight size={16} strokeWidth={2.2} />
                 </button>
               </div>
               <div className="mj-calendar__months-grid">

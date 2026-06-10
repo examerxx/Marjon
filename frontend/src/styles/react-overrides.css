@@ -9930,3 +9930,243 @@ html body .staff-manager__photo-upload > span > i {
   border-color: #30363d !important;
 }
 
+
+/* ══════════════════════════════════════════════════════
+   FIX BLOCK v6 — Login height, sidebar animation,
+   topbar radius, fonts, badge, hover fix
+   ═══════════════════════════════════════════════════ */
+
+/* 1. Login page — adapt to all viewport heights */
+.login-pro-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: auto !important;
+}
+.login-pro-brand {
+  min-height: auto !important;
+  padding: clamp(32px, 5vh, 80px) clamp(24px, 4vw, 64px) !important;
+}
+.login-pro-panel {
+  min-height: auto !important;
+  padding: clamp(20px, 3vh, 64px) clamp(24px, 4vw, 64px) !important;
+}
+.login-pro-card {
+  padding: clamp(24px, 2.8vh, 54px) clamp(24px, 3.2vw, 54px) !important;
+}
+.login-pro-mark {
+  width: clamp(72px, 10vh, 120px) !important;
+  height: clamp(72px, 10vh, 120px) !important;
+}
+.login-pro-brand h1 {
+  font-size: clamp(36px, 5vh, 92px) !important;
+  margin: clamp(16px, 3vh, 42px) 0 clamp(10px, 2vh, 18px) !important;
+}
+.login-pro-brand p {
+  font-size: clamp(15px, 1.6vw, 28px) !important;
+  margin-bottom: clamp(16px, 3vh, 34px) !important;
+}
+.login-pro-bullets {
+  gap: clamp(10px, 1.5vh, 18px) !important;
+}
+.login-pro-head h2 {
+  font-size: clamp(24px, 3.2vw, 48px) !important;
+}
+.login-pro-submit {
+  min-height: clamp(48px, 6vh, 70px) !important;
+}
+.login-pro-input-wrap {
+  min-height: clamp(48px, 6vh, 66px) !important;
+}
+@media (max-height: 700px) {
+  .login-pro-shell {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto 1fr;
+  }
+  .login-pro-brand {
+    padding: 24px !important;
+  }
+  .login-pro-brand h1 { font-size: 28px !important; margin: 10px 0 6px !important; }
+  .login-pro-brand p { display: none; }
+  .login-pro-bullets { display: none; }
+  .login-pro-mark { width: 48px !important; height: 48px !important; }
+  .login-pro-divider { margin: 16px 0 20px !important; }
+  .login-pro-field { margin-bottom: 12px !important; }
+  .login-pro-row { margin: 4px 0 16px !important; }
+}
+
+/* 2. Sidebar collapse — smooth animation */
+.dashboard-sidebar {
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  overflow: hidden;
+}
+.dashboard-sidebar .sidebar-brand,
+.dashboard-sidebar .sidebar-nav,
+.dashboard-sidebar .sidebar-link,
+.dashboard-sidebar .sidebar-link span,
+.dashboard-sidebar .sidebar-user__meta,
+.dashboard-sidebar .sidebar-user__arrow,
+.dashboard-sidebar .sidebar-account {
+  transition: opacity 0.2s ease, padding 0.2s ease, margin 0.2s ease !important;
+}
+.dashboard-sidebar.is-collapsed .sidebar-link span:not(.sidebar-icon),
+.dashboard-sidebar.is-collapsed .sidebar-link__chevron,
+.dashboard-sidebar.is-collapsed .sidebar-user__meta,
+.dashboard-sidebar.is-collapsed .sidebar-user__arrow,
+.dashboard-sidebar.is-collapsed .brand-title,
+.dashboard-sidebar.is-collapsed .brand-subtitle {
+  opacity: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  transition: opacity 0.15s ease, width 0.15s ease !important;
+}
+.dashboard-main {
+  transition: margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* 3. Dashboard topbar — remove border-radius */
+.dashboard-topbar {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-radius: 0 !important;
+}
+.dashboard-main {
+  border-top-left-radius: 0 !important;
+}
+
+/* 4. Sidebar hover — disable auto-expand of submenus on hover */
+.sidebar-nav-item.has-submenu:hover .sidebar-submenu {
+  grid-template-rows: 0fr !important;
+  opacity: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  transform: translateY(-4px) !important;
+}
+.sidebar-nav-item.has-submenu:hover .sidebar-link__chevron {
+  transform: rotate(0deg) !important;
+}
+/* Only expand when explicitly open (is-open class from React state) */
+.sidebar-nav-item.has-submenu.is-open .sidebar-submenu {
+  grid-template-rows: 1fr !important;
+  opacity: 1 !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  transform: translateY(0) !important;
+}
+.sidebar-nav-item.has-submenu.is-open .sidebar-link__chevron {
+  transform: rotate(180deg) !important;
+  color: #fff !important;
+}
+
+/* 5. Fonts — apply site font everywhere */
+.mj-datepicker,
+.mj-datepicker__trigger,
+.mj-datepicker__value,
+.mj-calendar,
+.mj-calendar *,
+.mj-calendar__title strong,
+.mj-calendar__title span,
+.mj-calendar__weekdays span,
+.mj-calendar__day,
+.mj-calendar__months-grid button,
+.mj-calendar__year-switch strong,
+.mj-calendar__action,
+.mj-calendar__footer,
+.global-search__input,
+.global-search__group-title,
+.global-search__result strong,
+.topbar-icon,
+.topbar-heading h1,
+.topbar-heading p,
+.topbar-actions,
+.topbar-notification__badge,
+.dashboard-topbar,
+.dashboard-topbar * {
+  font-family: var(--mj-font-body, Inter, "Plus Jakarta Sans", sans-serif) !important;
+}
+.mj-datepicker__value {
+  font-weight: 700 !important;
+  font-size: 0.92rem !important;
+}
+
+/* 7. Notification badge — circle, no white border */
+.topbar-notification__badge {
+  min-width: 22px !important;
+  width: auto;
+  height: 22px !important;
+  padding: 0 6px !important;
+  border: none !important;
+  border-radius: 999px !important;
+  font-size: 0.72rem !important;
+  line-height: 22px !important;
+}
+[data-theme="dark"] .topbar-notification__badge {
+  border: none !important;
+}
+
+/* Dark theme: calendar dropdown */
+[data-theme="dark"] .mj-calendar {
+  background: #1c2128 !important;
+  border-color: #30363d !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5) !important;
+}
+[data-theme="dark"] .mj-calendar__nav button,
+[data-theme="dark"] .mj-calendar__year-switch button {
+  background: #21262d !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .mj-calendar__nav button:hover,
+[data-theme="dark"] .mj-calendar__year-switch button:hover {
+  border-color: #ff6b35 !important;
+  color: #ff6b35 !important;
+  background: rgba(255, 107, 61, 0.12) !important;
+}
+[data-theme="dark"] .mj-calendar__title strong {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .mj-calendar__title span {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .mj-calendar__weekdays span {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .mj-calendar__day {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .mj-calendar__day.is-outside {
+  color: #484f58 !important;
+}
+[data-theme="dark"] .mj-calendar__day:hover:not(.is-disabled):not(.is-selected) {
+  background: rgba(255, 107, 61, 0.15) !important;
+}
+[data-theme="dark"] .mj-calendar__footer {
+  border-top-color: #30363d !important;
+}
+[data-theme="dark"] .mj-calendar__months-grid button {
+  background: #21262d !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .mj-calendar__months-grid button:hover {
+  border-color: #ff6b35 !important;
+  color: #ff6b35 !important;
+}
+[data-theme="dark"] .mj-calendar__action--ghost {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .mj-calendar__action--accent {
+  color: #ff6b35 !important;
+}
+
+/* Lucide icon sizing in topbar */
+.topbar-icon svg,
+.mj-datepicker__icon svg,
+.global-search__icon svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+

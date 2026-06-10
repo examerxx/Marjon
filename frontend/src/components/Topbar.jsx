@@ -3,6 +3,7 @@ import { api } from "../api/client";
 import { clampToToday, todayInputValue } from "../utils/date";
 import DatePicker from "./DatePicker";
 import GlobalSearch from "./GlobalSearch";
+import { Sun, Moon, Bell, RefreshCw, AlertTriangle } from "lucide-react";
 
 export default function Topbar({ title = "Dashboard", subtitle, selectedDate, onSelectedDateChange }) {
   const notificationsRef = useRef(null);
@@ -116,7 +117,7 @@ export default function Topbar({ title = "Dashboard", subtitle, selectedDate, on
         />
         <GlobalSearch />
         <button className="topbar-icon" type="button" onClick={toggleTheme} title={theme === "dark" ? "Светлая тема" : "Тёмная тема"} aria-label="Переключить тему">
-          <i className={`bi ${theme === "dark" ? "bi-sun" : "bi-moon"}`} />
+          {theme === "dark" ? <Sun size={18} strokeWidth={2.2} /> : <Moon size={18} strokeWidth={2.2} />}
         </button>
         <div className="topbar-notification-wrap" ref={notificationsRef}>
           <button
@@ -127,7 +128,7 @@ export default function Topbar({ title = "Dashboard", subtitle, selectedDate, on
             aria-expanded={stockOpen}
             onClick={toggleStockNotifications}
           >
-            <i className="bi bi-bell" />
+            <Bell size={18} strokeWidth={2.2} />
             {notificationCount ? (
               <span className="topbar-notification__badge" aria-hidden="true">
                 {notificationCount > 99 ? "99+" : notificationCount}
@@ -142,7 +143,7 @@ export default function Topbar({ title = "Dashboard", subtitle, selectedDate, on
                   <strong>{notificationCount ? `${notificationCount} ${notificationCount === 1 ? "\u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435" : "\u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0439"}` : "\u041d\u0435\u0442 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0439"}</strong>
                 </div>
                 <button className={stockLoading ? "is-loading" : ""} type="button" onClick={loadLowStock} disabled={stockLoading} aria-label={"\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c"}>
-                  <i className="bi bi-arrow-clockwise" aria-hidden="true" />
+                  <RefreshCw size={16} strokeWidth={2.2} />
                 </button>
               </div>
               <div className="stock-alert-popover__body">
@@ -151,7 +152,7 @@ export default function Topbar({ title = "Dashboard", subtitle, selectedDate, on
                 {!stockLoading && !stockError ? stockNotifications.map((item) => {
                   return (
                     <div className="stock-alert-item" key={item.id}>
-                      <div className="stock-alert-item__icon"><i className="bi bi-exclamation-triangle" /></div>
+                      <div className="stock-alert-item__icon"><AlertTriangle size={16} strokeWidth={2.2} /></div>
                       <div>
                         <strong>{item.title}</strong>
                         <span>{item.text}</span>
