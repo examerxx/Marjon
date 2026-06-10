@@ -10253,3 +10253,90 @@ html body .staff-manager__photo-upload > span > i {
 [data-theme="dark"] .section-header .btn-ghost {
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.2) !important;
 }
+
+/* ══════════════════════════════════════════════════════
+   FIX BLOCK v9 — period span, top-dish palette, badge,
+   btn-ghost unification
+   ═══════════════════════════════════════════════════ */
+
+/* 1. Period dropdown button span — color + line-height */
+.period-dropdown__button span {
+  color: var(--mj-muted, #64748b) !important;
+  line-height: 1.3 !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+}
+[data-theme="dark"] .period-dropdown__button span {
+  color: #8b949e !important;
+}
+
+/* 2. Period dropdown menu — checkmark before text alignment */
+.period-dropdown__menu button {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  text-align: left !important;
+}
+.period-dropdown__menu button i.bi-check2 {
+  order: -1 !important;
+  color: var(--mj-brand, #ff6b35) !important;
+  font-size: 1rem !important;
+}
+
+/* 5. top-dish__rank — MARJON brand palette (orange) */
+.top-dish__rank {
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.22), transparent 25%),
+    linear-gradient(145deg, var(--mj-brand, #ff6b35), var(--mj-brand-dark, #e85d2a)) !important;
+  box-shadow:
+    0 10px 22px rgba(255, 107, 53, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.20) !important;
+}
+[data-theme="dark"] .top-dish__rank {
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.18), transparent 25%),
+    linear-gradient(145deg, var(--mj-brand, #ff6b35), var(--mj-brand-dark, #e85d2a)) !important;
+  box-shadow:
+    0 10px 22px rgba(255, 107, 53, 0.25) !important;
+}
+
+/* 6. top-dish__line — halve margin-bottom */
+.top-dish__line {
+  margin-bottom: 5px !important;
+}
+
+/* 7. badge-info on top-dish — MARJON orange palette */
+.top-dish .badge-info {
+  color: var(--mj-brand-dark, #e85d2a) !important;
+  background: rgba(255, 107, 53, 0.10) !important;
+}
+[data-theme="dark"] .top-dish .badge-info {
+  color: var(--mj-brand-2, #ff8f5a) !important;
+  background: rgba(255, 107, 53, 0.14) !important;
+}
+
+/* 4. Unified btn-ghost style for "Подробнее" and "Все блюда" */
+.section-header .btn-ghost,
+.period-switcher .btn-ghost {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  color: var(--mj-brand, #ff6b35) !important;
+  font-weight: 800 !important;
+  font-size: 0.85rem !important;
+}
+.section-header .btn-ghost i,
+.period-switcher .btn-ghost i {
+  font-size: 0.75rem !important;
+  transition: transform 0.18s ease !important;
+}
+.section-header .btn-ghost:hover i,
+.period-switcher .btn-ghost:hover i {
+  transform: translateX(3px) !important;
+}
+[data-theme="dark"] .section-header .btn-ghost,
+[data-theme="dark"] .period-switcher .btn-ghost {
+  color: var(--mj-brand-2, #ff8f5a) !important;
+}

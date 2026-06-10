@@ -224,8 +224,8 @@ function PeriodDropdown({ value, onChange }) {
                 setOpen(false);
               }}
             >
+              {option.value === value ? <i className="bi bi-check2" aria-hidden="true" /> : <span style={{ width: 16, display: "inline-block" }} />}
               {option.label}
-              {option.value === value ? <i className="bi bi-check2" aria-hidden="true" /> : null}
             </button>
           ))}
         </div>
@@ -462,15 +462,15 @@ export default function OwnerDashboard() {
             <div><span className="eyebrow">Revenue analytics</span><h2>Выручка за {period} дней</h2><p>Период заканчивается {formatDateLabel(selectedDate)}</p></div>
             <div className="period-switcher" aria-label="Период выручки">
               <PeriodDropdown value={period} onChange={setPeriod} />
-              <Link className="period-switcher__details" to="/analytics">Подробнее</Link>
+              <Link className="btn btn-ghost" to="/analytics">Подробнее <i className="bi bi-chevron-right" aria-hidden="true" /></Link>
             </div>
           </div>
           <div className="chart-wrap"><RevenueChart sales={displaySales} /></div>
-          <div className="revenue-insight"><div className="revenue-insight__icon"><i className="bi bi-graph-up-arrow" /></div><p><strong>Стабильная динамика.</strong> {isDemoDashboard ? "Показаны предварительные демо-данные до запуска продаж." : "Отслеживайте выручку за 7 или 30 дней без отмененных заказов."}</p><span className="revenue-insight__badge">{sales.length ? "Live" : "Demo"}</span></div>
+          <div className="revenue-insight"><div className="revenue-insight__icon"><i className="bi bi-graph-up-arrow" /></div><p><strong>Стабильная динамика.</strong> Отслеживайте выручку за 7 или 30 дней без отмененных заказов.</p><span className="revenue-insight__badge">Live</span></div>
         </div>
 
         <aside className="card card-pad top-dishes-card">
-          <div className="section-header"><div><span className="eyebrow">Menu performance</span><h2>Топ-5 блюд за день</h2></div><Link className="btn btn-ghost" to="/menu">Все блюда</Link></div>
+          <div className="section-header"><div><span className="eyebrow">Menu performance</span><h2>Топ-5 блюд за день</h2></div><Link className="btn btn-ghost" to="/menu">Все блюда <i className="bi bi-chevron-right" aria-hidden="true" /></Link></div>
           {displayTopProducts.length ? <div className="top-dishes-list">
             {displayTopProducts.map((item, index) => {
               const quantity = Number(item.quantity_sold || 0);
