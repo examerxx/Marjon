@@ -8059,3 +8059,108 @@ body.dashboard-body,
     font-weight: 850 !important;
   }
 }
+
+/* ── Waiter Mobile Responsive (#59) ── */
+@media (max-width: 768px) {
+  .waiter-body .waiter-sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100% !important;
+    height: auto !important;
+    flex-direction: row !important;
+    z-index: 100;
+    padding: 0 !important;
+  }
+  .waiter-body .waiter-sidebar nav {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-around;
+    width: 100%;
+  }
+  .waiter-body .waiter-sidebar nav a {
+    flex-direction: column;
+    font-size: 11px;
+    padding: 8px 4px;
+    gap: 2px;
+  }
+  .waiter-body .waiter-sidebar .sidebar-brand-wrap,
+  .waiter-body .waiter-sidebar .sidebar-bottom-actions {
+    display: none !important;
+  }
+  .waiter-body .waiter-main {
+    margin-left: 0 !important;
+    padding-bottom: 80px !important;
+  }
+  .waiter-table-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+  }
+  .waiter-table-card {
+    min-height: 80px !important;
+    padding: 10px !important;
+  }
+}
+
+/* ── Kitchen Dark Theme (#60) ── */
+.kitchen-body-react {
+  --kitchen-bg: #0d1117;
+  --kitchen-card: #161b22;
+  --kitchen-card-border: #30363d;
+  --kitchen-text: #e6edf3;
+  --kitchen-muted: #8b949e;
+  --kitchen-accent: #ff6b35;
+  --kitchen-urgent: #da3633;
+  --kitchen-ready: #2ea043;
+}
+.kitchen-body-react {
+  background: var(--kitchen-bg) !important;
+  color: var(--kitchen-text) !important;
+}
+.kitchen-topbar {
+  background: var(--kitchen-card) !important;
+  border-bottom: 1px solid var(--kitchen-card-border);
+  color: var(--kitchen-text) !important;
+}
+.kitchen-topbar .muted {
+  color: var(--kitchen-muted) !important;
+}
+.order-card {
+  background: var(--kitchen-card) !important;
+  border: 1px solid var(--kitchen-card-border) !important;
+  color: var(--kitchen-text) !important;
+}
+.order-card.urgent {
+  border-color: var(--kitchen-urgent) !important;
+  box-shadow: 0 0 12px rgba(218, 54, 51, 0.3) !important;
+}
+.order-card .dish-row {
+  border-color: var(--kitchen-card-border) !important;
+}
+.order-card .dish-row.ready {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+.order-card .ready-btn {
+  background: var(--kitchen-card-border) !important;
+  color: var(--kitchen-text) !important;
+  border: none;
+}
+.order-card .ready-btn:hover:not(:disabled) {
+  background: var(--kitchen-ready) !important;
+}
+.order-card .order-ready-btn {
+  background: var(--kitchen-accent) !important;
+  color: #fff !important;
+}
+.order-card .order-ready-btn:disabled {
+  background: var(--kitchen-card-border) !important;
+  color: var(--kitchen-muted) !important;
+  cursor: not-allowed;
+}
+.kitchen-body-react .toast {
+  background: var(--kitchen-accent) !important;
+  color: #fff !important;
+}
