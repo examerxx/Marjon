@@ -20,6 +20,18 @@ function ProtectedRoute({ children }) {
   return isAuthenticated() ? children : <Navigate to="/login" replace />;
 }
 
+/* Role-based route guard — redirects non-admin roles to their dedicated pages */
+function RoleGuard({ children, allowed }) {
+  const user = JSON.parse(localStorage.getItem("marjon_user") || "{}");
+  const role = user?.role_slugs?.[0] || (user?.is_superadmin ? "superadmin" : "owner");
+  if (allowed && !allowed.includes(role)) {
+    if (role === "waiter") return <Navigate to="/waiter" replace />;
+    if (role === "kitchen") return <Navigate to="/kitchen" replace />;
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}
+
 const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   { path: "/waiter", element: <ProtectedRoute><WaiterPage /></ProtectedRoute> },

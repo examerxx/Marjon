@@ -239,43 +239,54 @@ export default function StaffRolePage({ role = "all" }) {
         <div><i className="bi bi-archive" /><span>Архив</span><strong>{archiveCount}</strong></div>
       </div>
 
-      {showForm ? (
-        <form className="staff-manager__form staff-manager__form--next" onSubmit={handleSubmit}>
-          <label className="staff-manager__photo-upload">
-            <input type="file" accept="image/*" onChange={handlePhoto} />
-            <span>{form.photo ? <img src={form.photo} alt="Фото сотрудника" /> : <i className="bi bi-camera" />}</span>
-            <em>Фото</em>
-          </label>
-          <label>
-            <span>ФИО</span>
-            <input name="full_name" value={form.full_name} onChange={handleChange} placeholder="Например: Sardor Kassa" />
-          </label>
-          <label>
-            <span>Номер телефона</span>
-            <input name="phone" value={form.phone} onChange={handleChange} placeholder="998901234567" />
-          </label>
-          {config.roleKey === "all" ? (
-            <label>
-              <span>Роль</span>
-              <select name="role" value={form.role} onChange={handleChange}>
-                {Object.values(roleConfigs).filter((item) => item.roleKey !== "all").map((item) => <option key={item.roleKey}>{item.roleLabel}</option>)}
-              </select>
-            </label>
-          ) : null}
-          <label>
-            <span>Доступ</span>
-            <input name="access" value={form.access} onChange={handleChange} placeholder="Например: Удаление блюд" />
-          </label>
-          <button type="submit">{editingId ? "Сохранить изменения" : "Добавить сотрудника"}</button>
-        </form>
-      ) : null}
+      {showForm && (
+        <div className="staff-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) toggleForm(); }}>
+          <div className="staff-modal">
+            <div className="staff-modal__header">
+              <h3>{editingId ? "Редактировать сотрудника" : "Добавить сотрудника"}</h3>
+              <button type="button" className="staff-modal__close" onClick={toggleForm}><i className="bi bi-x-lg" /></button>
+            </div>
+            <form className="staff-modal__form" onSubmit={handleSubmit}>
+              <label className="staff-manager__photo-upload">
+                <input type="file" accept="image/*" onChange={handlePhoto} />
+                <span>{form.photo ? <img src={form.photo} alt="Фото сотрудника" /> : <i className="bi bi-camera" />}</span>
+                <em>Фото</em>
+              </label>
+              <label>
+                <span>ФИО</span>
+                <input name="full_name" value={form.full_name} onChange={handleChange} placeholder="Например: Sardor Kassa" required />
+              </label>
+              <label>
+                <span>Номер телефона</span>
+                <input name="phone" value={form.phone} onChange={handleChange} placeholder="998901234567" required />
+              </label>
+              {config.roleKey === "all" ? (
+                <label>
+                  <span>Роль</span>
+                  <select name="role" value={form.role} onChange={handleChange}>
+                    {Object.values(roleConfigs).filter((item) => item.roleKey !== "all").map((item) => <option key={item.roleKey}>{item.roleLabel}</option>)}
+                  </select>
+                </label>
+              ) : null}
+              <label>
+                <span>Доступ</span>
+                <input name="access" value={form.access} onChange={handleChange} placeholder="Например: Удаление блюд" />
+              </label>
+              <div className="staff-modal__actions">
+                <button type="button" className="staff-modal__cancel" onClick={toggleForm}>Отмена</button>
+                <button type="submit" className="staff-modal__submit">{editingId ? "Сохранить" : "Добавить"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className="staff-manager__toolbar">
         <div className="staff-manager__tabs">
           <button className={activeTab === "active" ? "is-active" : ""} type="button" onClick={() => setActiveTab("active")}><i className="bi bi-check2" /> Активные</button>
           <button className={activeTab === "archived" ? "is-active" : ""} type="button" onClick={() => setActiveTab("archived")}><i className="bi bi-archive" /> Архивированные</button>
         </div>
-        <span className="staff-manager__hint">Все действия пока сохраняются локально до подключения backend POST.</span>
+        {/* hint removed — backend POST connected */}
       </div>
 
       <div className="staff-manager__table-wrap staff-manager__table-wrap--next">

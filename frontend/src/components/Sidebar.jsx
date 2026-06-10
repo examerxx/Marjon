@@ -98,6 +98,23 @@ const navItems = [
   { key: "reviews", label: "Отзывы", icon: "bi-chat-left", to: "/reviews" },
 ];
 
+/* Role-based access control for sidebar */
+const roleAccess = {
+  owner: null,       // null = see everything
+  superadmin: null,
+  manager: ["dashboard", "warehouse", "reports", "users", "settings", "nomenclature", "store", "reviews"],
+  cashier: ["dashboard", "store", "reports"],
+  waiter: [],        // waiter uses /waiter page, not admin sidebar
+  kitchen: [],       // kitchen uses /kitchen page
+  monoblock: ["dashboard", "store"],
+};
+
+function getVisibleNav(role) {
+  const access = roleAccess[role];
+  if (!access) return navItems; // owner/superadmin see all
+  return navItems.filter((item) => access.includes(item.key));
+}
+
 export default function Sidebar({ user }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -108,9 +125,10 @@ export default function Sidebar({ user }) {
   const accountRef = useRef(null);
   const role = user?.role_slugs?.[0] || (user?.is_superadmin ? "superadmin" : "owner");
   const displayName = user?.full_name || user?.email || "Owner";
+  const visibleNavItems = getVisibleNav(role);
 
   useEffect(() => {
-    const activeParent = navItems.find((item) => item.children?.some((child) => location.pathname === child.to));
+    const activeParent = visibleNavItems.find((item) => item.children?.some((child) => location.pathname === child.to));
     if (activeParent) {
       setPinnedMenu(activeParent.key);
       setOpenMenu(activeParent.key);
@@ -161,7 +179,7 @@ export default function Sidebar({ user }) {
       </div>
 
       <nav className="sidebar-nav" aria-label="Навигация">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const active = item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
           const hasChildren = Boolean(item.children?.length);
           const submenuOpen = openMenu === item.key || pinnedMenu === item.key;

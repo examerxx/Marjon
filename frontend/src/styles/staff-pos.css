@@ -584,3 +584,109 @@
   0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
   50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
 }
+
+/* ── Staff Modal ── */
+.staff-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+.staff-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 480px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  animation: modalIn 0.2s ease-out;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.staff-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 0;
+}
+.staff-modal__header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--mj-navy, #1B2A4A);
+  margin: 0;
+}
+.staff-modal__close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #888;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.staff-modal__close:hover { background: #f0f0f0; }
+.staff-modal__form {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.staff-modal__form label span {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 4px;
+}
+.staff-modal__form input,
+.staff-modal__form select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: border-color 0.15s;
+}
+.staff-modal__form input:focus,
+.staff-modal__form select:focus {
+  border-color: var(--mj-brand, #FF6B35);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255,107,53,0.1);
+}
+.staff-modal__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+.staff-modal__cancel {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.staff-modal__cancel:hover { background: #f5f5f5; }
+.staff-modal__submit {
+  flex: 1;
+  padding: 10px;
+  background: var(--mj-brand, #FF6B35);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.staff-modal__submit:hover { background: #e55a28; }

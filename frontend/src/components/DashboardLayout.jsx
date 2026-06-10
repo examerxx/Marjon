@@ -6,7 +6,7 @@ import Topbar from "./Topbar";
 import { clampToToday, todayInputValue } from "../utils/date";
 
 const pageMeta = {
-  "/": ["Owner Dashboard", "Ключевые показатели ресторана"],
+  "/": ["Дашборд", "Ключевые показатели ресторана"],
   "/warehouse": ["Склад", "Остатки и движение товаров"],
   "/warehouse/stock-in": ["Приход товаров", "Оформление поступлений"],
   "/warehouse/stock-out": ["Расход товаров", "Списание и выдача товаров"],
