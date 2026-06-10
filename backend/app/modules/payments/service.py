@@ -7,7 +7,7 @@ from app.modules.payments.models import Payment
 from app.modules.payments.repository import PaymentRepository
 from app.modules.payments.schemas import PaymentCreate
 from app.modules.pos.models import Order
-from app.shared.exceptions import NotFoundError
+from app.shared.exceptions import NotFoundError, ValidationError
 
 
 class PaymentService:
@@ -20,9 +20,15 @@ class PaymentService:
         order = result.scalar_one_or_none()
         if not order:
             raise NotFoundError("Order not found")
+        if order.status == "cancelled":
+            raise ValidationError("Cannot pay for a cancelled order")
+        if data.amount <= Decimal("0"):
+            raise ValidationError("Payment amount must be positive")
 
         change_given = None
         if data.method == "cash" and data.cash_received is not None:
+            if data.cash_received < data.amount:
+                raise ValidationError("Cash received is less than the payment amount")
             change_given = data.cash_received - data.amount
 
         payment = Payment(
@@ -35,12 +41,14 @@ class PaymentService:
             cash_received=data.cash_received,
             change_given=change_given,
         )
-        saved = await self.repo.save(payment)
-
+        # Single atomic transaction: the payment and the order status update
+        # must commit together, never one without the other.
+        self.db.add(payment)
         order.status = "completed"
         self.db.add(order)
         await self.db.commit()
-        return saved
+        await self.db.refresh(payment)
+        return payment
 
     async def list_for_order(self, company_id: UUID, order_id: UUID) -> list[Payment]:
         return await self.repo.get_by_order(company_id, order_id)

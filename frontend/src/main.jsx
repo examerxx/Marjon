@@ -4,6 +4,7 @@ import App from "./App.jsx";
 import "./styles/marjon-tokens.css";
 import "./styles/brand.css";
 import "./styles/dashboard.css";
+import "./styles/topbar-widgets.css";
 import "./styles/forms.css";
 import "./styles/tables.css";
 import "./styles/staff-pos.css";

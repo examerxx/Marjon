@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/marjon-logo.png";
+import logo from "../assets/marjon-logo.svg";
 import { api, logout } from "../api/client";
 
 async function ensureBranch() {

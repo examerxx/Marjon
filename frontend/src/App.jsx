@@ -12,6 +12,8 @@ import SectionPage from "./pages/SectionPage";
 import StaffRolePage from "./pages/StaffRolePage";
 import WaiterPage from "./pages/WaiterPage";
 import KitchenPage from "./pages/KitchenPage";
+import ZReportPage from "./pages/ZReportPage";
+import WarehousePage from "./pages/WarehousePage";
 import { isAuthenticated } from "./api/client";
 
 function ProtectedRoute({ children }) {
@@ -30,16 +32,18 @@ const router = createBrowserRouter([
     element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
     children: [
       { index: true, element: <OwnerDashboard /> },
-      { path: "warehouse", element: <PlaceholderPage eyebrow="Warehouse" title="Склад" text="Раздел склада будет подключен к остаткам и движениям товаров." /> },
-      { path: "warehouse/stock-in", element: <SectionPage eyebrow="Склад" title="Приход товаров" description="Окно оформления поступлений от поставщиков." items={[{ title: "Новый приход", text: "Добавьте товар, количество, цену и поставщика.", icon: "bi-box-arrow-in-down" }, { title: "Поставщик", text: "Связь поступления с поставщиком и документом.", icon: "bi-truck" }, { title: "Печать", text: "Подготовка накладной после приемки.", icon: "bi-printer" }]} /> },
-      { path: "warehouse/stock-out", element: <SectionPage eyebrow="Склад" title="Расход товаров" description="Окно списания и выдачи товаров со склада." items={[{ title: "Новый расход", text: "Укажите товар, количество и причину расхода.", icon: "bi-box-arrow-up" }, { title: "Причина", text: "Продажа, производство, списание или перемещение.", icon: "bi-list-check" }, { title: "Контроль", text: "Проверка остатков перед расходом.", icon: "bi-shield-check" }]} /> },
-      { path: "warehouse/balance", element: <SectionPage eyebrow="Склад" title="Остаток" description="Текущее состояние товаров и ингредиентов." items={[{ title: "Остатки", text: "Количество по складам и единицам измерения.", icon: "bi-boxes" }, { title: "Минимум", text: "Позиции, которые близки к минимальному остатку.", icon: "bi-exclamation-triangle" }, { title: "Стоимость", text: "Оценочная стоимость складских запасов.", icon: "bi-cash-stack" }]} /> },
-      { path: "warehouse/income-log", element: <SectionPage eyebrow="Склад" title="Журнал приходов" description="История всех поступлений товаров." items={[{ title: "История", text: "Список приходов по датам и поставщикам.", icon: "bi-clock-history" }, { title: "Фильтры", text: "Поиск по товару, поставщику и периоду.", icon: "bi-funnel" }, { title: "Документы", text: "Накладные и подтверждения поступлений.", icon: "bi-file-earmark-text" }]} /> },
-      { path: "warehouse/transfer", element: <SectionPage eyebrow="Склад" title="Перемещение" description="Перемещение товаров между складами или зонами." items={[{ title: "Откуда", text: "Выберите исходный склад или зону.", icon: "bi-arrow-up-right-square" }, { title: "Куда", text: "Выберите склад назначения.", icon: "bi-arrow-down-left-square" }, { title: "Статус", text: "Контроль подтверждения перемещения.", icon: "bi-check2-circle" }]} /> },
-      { path: "warehouse/inventory", element: <SectionPage eyebrow="Склад" title="Инвентаризация" description="Проверка фактических остатков." items={[{ title: "Пересчет", text: "Внесите фактическое количество товаров.", icon: "bi-clipboard-check" }, { title: "Расхождения", text: "Автоматическое выявление разницы.", icon: "bi-bar-chart" }, { title: "Акт", text: "Формирование результата инвентаризации.", icon: "bi-file-earmark-check" }]} /> },
-      { path: "warehouse/waste", element: <SectionPage eyebrow="Склад" title="Отход товаров" description="Учет отходов, порчи и технологических потерь." items={[{ title: "Новый отход", text: "Зафиксируйте товар, вес и причину.", icon: "bi-trash3" }, { title: "Причина", text: "Порча, производство или истечение срока.", icon: "bi-tags" }, { title: "Отчет", text: "Анализ потерь за период.", icon: "bi-graph-down" }]} /> },
+      { path: "warehouse", element: <WarehousePage /> },
+      { path: "warehouse/stock-in", element: <WarehousePage initialSection="incoming" /> },
+      { path: "warehouse/stock-out", element: <WarehousePage initialSection="expense" /> },
+      { path: "warehouse/balance", element: <WarehousePage initialSection="balance" /> },
+      { path: "warehouse/income-log", element: <WarehousePage initialSection="incoming-log" /> },
+      { path: "warehouse/transfer", element: <WarehousePage initialSection="transfer" /> },
+      { path: "warehouse/inventory", element: <WarehousePage initialSection="inventory" /> },
+      { path: "warehouse/write-off", element: <WarehousePage initialSection="write-off" /> },
+      { path: "warehouse/write-off-categories", element: <WarehousePage initialSection="write-off" /> },
+      { path: "warehouse/waste", element: <WarehousePage initialSection="waste" /> },
       { path: "reports", element: <AnalyticsPage /> },
-      { path: "reports/z-report", element: <SectionPage eyebrow="Отчеты" title="Z - Отчёт" description="Итоговый кассовый отчёт по закрытию смены." items={[{ title: "Итог смены", text: "Выручка, оплаты, возвраты и закрытие кассы.", icon: "bi-receipt-cutoff" }, { title: "Кассы", text: "Сводка по кассовым терминалам и ответственным.", icon: "bi-cash-stack" }, { title: "Печать", text: "Подготовка Z-отчёта для архива и контроля.", icon: "bi-printer" }]} /> },
+      { path: "reports/z-report", element: <ZReportPage /> },
       { path: "reports/orders", element: <SectionPage eyebrow="Отчеты" title="Отчёт по заказам" description="Аналитика заказов по статусам, каналам и периодам." items={[{ title: "Заказы", text: "Количество, сумма и средний чек по заказам.", icon: "bi-receipt" }, { title: "Статусы", text: "Новые, оплаченные, отменённые и завершённые заказы.", icon: "bi-list-check" }, { title: "Фильтры", text: "Период, филиал, касса, официант и канал продаж.", icon: "bi-funnel" }]} /> },
       { path: "reports/tables", element: <SectionPage eyebrow="Отчеты" title="Отчёт по столам" description="Загрузка столов, оборот и эффективность посадки." items={[{ title: "Загрузка зала", text: "Процент занятости и пиковые часы.", icon: "bi-grid-3x3-gap" }, { title: "Оборот стола", text: "Сколько заказов проходит через каждый стол.", icon: "bi-arrow-repeat" }, { title: "Выручка", text: "Продажи и средний чек по столам.", icon: "bi-graph-up-arrow" }]} /> },
       { path: "reports/waiters", element: <SectionPage eyebrow="Отчеты" title="Отчёт по официантам" description="Продажи, скорость и качество работы официантов." items={[{ title: "Продажи", text: "Выручка и количество заказов по официантам.", icon: "bi-person-lines-fill" }, { title: "Средний чек", text: "Сравнение эффективности персонала.", icon: "bi-bar-chart" }, { title: "Сервис", text: "Скорость обслуживания и закрытия заказов.", icon: "bi-stopwatch" }]} /> },

@@ -1,0 +1,41 @@
+# ── Python ──────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# ── Secrets & local config ──────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Databases & logs ────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# ── Node / frontend ─────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/build/
+.vite/
+
+# ── Editor / OS ─────────────────────────────────────────
+.idea/
+.vscode/
+.DS_Store
+desktop.ini
+Thumbs.db

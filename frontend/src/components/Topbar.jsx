@@ -1,11 +1,10 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { api, logout } from "../api/client";
-import { clampToToday, formatDateLabel, shiftDate, todayInputValue } from "../utils/date";
+import { api } from "../api/client";
+import { clampToToday, todayInputValue } from "../utils/date";
+import DatePicker from "./DatePicker";
+import GlobalSearch from "./GlobalSearch";
 
 export default function Topbar({ title = "Dashboard", subtitle, selectedDate, onSelectedDateChange }) {
-  const navigate = useNavigate();
-  const dateInputRef = useRef(null);
   const notificationsRef = useRef(null);
   const [today] = useState(() => todayInputValue());
   const [stockOpen, setStockOpen] = useState(false);
@@ -13,7 +12,6 @@ export default function Topbar({ title = "Dashboard", subtitle, selectedDate, on
   const [stockError, setStockError] = useState("");
   const [lowStock, setLowStock] = useState([]);
   const [ingredients, setIngredients] = useState([]);
-  const isToday = selectedDate >= today;
   const ingredientById = useMemo(() => new Map(ingredients.map((item) => [item.id, item])), [ingredients]);
   const visibleLowStock = useMemo(
     () => lowStock.filter((item) => Number(item.quantity || 0) <= Number(item.min_quantity || 0)).slice(0, 8),
@@ -39,44 +37,13 @@ export default function Topbar({ title = "Dashboard", subtitle, selectedDate, on
       text: "\u0417\u0430\u043a\u0430\u043d\u0447\u0438\u0432\u0430\u0435\u0442\u0441\u044f - \u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c 2 \u043a\u0433",
     }];
   }, [ingredientById, visibleLowStock]);
-
-  function handleLogout() {
-    logout();
-    navigate("/login", { replace: true });
-  }
+  const notificationCount = stockError ? 0 : stockNotifications.length;
+  const notificationLabel = notificationCount
+    ? `\u0423\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f: ${notificationCount}`
+    : "\u0423\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439 \u043d\u0435\u0442";
 
   function toggleSidebar() {
     document.getElementById("dashboardSidebar")?.classList.toggle("is-open");
-  }
-
-  function openDatePicker() {
-    const input = dateInputRef.current;
-    if (!input) return;
-
-    if (typeof input.showPicker === "function") {
-      input.showPicker();
-      return;
-    }
-
-    input.focus();
-    input.click();
-  }
-
-  function handleDateKeyDown(event) {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      openDatePicker();
-    }
-  }
-
-  function handleDateStep(event, days) {
-    event.stopPropagation();
-    onSelectedDateChange(clampToToday(shiftDate(selectedDate, days)));
-  }
-
-  function handleDateChange(event) {
-    if (!event.target.value) return;
-    onSelectedDateChange(clampToToday(event.target.value));
   }
 
   function loadLowStock() {
@@ -129,47 +96,37 @@ export default function Topbar({ title = "Dashboard", subtitle, selectedDate, on
         {subtitle ? <p>{subtitle}</p> : null}
       </div>
       <div className="topbar-actions">
-        <div
-          className="period-chip period-chip--date"
-          role="button"
-          tabIndex={0}
-          onClick={openDatePicker}
-          onKeyDown={handleDateKeyDown}
-        >
-          <i className="bi bi-calendar3" />
-          <span>{formatDateLabel(selectedDate)}</span>
-          <div className="period-chip__arrows" aria-label={"\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0434\u0430\u0442\u0443"}>
-            <button type="button" aria-label={"\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0438\u0439 \u0434\u0435\u043d\u044c"} disabled={isToday} onClick={(event) => handleDateStep(event, 1)}>
-              <i className="bi bi-chevron-up" />
-            </button>
-            <button type="button" aria-label={"\u041f\u0440\u0435\u0434\u044b\u0434\u0443\u0449\u0438\u0439 \u0434\u0435\u043d\u044c"} onClick={(event) => handleDateStep(event, -1)}>
-              <i className="bi bi-chevron-down" />
-            </button>
-          </div>
-          <input
-            ref={dateInputRef}
-            aria-label={"\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0434\u0430\u0442\u0443"}
-            className="period-chip__input"
-            type="date"
-            max={today}
-            value={selectedDate}
-            onChange={handleDateChange}
-          />
-        </div>
-        <div className="restaurant-pill">MARJON</div>
-        <div className="lang-switch">
-          <button className="is-active" type="button" data-lang="ru">RU</button>
-          <button type="button" data-lang="uz">UZ</button>
-        </div>
+        <DatePicker
+          value={selectedDate}
+          max={today}
+          onChange={(value) => onSelectedDateChange(clampToToday(value))}
+        />
+        <GlobalSearch />
         <div className="topbar-notification-wrap" ref={notificationsRef}>
-          <button className="topbar-icon topbar-notification" type="button" aria-label={"\u0423\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f"} onClick={toggleStockNotifications}>
+          <button
+            className={`topbar-icon topbar-notification ${stockOpen ? "is-open" : ""}`}
+            type="button"
+            aria-label={notificationLabel}
+            aria-haspopup="dialog"
+            aria-expanded={stockOpen}
+            onClick={toggleStockNotifications}
+          >
             <i className="bi bi-bell" />
+            {notificationCount ? (
+              <span className="topbar-notification__badge" aria-hidden="true">
+                {notificationCount > 99 ? "99+" : notificationCount}
+              </span>
+            ) : null}
           </button>
           {stockOpen ? (
-            <div className="stock-alert-popover">
+            <div className="stock-alert-popover" role="dialog" aria-label={"\u0421\u043a\u043b\u0430\u0434\u0441\u043a\u0438\u0435 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f"}>
               <div className="stock-alert-popover__head">
-                <button type="button" onClick={loadLowStock} disabled={stockLoading} aria-label={"\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c"}>
-                  <i className="bi bi-arrow-clockwise" />
+                <div>
+                  <span>{"\u0423\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f"}</span>
+                  <strong>{notificationCount ? `${notificationCount} ${notificationCount === 1 ? "\u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435" : "\u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0439"}` : "\u041d\u0435\u0442 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0439"}</strong>
+                </div>
+                <button className={stockLoading ? "is-loading" : ""} type="button" onClick={loadLowStock} disabled={stockLoading} aria-label={"\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c"}>
+                  <i className="bi bi-arrow-clockwise" aria-hidden="true" />
                 </button>
               </div>
               <div className="stock-alert-popover__body">
@@ -186,11 +143,13 @@ export default function Topbar({ title = "Dashboard", subtitle, selectedDate, on
                     </div>
                   );
                 }) : null}
+                {!stockLoading && !stockError && !stockNotifications.length ? (
+                  <p className="stock-alert-popover__empty">{"\u041d\u043e\u0432\u044b\u0445 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0439 \u043d\u0435\u0442"}</p>
+                ) : null}
               </div>
             </div>
           ) : null}
         </div>
-        <button className="btn btn-ghost logout-btn" type="button" onClick={handleLogout}>{"\u0412\u044b\u0439\u0442\u0438"} <i className="bi bi-box-arrow-right" /></button>
       </div>
     </header>
   );

@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import logo from "../assets/marjon-logo.png";
+import logo from "../assets/marjon-logo.svg";
 import { api, formatMoney, logout } from "../api/client";
 
 const tableStatuses = ["free", "occupied", "reserved"];
