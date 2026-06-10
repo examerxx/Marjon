@@ -2085,8 +2085,8 @@ body.dashboard-body,
 .dashboard-sidebar .sidebar-nav-item.has-submenu.is-open > .sidebar-link,
 .dashboard-sidebar .sidebar-nav-item.has-submenu.is-open > .sidebar-link--button,
 .dashboard-sidebar .sidebar-link.is-active {
-  min-height: 52px !important;
-  border-radius: 14px !important;
+  min-height: 48px !important;
+  border-radius: 13px !important;
 }
 
 .dashboard-sidebar .sidebar-submenu {
@@ -2162,15 +2162,10 @@ body.dashboard-body,
 .dashboard-sidebar .sidebar-nav-item.has-submenu:not(.is-open) > .sidebar-link:hover,
 .dashboard-sidebar .sidebar-nav-item.has-submenu:not(.is-open) > .sidebar-link--button:hover {
   min-height: 48px !important;
-  height: 48px !important;
   padding: 0 16px !important;
   border-radius: 13px !important;
   transform: none !important;
-  transition:
-    background 0.22s ease,
-    color 0.18s ease,
-    box-shadow 0.22s ease,
-    border-color 0.22s ease !important;
+  transition: background 0.18s ease, color 0.18s ease !important;
 }
 
 .dashboard-sidebar .sidebar-submenu {
@@ -9932,83 +9927,100 @@ html body .staff-manager__photo-upload > span > i {
 
 
 /* ══════════════════════════════════════════════════════
-   FIX BLOCK v6 — Login height, sidebar animation,
-   topbar radius, fonts, badge, hover fix
+   FIX BLOCK v7 — Login fit-screen, sidebar smooth,
+   link hover fix, popover arrow, period btn, dark shadows
    ═══════════════════════════════════════════════════ */
 
-/* 1. Login page — adapt to all viewport heights */
+/* 1. Login page — always fits viewport, no scrollbar */
 .login-pro-shell {
-  min-height: 100vh;
-  min-height: 100dvh;
-  overflow: auto !important;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  overflow: hidden !important;
+  grid-template-rows: 1fr !important;
 }
 .login-pro-brand {
-  min-height: auto !important;
-  padding: clamp(32px, 5vh, 80px) clamp(24px, 4vw, 64px) !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+.login-pro-brand__content {
+  max-height: 100%;
+  overflow: hidden;
 }
 .login-pro-panel {
-  min-height: auto !important;
-  padding: clamp(20px, 3vh, 64px) clamp(24px, 4vw, 64px) !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
 }
 .login-pro-card {
-  padding: clamp(24px, 2.8vh, 54px) clamp(24px, 3.2vw, 54px) !important;
+  padding: clamp(20px, 2.5vh, 54px) clamp(24px, 3vw, 54px) !important;
 }
 .login-pro-mark {
-  width: clamp(72px, 10vh, 120px) !important;
-  height: clamp(72px, 10vh, 120px) !important;
+  width: clamp(56px, 9vh, 120px) !important;
+  height: clamp(56px, 9vh, 120px) !important;
 }
 .login-pro-brand h1 {
-  font-size: clamp(36px, 5vh, 92px) !important;
-  margin: clamp(16px, 3vh, 42px) 0 clamp(10px, 2vh, 18px) !important;
+  font-size: clamp(28px, 5vh, 92px) !important;
+  margin: clamp(10px, 2vh, 42px) 0 clamp(6px, 1.5vh, 18px) !important;
 }
 .login-pro-brand p {
-  font-size: clamp(15px, 1.6vw, 28px) !important;
-  margin-bottom: clamp(16px, 3vh, 34px) !important;
+  font-size: clamp(14px, 1.5vw, 28px) !important;
+  margin-bottom: clamp(10px, 2vh, 34px) !important;
+  line-height: 1.3 !important;
 }
 .login-pro-bullets {
-  gap: clamp(10px, 1.5vh, 18px) !important;
+  gap: clamp(6px, 1vh, 18px) !important;
+}
+.login-pro-bullets span {
+  font-size: clamp(13px, 1.3vw, 20px) !important;
 }
 .login-pro-head h2 {
-  font-size: clamp(24px, 3.2vw, 48px) !important;
+  font-size: clamp(22px, 3vw, 48px) !important;
 }
 .login-pro-submit {
-  min-height: clamp(48px, 6vh, 70px) !important;
+  min-height: clamp(44px, 5.5vh, 70px) !important;
 }
 .login-pro-input-wrap {
-  min-height: clamp(48px, 6vh, 66px) !important;
+  min-height: clamp(44px, 5.5vh, 66px) !important;
 }
-@media (max-height: 700px) {
-  .login-pro-shell {
-    grid-template-columns: 1fr !important;
-    grid-template-rows: auto 1fr;
-  }
-  .login-pro-brand {
-    padding: 24px !important;
-  }
-  .login-pro-brand h1 { font-size: 28px !important; margin: 10px 0 6px !important; }
+@media (max-height: 640px) {
   .login-pro-brand p { display: none; }
   .login-pro-bullets { display: none; }
   .login-pro-mark { width: 48px !important; height: 48px !important; }
-  .login-pro-divider { margin: 16px 0 20px !important; }
-  .login-pro-field { margin-bottom: 12px !important; }
-  .login-pro-row { margin: 4px 0 16px !important; }
+  .login-pro-brand h1 { font-size: 24px !important; margin: 8px 0 4px !important; }
+}
+@media (max-width: 1020px) {
+  .login-pro-shell {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto 1fr !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 100dvh;
+    overflow-y: auto !important;
+  }
+  .login-pro-brand {
+    height: auto !important;
+    min-height: auto !important;
+    padding: 40px 24px !important;
+  }
 }
 
-/* 2. Sidebar collapse — smooth animation */
+/* 2. Sidebar collapse — smooth GPU-accelerated animation */
 .dashboard-sidebar {
-  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-              min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-              padding 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: width 0.22s ease-out, min-width 0.22s ease-out !important;
+  will-change: width;
   overflow: hidden;
 }
-.dashboard-sidebar .sidebar-brand,
-.dashboard-sidebar .sidebar-nav,
-.dashboard-sidebar .sidebar-link,
-.dashboard-sidebar .sidebar-link span,
+.dashboard-sidebar .sidebar-link span:not(.sidebar-icon),
+.dashboard-sidebar .sidebar-link__chevron,
 .dashboard-sidebar .sidebar-user__meta,
 .dashboard-sidebar .sidebar-user__arrow,
-.dashboard-sidebar .sidebar-account {
-  transition: opacity 0.2s ease, padding 0.2s ease, margin 0.2s ease !important;
+.dashboard-sidebar .brand-title,
+.dashboard-sidebar .brand-subtitle {
+  transition: opacity 0.16s ease !important;
 }
 .dashboard-sidebar.is-collapsed .sidebar-link span:not(.sidebar-icon),
 .dashboard-sidebar.is-collapsed .sidebar-link__chevron,
@@ -10017,26 +10029,39 @@ html body .staff-manager__photo-upload > span > i {
 .dashboard-sidebar.is-collapsed .brand-title,
 .dashboard-sidebar.is-collapsed .brand-subtitle {
   opacity: 0 !important;
-  width: 0 !important;
   overflow: hidden !important;
   white-space: nowrap !important;
-  transition: opacity 0.15s ease, width 0.15s ease !important;
 }
 .dashboard-main {
-  transition: margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: margin-left 0.22s ease-out !important;
 }
 
 /* 3. Dashboard topbar — remove border-radius */
 .dashboard-topbar {
-  border-top-left-radius: 0 !important;
-  border-top-right-radius: 0 !important;
   border-radius: 0 !important;
 }
 .dashboard-main {
   border-top-left-radius: 0 !important;
 }
 
-/* 4. Sidebar hover — disable auto-expand of submenus on hover */
+/* 3b. Sidebar links — no jiggle on hover */
+.dashboard-sidebar .sidebar-link,
+.dashboard-sidebar .sidebar-link--button,
+.dashboard-sidebar .sidebar-nav-item.has-submenu.is-open > .sidebar-link,
+.dashboard-sidebar .sidebar-nav-item.has-submenu.is-open > .sidebar-link--button,
+.dashboard-sidebar .sidebar-link.is-active,
+.dashboard-sidebar .sidebar-link:hover,
+.dashboard-sidebar .sidebar-link--button:hover,
+.dashboard-sidebar .sidebar-nav-item.has-submenu:not(.is-open) > .sidebar-link:hover,
+.dashboard-sidebar .sidebar-nav-item.has-submenu:not(.is-open) > .sidebar-link--button:hover {
+  min-height: 48px !important;
+  padding: 0 16px !important;
+  border-radius: 13px !important;
+  transform: none !important;
+  transition: background 0.18s ease, color 0.18s ease !important;
+}
+
+/* 4. Sidebar hover — disable auto-expand of submenus */
 .sidebar-nav-item.has-submenu:hover .sidebar-submenu {
   grid-template-rows: 0fr !important;
   opacity: 0 !important;
@@ -10047,7 +10072,6 @@ html body .staff-manager__photo-upload > span > i {
 .sidebar-nav-item.has-submenu:hover .sidebar-link__chevron {
   transform: rotate(0deg) !important;
 }
-/* Only expand when explicitly open (is-open class from React state) */
 .sidebar-nav-item.has-submenu.is-open .sidebar-submenu {
   grid-template-rows: 1fr !important;
   opacity: 1 !important;
@@ -10060,28 +10084,14 @@ html body .staff-manager__photo-upload > span > i {
   color: #fff !important;
 }
 
-/* 5. Fonts — apply site font everywhere */
+/* 5. Fonts — unified font-family */
 .mj-datepicker,
 .mj-datepicker__trigger,
 .mj-datepicker__value,
 .mj-calendar,
 .mj-calendar *,
-.mj-calendar__title strong,
-.mj-calendar__title span,
-.mj-calendar__weekdays span,
-.mj-calendar__day,
-.mj-calendar__months-grid button,
-.mj-calendar__year-switch strong,
-.mj-calendar__action,
-.mj-calendar__footer,
 .global-search__input,
-.global-search__group-title,
-.global-search__result strong,
 .topbar-icon,
-.topbar-heading h1,
-.topbar-heading p,
-.topbar-actions,
-.topbar-notification__badge,
 .dashboard-topbar,
 .dashboard-topbar * {
   font-family: var(--mj-font-body, Inter, "Plus Jakarta Sans", sans-serif) !important;
@@ -10091,7 +10101,31 @@ html body .staff-manager__photo-upload > span > i {
   font-size: 0.92rem !important;
 }
 
-/* 7. Notification badge — circle, no white border */
+/* 6. Notification popover — arrow visible + triangle */
+.stock-alert-popover {
+  overflow: visible !important;
+}
+.stock-alert-popover__body {
+  overflow-y: auto;
+  max-height: 340px;
+}
+.stock-alert-popover::before {
+  content: "" !important;
+  position: absolute !important;
+  top: -8px !important;
+  right: 22px !important;
+  width: 16px !important;
+  height: 10px !important;
+  transform: none !important;
+  border: none !important;
+  background: #ffffff !important;
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%) !important;
+}
+[data-theme="dark"] .stock-alert-popover::before {
+  background: #161b22 !important;
+}
+
+/* 7. Notification badge — circle, no border */
 .topbar-notification__badge {
   min-width: 22px !important;
   width: auto;
@@ -10102,8 +10136,34 @@ html body .staff-manager__photo-upload > span > i {
   font-size: 0.72rem !important;
   line-height: 22px !important;
 }
-[data-theme="dark"] .topbar-notification__badge {
-  border: none !important;
+
+/* 8. Period dropdown button span — fix color and centering */
+.period-dropdown__button {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.period-dropdown__button span {
+  display: flex !important;
+  align-items: center !important;
+}
+[data-theme="dark"] .period-dropdown__button span {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .period-dropdown__button strong {
+  color: #e6edf3 !important;
+}
+
+/* 9. Dark theme — remove white inset box-shadow everywhere */
+[data-theme="dark"] .stock-alert-popover {
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.5) !important;
+}
+[data-theme="dark"] .staff-manager__stat-card,
+[data-theme="dark"] .staff-manager__form {
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.3) !important;
+}
+[data-theme="dark"] .period-dropdown__button {
+  box-shadow: none !important;
 }
 
 /* Dark theme: calendar dropdown */
@@ -10124,27 +10184,15 @@ html body .staff-manager__photo-upload > span > i {
   color: #ff6b35 !important;
   background: rgba(255, 107, 61, 0.12) !important;
 }
-[data-theme="dark"] .mj-calendar__title strong {
-  color: #e6edf3 !important;
-}
-[data-theme="dark"] .mj-calendar__title span {
-  color: #8b949e !important;
-}
-[data-theme="dark"] .mj-calendar__weekdays span {
-  color: #8b949e !important;
-}
-[data-theme="dark"] .mj-calendar__day {
-  color: #e6edf3 !important;
-}
-[data-theme="dark"] .mj-calendar__day.is-outside {
-  color: #484f58 !important;
-}
+[data-theme="dark"] .mj-calendar__title strong { color: #e6edf3 !important; }
+[data-theme="dark"] .mj-calendar__title span { color: #8b949e !important; }
+[data-theme="dark"] .mj-calendar__weekdays span { color: #8b949e !important; }
+[data-theme="dark"] .mj-calendar__day { color: #e6edf3 !important; }
+[data-theme="dark"] .mj-calendar__day.is-outside { color: #484f58 !important; }
 [data-theme="dark"] .mj-calendar__day:hover:not(.is-disabled):not(.is-selected) {
   background: rgba(255, 107, 61, 0.15) !important;
 }
-[data-theme="dark"] .mj-calendar__footer {
-  border-top-color: #30363d !important;
-}
+[data-theme="dark"] .mj-calendar__footer { border-top-color: #30363d !important; }
 [data-theme="dark"] .mj-calendar__months-grid button {
   background: #21262d !important;
   border-color: #30363d !important;
@@ -10154,14 +10202,10 @@ html body .staff-manager__photo-upload > span > i {
   border-color: #ff6b35 !important;
   color: #ff6b35 !important;
 }
-[data-theme="dark"] .mj-calendar__action--ghost {
-  color: #8b949e !important;
-}
-[data-theme="dark"] .mj-calendar__action--accent {
-  color: #ff6b35 !important;
-}
+[data-theme="dark"] .mj-calendar__action--ghost { color: #8b949e !important; }
+[data-theme="dark"] .mj-calendar__action--accent { color: #ff6b35 !important; }
 
-/* Lucide icon sizing in topbar */
+/* Lucide icon sizing */
 .topbar-icon svg,
 .mj-datepicker__icon svg,
 .global-search__icon svg {
@@ -10169,4 +10213,3 @@ html body .staff-manager__photo-upload > span > i {
   height: 18px;
   stroke-width: 2;
 }
-
