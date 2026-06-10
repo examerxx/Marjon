@@ -8437,3 +8437,431 @@ body.dashboard-body,
   background: #161b22 !important;
   color: #e6edf3 !important;
 }
+
+/* ═══════════════════════════════════════════════
+   FIX BLOCK — Mobile Sidebar, Dark Theme Body,
+   Modal z-index, Photo Placeholder, Icons
+   ═══════════════════════════════════════════════ */
+
+/* ── 1. MOBILE SIDEBAR: fixed, hidden by default ── */
+@media (max-width: 768px) {
+  .dashboard-shell {
+    display: flex !important;
+    grid-template-columns: none !important;
+  }
+  .dashboard-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 280px !important;
+    height: 100vh !important;
+    z-index: 50 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    flex-shrink: 0 !important;
+  }
+  .dashboard-sidebar.is-open {
+    transform: translateX(0) !important;
+  }
+  .dashboard-sidebar::after {
+    display: none !important;
+  }
+  /* Don't collapse sidebar on mobile — always full when open */
+  .dashboard-sidebar.is-collapsed {
+    width: 280px !important;
+    min-width: 280px !important;
+  }
+  .dashboard-sidebar.is-collapsed .sidebar-nav__label,
+  .dashboard-sidebar.is-collapsed .sidebar-nav__chevron,
+  .dashboard-sidebar.is-collapsed .sidebar-nav__children,
+  .dashboard-sidebar.is-collapsed .sidebar-account__info {
+    display: block !important;
+  }
+  .dashboard-sidebar.is-collapsed .sidebar-nav__item {
+    justify-content: flex-start !important;
+    padding: 10px 14px !important;
+  }
+  .sidebar-collapse-btn {
+    display: none !important;
+  }
+  /* Main content takes full width */
+  .dashboard-main {
+    width: 100% !important;
+    margin-left: 0 !important;
+    border-top-left-radius: 0 !important;
+  }
+  .sidebar-collapsed .dashboard-main {
+    margin-left: 0 !important;
+  }
+  /* Show hamburger toggle */
+  .sidebar-toggle {
+    display: grid !important;
+    place-items: center;
+  }
+  /* Overlay behind sidebar */
+  .dashboard-sidebar.is-open ~ .dashboard-main::before {
+    content: "" !important;
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.4) !important;
+    z-index: 45 !important;
+  }
+}
+
+/* ── 2. MODAL z-index: overlay ABOVE topbar ── */
+.staff-modal-overlay {
+  z-index: 9999 !important;
+}
+
+/* ── 3. PHOTO PLACEHOLDER: SVG centered in square ── */
+.staff-manager__photo-upload > span {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.staff-manager__photo-upload > span > i {
+  font-size: 28px !important;
+  line-height: 1 !important;
+}
+
+/* ── 4. DARK THEME — comprehensive body/shell/main ── */
+[data-theme="dark"] body,
+[data-theme="dark"] body.dashboard-body,
+[data-theme="dark"] html {
+  background: #0d1117 !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] body.dashboard-body::before {
+  display: none !important;
+}
+[data-theme="dark"] .dashboard-shell {
+  background: #0d1117 !important;
+}
+[data-theme="dark"] .dashboard-main {
+  background: #0d1117 !important;
+  box-shadow: none !important;
+}
+[data-theme="dark"] .dashboard-sidebar {
+  background: linear-gradient(180deg, #010409 0%, #0d1117 100%) !important;
+}
+[data-theme="dark"] .dashboard-sidebar::after {
+  background: #0d1117 !important;
+}
+/* Topbar */
+[data-theme="dark"] .dashboard-topbar {
+  background: rgba(22, 27, 34, 0.95) !important;
+  border-color: #30363d !important;
+  backdrop-filter: blur(12px) !important;
+}
+[data-theme="dark"] .dashboard-topbar h1,
+[data-theme="dark"] .dashboard-topbar p,
+[data-theme="dark"] .topbar-heading h1,
+[data-theme="dark"] .topbar-heading p {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .topbar-icon {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .topbar-actions input,
+[data-theme="dark"] .topbar-actions select,
+[data-theme="dark"] .global-search input {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+/* Cards and surfaces */
+[data-theme="dark"] .card,
+[data-theme="dark"] .card-pad,
+[data-theme="dark"] .section-window {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .section-window__tile {
+  background: #21262d !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+/* KPI compact cards (finance, warehouse etc) */
+[data-theme="dark"] .kpi-card.compact,
+[data-theme="dark"] .kpi-grid .kpi-card {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .kpi-card .kpi-label {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .kpi-card .kpi-value {
+  color: #e6edf3 !important;
+}
+/* Tables */
+[data-theme="dark"] .data-table {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .data-table th {
+  background: #21262d !important;
+  color: #8b949e !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .data-table td {
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .data-table tr:hover td {
+  background: rgba(33, 38, 45, 0.5) !important;
+}
+[data-theme="dark"] .data-table a {
+  color: #58a6ff !important;
+}
+/* Form inputs everywhere */
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: #0d1117 !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] input::placeholder {
+  color: #484f58 !important;
+}
+/* Staff page */
+[data-theme="dark"] .staff-manager__stats div {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .staff-manager__table {
+  background: #161b22 !important;
+}
+[data-theme="dark"] .staff-manager__row {
+  border-color: #21262d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .staff-manager__row:hover {
+  background: #21262d !important;
+}
+[data-theme="dark"] .staff-manager__avatar {
+  background: #21262d !important;
+  color: #8b949e !important;
+}
+[data-theme="dark"] .staff-manager__add {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .staff-role-filter select {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+/* Staff modal dark */
+[data-theme="dark"] .staff-modal {
+  background: #161b22 !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .staff-modal input,
+[data-theme="dark"] .staff-modal select {
+  background: #0d1117 !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .staff-modal__close {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .staff-modal__close:hover {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .staff-manager__photo-upload > span {
+  background: #21262d !important;
+  border-color: rgba(255, 107, 69, 0.25) !important;
+  color: #ff6b35 !important;
+}
+/* Warehouse page */
+[data-theme="dark"] .warehouse-toolbar,
+[data-theme="dark"] .warehouse-summary {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-summary .kpi-card {
+  background: #21262d !important;
+}
+/* Z-Report page */
+[data-theme="dark"] .z-report-hero {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .z-report-kpi {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .z-report-card {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .z-report-receipt__body div {
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .z-report-method {
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .z-report-cash div {
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .z-report-warning {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .z-report-status {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .z-report-print-row {
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .z-report-print-panel__main {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .z-report-shift-close {
+  background: #21262d !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .z-report-filter select,
+[data-theme="dark"] .z-report-filter input {
+  background: #0d1117 !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+/* Menu page */
+[data-theme="dark"] .menu-search {
+  background: #21262d !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .menu-search__input {
+  color: #e6edf3 !important;
+  background: transparent !important;
+}
+[data-theme="dark"] .menu-card,
+[data-theme="dark"] .menu-item {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .menu-card:hover,
+[data-theme="dark"] .menu-item:hover {
+  background: #21262d !important;
+}
+/* Finance page */
+[data-theme="dark"] .empty-state {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .empty-state h3 {
+  color: #e6edf3 !important;
+}
+/* Placeholder page */
+[data-theme="dark"] .placeholder-page {
+  background: #161b22 !important;
+  color: #e6edf3 !important;
+}
+/* Section page */
+[data-theme="dark"] .section-header h2 {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .section-header .eyebrow {
+  color: #ff6b35 !important;
+}
+/* Typography catch-all */
+[data-theme="dark"] h1, [data-theme="dark"] h2,
+[data-theme="dark"] h3, [data-theme="dark"] h4 {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] p {
+  color: #c9d1d9 !important;
+}
+[data-theme="dark"] .eyebrow {
+  color: #ff6b35 !important;
+}
+/* Buttons */
+[data-theme="dark"] button:not(.btn):not([class*="submit"]):not(.sidebar-link--button) {
+  color: #e6edf3;
+}
+[data-theme="dark"] .btn-outline {
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .btn-outline:hover {
+  background: #21262d !important;
+}
+/* Scrollbar */
+[data-theme="dark"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 4px;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+/* Mobile sidebar dark */
+@media (max-width: 768px) {
+  [data-theme="dark"] .sidebar-toggle {
+    background: #21262d !important;
+    color: #e6edf3 !important;
+    border-color: #30363d !important;
+  }
+}
+/* Notification popover */
+[data-theme="dark"] .stock-alert-popover {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .stock-alert-item {
+  border-color: #30363d !important;
+}
+/* DatePicker */
+[data-theme="dark"] .marjon-datepicker,
+[data-theme="dark"] .custom-calendar {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .custom-calendar button {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .custom-calendar button:hover {
+  background: #21262d !important;
+}
+[data-theme="dark"] .custom-calendar .today {
+  background: #21262d !important;
+}
+/* Period dropdown and links */
+[data-theme="dark"] a {
+  color: #58a6ff;
+}
+/* Login page should NOT be dark */
+[data-theme="dark"] .login-shell {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 107, 61, 0.18), transparent 32%),
+    radial-gradient(circle at 86% 12%, rgba(16, 42, 76, 0.14), transparent 30%),
+    #0d1117 !important;
+}
+[data-theme="dark"] .login-card {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
