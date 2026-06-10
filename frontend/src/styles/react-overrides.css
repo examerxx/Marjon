@@ -9853,3 +9853,80 @@ html body .staff-manager__photo-upload > span > i {
   color: #e6edf3 !important;
 }
 
+
+/* ══════════════════════════════════════════════════════
+   FIX BLOCK v5 — Placeholder/empty states + tile shadows
+   ═══════════════════════════════════════════════════ */
+
+/* PlaceholderPage empty state — kill white gradient */
+[data-theme="dark"] .empty-state {
+  background: #161b22 !important;
+  background-image: none !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .empty-state__icon {
+  background: #21262d !important;
+  color: #484f58 !important;
+}
+[data-theme="dark"] .empty-state__icon i {
+  color: #484f58 !important;
+}
+[data-theme="dark"] .empty-state h3 {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .empty-state p {
+  color: #8b949e !important;
+}
+
+/* section-window__tile — kill white inset shadow */
+[data-theme="dark"] .section-window__tile {
+  background: #21262d !important;
+  background-image: none !important;
+  border-color: #30363d !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .section-window__tile h3 {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .section-window__tile p {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .section-window__icon {
+  background: rgba(255, 107, 69, 0.12) !important;
+  color: #ff6b35 !important;
+}
+
+/* section-window container — kill white gradient background */
+[data-theme="dark"] .section-window {
+  background: #161b22 !important;
+  background-image: none !important;
+}
+[data-theme="dark"] .section-window.card-pad::before {
+  background: linear-gradient(90deg, #ff6b35, rgba(255, 107, 69, 0)) !important;
+}
+
+/* Reports data-table borders */
+[data-theme="dark"] .data-table {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .data-table th {
+  background: #21262d !important;
+  color: #8b949e !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .data-table td {
+  background: #161b22 !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+
+/* Finance page — FinanceSales card wrapper */
+[data-theme="dark"] .finance-sales,
+[data-theme="dark"] .finance-sales__wrap {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+}
+
