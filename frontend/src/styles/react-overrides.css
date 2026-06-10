@@ -10340,3 +10340,44 @@ html body .staff-manager__photo-upload > span > i {
 [data-theme="dark"] .period-switcher .btn-ghost {
   color: var(--mj-brand-2, #ff8f5a) !important;
 }
+
+/* ══════════════════════════════════════════════════════
+   FIX BLOCK v9b — topbar hover glow (match calendar)
+   ═══════════════════════════════════════════════════ */
+
+/* Search field hover — orange glow like calendar trigger */
+.global-search__field:hover {
+  border-color: rgba(255, 107, 61, 0.5) !important;
+  box-shadow: 0 6px 18px rgba(255, 107, 61, 0.12) !important;
+}
+.global-search__field:focus-within,
+.global-search.is-open .global-search__field {
+  border-color: var(--accent, #ff6b35) !important;
+  box-shadow: 0 0 0 4px rgba(255, 107, 61, 0.14) !important;
+}
+
+/* Topbar icon buttons (theme + notification) — orange glow on hover */
+.topbar-icon:hover {
+  border-color: rgba(255, 107, 61, 0.5) !important;
+  box-shadow: 0 6px 18px rgba(255, 107, 61, 0.12) !important;
+  color: var(--mj-brand, #ff6b35) !important;
+}
+.topbar-icon:hover svg {
+  color: var(--mj-brand, #ff6b35) !important;
+  stroke: var(--mj-brand, #ff6b35) !important;
+}
+
+/* Dark theme hover — same glow, adjusted */
+[data-theme="dark"] .global-search__field:hover {
+  border-color: rgba(255, 107, 61, 0.45) !important;
+  box-shadow: 0 6px 22px rgba(255, 107, 61, 0.15) !important;
+}
+[data-theme="dark"] .topbar-icon:hover {
+  border-color: rgba(255, 107, 61, 0.45) !important;
+  box-shadow: 0 6px 22px rgba(255, 107, 61, 0.15) !important;
+  color: var(--mj-brand, #ff6b35) !important;
+}
+[data-theme="dark"] .topbar-icon:hover svg {
+  color: var(--mj-brand, #ff6b35) !important;
+  stroke: var(--mj-brand, #ff6b35) !important;
+}
