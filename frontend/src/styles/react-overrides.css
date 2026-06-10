@@ -9167,3 +9167,409 @@ html body .staff-manager__photo-upload > span > i {
 [data-theme="dark"] .warehouse-grid {
   color: #e6edf3 !important;
 }
+
+/* ══════════════════════════════════════════════════════
+   FIX BLOCK v3 — Comprehensive dark theme + mobile
+   ═══════════════════════════════════════════════════ */
+
+/* ── 1. MOBILE — reduce side padding ── */
+@media (max-width: 768px) {
+  html body .dashboard-content {
+    padding: 12px 12px 24px !important;
+  }
+  html body .dashboard-topbar {
+    padding: 12px 12px !important;
+  }
+  html body .kpi-grid,
+  html body .kpi-grid--premium {
+    gap: 10px !important;
+  }
+  html body .premium-kpi {
+    padding: 16px !important;
+    min-height: 130px !important;
+    border-radius: 20px !important;
+  }
+  html body .owner-main-grid,
+  html body .owner-widgets {
+    gap: 12px !important;
+  }
+  html body .card.card-pad {
+    padding: 16px !important;
+  }
+  html body .warehouse-workspace__content {
+    padding: 12px !important;
+  }
+  html body .warehouse-board {
+    padding: 16px !important;
+    border-radius: 20px !important;
+  }
+  html body .warehouse-metrics {
+    gap: 8px !important;
+  }
+  html body .staff-manager__hero {
+    padding: 16px !important;
+  }
+}
+
+/* ── 2. TOPBAR — datepicker & buttons dark ── */
+[data-theme="dark"] .mj-datepicker__trigger {
+  background: #21262d !important;
+  background-image: none !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .mj-datepicker__trigger:hover {
+  border-color: rgba(255, 107, 61, 0.5) !important;
+}
+[data-theme="dark"] .mj-datepicker__icon {
+  color: #ff6b35 !important;
+}
+[data-theme="dark"] .mj-datepicker__caret {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .global-search__field {
+  background: #21262d !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .global-search__input {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .global-search__icon {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .global-search__panel {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .topbar-icon {
+  background: transparent !important;
+  background-image: none !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .topbar-notification {
+  background: transparent !important;
+  background-image: none !important;
+  color: #e6edf3 !important;
+}
+
+/* ── 3. DASHBOARD KPI cards — restore gradients in dark ── */
+[data-theme="dark"] .kpi-grid--premium .premium-kpi {
+  background:
+    radial-gradient(circle at 88% 10%, rgba(255, 107, 69, 0.10), transparent 34%),
+    linear-gradient(180deg, rgba(22, 27, 34, 0.98), rgba(28, 33, 40, 0.94)) !important;
+  background-image:
+    radial-gradient(circle at 88% 10%, rgba(255, 107, 69, 0.10), transparent 34%),
+    linear-gradient(180deg, rgba(22, 27, 34, 0.98), rgba(28, 33, 40, 0.94)) !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+}
+[data-theme="dark"] .kpi-grid--premium .premium-kpi::before {
+  background: none !important;
+  display: none !important;
+}
+[data-theme="dark"] .premium-kpi--orders {
+  background:
+    radial-gradient(circle at 88% 10%, rgba(59, 130, 246, 0.10), transparent 34%),
+    linear-gradient(180deg, rgba(22, 27, 34, 0.98), rgba(28, 33, 40, 0.94)) !important;
+}
+[data-theme="dark"] .premium-kpi--avg {
+  background:
+    radial-gradient(circle at 88% 10%, rgba(139, 92, 246, 0.10), transparent 34%),
+    linear-gradient(180deg, rgba(22, 27, 34, 0.98), rgba(28, 33, 40, 0.94)) !important;
+}
+[data-theme="dark"] .premium-kpi--tables {
+  background:
+    radial-gradient(circle at 88% 10%, rgba(6, 182, 212, 0.10), transparent 34%),
+    linear-gradient(180deg, rgba(22, 27, 34, 0.98), rgba(28, 33, 40, 0.94)) !important;
+}
+/* KPI icon circles — dark with accent */
+[data-theme="dark"] .premium-kpi__icon {
+  background: rgba(255, 107, 69, 0.15) !important;
+  color: #ff6b35 !important;
+}
+/* Trend/badge pills on KPI cards */
+[data-theme="dark"] .kpi-grid--premium .trend,
+[data-theme="dark"] .premium-kpi .trend {
+  background: rgba(255, 107, 69, 0.10) !important;
+  border-color: rgba(255, 107, 69, 0.25) !important;
+  color: #ff8c5a !important;
+}
+
+/* ── 4. DASHBOARD buttons — period/details/ghost ── */
+[data-theme="dark"] .period-switcher__details,
+[data-theme="dark"] .section-header .btn-ghost,
+[data-theme="dark"] .btn.btn-ghost {
+  background: #21262d !important;
+  background-image: none !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+  box-shadow: none !important;
+}
+[data-theme="dark"] .period-switcher__details:hover,
+[data-theme="dark"] .section-header .btn-ghost:hover,
+[data-theme="dark"] .btn.btn-ghost:hover {
+  background: #30363d !important;
+  border-color: #484f58 !important;
+}
+/* Revenue insight badge */
+[data-theme="dark"] .revenue-insight__badge {
+  background: rgba(255, 107, 69, 0.15) !important;
+  color: #ff8c5a !important;
+  border-color: rgba(255, 107, 69, 0.25) !important;
+}
+/* Revenue insight icon */
+[data-theme="dark"] .revenue-insight__icon {
+  background: rgba(255, 107, 69, 0.12) !important;
+  color: #ff6b35 !important;
+}
+/* Section eyebrow */
+[data-theme="dark"] .eyebrow {
+  color: #ff6b35 !important;
+}
+/* Section header h2 */
+[data-theme="dark"] .section-header h2 {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .section-header p {
+  color: #8b949e !important;
+}
+
+/* ── 5. TOP DISHES ── */
+[data-theme="dark"] .top-dish {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .top-dish__rank {
+  color: #fff !important;
+}
+[data-theme="dark"] .top-dish__body strong {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .top-dish__price {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .top-dish__bar i {
+  background: linear-gradient(90deg, #ff6b35, #ff8c5a) !important;
+}
+[data-theme="dark"] .badge.badge-info {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #58a6ff !important;
+  border-color: rgba(59, 130, 246, 0.25) !important;
+}
+
+/* ── 6. STAFF PAGE — tabs, badges, actions ── */
+[data-theme="dark"] .staff-manager__tabs {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .staff-manager__tabs button {
+  background: transparent !important;
+  color: #8b949e !important;
+  border-color: transparent !important;
+}
+[data-theme="dark"] .staff-manager__tabs .is-active,
+[data-theme="dark"] .staff-manager__tabs button.is-active {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+}
+/* Role badges — keep color accent, dark bg */
+[data-theme="dark"] .staff-manager__role {
+  background: rgba(59, 130, 246, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  color: #58a6ff !important;
+}
+/* Status badges — keep green accent, dark bg */
+[data-theme="dark"] .staff-manager__status {
+  background: rgba(46, 160, 67, 0.12) !important;
+  border-color: rgba(46, 160, 67, 0.3) !important;
+  color: #3fb950 !important;
+}
+[data-theme="dark"] .staff-manager__status.is-archived {
+  background: rgba(139, 148, 158, 0.12) !important;
+  border-color: rgba(139, 148, 158, 0.3) !important;
+  color: #8b949e !important;
+}
+/* Action buttons */
+[data-theme="dark"] .staff-manager__actions button {
+  background: #21262d !important;
+  border-color: #30363d !important;
+  color: #58a6ff !important;
+}
+[data-theme="dark"] .staff-manager__actions button:last-child {
+  border-color: rgba(248, 81, 73, 0.4) !important;
+  color: #f85149 !important;
+}
+[data-theme="dark"] .staff-manager__actions button:hover {
+  background: #30363d !important;
+}
+/* Staff KPI stat cards (icon backgrounds) */
+[data-theme="dark"] .staff-manager__stats i[class*="bi-"] {
+  background: rgba(255, 107, 69, 0.12) !important;
+  color: #ff6b35 !important;
+}
+/* Staff hero section */
+[data-theme="dark"] .staff-manager__hero {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .staff-manager__hero h2 {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .staff-manager__hero p {
+  color: #8b949e !important;
+}
+/* Filter select */
+[data-theme="dark"] .staff-manager__filter select {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+/* Staff table rows */
+[data-theme="dark"] .staff-manager__table tr {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .staff-manager__table tr:hover {
+  background: #1c2128 !important;
+}
+[data-theme="dark"] .staff-manager__table th {
+  background: #21262d !important;
+  color: #8b949e !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .staff-manager__table td {
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+/* Staff add button */
+[data-theme="dark"] .staff-manager__add {
+  background: linear-gradient(135deg, #ff6b35, #e85d26) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+/* ── 7. FINANCE PAGE — empty state ── */
+[data-theme="dark"] .empty-state {
+  background: #161b22 !important;
+  color: #8b949e !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .empty-state__icon {
+  background: #21262d !important;
+  color: #8b949e !important;
+}
+[data-theme="dark"] .empty-state h3 {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .empty-state p {
+  color: #8b949e !important;
+}
+/* Finance KPI cards */
+[data-theme="dark"] .finance-kpi,
+[data-theme="dark"] .finance-stats article,
+[data-theme="dark"] .finance-card {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+
+/* ── 8. WAREHOUSE KPI — restore dark gradients ── */
+[data-theme="dark"] .warehouse-metrics article,
+[data-theme="dark"] .warehouse-metrics > div {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 91, 46, 0.10), transparent 38%),
+    linear-gradient(145deg, #161b22, #1c2128) !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-board {
+  background:
+    radial-gradient(circle at 94% 0%, rgba(255, 91, 46, 0.06), transparent 32%),
+    linear-gradient(145deg, #161b22, #1c2128) !important;
+  border-color: #30363d !important;
+}
+
+/* ── 9. GLOBAL — all cards and borders ── */
+[data-theme="dark"] .card {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+}
+[data-theme="dark"] .card h2,
+[data-theme="dark"] .card h3 {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .card p {
+  color: #8b949e !important;
+}
+
+/* Quick actions card */
+[data-theme="dark"] .quick-actions a {
+  background: #21262d !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .quick-actions a:hover {
+  background: #30363d !important;
+  border-color: #484f58 !important;
+}
+[data-theme="dark"] .quick-actions a i {
+  color: #ff6b35 !important;
+}
+[data-theme="dark"] .quick-actions a small {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .quick-actions__metric {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .quick-actions__metric strong {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .quick-actions__live {
+  color: #3fb950 !important;
+}
+
+/* Shift summary card */
+[data-theme="dark"] .shift-summary-card {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .shift-summary-card__status {
+  background: rgba(46, 160, 67, 0.12) !important;
+  color: #3fb950 !important;
+}
+[data-theme="dark"] .shift-summary-card__primary {
+  background: linear-gradient(135deg, #ff6b35, #e85d26) !important;
+  color: #fff !important;
+}
+[data-theme="dark"] .shift-summary-card__link {
+  color: #58a6ff !important;
+}
+[data-theme="dark"] .shift-summary-card__alert {
+  background: rgba(248, 81, 73, 0.08) !important;
+  border-color: rgba(248, 81, 73, 0.2) !important;
+}
+
+/* ── 10. GENERAL fixes ── */
+/* All borders should be dark, not white */
+[data-theme="dark"] select {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+/* Scrollbar */
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: #0d1117 !important;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #30363d !important;
+}
+
