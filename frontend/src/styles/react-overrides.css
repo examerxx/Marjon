@@ -10213,3 +10213,43 @@ html body .staff-manager__photo-upload > span > i {
   height: 18px;
   stroke-width: 2;
 }
+
+/* ══════════════════════════════════════════════════════
+   FIX BLOCK v8 — hide brand <1024, calendar weekends,
+   dark inset box-shadow removal
+   ═══════════════════════════════════════════════════ */
+
+/* 1. Hide login brand section on narrow screens */
+@media (max-width: 1024px) {
+  .login-pro-brand {
+    display: none !important;
+  }
+  .login-pro-shell {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* 2. Calendar — future disabled weekend days get same opacity as weekdays */
+.mj-calendar__day.is-disabled {
+  opacity: 0.45 !important;
+  color: #d6dbe3 !important;
+  cursor: not-allowed !important;
+}
+.mj-calendar__day.is-disabled.is-weekend {
+  color: #d6dbe3 !important;
+}
+[data-theme="dark"] .mj-calendar__day.is-disabled {
+  color: #484f58 !important;
+}
+
+/* 3. Dark theme — kill inset box-shadow on toolbar/period controls */
+[data-theme="dark"] .period-chip,
+[data-theme="dark"] .restaurant-pill,
+[data-theme="dark"] .lang-switch,
+[data-theme="dark"] .topbar-icon,
+[data-theme="dark"] .logout-btn,
+[data-theme="dark"] .period-switcher__details,
+[data-theme="dark"] .revenue-period-dropdown__trigger,
+[data-theme="dark"] .section-header .btn-ghost {
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.2) !important;
+}
