@@ -6,7 +6,7 @@ import Topbar from "./Topbar";
 import { clampToToday, todayInputValue } from "../utils/date";
 
 const pageMeta = {
-  "/": ["Owner Dashboard", "Ключевые показатели ресторана"],
+  "/": ["Дашборд", "Ключевые показатели ресторана"],
   "/warehouse": ["Склад", "Остатки и движение товаров"],
   "/warehouse/stock-in": ["Приход товаров", "Оформление поступлений"],
   "/warehouse/stock-out": ["Расход товаров", "Списание и выдача товаров"],
@@ -14,6 +14,8 @@ const pageMeta = {
   "/warehouse/income-log": ["Журнал приходов", "История поступлений"],
   "/warehouse/transfer": ["Перемещение", "Движение между складами"],
   "/warehouse/inventory": ["Инвентаризация", "Проверка фактических остатков"],
+  "/warehouse/write-off": ["Списание", "Списание товаров и актов"],
+  "/warehouse/write-off-categories": ["Категории списания", "Причины и категории списания"],
   "/warehouse/waste": ["Отход товаров", "Потери и списания"],
   "/reports": ["Отчеты", "Продажи и динамика"],
   "/reports/z-report": ["Z - Отчёт", "Итоговый кассовый отчёт смены"],

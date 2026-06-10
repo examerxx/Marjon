@@ -1,6 +1,7 @@
-﻿import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import logo from "../assets/marjon-logo.png";
+﻿import { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import logo from "../assets/marjon-logo.svg";
+import { logout } from "../api/client";
 
 const navItems = [
   { key: "dashboard", label: "Дашборд", icon: "bi-bar-chart-line", to: "/" },
@@ -16,7 +17,9 @@ const navItems = [
       { key: "income-log", label: "Журнал приходов", to: "/warehouse/income-log", icon: "bi-clock-history" },
       { key: "transfer", label: "Перемещение", to: "/warehouse/transfer", icon: "bi-arrow-left-right" },
       { key: "inventory", label: "Инвентаризация", to: "/warehouse/inventory", icon: "bi-clipboard-check" },
-      { key: "waste", label: "Отход товаров", to: "/warehouse/waste", icon: "bi-trash3" },
+      { key: "write-off", label: "Списание", to: "/warehouse/write-off", icon: "bi-trash3" },
+      { key: "write-off-categories", label: "Категории списания", to: "/warehouse/write-off-categories", icon: "bi-tags" },
+      { key: "waste", label: "Отход товаров", to: "/warehouse/waste", icon: "bi-recycle" },
     ],
   },
   {
@@ -95,14 +98,37 @@ const navItems = [
   { key: "reviews", label: "Отзывы", icon: "bi-chat-left", to: "/reviews" },
 ];
 
+/* Role-based access control for sidebar */
+const roleAccess = {
+  owner: null,       // null = see everything
+  superadmin: null,
+  manager: ["dashboard", "warehouse", "reports", "users", "settings", "nomenclature", "store", "reviews"],
+  cashier: ["dashboard", "store", "reports"],
+  waiter: [],        // waiter uses /waiter page, not admin sidebar
+  kitchen: [],       // kitchen uses /kitchen page
+  monoblock: ["dashboard", "store"],
+};
+
+function getVisibleNav(role) {
+  const access = roleAccess[role];
+  if (!access) return navItems; // owner/superadmin see all
+  return navItems.filter((item) => access.includes(item.key));
+}
+
 export default function Sidebar({ user }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [openMenu, setOpenMenu] = useState("");
   const [pinnedMenu, setPinnedMenu] = useState("");
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [lang, setLang] = useState(() => localStorage.getItem("marjon_lang") || "ru");
+  const accountRef = useRef(null);
   const role = user?.role_slugs?.[0] || (user?.is_superadmin ? "superadmin" : "owner");
+  const displayName = user?.full_name || user?.email || "Owner";
+  const visibleNavItems = getVisibleNav(role);
 
   useEffect(() => {
-    const activeParent = navItems.find((item) => item.children?.some((child) => location.pathname === child.to));
+    const activeParent = visibleNavItems.find((item) => item.children?.some((child) => location.pathname === child.to));
     if (activeParent) {
       setPinnedMenu(activeParent.key);
       setOpenMenu(activeParent.key);
@@ -111,6 +137,34 @@ export default function Sidebar({ user }) {
       setOpenMenu("");
     }
   }, [location.pathname]);
+
+  useEffect(() => { setAccountOpen(false); }, [location.pathname]);
+
+  useEffect(() => {
+    if (!accountOpen) return undefined;
+    function onDocClick(event) {
+      if (!accountRef.current?.contains(event.target)) setAccountOpen(false);
+    }
+    function onKey(event) {
+      if (event.key === "Escape") setAccountOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [accountOpen]);
+
+  function handleLogout() {
+    logout();
+    navigate("/login", { replace: true });
+  }
+
+  function selectLang(code) {
+    setLang(code);
+    localStorage.setItem("marjon_lang", code);
+  }
 
   return (
     <aside className="dashboard-sidebar" id="dashboardSidebar">
@@ -125,7 +179,7 @@ export default function Sidebar({ user }) {
       </div>
 
       <nav className="sidebar-nav" aria-label="Навигация">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const active = item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
           const hasChildren = Boolean(item.children?.length);
           const submenuOpen = openMenu === item.key || pinnedMenu === item.key;
@@ -197,16 +251,76 @@ export default function Sidebar({ user }) {
         })}
       </nav>
 
-      <div className="sidebar-user">
-        <div className="sidebar-user__avatar">
-          <img src={logo} alt="MARJON" className="sidebar-user-logo" decoding="async" />
-        </div>
-        <div className="sidebar-user__meta">
-          <strong>{user?.full_name || user?.email || "Owner"}</strong>
-          <span>{role}</span>
-          <em>{user?.company_name || "MARJON"}</em>
-        </div>
-        <i className="bi bi-chevron-right sidebar-user__arrow" aria-hidden="true" />
+      <div className={`sidebar-account ${accountOpen ? "is-open" : ""}`} ref={accountRef}>
+        {accountOpen ? (
+          <div className="sidebar-account__menu" role="menu">
+            <div className="sidebar-account__head">
+              <div className="sidebar-account__head-avatar">
+                <img src={logo} alt="MARJON" decoding="async" />
+              </div>
+              <div className="sidebar-account__head-meta">
+                <strong>{displayName}</strong>
+                <span>{user?.company_name || "MARJON"}</span>
+              </div>
+            </div>
+            <Link className="sidebar-account__item" to="/settings/profile" role="menuitem" onClick={() => setAccountOpen(false)}>
+              <i className="bi bi-person-gear" />
+              <span>Настройка профиля</span>
+            </Link>
+            <Link className="sidebar-account__item" to="/settings/support" role="menuitem" onClick={() => setAccountOpen(false)}>
+              <i className="bi bi-headset" />
+              <span>Тех. поддержка</span>
+            </Link>
+
+            <div className="sidebar-account__lang">
+              <span className="sidebar-account__lang-label">
+                <i className="bi bi-translate" />
+                Язык
+              </span>
+              <div className="sidebar-account__lang-switch" role="group" aria-label="Выбор языка">
+                <button
+                  type="button"
+                  className={lang === "ru" ? "is-active" : ""}
+                  onClick={() => selectLang("ru")}
+                  aria-pressed={lang === "ru"}
+                >
+                  RU
+                </button>
+                <button
+                  type="button"
+                  className={lang === "uz" ? "is-active" : ""}
+                  onClick={() => selectLang("uz")}
+                  aria-pressed={lang === "uz"}
+                >
+                  UZ
+                </button>
+              </div>
+            </div>
+
+            <button type="button" className="sidebar-account__item sidebar-account__item--danger" role="menuitem" onClick={handleLogout}>
+              <i className="bi bi-box-arrow-right" />
+              <span>Выйти</span>
+            </button>
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          className="sidebar-user sidebar-user--button"
+          onClick={() => setAccountOpen((v) => !v)}
+          aria-haspopup="menu"
+          aria-expanded={accountOpen}
+        >
+          <div className="sidebar-user__avatar">
+            <img src={logo} alt="MARJON" className="sidebar-user-logo" decoding="async" />
+          </div>
+          <div className="sidebar-user__meta">
+            <strong>{displayName}</strong>
+            <span>{role}</span>
+            <em>{user?.company_name || "MARJON"}</em>
+          </div>
+          <i className="bi bi-chevron-right sidebar-user__arrow" aria-hidden="true" />
+        </button>
       </div>
     </aside>
   );

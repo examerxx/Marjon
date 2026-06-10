@@ -1,7 +1,7 @@
 ﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, login } from "../api/client";
-import logo from "../assets/marjon-logo.png";
+import logo from "../assets/marjon-logo.svg";
 
 export default function LoginPage() {
   const navigate = useNavigate();

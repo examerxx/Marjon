@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import logo from "../assets/marjon-logo.png";
+import logo from "../assets/marjon-logo.svg";
 import { api, formatMoney, logout } from "../api/client";
 
 const tableStatuses = ["free", "occupied", "reserved"];
@@ -385,11 +385,10 @@ export default function WaiterPage({ mode = "tables" }) {
       api.get("/inventory/products"),
       api.get("/inventory/categories"),
     ]);
-    const toArray = (d) => (Array.isArray(d) ? d : d.items || []);
     setBranch(activeBranch);
-    setOrders(toArray(ordersRes.data));
-    setProducts(toArray(productsRes.data).filter((product) => product.is_active !== false && product.is_available !== false));
-    setCategories(toArray(categoriesRes.data).filter((category) => category.is_active !== false));
+    setOrders(ordersRes.data);
+    setProducts(productsRes.data.filter((product) => product.is_active && product.is_available));
+    setCategories(categoriesRes.data.filter((category) => category.is_active));
   }
 
   useEffect(() => {

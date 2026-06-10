@@ -144,7 +144,7 @@ export default function GlobalSearch() {
           ref={inputRef}
           type="text"
           className="global-search__input"
-          placeholder="Поиск: моноблок, о��ициант, блюдо…"
+          placeholder="Поиск…"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
