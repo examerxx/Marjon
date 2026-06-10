@@ -210,3 +210,92 @@
   background: #21262d !important;
   color: #e6edf3 !important;
 }
+
+/* ── Dark Theme fix: KPI cards, chart, top-dishes ── */
+[data-theme="dark"] .premium-kpi {
+  background: rgba(22, 27, 34, 0.92) !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .premium-kpi .kpi-label,
+[data-theme="dark"] .premium-kpi .premium-kpi__label {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .premium-kpi .kpi-value,
+[data-theme="dark"] .premium-kpi .premium-kpi__value {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .premium-kpi .kpi-note,
+[data-theme="dark"] .premium-kpi small {
+  color: #8b949e !important;
+}
+[data-theme="dark"] .premium-kpi .trend {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .chart-card,
+[data-theme="dark"] .premium-chart {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .top-dishes-card {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .top-dishes-card h2,
+[data-theme="dark"] .top-dishes-card h3,
+[data-theme="dark"] .chart-card h2 {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .dish-rank {
+  background: #21262d !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .revenue-insight {
+  background: #21262d !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .shift-summary-card,
+[data-theme="dark"] .quick-actions {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .quick-actions a {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .quick-actions a:hover {
+  background: #30363d !important;
+}
+[data-theme="dark"] .period-dropdown__button {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .period-dropdown__menu {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .period-dropdown__menu button {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .period-dropdown__menu button:hover,
+[data-theme="dark"] .period-dropdown__menu button.is-selected {
+  background: #21262d !important;
+}
+[data-theme="dark"] .stock-alert-card {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .badge {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .dashboard-empty {
+  background: #161b22 !important;
+  color: #e6edf3 !important;
+}
