@@ -9573,3 +9573,283 @@ html body .staff-manager__photo-upload > span > i {
   background: #30363d !important;
 }
 
+
+/* ══════════════════════════════════════════════════════════════
+   FIX BLOCK v4 — ALGORITHMIC: all white/light elements killed
+   Generated from full-page scan of 9 pages in dark mode
+   ══════════════════════════════════════════════════════════ */
+
+/* ── TOPBAR BUTTONS — make square 44×44 ── */
+.topbar-icon,
+.topbar-notification {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  border-radius: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  aspect-ratio: 1 / 1 !important;
+}
+
+/* ── KPI icon circles — remove white border ── */
+[data-theme="dark"] .premium-kpi__icon {
+  border-color: rgba(255, 107, 69, 0.2) !important;
+  box-shadow: none !important;
+}
+
+/* ── Revenue insight — kill white inset shadow ── */
+[data-theme="dark"] .revenue-insight {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+  border-color: #30363d !important;
+}
+
+/* ── Quick-actions metrics — dark ── */
+[data-theme="dark"] .quick-actions__metric {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  color: #e6edf3 !important;
+}
+
+/* ── Quick-actions icons (bi-*) — kill white inset shadow ── */
+[data-theme="dark"] .quick-actions a i,
+[data-theme="dark"] .quick-actions a i[class*="bi-"] {
+  box-shadow: none !important;
+  background: rgba(255, 107, 69, 0.12) !important;
+}
+
+/* ── Shift summary card — comprehensive dark ── */
+[data-theme="dark"] .shift-summary-card {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+}
+[data-theme="dark"] .shift-summary-card__status {
+  box-shadow: none !important;
+  background: rgba(46, 160, 67, 0.12) !important;
+  border-color: rgba(46, 160, 67, 0.3) !important;
+}
+[data-theme="dark"] .shift-summary-card__open-time {
+  background: #21262d !important;
+  border-color: #30363d !important;
+  box-shadow: none !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .shift-summary-card__open-time i,
+[data-theme="dark"] .shift-summary-card__open-time i[class*="bi-"] {
+  background: rgba(255, 107, 69, 0.12) !important;
+  color: #ff6b35 !important;
+}
+[data-theme="dark"] .shift-summary-card__progress {
+  background: #21262d !important;
+}
+[data-theme="dark"] .shift-summary-card__progress-fill {
+  background: linear-gradient(90deg, #ff6b35, #ff8c5a) !important;
+}
+[data-theme="dark"] .shift-summary-card__alert-icon {
+  background: rgba(255, 107, 69, 0.12) !important;
+  color: #ff6b35 !important;
+}
+[data-theme="dark"] .shift-summary-card span[style],
+[data-theme="dark"] .shift-summary-card .shift-summary-card__open-time + div span {
+  background: rgba(255, 107, 69, 0.12) !important;
+  color: #ff8c5a !important;
+}
+/* Generic shift-summary child divs with white borders */
+[data-theme="dark"] .shift-summary-card div {
+  border-color: #30363d !important;
+}
+
+/* ── Warehouse toolbar — dark borders ── */
+[data-theme="dark"] .warehouse-workspace__toolbar {
+  border-color: #30363d !important;
+  background: #161b22 !important;
+}
+[data-theme="dark"] .warehouse-workspace__toolbar i[class*="bi-"] {
+  background: rgba(59, 130, 246, 0.12) !important;
+  color: #58a6ff !important;
+  box-shadow: none !important;
+}
+
+/* ── Warehouse money table — kill white shadows ── */
+[data-theme="dark"] .warehouse-money-table {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+  border-color: #30363d !important;
+  background: #161b22 !important;
+}
+[data-theme="dark"] .warehouse-money-table__head {
+  box-shadow: none !important;
+  background: #21262d !important;
+  border-color: #30363d !important;
+  color: #8b949e !important;
+}
+[data-theme="dark"] .warehouse-money-table__row {
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .warehouse-money-table__row:hover {
+  background: #1c2128 !important;
+}
+[data-theme="dark"] .warehouse-money-table__row--total {
+  background: #21262d !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] .warehouse-money-table a {
+  color: #58a6ff !important;
+}
+
+/* ── Staff table wrap — dark ── */
+[data-theme="dark"] .staff-manager__table-wrap {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ── Nomenclature badges — dark ── */
+[data-theme="dark"] .badge.badge-success {
+  background: rgba(46, 160, 67, 0.12) !important;
+  color: #3fb950 !important;
+  border-color: rgba(46, 160, 67, 0.3) !important;
+}
+[data-theme="dark"] .badge.badge-warning {
+  background: rgba(210, 153, 34, 0.12) !important;
+  color: #d29922 !important;
+  border-color: rgba(210, 153, 34, 0.3) !important;
+}
+[data-theme="dark"] .badge.badge-danger {
+  background: rgba(248, 81, 73, 0.12) !important;
+  color: #f85149 !important;
+  border-color: rgba(248, 81, 73, 0.3) !important;
+}
+
+/* ── GLOBAL: kill ALL remaining white inset shadows ── */
+[data-theme="dark"] *:not(.brand-mark):not(.sidebar-user__avatar) {
+  --kill-white-shadow: 1;
+}
+/* Instead of the wildcard, target common containers */
+[data-theme="dark"] .card,
+[data-theme="dark"] .premium-kpi,
+[data-theme="dark"] .chart-card,
+[data-theme="dark"] .top-dishes-card,
+[data-theme="dark"] .section-card,
+[data-theme="dark"] .shift-summary-card,
+[data-theme="dark"] .quick-actions,
+[data-theme="dark"] .quick-actions a,
+[data-theme="dark"] .revenue-insight,
+[data-theme="dark"] .warehouse-board,
+[data-theme="dark"] .warehouse-metrics article,
+[data-theme="dark"] .staff-manager__hero,
+[data-theme="dark"] .staff-manager__table-wrap,
+[data-theme="dark"] .finance-card,
+[data-theme="dark"] .empty-state {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* ── Notification badge — dark border instead of white ── */
+[data-theme="dark"] .topbar-notification__badge {
+  border-color: #161b22 !important;
+}
+
+/* ── All form inputs / textareas / selects ── */
+[data-theme="dark"] input,
+[data-theme="dark"] textarea {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #484f58 !important;
+}
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+  border-color: rgba(255, 107, 69, 0.5) !important;
+  outline-color: rgba(255, 107, 69, 0.3) !important;
+}
+
+/* ── All tables ── */
+[data-theme="dark"] table {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] thead,
+[data-theme="dark"] thead tr,
+[data-theme="dark"] thead th {
+  background: #21262d !important;
+  color: #8b949e !important;
+  border-color: #30363d !important;
+}
+[data-theme="dark"] tbody tr {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] tbody tr:hover {
+  background: #1c2128 !important;
+}
+[data-theme="dark"] td {
+  border-color: #30363d !important;
+}
+
+/* ── Sidebar: soften active link border ── */
+[data-theme="dark"] .sidebar-link.is-active {
+  border-color: rgba(255, 107, 69, 0.3) !important;
+}
+[data-theme="dark"] .sidebar-nav-item.is-active {
+  border-color: rgba(255, 107, 69, 0.15) !important;
+}
+
+/* ── Section pages (reports, settings, etc.) ── */
+[data-theme="dark"] .section-page,
+[data-theme="dark"] .section-page__hero,
+[data-theme="dark"] .section-page__content {
+  background: #0d1117 !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .section-page__card {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .section-page__card h3 {
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .section-page__card p {
+  color: #8b949e !important;
+}
+
+/* ── Modals ── */
+[data-theme="dark"] .modal,
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] [class*="modal__content"],
+[data-theme="dark"] [class*="modal__body"] {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] [class*="modal__header"] {
+  background: #21262d !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+
+/* ── Dropdowns ── */
+[data-theme="dark"] .dropdown-menu,
+[data-theme="dark"] [class*="dropdown__list"],
+[data-theme="dark"] [class*="popover"] {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+
+/* ── Tooltips ── */
+[data-theme="dark"] [class*="tooltip"] {
+  background: #21262d !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+
