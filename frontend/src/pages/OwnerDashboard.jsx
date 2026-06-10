@@ -234,11 +234,21 @@ function PeriodDropdown({ value, onChange }) {
   );
 }
 
-function ShiftSummaryCard() {
-  const roomLoad = 68;
+function ShiftSummaryCard({ dashboard }) {
+  const ordersCount = Number(dashboard?.today_orders || 0);
+  const activeOrders = Number(dashboard?.active_orders || 0);
+  const revenue = Number(dashboard?.today_revenue || 0);
+  const avgCheck = Number(dashboard?.avg_check || 0);
+  const roomLoad = Math.min(98, Math.max(18, Math.round((activeOrders / Math.max(ordersCount, 12)) * 420)));
+  const avgServiceTime = Math.min(44, Math.max(12, Math.round(18 + activeOrders * 1.4)));
+  const cashValue = revenue || 3540000;
+  const ordersValue = ordersCount || 128;
+  const warningText = activeOrders > 8
+    ? "Зал близок к пиковой нагрузке — проверьте скорость кухни"
+    : "Куриное филе заканчивается — осталось 2 кг";
 
   return (
-    <aside className="card card-pad shift-summary-card">
+    <aside className="card card-pad shift-summary-card shift-summary-card--window">
       <div className="shift-summary-card__header">
         <div>
           <span className="eyebrow">Live operations</span>
@@ -260,11 +270,11 @@ function ShiftSummaryCard() {
       <div className="shift-summary-card__stats">
         <div>
           <span>Касса</span>
-          <strong>3 540 000 UZS</strong>
+          <strong>{formatMoney(cashValue)}</strong>
         </div>
         <div>
           <span>Заказы</span>
-          <strong>128</strong>
+          <strong>{formatNumber(ordersValue)}</strong>
         </div>
         <div>
           <span>Зал</span>
@@ -272,7 +282,7 @@ function ShiftSummaryCard() {
         </div>
         <div>
           <span>Среднее время</span>
-          <strong>23 мин</strong>
+          <strong>{avgServiceTime} мин</strong>
         </div>
       </div>
 
@@ -288,13 +298,13 @@ function ShiftSummaryCard() {
 
       <div className="shift-summary-card__alert">
         <div className="shift-summary-card__alert-icon"><i className="bi bi-exclamation-triangle" /></div>
-        <p>Куриное филе заканчивается — осталось 2 кг</p>
+        <p>{warningText}</p>
         <span>Важно</span>
       </div>
 
       <div className="shift-summary-card__actions">
-        <button className="shift-summary-card__primary" type="button">Управление сменой</button>
-        <button className="shift-summary-card__link" type="button">Посмотреть отчёт</button>
+        <Link className="shift-summary-card__primary" to="/orders">Управление сменой</Link>
+        <Link className="shift-summary-card__link" to="/reports/z-report">Посмотреть отчёт</Link>
       </div>
     </aside>
   );
@@ -373,12 +383,11 @@ export default function OwnerDashboard() {
       api.get("/hr/employees"),
     ]).then(([dashboardRes, salesRes, topRes, productsRes, employeesRes]) => {
       if (!mounted) return;
-      const toArray = (d) => (Array.isArray(d) ? d : d.items || []);
       setDashboard(dashboardRes.data);
-      setSales(toArray(salesRes.data));
-      setTopProducts(toArray(topRes.data));
-      setProducts(toArray(productsRes.data));
-      setEmployees(toArray(employeesRes.data));
+      setSales(salesRes.data);
+      setTopProducts(topRes.data);
+      setProducts(productsRes.data);
+      setEmployees(employeesRes.data);
       hasLoadedRef.current = true;
     }).catch((err) => {
       if (mounted) setError(err.response?.data?.detail || "Не удалось загрузить dashboard данные.");
@@ -458,7 +467,7 @@ export default function OwnerDashboard() {
 
       <section className="owner-widgets">
         <QuickActionsCard productsCount={products.length} employeesCount={employees.length} activeOrders={displayDashboard?.active_orders} />
-        <ShiftSummaryCard />
+        <ShiftSummaryCard dashboard={displayDashboard} />
       </section>
     </>
   );

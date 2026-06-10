@@ -135,10 +135,11 @@ export default function DatePicker({ value, max, onChange, onClear }) {
               type="button"
               className="mj-calendar__title"
               onClick={() => setShowMonthList((s) => !s)}
+              aria-expanded={showMonthList}
             >
               <strong>{MONTHS[viewMonth]}</strong>
               <span>{viewYear}</span>
-              <i className="bi bi-caret-down-fill" aria-hidden="true" />
+              <i className={`bi bi-caret-${showMonthList ? "up" : "down"}-fill`} aria-hidden="true" />
             </button>
             <div className="mj-calendar__nav">
               <button type="button" onClick={() => stepMonth(-1)} aria-label="Предыдущий месяц">

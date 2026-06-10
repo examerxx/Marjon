@@ -3084,25 +3084,6 @@ body,
     inset 0 1px 0 rgba(255, 255, 255, 1);
 }
 
-.topbar-notification::after {
-  content: "3";
-  position: absolute;
-  top: -7px;
-  right: -6px;
-  min-width: 20px;
-  height: 20px;
-  display: grid;
-  place-items: center;
-  padding: 0 5px;
-  border-radius: 999px;
-  color: #fff;
-  background: var(--accent);
-  border: 2px solid #fff;
-  font-size: 0.72rem;
-  font-weight: 900;
-  box-shadow: 0 8px 18px rgba(255, 107, 61, 0.34);
-}
-
 .kpi-grid--premium {
   gap: 22px;
 }
