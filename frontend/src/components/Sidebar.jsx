@@ -115,7 +115,7 @@ function getVisibleNav(role) {
   return navItems.filter((item) => access.includes(item.key));
 }
 
-export default function Sidebar({ user }) {
+export default function Sidebar({ user, collapsed, onToggle }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [openMenu, setOpenMenu] = useState("");
@@ -167,15 +167,20 @@ export default function Sidebar({ user }) {
   }
 
   return (
-    <aside className="dashboard-sidebar" id="dashboardSidebar">
+    <aside className={`dashboard-sidebar ${collapsed ? "is-collapsed" : ""}`} id="dashboardSidebar">
       <div className="sidebar-brand">
         <div className="brand-mark">
           <img src={logo} alt="MARJON" className="marjon-logo" decoding="async" />
         </div>
-        <div>
-          <div className="brand-title">MARJON</div>
-          <div className="brand-subtitle">Restaurant OS</div>
-        </div>
+        {!collapsed && (
+          <div>
+            <div className="brand-title">MARJON</div>
+            <div className="brand-subtitle">Restaurant OS</div>
+          </div>
+        )}
+        <button type="button" className="sidebar-collapse-btn" onClick={onToggle} title={collapsed ? "Развернуть" : "Свернуть"}>
+          <i className={`bi ${collapsed ? "bi-chevron-right" : "bi-chevron-left"}`} />
+        </button>
       </div>
 
       <nav className="sidebar-nav" aria-label="Навигация">

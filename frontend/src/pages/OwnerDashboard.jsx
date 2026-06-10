@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { Chart, Filler, LineController, LineElement, LinearScale, PointElement, CategoryScale, Tooltip } from "chart.js";
-import { Link, useOutletContext } from "react-router-dom";
+import { Link, useNavigate, useOutletContext } from "react-router-dom";
 import { api, formatMoney, formatNumber } from "../api/client";
 import { dateRangeEndingAt, formatDateLabel, todayInputValue, toDateInputValue } from "../utils/date";
 
@@ -357,6 +357,7 @@ function QuickActionsCard({ productsCount, employeesCount, activeOrders }) {
 }
 
 export default function OwnerDashboard() {
+  const navigate = useNavigate();
   const { selectedDate = todayInputValue() } = useOutletContext();
   const [period, setPeriod] = useState(7);
   const hasLoadedRef = useRef(false);
@@ -405,31 +406,49 @@ export default function OwnerDashboard() {
   );
   const maxTopQuantity = useMemo(() => Math.max(...displayTopProducts.map((item) => Number(item.quantity_sold || 0)), 1), [displayTopProducts]);
 
-  if (loading) return <div className="loading-note">Загрузка dashboard...</div>;
+  if (loading) return (
+    <div className="skeleton-loading">
+      <section className="kpi-grid kpi-grid--premium">
+        <div className="skeleton skeleton-card" />
+        <div className="skeleton skeleton-card" />
+        <div className="skeleton skeleton-card" />
+        <div className="skeleton skeleton-card" />
+      </section>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginTop: 16 }}>
+        <div className="skeleton skeleton-chart" />
+        <div>
+          <div className="skeleton skeleton-row" />
+          <div className="skeleton skeleton-row" />
+          <div className="skeleton skeleton-row" />
+          <div className="skeleton skeleton-row" />
+        </div>
+      </div>
+    </div>
+  );
   if (error) return <EmptyState title="Dashboard недоступен" text={error} />;
 
   return (
     <>
       <section className="kpi-grid kpi-grid--premium">
-        <article className="kpi-card premium-kpi premium-kpi--revenue">
+        <article className="kpi-card premium-kpi premium-kpi--revenue kpi-card--clickable" onClick={() => navigate("/finance")} title="Перейти к финансам">
           <div className="premium-kpi__top"><div className="premium-kpi__icon"><i className="bi bi-currency-exchange" /></div><span className="trend trend--up">{formatDateLabel(selectedDate)}</span></div>
           <div className="kpi-label">Выручка за день</div>
           <div className="kpi-value">{formatMoney(displayDashboard?.today_revenue).replace(" UZS", "")} <small>UZS</small></div>
           <div className="kpi-note">Без отмененных заказов</div>
         </article>
-        <article className="kpi-card premium-kpi premium-kpi--orders">
+        <article className="kpi-card premium-kpi premium-kpi--orders kpi-card--clickable" onClick={() => navigate("/reports/orders")} title="Перейти к отчёту по заказам">
           <div className="premium-kpi__top"><div className="premium-kpi__icon"><i className="bi bi-receipt" /></div><span className="trend">Live</span></div>
           <div className="kpi-label">Заказов</div>
           <div className="kpi-value">{formatNumber(displayDashboard?.today_orders)}</div>
           <div className="kpi-note">Все каналы продаж</div>
         </article>
-        <article className="kpi-card premium-kpi premium-kpi--avg">
+        <article className="kpi-card premium-kpi premium-kpi--avg kpi-card--clickable" onClick={() => navigate("/reports")} title="Перейти к отчётам">
           <div className="premium-kpi__top"><div className="premium-kpi__icon"><i className="bi bi-graph-up-arrow" /></div><span className="trend">Среднее</span></div>
           <div className="kpi-label">Средний чек</div>
           <div className="kpi-value">{formatMoney(displayDashboard?.avg_check).replace(" UZS", "")} <small>UZS</small></div>
           <div className="kpi-note">За выбранный день</div>
         </article>
-        <article className="kpi-card premium-kpi premium-kpi--tables">
+        <article className="kpi-card premium-kpi premium-kpi--tables kpi-card--clickable" onClick={() => navigate("/store")} title="Перейти в магазин">
           <div className="premium-kpi__top"><div className="premium-kpi__icon"><i className="bi bi-grid-3x3-gap" /></div><span className="trend">Зал</span></div>
           <div className="kpi-label">Активных заказов</div>
           <div className="kpi-value">{formatNumber(displayDashboard?.active_orders)}</div>

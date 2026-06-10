@@ -690,3 +690,28 @@
   transition: background 0.15s;
 }
 .staff-modal__submit:hover { background: #e55a28; }
+
+/* ── Staff role filter dropdown (#34) ── */
+.staff-role-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+.staff-role-filter label {
+  font-size: 14px;
+  color: var(--mj-muted, #64748b);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.staff-role-filter select {
+  padding: 6px 12px;
+  border: 1px solid var(--mj-border, #e2e8f0);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--mj-card, #fff);
+  color: var(--mj-ink, #0f172a);
+  cursor: pointer;
+}

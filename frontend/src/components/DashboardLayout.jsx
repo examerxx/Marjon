@@ -63,6 +63,14 @@ export default function DashboardLayout() {
   const [user, setUser] = useState(null);
   const [message, setMessage] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => todayInputValue());
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("marjon_sidebar_collapsed") === "true");
+
+  function toggleSidebar() {
+    setSidebarCollapsed((prev) => {
+      localStorage.setItem("marjon_sidebar_collapsed", !prev);
+      return !prev;
+    });
+  }
 
   const [title, subtitle] = useMemo(() => pageMeta[location.pathname] || ["Dashboard", ""], [location.pathname]);
   const selectedDateContext = useMemo(() => ({
@@ -94,8 +102,8 @@ export default function DashboardLayout() {
 
   return (
     <div>
-      <div className="dashboard-shell">
-        <Sidebar user={user} />
+      <div className={`dashboard-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+        <Sidebar user={user} collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
         <div className="dashboard-main">
           <Topbar title={title} subtitle={subtitle} selectedDate={selectedDate} onSelectedDateChange={setSelectedDate} />
           <main className="dashboard-content">

@@ -7,6 +7,19 @@ import GlobalSearch from "./GlobalSearch";
 export default function Topbar({ title = "Dashboard", subtitle, selectedDate, onSelectedDateChange }) {
   const notificationsRef = useRef(null);
   const [today] = useState(() => todayInputValue());
+  const [theme, setTheme] = useState(() => localStorage.getItem("marjon_theme") || "light");
+
+  function toggleTheme() {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    localStorage.setItem("marjon_theme", next);
+    document.documentElement.setAttribute("data-theme", next);
+  }
+
+  useEffect(() => {
+    const saved = localStorage.getItem("marjon_theme");
+    if (saved) document.documentElement.setAttribute("data-theme", saved);
+  }, []);
   const [stockOpen, setStockOpen] = useState(false);
   const [stockLoading, setStockLoading] = useState(false);
   const [stockError, setStockError] = useState("");
@@ -102,6 +115,9 @@ export default function Topbar({ title = "Dashboard", subtitle, selectedDate, on
           onChange={(value) => onSelectedDateChange(clampToToday(value))}
         />
         <GlobalSearch />
+        <button className="topbar-icon" type="button" onClick={toggleTheme} title={theme === "dark" ? "Светлая тема" : "Тёмная тема"} aria-label="Переключить тему">
+          <i className={`bi ${theme === "dark" ? "bi-sun" : "bi-moon"}`} />
+        </button>
         <div className="topbar-notification-wrap" ref={notificationsRef}>
           <button
             className={`topbar-icon topbar-notification ${stockOpen ? "is-open" : ""}`}

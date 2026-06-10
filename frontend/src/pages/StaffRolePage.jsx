@@ -101,6 +101,7 @@ export default function StaffRolePage({ role = "all" }) {
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState("active");
+  const [roleFilter, setRoleFilter] = useState("all");
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ ...emptyForm, role: config.roleKey === "all" ? "Кассир" : config.roleLabel });
 
@@ -136,7 +137,14 @@ export default function StaffRolePage({ role = "all" }) {
     }
   }, [config.roleKey, config.roleLabel, editingId]);
 
-  const roleEmployees = useMemo(() => employees.filter((employee) => matchesRole(employee, config)), [employees, config]);
+  const roleEmployees = useMemo(() => {
+    let filtered = employees.filter((employee) => matchesRole(employee, config));
+    if (config.roleKey === "all" && roleFilter !== "all") {
+      const filterConfig = roleConfigs[roleFilter];
+      if (filterConfig) filtered = filtered.filter((employee) => matchesRole(employee, filterConfig));
+    }
+    return filtered;
+  }, [employees, config, roleFilter]);
   const visibleEmployees = useMemo(() => roleEmployees.filter((employee) => employee.status === activeTab), [roleEmployees, activeTab]);
   const activeCount = roleEmployees.filter((employee) => employee.status === "active").length;
   const archiveCount = roleEmployees.filter((employee) => employee.status === "archived").length;
@@ -232,6 +240,18 @@ export default function StaffRolePage({ role = "all" }) {
       </div>
 
       {error ? <div className="message message-info">{error}</div> : null}
+
+      {config.roleKey === "all" && (
+        <div className="staff-role-filter">
+          <label htmlFor="role-filter"><i className="bi bi-funnel" /> Фильтр по роли:</label>
+          <select id="role-filter" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+            <option value="all">Все роли</option>
+            {Object.values(roleConfigs).filter((item) => item.roleKey !== "all").map((item) => (
+              <option key={item.roleKey} value={item.roleKey}>{item.roleLabel}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="staff-manager__stats staff-manager__stats--next">
         <div><i className={`bi ${config.accent}`} /><span>Всего</span><strong>{roleEmployees.length}</strong></div>
