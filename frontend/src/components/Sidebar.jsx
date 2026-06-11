@@ -98,6 +98,26 @@ const navItems = [
   { key: "reviews", label: "Отзывы", icon: "bi-chat-left", to: "/reviews" },
 ];
 
+function SidebarSubmenu({ item, location, onSelect }) {
+  return (
+    <div className="sidebar-submenu">
+      {item.children.map((child) => (
+        <Link
+          key={child.key}
+          className={`sidebar-submenu__link ${location.pathname === child.to ? "is-active" : ""}`}
+          to={child.to}
+          onClick={() => onSelect(item.key)}
+        >
+          <span className="sidebar-submenu__icon" aria-hidden="true">
+            <i className={`bi ${child.icon || "bi-circle"}`} />
+          </span>
+          <span className="sidebar-submenu__text">{child.label}</span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export default function Sidebar({ user }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -105,22 +125,37 @@ export default function Sidebar({ user }) {
   const [pinnedMenu, setPinnedMenu] = useState("");
   const [accountOpen, setAccountOpen] = useState(false);
   const [lang, setLang] = useState(() => localStorage.getItem("marjon_lang") || "ru");
+  const sidebarRef = useRef(null);
   const accountRef = useRef(null);
   const role = user?.role_slugs?.[0] || (user?.is_superadmin ? "superadmin" : "owner");
   const displayName = user?.full_name || user?.email || "Owner";
 
   useEffect(() => {
-    const activeParent = navItems.find((item) => item.children?.some((child) => location.pathname === child.to));
-    if (activeParent) {
-      setPinnedMenu(activeParent.key);
-      setOpenMenu(activeParent.key);
-    } else {
-      setPinnedMenu("");
-      setOpenMenu("");
-    }
+    setPinnedMenu("");
+    setOpenMenu("");
   }, [location.pathname]);
 
   useEffect(() => { setAccountOpen(false); }, [location.pathname]);
+
+  useEffect(() => {
+    if (!openMenu && !pinnedMenu) return undefined;
+    function closeSubmenu() {
+      setOpenMenu("");
+      setPinnedMenu("");
+    }
+    function onDocClick(event) {
+      if (!sidebarRef.current?.contains(event.target)) closeSubmenu();
+    }
+    function onKey(event) {
+      if (event.key === "Escape") closeSubmenu();
+    }
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [openMenu, pinnedMenu]);
 
   useEffect(() => {
     if (!accountOpen) return undefined;
@@ -148,8 +183,13 @@ export default function Sidebar({ user }) {
     localStorage.setItem("marjon_lang", code);
   }
 
+  function handleSubmenuSelect() {
+    setPinnedMenu("");
+    setOpenMenu("");
+  }
+
   return (
-    <aside className="dashboard-sidebar" id="dashboardSidebar">
+    <aside className="dashboard-sidebar" id="dashboardSidebar" ref={sidebarRef}>
       <div className="sidebar-brand">
         <div className="brand-mark">
           <img src={logo} alt="MARJON" className="marjon-logo" decoding="async" />
@@ -170,11 +210,7 @@ export default function Sidebar({ user }) {
             return (
               <div
                 key={item.key}
-                className={`sidebar-nav-item has-submenu ${active ? "is-active" : ""} ${submenuOpen ? "is-open" : ""}`}
-                onMouseEnter={() => setOpenMenu(item.key)}
-                onMouseLeave={() => {
-                  if (pinnedMenu !== item.key) setOpenMenu("");
-                }}
+                className={`sidebar-nav-item sidebar-nav-item--${item.key} has-submenu ${active ? "is-active" : ""} ${submenuOpen ? "is-open" : ""}`}
               >
                 <button
                   className={`sidebar-link sidebar-link--button ${active ? "is-active" : ""}`}
@@ -194,23 +230,7 @@ export default function Sidebar({ user }) {
                   <span>{item.label}</span>
                   <i className="bi bi-chevron-down sidebar-link__chevron" aria-hidden="true" />
                 </button>
-                <div className="sidebar-submenu">
-                  {item.children.map((child) => (
-                    <Link
-                      key={child.key}
-                      className={`sidebar-submenu__link ${location.pathname === child.to ? "is-active" : ""}`}
-                      to={child.to}
-                      onClick={() => {
-                        setPinnedMenu(item.key);
-                        setOpenMenu(item.key);
-                      }}
-                    >
-                      <span className="sidebar-submenu__dot" aria-hidden="true" />
-                      <span className="sidebar-submenu__icon"><i className={`bi ${child.icon || "bi-circle"}`} /></span>
-                      {child.label}
-                    </Link>
-                  ))}
-                </div>
+                <SidebarSubmenu item={item} location={location} onSelect={handleSubmenuSelect} />
               </div>
             );
           }
