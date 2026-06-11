@@ -10400,7 +10400,10 @@ html body .staff-manager__photo-upload > span > i {
   background: var(--mj-card-dark, #161b22) !important;
 }
 
-/* 3. Period dropdown dot indicator */
+/* 3. Period dropdown dot indicator — kill legacy ::before dot */
+.period-dropdown__menu button::before {
+  display: none !important;
+}
 .period-dropdown__dot {
   display: inline-block;
   width: 10px;
