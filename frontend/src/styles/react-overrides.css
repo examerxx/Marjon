@@ -2807,13 +2807,18 @@ body.dashboard-body,
 }
 
 /* Align period controls and section actions to one common button height */
-.period-switcher .period-dropdown__button,
 .period-switcher__details,
 .section-header .btn-ghost {
   min-height: 48px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+}
+.period-switcher .period-dropdown__button {
+  min-height: 48px !important;
+  display: grid !important;
+  align-items: center !important;
+  justify-content: space-between !important;
 }
 
 .kpi-grid.kpi-grid--premium {
