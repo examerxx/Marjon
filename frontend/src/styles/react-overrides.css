@@ -10466,3 +10466,17 @@ html body .staff-manager__photo-upload > span > i {
 .dashboard-content > section:last-child {
   flex: 1 1 auto !important;
 }
+
+/* Fix: top-dish name truncation — badge should shrink, name should flex */
+.top-dish__line {
+  flex-wrap: nowrap !important;
+}
+.top-dish__line strong {
+  flex: 1 1 auto !important;
+  display: block !important;
+}
+.top-dish__line .badge {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  font-size: 0.72rem !important;
+}
