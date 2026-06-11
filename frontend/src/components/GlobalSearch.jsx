@@ -145,7 +145,7 @@ export default function GlobalSearch() {
           ref={inputRef}
           type="text"
           className="global-search__input"
-          placeholder="Поиск…"
+          placeholder="Поиск по меню, заказам, сотрудникам…"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
