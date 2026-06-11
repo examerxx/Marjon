@@ -2,6 +2,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/marjon-logo.svg";
 import { logout } from "../api/client";
+import { UserCog, Headphones, Languages, LogOut } from "lucide-react";
 
 const navItems = [
   { key: "dashboard", label: "Дашборд", icon: "bi-bar-chart-line", to: "/" },
@@ -269,17 +270,17 @@ export default function Sidebar({ user, collapsed, onToggle }) {
               </div>
             </div>
             <Link className="sidebar-account__item" to="/settings/profile" role="menuitem" onClick={() => setAccountOpen(false)}>
-              <i className="bi bi-person-gear" />
+              <UserCog size={18} strokeWidth={2} />
               <span>Настройка профиля</span>
             </Link>
             <Link className="sidebar-account__item" to="/settings/support" role="menuitem" onClick={() => setAccountOpen(false)}>
-              <i className="bi bi-headset" />
+              <Headphones size={18} strokeWidth={2} />
               <span>Тех. поддержка</span>
             </Link>
 
             <div className="sidebar-account__lang">
               <span className="sidebar-account__lang-label">
-                <i className="bi bi-translate" />
+                <Languages size={18} strokeWidth={2} />
                 Язык
               </span>
               <div className="sidebar-account__lang-switch" role="group" aria-label="Выбор языка">
@@ -303,7 +304,7 @@ export default function Sidebar({ user, collapsed, onToggle }) {
             </div>
 
             <button type="button" className="sidebar-account__item sidebar-account__item--danger" role="menuitem" onClick={handleLogout}>
-              <i className="bi bi-box-arrow-right" />
+              <LogOut size={18} strokeWidth={2} />
               <span>Выйти</span>
             </button>
           </div>
