@@ -2,7 +2,7 @@
 import { Chart, Filler, LineController, LineElement, LinearScale, PointElement, CategoryScale, Tooltip } from "chart.js";
 import { Link, useNavigate, useOutletContext } from "react-router-dom";
 import { api, formatMoney, formatNumber } from "../api/client";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Store, Clock, AlertTriangle, Zap, PlusCircle, BookPlus, UserPlus, FileSpreadsheet, Sparkles, Banknote, Receipt, TrendingUp, LayoutGrid } from "lucide-react";
 import MarjonLoader from "../components/MarjonLoader";
 import { dateRangeEndingAt, formatDateLabel, todayInputValue, toDateInputValue } from "../utils/date";
 
@@ -174,7 +174,7 @@ function EmptyState({ title, text }) {
   return (
     <div className="card dashboard-empty">
       <div>
-        <div className="dashboard-empty__mark"><i className="bi bi-shop" /></div>
+        <div className="dashboard-empty__mark"><Store size={32} strokeWidth={1.8} /></div>
         <h2>{title}</h2>
         <p>{text}</p>
       </div>
@@ -265,7 +265,7 @@ function ShiftSummaryCard({ dashboard }) {
       </div>
 
       <div className="shift-summary-card__open-time">
-        <i className="bi bi-clock-history" />
+        <Clock size={16} strokeWidth={2} />
         <span>Время открытия</span>
         <strong>09:00</strong>
       </div>
@@ -300,7 +300,7 @@ function ShiftSummaryCard({ dashboard }) {
       </div>
 
       <div className="shift-summary-card__alert">
-        <div className="shift-summary-card__alert-icon"><i className="bi bi-exclamation-triangle" /></div>
+        <div className="shift-summary-card__alert-icon"><AlertTriangle size={18} strokeWidth={2} /></div>
         <p>{warningText}</p>
         <span>Важно</span>
       </div>
@@ -322,14 +322,14 @@ function QuickActionsCard({ productsCount, employeesCount, activeOrders }) {
           <h2>Быстрые действия</h2>
           <p className="quick-actions__subtitle">Самые частые операции владельца в одном месте</p>
         </div>
-        <span className="quick-actions__live"><i className="bi bi-lightning-charge-fill" /> Live</span>
+        <span className="quick-actions__live"><Zap size={14} strokeWidth={2.5} /> Live</span>
       </div>
 
       <div className="quick-actions__grid">
-        <Link to="/orders"><i className="bi bi-plus-circle" /><span>Новый заказ</span><small>Создать продажу</small></Link>
-        <Link to="/menu"><i className="bi bi-journal-plus" /><span>Добавить блюдо</span><small>{productsCount} блюд в меню</small></Link>
-        <Link to="/staff"><i className="bi bi-person-plus" /><span>Сотрудник</span><small>{employeesCount} в команде</small></Link>
-        <Link to="/finance"><i className="bi bi-file-earmark-spreadsheet" /><span>Финансы</span><small>Отчеты и касса</small></Link>
+        <Link to="/orders"><PlusCircle size={22} strokeWidth={1.8} /><span>Новый заказ</span><small>Создать продажу</small></Link>
+        <Link to="/menu"><BookPlus size={22} strokeWidth={1.8} /><span>Добавить блюдо</span><small>{productsCount} блюд в меню</small></Link>
+        <Link to="/staff"><UserPlus size={22} strokeWidth={1.8} /><span>Сотрудник</span><small>{employeesCount} в команде</small></Link>
+        <Link to="/finance"><FileSpreadsheet size={22} strokeWidth={1.8} /><span>Финансы</span><small>Отчеты и касса</small></Link>
       </div>
 
       <div className="quick-actions__insights">
@@ -351,7 +351,7 @@ function QuickActionsCard({ productsCount, employeesCount, activeOrders }) {
       </div>
 
       <div className="quick-actions__notice">
-        <div><i className="bi bi-stars" /></div>
+        <div><Sparkles size={20} strokeWidth={2} /></div>
         <p><strong>Совет смены:</strong> проверьте стоп-лист и остатки перед вечерней загрузкой.</p>
         <Link to="/warehouse">Склад</Link>
       </div>
@@ -426,25 +426,25 @@ export default function OwnerDashboard() {
     <>
       <section className="kpi-grid kpi-grid--premium">
         <article className="kpi-card premium-kpi premium-kpi--revenue kpi-card--clickable" onClick={() => navigate("/finance")} title="Перейти к финансам">
-          <div className="premium-kpi__top"><div className="premium-kpi__icon"><i className="bi bi-currency-exchange" /></div><span className="trend trend--up">{formatDateLabel(selectedDate)}</span></div>
+          <div className="premium-kpi__top"><div className="premium-kpi__icon"><Banknote size={22} strokeWidth={2} /></div><span className="trend trend--up">{formatDateLabel(selectedDate)}</span></div>
           <div className="kpi-label">Выручка за день</div>
           <div className="kpi-value">{formatMoney(displayDashboard?.today_revenue).replace(" UZS", "")} <small>UZS</small></div>
           <div className="kpi-note">Без отмененных заказов</div>
         </article>
         <article className="kpi-card premium-kpi premium-kpi--orders kpi-card--clickable" onClick={() => navigate("/reports/orders")} title="Перейти к отчёту по заказам">
-          <div className="premium-kpi__top"><div className="premium-kpi__icon"><i className="bi bi-receipt" /></div><span className="trend">Live</span></div>
+          <div className="premium-kpi__top"><div className="premium-kpi__icon"><Receipt size={22} strokeWidth={2} /></div><span className="trend">Live</span></div>
           <div className="kpi-label">Заказов</div>
           <div className="kpi-value">{formatNumber(displayDashboard?.today_orders)}</div>
           <div className="kpi-note">Все каналы продаж</div>
         </article>
         <article className="kpi-card premium-kpi premium-kpi--avg kpi-card--clickable" onClick={() => navigate("/reports")} title="Перейти к отчётам">
-          <div className="premium-kpi__top"><div className="premium-kpi__icon"><i className="bi bi-graph-up-arrow" /></div><span className="trend">Среднее</span></div>
+          <div className="premium-kpi__top"><div className="premium-kpi__icon"><TrendingUp size={22} strokeWidth={2} /></div><span className="trend">Среднее</span></div>
           <div className="kpi-label">Средний чек</div>
           <div className="kpi-value">{formatMoney(displayDashboard?.avg_check).replace(" UZS", "")} <small>UZS</small></div>
           <div className="kpi-note">За выбранный день</div>
         </article>
         <article className="kpi-card premium-kpi premium-kpi--tables kpi-card--clickable" onClick={() => navigate("/store")} title="Перейти в магазин">
-          <div className="premium-kpi__top"><div className="premium-kpi__icon"><i className="bi bi-grid-3x3-gap" /></div><span className="trend">Зал</span></div>
+          <div className="premium-kpi__top"><div className="premium-kpi__icon"><LayoutGrid size={22} strokeWidth={2} /></div><span className="trend">Зал</span></div>
           <div className="kpi-label">Активных заказов</div>
           <div className="kpi-value">{formatNumber(displayDashboard?.active_orders)}</div>
           <div className="kpi-note">{employees.length} сотрудников · {products.length} блюд</div>
@@ -461,7 +461,7 @@ export default function OwnerDashboard() {
             </div>
           </div>
           <div className="chart-wrap"><RevenueChart sales={displaySales} /></div>
-          <div className="revenue-insight"><div className="revenue-insight__icon"><i className="bi bi-graph-up-arrow" /></div><p>{revenueInsightText}</p></div>
+          <div className="revenue-insight"><div className="revenue-insight__icon"><TrendingUp size={20} strokeWidth={2} /></div><p>{revenueInsightText}</p></div>
         </div>
 
         <aside className="card card-pad top-dishes-card">

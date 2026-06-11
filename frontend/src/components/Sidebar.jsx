@@ -2,7 +2,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/marjon-logo.svg";
 import { logout } from "../api/client";
-import { UserCog, Headphones, Languages, LogOut } from "lucide-react";
+import { UserCog, Headphones, Languages, LogOut, ChevronDown as SideChevronDown, ChevronRight as SideChevronRight } from "lucide-react";
 
 const navItems = [
   { key: "dashboard", label: "Дашборд", icon: "bi-bar-chart-line", to: "/" },
@@ -216,7 +216,7 @@ export default function Sidebar({ user, collapsed, onToggle }) {
                 >
                   <span className="sidebar-icon"><i className={`bi ${item.icon}`} /></span>
                   <span>{item.label}</span>
-                  <i className="bi bi-chevron-down sidebar-link__chevron" aria-hidden="true" />
+                  <SideChevronDown size={16} strokeWidth={2.5} className="sidebar-link__chevron" aria-hidden="true" />
                 </button>
                 <div className="sidebar-submenu">
                   {item.children.map((child) => (
@@ -325,7 +325,7 @@ export default function Sidebar({ user, collapsed, onToggle }) {
             <span>{role}</span>
             <em>{user?.company_name || "MARJON"}</em>
           </div>
-          <i className="bi bi-chevron-right sidebar-user__arrow" aria-hidden="true" />
+          <SideChevronRight size={16} strokeWidth={2.5} className="sidebar-user__arrow" aria-hidden="true" />
         </button>
       </div>
     </aside>
