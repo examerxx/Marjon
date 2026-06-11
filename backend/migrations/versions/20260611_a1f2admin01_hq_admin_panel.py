@@ -65,15 +65,22 @@ def _metadata() -> sa.MetaData:
 
 
 def upgrade() -> None:
-    op.add_column("users", sa.Column("username", sa.String(150), nullable=True))
-    op.add_column("users", sa.Column("name", sa.String(255), nullable=True))
-    op.create_index("ix_users_username", "users", ["username"], unique=True)
+    bind = op.get_bind()
+    # idempotent: skip columns/indexes if they already exist
+    inspector = sa.inspect(bind)
+    existing_cols = {c["name"] for c in inspector.get_columns("users")}
+    if "username" not in existing_cols:
+        op.add_column("users", sa.Column("username", sa.String(150), nullable=True))
+    if "name" not in existing_cols:
+        op.add_column("users", sa.Column("name", sa.String(255), nullable=True))
+    existing_idx = {i["name"] for i in inspector.get_indexes("users")}
+    if "ix_users_username" not in existing_idx:
+        op.create_index("ix_users_username", "users", ["username"], unique=True)
 
     metadata = _metadata()
-    bind = op.get_bind()
     metadata.create_all(
         bind,
-        tables=[metadata.tables[name] for name in NEW_TABLES],
+        tables=[metadata.tables[name] for name in NEW_TABLES if name in metadata.tables],
         checkfirst=True,
     )
 

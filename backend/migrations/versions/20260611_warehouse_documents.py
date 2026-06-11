@@ -15,6 +15,14 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing = set(inspector.get_table_names())
+
+    if "purchase_documents" in existing:
+        # Tables already created manually — skip
+        return
+
     op.create_table(
         "purchase_documents",
         sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
