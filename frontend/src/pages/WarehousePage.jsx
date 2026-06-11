@@ -1,14 +1,15 @@
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { api, formatMoney, formatNumber } from "../api/client";
 import MarjonLoader from "../components/MarjonLoader";
 import {
-  ChevronLeft, ChevronRight, Search, SlidersHorizontal,
-  Plus, Eye, Trash2, Pencil, X, Package, ArrowRightLeft,
+  Search, Plus, Eye, Trash2, Pencil, X, Package, ArrowRightLeft,
   ClipboardCheck, FileX2, BarChart3, Warehouse as WarehouseIcon,
-  AlertTriangle, Loader2, Check, Calendar,
+  AlertTriangle, Loader2, Check, Banknote, ClipboardList, FileWarning,
+  SlidersHorizontal,
 } from "lucide-react";
+
 
 /* ─── useDebounce hook ──────────────────────────────────────── */
 function useDebounce(value, delay = 250) {
@@ -31,22 +32,19 @@ function statusLabel(s) {
   return s === "accepted" || s === "active" ? "Принято" : "Черновой";
 }
 
-function MoneyCell({ value, muted = false }) {
-  return <span className={muted ? "is-muted" : ""}>{formatMoney(value)}</span>;
+function statusBadge(s) {
+  const cls = s === "accepted" || s === "active" ? "badge badge-success" : "badge badge-warning";
+  return <span className={cls}>{statusLabel(s)}</span>;
 }
 
-function WarehouseStatus({ status }) {
-  return (
-    <span className={`warehouse-status ${status === "draft" ? "is-draft" : "is-accepted"}`}>
-      {statusLabel(status)}
-    </span>
-  );
+function MoneyCell({ value, muted = false }) {
+  return <span className={muted ? "muted" : ""}>{formatMoney(value)}</span>;
 }
 
 function IconBtn({ Icon, tone = "brand", label, onClick }) {
   return (
-    <button type="button" className={`warehouse-icon-button warehouse-icon-button--${tone}`} aria-label={label} onClick={onClick}>
-      <Icon size={16} />
+    <button type="button" className={`wh-action-btn wh-action-btn--${tone}`} aria-label={label} onClick={onClick} title={label}>
+      <Icon size={15} />
     </button>
   );
 }
@@ -69,35 +67,18 @@ function SkeletonPulse({ width = "100%", height = 16, rounded = false, style }) 
   );
 }
 
-function MetricsSkeleton() {
-  return (
-    <div className="warehouse-metrics">
-      {[1, 2, 3, 4].map((i) => (
-        <article key={i} className="wh-skeleton-card">
-          <SkeletonPulse width={100} height={12} />
-          <SkeletonPulse width={140} height={28} style={{ marginTop: 8 }} />
-        </article>
-      ))}
-    </div>
-  );
-}
-
 function TableSkeleton({ cols = 6, rows = 5 }) {
   return (
-    <div className="wh-skeleton-table">
-      <div className="wh-skeleton-table__head">
-        {Array.from({ length: cols }, (_, i) => (
-          <SkeletonPulse key={i} width={`${60 + Math.random() * 40}%`} height={12} />
+    <table className="data-table">
+      <thead>
+        <tr>{Array.from({ length: cols }, (_, i) => <th key={i}><SkeletonPulse width={`${60 + Math.random() * 30}%`} height={12} /></th>)}</tr>
+      </thead>
+      <tbody>
+        {Array.from({ length: rows }, (_, ri) => (
+          <tr key={ri}>{Array.from({ length: cols }, (_, ci) => <td key={ci}><SkeletonPulse width={`${50 + Math.random() * 40}%`} height={14} /></td>)}</tr>
         ))}
-      </div>
-      {Array.from({ length: rows }, (_, ri) => (
-        <div key={ri} className="wh-skeleton-table__row">
-          {Array.from({ length: cols }, (_, ci) => (
-            <SkeletonPulse key={ci} width={`${50 + Math.random() * 50}%`} height={14} />
-          ))}
-        </div>
-      ))}
-    </div>
+      </tbody>
+    </table>
   );
 }
 
@@ -129,7 +110,7 @@ function validatePurchaseForm(form, items) {
 
   const itemErrors = [];
   let hasValidItem = false;
-  items.forEach((it, i) => {
+  items.forEach((it) => {
     const ie = {};
     if (!it.name?.trim()) ie.name = "Название обязательно";
     if (!it.quantity || Number(it.quantity) <= 0) ie.quantity = "Кол-во > 0";
@@ -160,36 +141,43 @@ function SummaryTable({ title, rows, loading }) {
   const rowTotal = (r) => Number(r.raw || 0) + Number(r.semi || 0) + Number(r.sale || 0);
 
   return (
-    <article className="warehouse-board">
-      <div className="warehouse-title-mark" />
-      <h3>{title}</h3>
+    <section className="card card-pad">
+      <div className="section-header">
+        <div><span className="eyebrow">Stock</span><h2>{title}</h2></div>
+      </div>
       {loading ? <TableSkeleton cols={6} rows={3} /> : (
-        <div className="warehouse-money-table">
-          <div className="warehouse-money-table__head">
-            <span>№</span><span>Название</span><span>Сырьё</span><span>Полуфабрикат</span><span>Реализация</span><span>Сумма</span>
-          </div>
-          <div className="warehouse-money-table__row is-total">
-            <span /><strong>Итого</strong>
-            <MoneyCell value={totals.raw} /><MoneyCell value={totals.semi} /><MoneyCell value={totals.sale} />
-            <MoneyCell value={totals.raw + totals.semi + totals.sale} />
-          </div>
-          {rows.map((r, i) => (
-            <div className="warehouse-money-table__row" key={r.id}>
-              <span>{i + 1}</span>
-              <Link to="/warehouse/balance">{r.name}</Link>
-              <MoneyCell value={r.raw} muted={!r.raw} /><MoneyCell value={r.semi} muted={!r.semi} />
-              <MoneyCell value={r.sale} muted={!r.sale} /><MoneyCell value={rowTotal(r)} muted={!rowTotal(r)} />
-            </div>
-          ))}
+        <div className="table-responsive">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>№</th><th>Название</th><th>Сырьё</th><th>Полуфабрикат</th><th>Реализация</th><th>Сумма</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style={{ fontWeight: 700, background: "rgba(255,107,53,0.04)" }}>
+                <td /><td><strong>Итого</strong></td>
+                <td><MoneyCell value={totals.raw} /></td><td><MoneyCell value={totals.semi} /></td><td><MoneyCell value={totals.sale} /></td>
+                <td><MoneyCell value={totals.raw + totals.semi + totals.sale} /></td>
+              </tr>
+              {rows.map((r, i) => (
+                <tr key={r.id}>
+                  <td>{i + 1}</td>
+                  <td><Link to="/warehouse/balance">{r.name}</Link></td>
+                  <td><MoneyCell value={r.raw} muted={!r.raw} /></td><td><MoneyCell value={r.semi} muted={!r.semi} /></td>
+                  <td><MoneyCell value={r.sale} muted={!r.sale} /></td><td><MoneyCell value={rowTotal(r)} muted={!rowTotal(r)} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
-    </article>
+    </section>
   );
 }
 
 
 /* Приходы */
-function IncomingSection({ warehouses, onRefreshStats, onPurchaseStats, globalSearch }) {
+function IncomingSection({ warehouses, onRefreshStats, onPurchaseStats, globalSearch, filterStatus }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -228,70 +216,82 @@ function IncomingSection({ warehouses, onRefreshStats, onPurchaseStats, globalSe
     } catch { /* ignore */ }
   };
 
-  /* live filter from global search */
+  /* live filter from global search + status */
   const q = (globalSearch || "").toLowerCase();
-  const filtered = q
-    ? rows.filter((r) =>
-        (r.supplier || "").toLowerCase().includes(q)
-        || (r.warehouse_name || "").toLowerCase().includes(q)
-        || String(r.number || "").includes(q)
-        || (r.date || "").includes(q)
-      )
-    : rows;
+  const filtered = rows.filter((r) => {
+    if (filterStatus === "draft" && r.status !== "draft") return false;
+    if (filterStatus === "accepted" && r.status !== "accepted" && r.status !== "active") return false;
+    if (!q) return true;
+    return (r.supplier || "").toLowerCase().includes(q)
+      || (r.warehouse_name || "").toLowerCase().includes(q)
+      || String(r.number || "").includes(q)
+      || (r.date || "").includes(q);
+  });
 
   return (
-    <article className="warehouse-board">
-      <div className="warehouse-board__head">
-        <div>
-          <div className="warehouse-title-mark" />
-          <h3>Поступление товаров</h3>
-        </div>
-        <button type="button" className="warehouse-create" onClick={() => setShowCreate(true)}>
-          Создать <Plus size={16} />
+    <section className="card card-pad">
+      <div className="section-header">
+        <div><span className="eyebrow">Incoming</span><h2>Поступление товаров</h2></div>
+        <button type="button" className="wh-btn wh-btn--primary" onClick={() => setShowCreate(true)}>
+          <Plus size={16} /> Создать
         </button>
       </div>
 
-      {loading ? <TableSkeleton cols={9} rows={4} /> : filtered.length === 0 ? (
-        <p className="warehouse-empty">{q ? "Ничего не найдено." : "Документов пока нет. Нажмите «Создать» чтобы добавить приход."}</p>
+      {loading ? <TableSkeleton cols={8} rows={4} /> : filtered.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-state__icon"><Package size={32} strokeWidth={1.5} /></div>
+          <h3>{q ? "Ничего не найдено" : "Документов пока нет"}</h3>
+          <p>{q ? `Нет результатов по запросу «${q}»` : "Нажмите «Создать» чтобы добавить приход."}</p>
+        </div>
       ) : (
-        <div className="warehouse-document-table warehouse-document-table--incoming">
-          <div className="warehouse-document-table__head">
-            <span>Номер</span><span>Поставщик</span><span>На склад</span><span>Дата</span>
-            <span>Регистрация</span><span>Приём</span><span>Кол-во</span><span>Сумма</span><span>Действия</span>
-          </div>
-          {filtered.map((r) => (
-            <div className="warehouse-document-table__row" key={r.id} onClick={() => setViewDoc(r)} style={{ cursor: "pointer" }}>
-              <strong>{r.number}</strong>
-              <span>{r.supplier || "—"}</span>
-              <span>{r.warehouse_name || "—"}</span>
-              <span>{r.date || "—"}</span>
-              <span>{r.registered_at || "—"}{r.created_by_name ? <small>{r.created_by_name}</small> : null}</span>
-              <span>{r.accepted_at || "—"}</span>
-              <span>{formatNumber(r.items_count)}</span>
-              <MoneyCell value={r.total_amount} muted={!Number(r.total_amount)} />
-              <div className="warehouse-row-actions" onClick={(e) => e.stopPropagation()}>
-                <WarehouseStatus status={r.status} />
-                {r.status === "draft" && (
-                  <IconBtn Icon={Check} tone="green" label="Принять" onClick={() => handleAccept(r.id)} />
-                )}
-                <IconBtn Icon={Eye} label="Открыть" onClick={() => setViewDoc(r)} />
-                {r.status === "draft" && (
-                  <IconBtn Icon={Trash2} tone="red" label="Удалить" onClick={() => handleDelete(r.id)} />
-                )}
-              </div>
-            </div>
-          ))}
+        <div className="table-responsive">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Номер</th><th>Поставщик</th><th>На склад</th><th>Дата</th>
+                <th>Регистрация</th><th>Кол-во</th><th>Сумма</th><th>Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((r) => (
+                <tr key={r.id} onClick={() => setViewDoc(r)} style={{ cursor: "pointer" }}>
+                  <td><strong>{r.number}</strong></td>
+                  <td>{r.supplier || "—"}</td>
+                  <td>{r.warehouse_name || "—"}</td>
+                  <td>{r.date || "—"}</td>
+                  <td>
+                    {r.registered_at || "—"}
+                    {r.created_by_name ? <><br /><small className="muted">{r.created_by_name}</small></> : null}
+                  </td>
+                  <td>{formatNumber(r.items_count)}</td>
+                  <td><MoneyCell value={r.total_amount} muted={!Number(r.total_amount)} /></td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <div className="table-actions">
+                      {statusBadge(r.status)}
+                      {r.status === "draft" && (
+                        <IconBtn Icon={Check} tone="green" label="Принять" onClick={() => handleAccept(r.id)} />
+                      )}
+                      <IconBtn Icon={Eye} tone="brand" label="Открыть" onClick={() => setViewDoc(r)} />
+                      {r.status === "draft" && (
+                        <IconBtn Icon={Trash2} tone="red" label="Удалить" onClick={() => handleDelete(r.id)} />
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      <CreatePurchaseModal open={showCreate} onClose={() => setShowCreate(false)} warehouses={warehouses} onCreated={() => { load(search); onRefreshStats?.(); }} />
+      <CreatePurchaseModal open={showCreate} onClose={() => setShowCreate(false)} warehouses={warehouses} onCreated={() => { load(); onRefreshStats?.(); }} />
       <Modal open={!!viewDoc} onClose={() => setViewDoc(null)} title={viewDoc ? `Приход #${viewDoc.number}` : ""} wide>
         {viewDoc && (
           <div className="warehouse-detail-grid">
             <div><span>Поставщик</span><strong>{viewDoc.supplier || "—"}</strong></div>
             <div><span>Склад</span><strong>{viewDoc.warehouse_name || "—"}</strong></div>
             <div><span>Дата</span><strong>{viewDoc.date || "—"}</strong></div>
-            <div><span>Статус</span><WarehouseStatus status={viewDoc.status} /></div>
+            <div><span>Статус</span>{statusBadge(viewDoc.status)}</div>
             <div><span>Кол-во позиций</span><strong>{viewDoc.items_count}</strong></div>
             <div><span>Итого</span><strong>{formatMoney(viewDoc.total_amount)}</strong></div>
             <div><span>Регистрация</span><strong>{viewDoc.registered_at || "—"}</strong></div>
@@ -300,7 +300,7 @@ function IncomingSection({ warehouses, onRefreshStats, onPurchaseStats, globalSe
           </div>
         )}
       </Modal>
-    </article>
+    </section>
   );
 }
 
@@ -318,7 +318,7 @@ function CreatePurchaseModal({ open, onClose, warehouses, onCreated }) {
   };
   const setItem = (i, k, v) => {
     setItems((arr) => arr.map((it, idx) => idx === i ? { ...it, [k]: v } : it));
-    if (touched) setItemErrors((arr) => arr.map((ie, idx) => idx === i ? { ...ie, [k]: undefined } : ie));
+    if (touched) setItemErrors((a) => a.map((ie, idx) => idx === i ? { ...ie, [k]: undefined } : ie));
   };
   const addItem = () => {
     setItems((a) => [...a, { name: "", quantity: "", unit: "кг", cost_price: "" }]);
@@ -359,7 +359,6 @@ function CreatePurchaseModal({ open, onClose, warehouses, onCreated }) {
     } catch { /* ignore */ } finally { setSaving(false); }
   };
 
-  /* Compute running total */
   const runTotal = items.reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.cost_price) || 0), 0);
 
   return (
@@ -437,7 +436,7 @@ function CreatePurchaseModal({ open, onClose, warehouses, onCreated }) {
 
 
 /* Перемещения */
-function TransferSection({ warehouses, onRefreshStats, globalSearch }) {
+function TransferSection({ warehouses, onRefreshStats, globalSearch, filterStatus }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -455,43 +454,55 @@ function TransferSection({ warehouses, onRefreshStats, globalSearch }) {
     try { await api.delete(`/warehouse/transfers/${id}`); load(); } catch {}
   };
 
-  const filtered = globalSearch
-    ? rows.filter((r) =>
-        (r.from_warehouse_name || "").toLowerCase().includes(globalSearch.toLowerCase())
-        || (r.to_warehouse_name || "").toLowerCase().includes(globalSearch.toLowerCase())
-      )
-    : rows;
+  const q = (globalSearch || "").toLowerCase();
+  const filtered = rows.filter((r) => {
+    if (filterStatus === "draft" && r.status !== "draft") return false;
+    if (filterStatus === "accepted" && r.status !== "accepted" && r.status !== "active") return false;
+    if (!q) return true;
+    return (r.from_warehouse_name || "").toLowerCase().includes(q)
+      || (r.to_warehouse_name || "").toLowerCase().includes(q);
+  });
 
   return (
-    <article className="warehouse-board">
-      <div className="warehouse-board__head">
-        <div><div className="warehouse-title-mark" /><h3>Перемещение товаров</h3></div>
-        <button type="button" className="warehouse-create" onClick={() => setShowCreate(true)}>Создать <Plus size={16} /></button>
+    <section className="card card-pad">
+      <div className="section-header">
+        <div><span className="eyebrow">Transfers</span><h2>Перемещение товаров</h2></div>
+        <button type="button" className="wh-btn wh-btn--primary" onClick={() => setShowCreate(true)}><Plus size={16} /> Создать</button>
       </div>
       {loading ? <TableSkeleton cols={6} rows={3} /> : filtered.length === 0 ? (
-        <p className="warehouse-empty">{globalSearch ? "Ничего не найдено." : "Перемещений пока нет."}</p>
+        <div className="empty-state">
+          <div className="empty-state__icon"><ArrowRightLeft size={32} strokeWidth={1.5} /></div>
+          <h3>{q ? "Ничего не найдено" : "Перемещений пока нет"}</h3>
+          <p>{q ? `Нет результатов по запросу «${q}»` : "Создайте первое перемещение между складами."}</p>
+        </div>
       ) : (
-        <div className="warehouse-document-table warehouse-document-table--transfer">
-          <div className="warehouse-document-table__head">
-            <span>Дата</span><span>Со склада</span><span>На склад</span><span>Кол-во</span><span>Дата создания</span><span>Действия</span>
-          </div>
-          {filtered.map((r) => (
-            <div className="warehouse-document-table__row" key={r.id}>
-              <span>{r.date || "—"}</span>
-              <span>{r.from_warehouse_name || "—"}</span>
-              <span>{r.to_warehouse_name || "—"}</span>
-              <strong>{formatNumber(r.items_count)}</strong>
-              <span>{r.created_at ? new Date(r.created_at).toLocaleString("ru-RU") : "—"}</span>
-              <div className="warehouse-row-actions">
-                <WarehouseStatus status={r.status} />
-                <IconBtn Icon={Trash2} tone="red" label="Удалить" onClick={() => handleDelete(r.id)} />
-              </div>
-            </div>
-          ))}
+        <div className="table-responsive">
+          <table className="data-table">
+            <thead>
+              <tr><th>Дата</th><th>Со склада</th><th>На склад</th><th>Кол-во</th><th>Создано</th><th>Действия</th></tr>
+            </thead>
+            <tbody>
+              {filtered.map((r) => (
+                <tr key={r.id}>
+                  <td>{r.date || "—"}</td>
+                  <td>{r.from_warehouse_name || "—"}</td>
+                  <td>{r.to_warehouse_name || "—"}</td>
+                  <td><strong>{formatNumber(r.items_count)}</strong></td>
+                  <td>{r.created_at ? new Date(r.created_at).toLocaleString("ru-RU") : "—"}</td>
+                  <td>
+                    <div className="table-actions">
+                      {statusBadge(r.status)}
+                      <IconBtn Icon={Trash2} tone="red" label="Удалить" onClick={() => handleDelete(r.id)} />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
       <CreateTransferModal open={showCreate} onClose={() => setShowCreate(false)} warehouses={warehouses} onCreated={() => { load(); onRefreshStats?.(); }} />
-    </article>
+    </section>
   );
 }
 
@@ -553,7 +564,7 @@ function CreateTransferModal({ open, onClose, warehouses, onCreated }) {
 
 
 /* Инвентаризация */
-function InventorySection({ warehouses, onRefreshStats, globalSearch }) {
+function InventorySection({ warehouses, onRefreshStats, globalSearch, filterStatus }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -566,40 +577,56 @@ function InventorySection({ warehouses, onRefreshStats, globalSearch }) {
   useEffect(() => { load(); }, [load]);
 
   const q = (globalSearch || "").toLowerCase();
-  const filtered = q
-    ? rows.filter((r) => (r.warehouse_name || "").toLowerCase().includes(q) || (r.comment || "").toLowerCase().includes(q))
-    : rows;
+  const filtered = rows.filter((r) => {
+    if (filterStatus === "draft" && r.status !== "draft") return false;
+    if (filterStatus === "accepted" && r.status !== "accepted" && r.status !== "active") return false;
+    if (!q) return true;
+    return (r.warehouse_name || "").toLowerCase().includes(q) || (r.comment || "").toLowerCase().includes(q);
+  });
 
   return (
-    <article className="warehouse-board">
-      <div className="warehouse-board__head">
-        <div><div className="warehouse-title-mark" /><h3>Инвентаризация</h3></div>
-        <button type="button" className="warehouse-create" onClick={() => setShowCreate(true)}>Создать <Plus size={16} /></button>
+    <section className="card card-pad">
+      <div className="section-header">
+        <div><span className="eyebrow">Inventory</span><h2>Инвентаризация</h2></div>
+        <button type="button" className="wh-btn wh-btn--primary" onClick={() => setShowCreate(true)}><Plus size={16} /> Создать</button>
       </div>
       {loading ? <TableSkeleton cols={6} rows={3} /> : filtered.length === 0 ? (
-        <p className="warehouse-empty">{q ? "Ничего не найдено." : "Инвентаризаций пока нет."}</p>
+        <div className="empty-state">
+          <div className="empty-state__icon"><ClipboardCheck size={32} strokeWidth={1.5} /></div>
+          <h3>{q ? "Ничего не найдено" : "Инвентаризаций пока нет"}</h3>
+          <p>{q ? `Нет результатов по запросу «${q}»` : "Создайте первую инвентаризацию."}</p>
+        </div>
       ) : (
-        <div className="warehouse-document-table warehouse-document-table--inventory">
-          <div className="warehouse-document-table__head">
-            <span>ID</span><span>Дата</span><span>Склад</span><span>Комментарий</span><span>Тип</span><span>Действия</span>
-          </div>
-          {filtered.map((r) => (
-            <div className="warehouse-document-table__row" key={r.id}>
-              <strong>{String(r.id).slice(-4)}</strong>
-              <span>{r.created_at ? new Date(r.created_at).toLocaleString("ru-RU") : "—"}{r.created_by_name ? <small>{r.created_by_name}</small> : null}</span>
-              <span>{r.warehouse_name || "—"}</span>
-              <span>{r.comment || "—"}</span>
-              <span className={r.check_type?.includes("не учтены") ? "is-warning-text" : ""}>{r.check_type}</span>
-              <div className="warehouse-row-actions">
-                <WarehouseStatus status={r.status} />
-                <IconBtn Icon={Pencil} tone="yellow" label="Редактировать" onClick={() => {}} />
-              </div>
-            </div>
-          ))}
+        <div className="table-responsive">
+          <table className="data-table">
+            <thead>
+              <tr><th>ID</th><th>Дата</th><th>Склад</th><th>Комментарий</th><th>Тип</th><th>Действия</th></tr>
+            </thead>
+            <tbody>
+              {filtered.map((r) => (
+                <tr key={r.id}>
+                  <td><strong>{String(r.id).slice(-4)}</strong></td>
+                  <td>
+                    {r.created_at ? new Date(r.created_at).toLocaleString("ru-RU") : "—"}
+                    {r.created_by_name ? <><br /><small className="muted">{r.created_by_name}</small></> : null}
+                  </td>
+                  <td>{r.warehouse_name || "—"}</td>
+                  <td>{r.comment || "—"}</td>
+                  <td><span className={r.check_type?.includes("не учтены") ? "badge badge-warning" : "badge badge-info"}>{r.check_type}</span></td>
+                  <td>
+                    <div className="table-actions">
+                      {statusBadge(r.status)}
+                      <IconBtn Icon={Pencil} tone="brand" label="Редактировать" onClick={() => {}} />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
       <CreateInventoryModal open={showCreate} onClose={() => setShowCreate(false)} warehouses={warehouses} onCreated={load} />
-    </article>
+    </section>
   );
 }
 
@@ -642,7 +669,7 @@ function CreateInventoryModal({ open, onClose, warehouses, onCreated }) {
 
 
 /* Списание */
-function WriteOffSection({ onRefreshStats, globalSearch }) {
+function WriteOffSection({ onRefreshStats, globalSearch, filterStatus }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -659,39 +686,56 @@ function WriteOffSection({ onRefreshStats, globalSearch }) {
     try { await api.delete(`/warehouse/write-offs/${id}`); load(); } catch {}
   };
 
-  const filtered = globalSearch
-    ? rows.filter((r) => (r.category || "").toLowerCase().includes(globalSearch.toLowerCase()) || (r.note || "").toLowerCase().includes(globalSearch.toLowerCase()))
-    : rows;
+  const q = (globalSearch || "").toLowerCase();
+  const filtered = rows.filter((r) => {
+    if (filterStatus === "draft" && r.status !== "draft") return false;
+    if (filterStatus === "accepted" && r.status !== "accepted" && r.status !== "active") return false;
+    if (!q) return true;
+    return (r.category || "").toLowerCase().includes(q) || (r.note || "").toLowerCase().includes(q);
+  });
 
   return (
-    <article className="warehouse-board">
-      <div className="warehouse-board__head">
-        <div><div className="warehouse-title-mark" /><h3>Списание</h3></div>
-        <button type="button" className="warehouse-create" onClick={() => setShowCreate(true)}>Создать <Plus size={16} /></button>
+    <section className="card card-pad">
+      <div className="section-header">
+        <div><span className="eyebrow">Write-offs</span><h2>Списание</h2></div>
+        <button type="button" className="wh-btn wh-btn--primary" onClick={() => setShowCreate(true)}><Plus size={16} /> Создать</button>
       </div>
       {loading ? <TableSkeleton cols={5} rows={3} /> : filtered.length === 0 ? (
-        <p className="warehouse-empty">{globalSearch ? "Ничего не найдено." : "Списаний пока нет."}</p>
+        <div className="empty-state">
+          <div className="empty-state__icon"><FileX2 size={32} strokeWidth={1.5} /></div>
+          <h3>{q ? "Ничего не найдено" : "Списаний пока нет"}</h3>
+          <p>{q ? `Нет результатов по запросу «${q}»` : "Создайте первое списание."}</p>
+        </div>
       ) : (
-        <div className="warehouse-document-table warehouse-document-table--writeoff">
-          <div className="warehouse-document-table__head">
-            <span>ID</span><span>Дата</span><span>Категория</span><span>Кол-во</span><span>Действия</span>
-          </div>
-          {filtered.map((r) => (
-            <div className="warehouse-document-table__row" key={r.id}>
-              <strong>{String(r.id).slice(-4)}</strong>
-              <span>{r.created_at ? new Date(r.created_at).toLocaleString("ru-RU") : "—"}{r.created_by_name ? <small>{r.created_by_name}</small> : null}</span>
-              <span>{r.category || "—"}</span>
-              <strong>{formatNumber(r.items_count)}</strong>
-              <div className="warehouse-row-actions">
-                <WarehouseStatus status={r.status} />
-                <IconBtn Icon={Pencil} tone="yellow" label="Редактировать" onClick={() => {}} />
-              </div>
-            </div>
-          ))}
+        <div className="table-responsive">
+          <table className="data-table">
+            <thead>
+              <tr><th>ID</th><th>Дата</th><th>Категория</th><th>Кол-во</th><th>Действия</th></tr>
+            </thead>
+            <tbody>
+              {filtered.map((r) => (
+                <tr key={r.id}>
+                  <td><strong>{String(r.id).slice(-4)}</strong></td>
+                  <td>
+                    {r.created_at ? new Date(r.created_at).toLocaleString("ru-RU") : "—"}
+                    {r.created_by_name ? <><br /><small className="muted">{r.created_by_name}</small></> : null}
+                  </td>
+                  <td>{r.category || "—"}</td>
+                  <td><strong>{formatNumber(r.items_count)}</strong></td>
+                  <td>
+                    <div className="table-actions">
+                      {statusBadge(r.status)}
+                      <IconBtn Icon={Pencil} tone="brand" label="Редактировать" onClick={() => {}} />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
       <CreateWriteOffModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={load} />
-    </article>
+    </section>
   );
 }
 
@@ -762,6 +806,7 @@ const sectionByPath = {
 export default function WarehousePage({ initialSection }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { selectedDate } = useOutletContext() || {};
   const [activeSection, setActiveSection] = useState(initialSection || sectionByPath[location.pathname] || "summary");
   const [warehouseNames, setWarehouseNames] = useState(["Главный склад", "BAR", "KUXNYA"]);
   const [stockRows, setStockRows] = useState([]);
@@ -774,9 +819,6 @@ export default function WarehousePage({ initialSection }) {
   const debouncedSearch = useDebounce(globalSearch, 200);
   const [showFilter, setShowFilter] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all"); // all | draft | accepted
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
     setActiveSection(initialSection || sectionByPath[location.pathname] || "summary");
@@ -830,79 +872,44 @@ export default function WarehousePage({ initialSection }) {
     return { total, warehouses: warehouseNames.length };
   }, [stockRows, warehouseNames]);
 
-  /* date range label */
-  const dateLabel = useMemo(() => {
-    if (dateFrom && dateTo) return `${dateFrom} — ${dateTo}`;
-    if (dateFrom) return `с ${dateFrom}`;
-    if (dateTo) return `до ${dateTo}`;
-    return "Выберите дату";
-  }, [dateFrom, dateTo]);
+  const hasActiveFilters = filterStatus !== "all" || debouncedSearch;
 
   /* full-page loader on first load */
   if (loading) return <MarjonLoader text="Загрузка склада…" />;
 
   return (
-    <section className="warehouse-workspace">
-      {/* toolbar */}
-      <div className="warehouse-workspace__toolbar">
-        <div className="warehouse-date-wrapper">
-          <button
-            type="button"
-            className={`warehouse-date-button ${(dateFrom || dateTo) ? "is-active" : ""}`}
-            onClick={() => setShowDatePicker((p) => !p)}
-          >
-            <Calendar size={14} /> {dateLabel}
-          </button>
-          {showDatePicker && (
-            <div className="warehouse-date-dropdown">
-              <label>
-                С
-                <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-              </label>
-              <label>
-                По
-                <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-              </label>
-              {(dateFrom || dateTo) && (
-                <button
-                  type="button"
-                  className="warehouse-date-dropdown__reset"
-                  onClick={() => { setDateFrom(""); setDateTo(""); }}
-                >
-                  <X size={12} /> Сбросить
-                </button>
-              )}
-            </div>
+    <>
+      {/* ─── toolbar ─── */}
+      <div className="table-toolbar wh-toolbar">
+        <div className="wh-toolbar__search">
+          <Search size={16} className="wh-toolbar__search-icon" />
+          <input
+            placeholder="Поиск по складу…"
+            value={globalSearch}
+            onChange={(e) => setGlobalSearch(e.target.value)}
+            className="wh-toolbar__search-input"
+          />
+          {globalSearch && (
+            <button type="button" className="wh-toolbar__search-clear" onClick={() => setGlobalSearch("")}>
+              <X size={14} />
+            </button>
           )}
         </div>
-        <div className="warehouse-toolbar__right">
-          <div className="warehouse-global-search">
-            <Search size={16} className="warehouse-global-search__icon" />
-            <input
-              placeholder="Поиск по складу"
-              value={globalSearch}
-              onChange={(e) => setGlobalSearch(e.target.value)}
-            />
-            {globalSearch && (
-              <button type="button" className="warehouse-global-search__clear" onClick={() => setGlobalSearch("")}>
-                <X size={14} />
-              </button>
-            )}
-          </div>
+        <div className="wh-toolbar__actions">
           <button
             type="button"
-            className={`warehouse-filter ${showFilter ? "is-active" : ""}`}
+            className={`wh-btn wh-btn--outline ${showFilter ? "is-active" : ""}`}
             onClick={() => setShowFilter((p) => !p)}
           >
-            <SlidersHorizontal size={16} /> Фильтровать
+            <SlidersHorizontal size={16} /> Фильтр
           </button>
         </div>
       </div>
 
-      {/* filter dropdown */}
+      {/* ─── filter chips ─── */}
       {showFilter && (
-        <div className="warehouse-filter-dropdown">
-          <span className="warehouse-filter-dropdown__label">Статус:</span>
+        <div className="wh-filter-row">
+          <span className="wh-filter-row__label">Статус:</span>
           {[
             { key: "all", label: "Все" },
             { key: "draft", label: "Черновик" },
@@ -911,16 +918,16 @@ export default function WarehousePage({ initialSection }) {
             <button
               key={f.key}
               type="button"
-              className={`warehouse-filter-chip ${filterStatus === f.key ? "is-active" : ""}`}
+              className={`wh-filter-chip ${filterStatus === f.key ? "is-active" : ""}`}
               onClick={() => setFilterStatus(f.key)}
             >
               {f.label}
             </button>
           ))}
-          {(filterStatus !== "all" || debouncedSearch) && (
+          {hasActiveFilters && (
             <button
               type="button"
-              className="warehouse-filter-chip warehouse-filter-chip--reset"
+              className="wh-filter-chip wh-filter-chip--reset"
               onClick={() => { setFilterStatus("all"); setGlobalSearch(""); }}
             >
               <X size={12} /> Сбросить
@@ -930,82 +937,72 @@ export default function WarehousePage({ initialSection }) {
       )}
 
       {error && (
-        <div className="warehouse-alert">
+        <div className="wh-alert">
           <AlertTriangle size={18} /> {error}
         </div>
       )}
 
-      <div className="warehouse-workspace__layout">
-        {/* sidebar */}
-        <nav className="warehouse-sections">
-          <div className="warehouse-sections__head">
-            <span>Склад</span>
-            <strong>Управление</strong>
-          </div>
-          {sections.map((s) => {
-            const Icon = s.icon;
-            return (
-              <button
-                key={s.key}
-                type="button"
-                className={`warehouse-section-link ${activeSection === s.key ? "is-active" : ""}`}
-                onClick={() => { setActiveSection(s.key); navigate(s.path); }}
-              >
-                <Icon size={16} /> {s.label}
-              </button>
-            );
-          })}
-        </nav>
+      {/* ─── KPI metrics ─── */}
+      <section className="kpi-grid">
+        <article className="kpi-card compact">
+          <div className="kpi-icon orange"><Banknote size={22} /></div>
+          <div><div className="kpi-label">Стоимость остатков</div><div className="kpi-value">{formatMoney(stats.total)}</div></div>
+        </article>
+        <article className="kpi-card compact">
+          <div className="kpi-icon blue"><WarehouseIcon size={22} /></div>
+          <div><div className="kpi-label">Складов</div><div className="kpi-value">{formatNumber(stats.warehouses)}</div></div>
+        </article>
+        <article className="kpi-card compact">
+          <div className="kpi-icon green"><ClipboardList size={22} /></div>
+          <div><div className="kpi-label">Приходов</div><div className="kpi-value">{purchaseCount || "—"}</div></div>
+        </article>
+        <article className="kpi-card compact">
+          <div className="kpi-icon purple"><FileWarning size={22} /></div>
+          <div><div className="kpi-label">Черновиков</div><div className="kpi-value">{draftCount || "—"}</div></div>
+        </article>
+      </section>
 
-        {/* content */}
-        <div className="warehouse-workspace__content">
-          {/* metrics */}
-          <div className="warehouse-metrics">
-            <article>
-              <span>Стоимость остатков</span>
-              <strong>{formatMoney(stats.total)}</strong>
-            </article>
-            <article>
-              <span>Складов</span>
-              <strong>{formatNumber(stats.warehouses)}</strong>
-            </article>
-            <article>
-              <span>Приходов</span>
-              <strong>{purchaseCount || "—"}</strong>
-            </article>
-            <article>
-              <span>Черновиков</span>
-              <strong>{draftCount || "—"}</strong>
-            </article>
-          </div>
-
-          {activeSection === "summary" && (
-            <>
-              <SummaryTable title="Остатки по складам" rows={stockRows} loading={false} />
-            </>
-          )}
-
-          {(activeSection === "incoming" || activeSection === "incoming-log") && (
-            <IncomingSection warehouses={warehouseNames} onRefreshStats={refreshStats} onPurchaseStats={handlePurchaseStats} globalSearch={debouncedSearch} />
-          )}
-
-          {activeSection === "balance" && (
-            <SummaryTable title="Остаток" rows={stockRows} loading={false} />
-          )}
-
-          {activeSection === "transfer" && (
-            <TransferSection warehouses={warehouseNames} onRefreshStats={refreshStats} globalSearch={debouncedSearch} />
-          )}
-
-          {activeSection === "inventory" && (
-            <InventorySection warehouses={warehouseNames} onRefreshStats={refreshStats} globalSearch={debouncedSearch} />
-          )}
-
-          {(activeSection === "write-off" || activeSection === "expense") && (
-            <WriteOffSection onRefreshStats={refreshStats} globalSearch={debouncedSearch} />
-          )}
-        </div>
+      {/* ─── section tabs ─── */}
+      <div className="wh-tabs">
+        {sections.map((s) => {
+          const Icon = s.icon;
+          return (
+            <button
+              key={s.key}
+              type="button"
+              className={`wh-tab ${activeSection === s.key ? "is-active" : ""}`}
+              onClick={() => { setActiveSection(s.key); navigate(s.path); }}
+            >
+              <Icon size={16} /> {s.label}
+            </button>
+          );
+        })}
       </div>
-    </section>
+
+      {/* ─── active section content ─── */}
+      {activeSection === "summary" && (
+        <SummaryTable title="Остатки по складам" rows={stockRows} loading={false} />
+      )}
+
+      {(activeSection === "incoming" || activeSection === "incoming-log") && (
+        <IncomingSection warehouses={warehouseNames} onRefreshStats={refreshStats} onPurchaseStats={handlePurchaseStats} globalSearch={debouncedSearch} filterStatus={filterStatus} />
+      )}
+
+      {activeSection === "balance" && (
+        <SummaryTable title="Остаток" rows={stockRows} loading={false} />
+      )}
+
+      {activeSection === "transfer" && (
+        <TransferSection warehouses={warehouseNames} onRefreshStats={refreshStats} globalSearch={debouncedSearch} filterStatus={filterStatus} />
+      )}
+
+      {activeSection === "inventory" && (
+        <InventorySection warehouses={warehouseNames} onRefreshStats={refreshStats} globalSearch={debouncedSearch} filterStatus={filterStatus} />
+      )}
+
+      {(activeSection === "write-off" || activeSection === "expense") && (
+        <WriteOffSection onRefreshStats={refreshStats} globalSearch={debouncedSearch} filterStatus={filterStatus} />
+      )}
+    </>
   );
 }
