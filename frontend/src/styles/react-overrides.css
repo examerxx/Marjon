@@ -10456,10 +10456,10 @@ html body .staff-manager__photo-upload > span > i {
   gap: 8px !important;
 }
 
-/* 7. dashboard-content fills height */
+/* 7. dashboard-content shrink */
 .dashboard-content {
   flex: 1 1 auto !important;
-  min-height: 100% !important;
+  flex-shrink: 1 !important;
   display: flex !important;
   flex-direction: column !important;
 }
