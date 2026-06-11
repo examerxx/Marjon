@@ -10381,3 +10381,88 @@ html body .staff-manager__photo-upload > span > i {
   color: var(--mj-brand, #ff6b35) !important;
   stroke: var(--mj-brand, #ff6b35) !important;
 }
+
+/* ══════════════════════════════════════════════════════
+   FIX BLOCK v10 — popover bg, period dot, top-dish
+   restructure, dashboard-content height
+   ═══════════════════════════════════════════════════ */
+
+/* 1. stock-alert-popover — white background, no gradient */
+.stock-alert-popover {
+  background: #fff !important;
+}
+[data-theme="dark"] .stock-alert-popover {
+  background: var(--mj-card-dark, #161b22) !important;
+}
+
+/* 3. Period dropdown dot indicator */
+.period-dropdown__dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--mj-border, #d0d5dd);
+  background: transparent;
+  flex-shrink: 0;
+  transition: 0.15s ease;
+}
+.period-dropdown__dot.is-active {
+  border-color: var(--mj-brand, #ff6b35);
+  background: var(--mj-brand, #ff6b35);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.18);
+}
+.period-dropdown__menu button {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+[data-theme="dark"] .period-dropdown__dot {
+  border-color: #30363d;
+}
+[data-theme="dark"] .period-dropdown__dot.is-active {
+  border-color: var(--mj-brand, #ff6b35);
+  background: var(--mj-brand, #ff6b35);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.22);
+}
+
+/* 4. top-dish restructured — line has name + badge, bar below */
+.top-dish__body {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+}
+.top-dish__line {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  margin-bottom: 0 !important;
+}
+.top-dish__line strong {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+.top-dish__bar {
+  width: 100% !important;
+}
+
+/* 6. period-dropdown__button — remove span styling since span is gone */
+.period-dropdown__button {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* 7. dashboard-content fills height */
+.dashboard-content {
+  flex: 1 1 auto !important;
+  min-height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.dashboard-content > section:last-child {
+  flex: 1 1 auto !important;
+}

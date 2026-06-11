@@ -3199,7 +3199,7 @@ body,
 }
 
 .section-header .btn-ghost::after {
-  content: "\\203A";
+  content: "\203A";
   margin-left: 10px;
   font-size: 1.1em;
 }

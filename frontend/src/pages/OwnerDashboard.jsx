@@ -206,7 +206,6 @@ function PeriodDropdown({ value, onChange }) {
       }}
     >
       <button className="period-dropdown__button" type="button" onClick={() => setOpen((current) => !current)} aria-haspopup="listbox" aria-expanded={open}>
-        <span>Период</span>
         <strong>{selected.label}</strong>
         <i className="bi bi-chevron-down" aria-hidden="true" />
       </button>
@@ -224,7 +223,7 @@ function PeriodDropdown({ value, onChange }) {
                 setOpen(false);
               }}
             >
-              {option.value === value ? <i className="bi bi-check2" aria-hidden="true" /> : <span style={{ width: 16, display: "inline-block" }} />}
+              <span className={`period-dropdown__dot${option.value === value ? " is-active" : ""}`} aria-hidden="true" />
               {option.label}
             </button>
           ))}
@@ -405,6 +404,16 @@ export default function OwnerDashboard() {
     [dashboard, displaySales, isDemoDashboard, selectedDate],
   );
   const maxTopQuantity = useMemo(() => Math.max(...displayTopProducts.map((item) => Number(item.quantity_sold || 0)), 1), [displayTopProducts]);
+  const revenueInsightText = useMemo(() => {
+    if (!displaySales.length) return "Нет данных за выбранный период.";
+    const total = displaySales.reduce((sum, d) => sum + Number(d.revenue || 0), 0);
+    const half = Math.floor(displaySales.length / 2);
+    const firstHalf = displaySales.slice(0, half).reduce((s, d) => s + Number(d.revenue || 0), 0);
+    const secondHalf = displaySales.slice(half).reduce((s, d) => s + Number(d.revenue || 0), 0);
+    const trend = firstHalf > 0 ? Math.round(((secondHalf - firstHalf) / firstHalf) * 100) : 0;
+    const trendText = trend > 0 ? `рост +${trend}%` : trend < 0 ? `снижение ${trend}%` : "стабильно";
+    return `Общая выручка за ${displaySales.length} дн: ${formatMoney(total)}. Тренд: ${trendText}.`;
+  }, [displaySales]);
 
   if (loading) return (
     <div className="skeleton-loading">
@@ -462,21 +471,21 @@ export default function OwnerDashboard() {
             <div><span className="eyebrow">Revenue analytics</span><h2>Выручка за {period} дней</h2><p>Период заканчивается {formatDateLabel(selectedDate)}</p></div>
             <div className="period-switcher" aria-label="Период выручки">
               <PeriodDropdown value={period} onChange={setPeriod} />
-              <Link className="btn btn-ghost" to="/analytics">Подробнее <i className="bi bi-chevron-right" aria-hidden="true" /></Link>
+              <Link className="btn btn-ghost" to="/analytics">Подробнее</Link>
             </div>
           </div>
           <div className="chart-wrap"><RevenueChart sales={displaySales} /></div>
-          <div className="revenue-insight"><div className="revenue-insight__icon"><i className="bi bi-graph-up-arrow" /></div><p><strong>Стабильная динамика.</strong> Отслеживайте выручку за 7 или 30 дней без отмененных заказов.</p><span className="revenue-insight__badge">Live</span></div>
+          <div className="revenue-insight"><div className="revenue-insight__icon"><i className="bi bi-graph-up-arrow" /></div><p>{revenueInsightText}</p></div>
         </div>
 
         <aside className="card card-pad top-dishes-card">
-          <div className="section-header"><div><span className="eyebrow">Menu performance</span><h2>Топ-5 блюд за день</h2></div><Link className="btn btn-ghost" to="/menu">Все блюда <i className="bi bi-chevron-right" aria-hidden="true" /></Link></div>
+          <div className="section-header"><div><span className="eyebrow">Menu performance</span><h2>Топ-5 блюд за день</h2></div><Link className="btn btn-ghost" to="/menu">Все блюда</Link></div>
           {displayTopProducts.length ? <div className="top-dishes-list">
             {displayTopProducts.map((item, index) => {
               const quantity = Number(item.quantity_sold || 0);
               return <div className="top-dish" key={item.product_id || item.name}>
                 <div className="top-dish__rank">{index + 1}</div>
-                <div className="top-dish__body"><div className="top-dish__line"><strong>{dishDisplayName(item.name)}</strong></div><div className="top-dish__meta"><span className="badge badge-info">{formatNumber(quantity)} продаж</span><div className="top-dish__bar"><i style={{ width: `${Math.round((quantity / maxTopQuantity) * 100)}%` }} /></div></div></div>
+                <div className="top-dish__body"><div className="top-dish__line"><strong>{dishDisplayName(item.name)}</strong><span className="badge badge-info">{formatNumber(quantity)} продаж</span></div><div className="top-dish__bar"><i style={{ width: `${Math.round((quantity / maxTopQuantity) * 100)}%` }} /></div></div>
                 <div className="top-dish__price">{formatMoney(item.revenue)}</div>
               </div>;
             })}
