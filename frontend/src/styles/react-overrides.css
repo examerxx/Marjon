@@ -10484,3 +10484,47 @@ html body .staff-manager__photo-upload > span > i {
   font-size: 0.68rem !important;
   padding: 2px 8px !important;
 }
+
+/* ══════════════════════════════════════════════════════
+   FIX BLOCK v11 — remove gradient backgrounds
+   ═══════════════════════════════════════════════════ */
+
+/* period-dropdown__button — flat white bg */
+.period-dropdown__button {
+  background: #fff !important;
+}
+[data-theme="dark"] .period-dropdown__button {
+  background: #21262d !important;
+}
+
+/* premium-chart — flat white bg */
+.premium-chart {
+  background: #fff !important;
+}
+[data-theme="dark"] .premium-chart {
+  background: var(--mj-card-dark, #161b22) !important;
+}
+
+/* top-dishes-card — flat white bg */
+.top-dishes-card {
+  background: #fff !important;
+}
+[data-theme="dark"] .top-dishes-card {
+  background: var(--mj-card-dark, #161b22) !important;
+}
+
+/* shift-summary-card — flat white bg */
+.shift-summary-card {
+  background: #fff !important;
+}
+[data-theme="dark"] .shift-summary-card {
+  background: var(--mj-card-dark, #161b22) !important;
+}
+
+/* quick-actions--command — flat white bg */
+.quick-actions--command {
+  background: #fff !important;
+}
+[data-theme="dark"] .quick-actions--command {
+  background: var(--mj-card-dark, #161b22) !important;
+}
