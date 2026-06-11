@@ -10530,3 +10530,18 @@ html body .staff-manager__photo-upload > span > i {
 [data-theme="dark"] .quick-actions--command {
   background: var(--mj-card-dark, #161b22) !important;
 }
+
+/* ══════════════════════════════════════════════════════
+   FIX BLOCK v12
+   ═══════════════════════════════════════════════════ */
+
+/* 1. Remove premium-chart decorative circle */
+.premium-chart::after {
+  display: none !important;
+}
+
+/* 2. Period button — fit-content width, text left-aligned */
+.period-dropdown__button {
+  width: fit-content !important;
+  min-width: auto !important;
+}
