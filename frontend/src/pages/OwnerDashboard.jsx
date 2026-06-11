@@ -2,6 +2,7 @@
 import { Chart, Filler, LineController, LineElement, LinearScale, PointElement, CategoryScale, Tooltip } from "chart.js";
 import { Link, useNavigate, useOutletContext } from "react-router-dom";
 import { api, formatMoney, formatNumber } from "../api/client";
+import { ChevronDown } from "lucide-react";
 import { dateRangeEndingAt, formatDateLabel, todayInputValue, toDateInputValue } from "../utils/date";
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Filler);
@@ -207,7 +208,7 @@ function PeriodDropdown({ value, onChange }) {
     >
       <button className="period-dropdown__button" type="button" onClick={() => setOpen((current) => !current)} aria-haspopup="listbox" aria-expanded={open}>
         <strong>{selected.label}</strong>
-        <i className="bi bi-chevron-down" aria-hidden="true" />
+        <ChevronDown size={18} strokeWidth={2.5} aria-hidden="true" />
       </button>
       {open ? (
         <div className="period-dropdown__menu" role="listbox">
