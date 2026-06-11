@@ -3,6 +3,7 @@ import { Chart, Filler, LineController, LineElement, LinearScale, PointElement, 
 import { Link, useNavigate, useOutletContext } from "react-router-dom";
 import { api, formatMoney, formatNumber } from "../api/client";
 import { ChevronDown } from "lucide-react";
+import MarjonLoader from "../components/MarjonLoader";
 import { dateRangeEndingAt, formatDateLabel, todayInputValue, toDateInputValue } from "../utils/date";
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Filler);
@@ -416,25 +417,7 @@ export default function OwnerDashboard() {
     return `Общая выручка за ${displaySales.length} дн: ${formatMoney(total)}. Тренд: ${trendText}.`;
   }, [displaySales]);
 
-  if (loading) return (
-    <div className="skeleton-loading">
-      <section className="kpi-grid kpi-grid--premium">
-        <div className="skeleton skeleton-card" />
-        <div className="skeleton skeleton-card" />
-        <div className="skeleton skeleton-card" />
-        <div className="skeleton skeleton-card" />
-      </section>
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginTop: 16 }}>
-        <div className="skeleton skeleton-chart" />
-        <div>
-          <div className="skeleton skeleton-row" />
-          <div className="skeleton skeleton-row" />
-          <div className="skeleton skeleton-row" />
-          <div className="skeleton skeleton-row" />
-        </div>
-      </div>
-    </div>
-  );
+  if (loading) return <MarjonLoader text="Загрузка дашборда…" />;
   if (error) return <EmptyState title="Dashboard недоступен" text={error} />;
 
   return (

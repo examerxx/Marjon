@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import { api, formatMoney, formatNumber } from "../api/client";
 import { formatDateLabel, todayInputValue } from "../utils/date";
+import MarjonLoader from "../components/MarjonLoader";
 
 const methodLabels = {
   cash: "Наличные",
@@ -126,7 +127,7 @@ export default function ZReportPage() {
   const fiscalGap = Math.max(0, Number(displayReport.payments_count || 0) - Number(displayReport.fiscal_receipts_count || 0));
   const closeTime = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" }).format(new Date());
 
-  if (loading) return <div className="loading-note">Загрузка Z-отчёта...</div>;
+  if (loading) return <MarjonLoader text="Загрузка Z-отчёта…" />;
 
   return (
     <section className="z-report-page">

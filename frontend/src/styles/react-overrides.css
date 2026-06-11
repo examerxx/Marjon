@@ -10632,3 +10632,55 @@ html body .staff-manager__photo-upload > span > i {
   width: 100% !important;
   justify-content: space-between !important;
 }
+
+/* ===== MARJON Custom Loader ===== */
+.mj-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 340px;
+  gap: 20px;
+}
+.mj-loader__ring {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mj-loader__ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 107, 53, 0.15);
+  border-top-color: #ff6b35;
+  animation: mjSpin 0.9s linear infinite;
+}
+.mj-loader__logo {
+  width: 36px;
+  height: 36px;
+  animation: mjPulse 1.8s ease-in-out infinite;
+}
+.mj-loader__text {
+  color: var(--mj-muted, #64748b);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+@keyframes mjSpin {
+  to { transform: rotate(360deg); }
+}
+@keyframes mjPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.92); }
+}
+[data-theme="dark"] .mj-loader__ring::before {
+  border-color: rgba(255, 107, 53, 0.1);
+  border-top-color: #ff6b35;
+}
+[data-theme="dark"] .mj-loader__text {
+  color: #94a3b8;
+}
