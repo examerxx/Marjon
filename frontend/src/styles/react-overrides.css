@@ -10435,7 +10435,7 @@ html body .staff-manager__photo-upload > span > i {
 .top-dish__line {
   display: flex !important;
   align-items: center !important;
-  justify-content: space-between !important;
+  justify-content: start !important;
   gap: 8px !important;
   margin-bottom: 0 !important;
 }

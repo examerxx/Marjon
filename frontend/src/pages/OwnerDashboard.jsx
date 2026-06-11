@@ -182,8 +182,8 @@ function PeriodDropdown({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const closeTimerRef = useRef(null);
   const options = [
-    { value: 7, label: "7 дней" },
-    { value: 30, label: "30 дней" },
+    { value: 7, label: "7 дн" },
+    { value: 30, label: "30 дн" },
   ];
   const selected = options.find((option) => option.value === value) || options[0];
   const openMenu = () => {
