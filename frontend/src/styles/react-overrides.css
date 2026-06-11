@@ -861,12 +861,14 @@
 
 .login-pro-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: minmax(420px, 46vw) minmax(460px, 1fr);
   background:
     radial-gradient(circle at 72% 0%, rgba(255, 107, 53, 0.10), transparent 28%),
     #eef3f9;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   font-family: var(--mj-font-body, Inter, sans-serif);
 }
 
@@ -874,7 +876,7 @@
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 100vh;
+  min-height: 0;
   overflow: hidden;
   background:
     radial-gradient(circle at 18% 18%, rgba(255, 107, 53, 0.22), transparent 28%),
@@ -964,10 +966,11 @@
 }
 
 .login-pro-panel {
-  min-height: 100vh;
+  min-height: 0;
   display: grid;
   place-items: center;
   padding: clamp(24px, 4vw, 64px);
+  overflow-y: auto;
 }
 
 .login-pro-card {
