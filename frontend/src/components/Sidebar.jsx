@@ -94,6 +94,7 @@ const navItems = [
       { key: "sales-categories", label: "Категория реализации", to: "/nomenclature/sales-categories", icon: "bi-shop" },
     ],
   },
+  { key: "orders", label: "Заказы", icon: "bi-receipt", to: "/orders" },
   { key: "menu", label: "Меню", icon: "bi-journal-richtext", to: "/menu" },
   { key: "analytics", label: "Аналитика", icon: "bi-graph-up", to: "/analytics" },
   { key: "store", label: "Магазин", icon: "bi-shop", to: "/store" },
