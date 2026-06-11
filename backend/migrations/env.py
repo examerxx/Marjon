@@ -22,6 +22,17 @@ import app.modules.audit.models          # noqa: F401
 import app.modules.fiscal.models         # noqa: F401
 import app.modules.subscriptions.models  # noqa: F401
 import app.modules.printers.models       # noqa: F401
+# Главная админка (HQ admin panel)
+import app.modules.handbook.models        # noqa: F401
+import app.modules.organizations.models   # noqa: F401
+import app.modules.departments.models     # noqa: F401
+import app.modules.marketing.models       # noqa: F401
+import app.modules.nomenclature.models    # noqa: F401
+import app.modules.storage.models         # noqa: F401
+import app.modules.finance.models         # noqa: F401
+import app.modules.field_service.models   # noqa: F401
+import app.modules.tasks.models           # noqa: F401
+import app.modules.admin_settings.models  # noqa: F401
 
 from app.config import settings
 

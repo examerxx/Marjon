@@ -16,5 +16,11 @@ export default defineConfig({
   build: {
     outDir: "dist",
     sourcemap: false,
+    rollupOptions: {
+      input: {
+        kafe: "index.html",
+        admin: "admin.html",
+      },
+    },
   },
 });

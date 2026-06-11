@@ -25,6 +25,10 @@ class Settings(BaseSettings):
         "http://localhost:5173",
     ]
 
+    # Интеграции главной админки (ТЗ §8); пустые значения = интеграция выключена
+    devent_base_url: str | None = None
+    devent_api_key: str | None = None
+
     # Бизнес-настройки
     default_tax_rate: float = 0.12  # НДС 12% (Узбекистан)
     default_service_fee_rate: float = 0.0  # Сервисный сбор (0% по умолчанию)

@@ -41,7 +41,8 @@ class CompanyUserCreate(BaseSchema):
 
 
 class LoginRequest(BaseSchema):
-    email: EmailStr
+    # email или username аккаунта главной админки
+    email: str = Field(..., min_length=1, max_length=255)
     password: str
 
 

@@ -67,9 +67,9 @@ class AuthService:
         import logging
         log = logging.getLogger(__name__)
 
-        user = await self.user_repo.get_by_email(email)
+        user = await self.user_repo.get_by_login(email)
         if not user:
-            log.warning("Login failed: user not found — email=%s", email)
+            log.warning("Login failed: user not found — login=%s", email)
             raise UnauthorizedError("Invalid credentials")
 
         if not verify_password(password, user.password_hash):

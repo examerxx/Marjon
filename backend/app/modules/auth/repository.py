@@ -18,6 +18,13 @@ class UserRepository(BaseRepository[User]):
         )
         return result.scalar_one_or_none()
 
+    async def get_by_login(self, login: str) -> Optional[User]:
+        """Логин по email или username (аккаунты главной админки)."""
+        result = await self.db.execute(
+            select(User).where((User.email == login) | (User.username == login))
+        )
+        return result.scalar_one_or_none()
+
     async def get_company_users(self, company_id: UUID) -> list[User]:
         result = await self.db.execute(
             select(User).where(User.company_id == company_id, User.is_active == True)
