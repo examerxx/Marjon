@@ -10513,11 +10513,13 @@ html body .staff-manager__photo-upload > span > i {
   background: var(--mj-card-dark, #161b22) !important;
 }
 
-/* shift-summary-card — flat white bg */
-.shift-summary-card {
+/* shift-summary-card — flat white bg (both base and --window) */
+.shift-summary-card,
+.shift-summary-card.shift-summary-card--window {
   background: #fff !important;
 }
-[data-theme="dark"] .shift-summary-card {
+[data-theme="dark"] .shift-summary-card,
+[data-theme="dark"] .shift-summary-card.shift-summary-card--window {
   background: var(--mj-card-dark, #161b22) !important;
 }
 
