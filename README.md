@@ -56,6 +56,19 @@ backend/
       printers/      # ESC/POS принтеры
       rbac/          # Роли, права
       subscriptions/ # Тарифы, подписки
+      # ── Главная админка (HQ admin panel) ──
+      handbook/       # Гео-справочники: страны, регионы, районы
+      organizations/  # Организации сети, статусы, аккаунты, offline-jobs
+      departments/    # Отделы
+      marketing/      # Лиды, статусы, теги, источники, статистика, импорт
+      nomenclature/   # Продукты, категории, ед.изм., заказы
+      storage/        # Склады, поставщики, поступления, остатки
+      finance/        # Транзакции, контрагенты, оплаты, история сумм
+      field_service/  # Сервисные сотрудники, услуги, техподдержка (devent)
+      tasks/          # Задачи, очередь подтверждений, доска
+      ratings/        # Рейтинг сотрудников (расчётный)
+      admin_settings/ # Языки, переводы, фоны, версии Store, user-logs
+      admin_reports/  # Отчёты: продукты, дебет/кредит, Excel-экспорт
     shared/          # Базовые классы
     infrastructure/  # БД, сессии
     middleware/      # Multi-tenancy
