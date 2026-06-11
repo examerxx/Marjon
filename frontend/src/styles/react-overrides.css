@@ -10765,3 +10765,320 @@ html body .staff-manager__photo-upload > span > i {
 [data-theme="dark"] .mj-loader__text {
   color: #94a3b8;
 }
+
+/* ── Warehouse modal & form styles ── */
+.warehouse-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: warehouseModalFadeIn 0.22s ease-out;
+}
+
+@keyframes warehouseModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.warehouse-modal {
+  width: min(540px, 100%);
+  max-height: 90vh;
+  display: grid;
+  gap: 0;
+  border-radius: 28px;
+  background: linear-gradient(145deg, #ffffff, #f8fafc 70%, #fff7f2);
+  border: 1px solid rgba(226, 232, 240, 0.92);
+  box-shadow:
+    0 44px 96px rgba(15, 23, 42, 0.22),
+    0 18px 36px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  overflow: hidden;
+  animation: warehouseModalSlideUp 0.24s ease-out;
+}
+
+.warehouse-modal--wide {
+  width: min(720px, 100%);
+}
+
+@keyframes warehouseModalSlideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.warehouse-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.warehouse-modal__head h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+}
+
+.warehouse-modal__close {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 10px;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.warehouse-modal__close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.warehouse-modal__body {
+  padding: 24px 28px 28px;
+  overflow-y: auto;
+  max-height: 70vh;
+}
+
+/* form */
+.warehouse-form {
+  display: grid;
+  gap: 16px;
+}
+
+.warehouse-form label {
+  display: grid;
+  gap: 5px;
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.warehouse-form input,
+.warehouse-form select,
+.warehouse-form textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(203, 213, 225, 0.88);
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-weight: 750;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.warehouse-form textarea {
+  min-height: 64px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+.warehouse-form input:focus,
+.warehouse-form select:focus,
+.warehouse-form textarea:focus {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.55);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12), 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.warehouse-form h4 {
+  margin: 8px 0 0;
+  color: #0f172a;
+  font-size: 0.92rem;
+  font-weight: 950;
+}
+
+.warehouse-form__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.warehouse-form__item {
+  position: relative;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(248, 250, 252, 0.8);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+}
+
+.warehouse-form__remove {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: #fff5f5;
+  color: #ef4444;
+  cursor: pointer;
+  align-self: end;
+  margin-bottom: 2px;
+}
+
+.warehouse-form__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px dashed rgba(37, 99, 235, 0.4);
+  background: rgba(239, 246, 255, 0.6);
+  color: #2563eb;
+  font-weight: 850;
+  cursor: pointer;
+  justify-self: start;
+  transition: background 0.15s;
+}
+
+.warehouse-form__add:hover {
+  background: rgba(219, 234, 254, 0.8);
+}
+
+.warehouse-form__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid rgba(226, 232, 240, 0.7);
+}
+
+.warehouse-form__cancel {
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.92);
+  background: #ffffff;
+  color: #64748b;
+  font-weight: 850;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.warehouse-form__cancel:hover {
+  background: #f8fafc;
+}
+
+.warehouse-form__submit {
+  min-height: 44px;
+  padding: 0 24px;
+  border-radius: 14px;
+  border: 0;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.warehouse-form__submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(37, 99, 235, 0.28);
+}
+
+.warehouse-form__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* detail grid */
+.warehouse-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.warehouse-detail-grid > div {
+  display: grid;
+  gap: 3px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.8);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.warehouse-detail-grid > div > span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.warehouse-detail-grid > div > strong {
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+/* spinner */
+@keyframes warehouseSpinnerRotate {
+  to { transform: rotate(360deg); }
+}
+
+.warehouse-spinner {
+  animation: warehouseSpinnerRotate 0.75s linear infinite;
+  color: #2563eb;
+}
+
+/* icon-button green variant */
+.warehouse-icon-button--green {
+  border-color: #16a34a !important;
+  color: #16a34a !important;
+}
+
+/* dark mode for modals */
+[data-theme="dark"] .warehouse-modal {
+  background: linear-gradient(145deg, #1a1f2e, #161b22 70%);
+  border-color: rgba(48, 54, 61, 0.9);
+  box-shadow: 0 44px 96px rgba(0, 0, 0, 0.44);
+}
+
+[data-theme="dark"] .warehouse-modal__head {
+  border-bottom-color: rgba(48, 54, 61, 0.8);
+}
+
+[data-theme="dark"] .warehouse-modal__head h3 {
+  color: #e6edf3;
+}
+
+[data-theme="dark"] .warehouse-form input,
+[data-theme="dark"] .warehouse-form select,
+[data-theme="dark"] .warehouse-form textarea {
+  background: #21262d;
+  border-color: rgba(48, 54, 61, 0.9);
+  color: #e6edf3;
+}
+
+[data-theme="dark"] .warehouse-form label {
+  color: #8b949e;
+}
+
+[data-theme="dark"] .warehouse-form__item {
+  background: rgba(22, 27, 34, 0.6);
+  border-color: rgba(48, 54, 61, 0.7);
+}
+
+[data-theme="dark"] .warehouse-detail-grid > div {
+  background: rgba(22, 27, 34, 0.6);
+  border-color: rgba(48, 54, 61, 0.7);
+}
+
+[data-theme="dark"] .warehouse-detail-grid > div > strong {
+  color: #e6edf3;
+}

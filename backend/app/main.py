@@ -38,6 +38,7 @@ import app.modules.finance.models         # noqa: F401
 import app.modules.field_service.models   # noqa: F401
 import app.modules.tasks.models           # noqa: F401
 import app.modules.admin_settings.models  # noqa: F401
+import app.modules.inventory.warehouse_models  # noqa: F401
 
 # ── Routers ─────────────────────────────────────────────────────────────────
 from app.modules.auth.router          import router as auth_router
@@ -70,6 +71,7 @@ from app.modules.tasks.router          import router as tasks_router
 from app.modules.ratings.router        import router as ratings_router
 from app.modules.admin_settings.router import router as admin_settings_router
 from app.modules.admin_reports.router  import router as admin_reports_router
+from app.modules.inventory.warehouse_router import router as warehouse_router
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +119,7 @@ legacy_routers = [
     marketing_router, nomenclature_router, storage_router,
     finance_router, field_service_router, tasks_router,
     ratings_router, admin_settings_router, admin_reports_router,
+    warehouse_router,
 ]
 
 kafe_routers = [
@@ -126,6 +129,7 @@ kafe_routers = [
     delivery_router, hr_router, analytics_router,
     notifications_router, audit_router,
     fiscal_router, printers_router,
+    warehouse_router,
 ]
 
 admin_routers = [

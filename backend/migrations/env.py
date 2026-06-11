@@ -33,6 +33,7 @@ import app.modules.finance.models         # noqa: F401
 import app.modules.field_service.models   # noqa: F401
 import app.modules.tasks.models           # noqa: F401
 import app.modules.admin_settings.models  # noqa: F401
+import app.modules.inventory.warehouse_models  # noqa: F401
 
 from app.config import settings
 

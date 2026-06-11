@@ -1,129 +1,149 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api, formatMoney, formatNumber } from "../api/client";
+import {
+  ChevronLeft, ChevronRight, Search, SlidersHorizontal,
+  Plus, Eye, Trash2, Pencil, X, Package, ArrowRightLeft,
+  ClipboardCheck, FileX2, BarChart3, Warehouse as WarehouseIcon,
+  AlertTriangle, Loader2, Check,
+} from "lucide-react";
 
-const warehouses = ["Главный склад", "BAR", "KUXNYA"];
 
-const demoStock = [
-  { id: "stock-main", name: "Главный склад", raw: 7313452.36, semi: 25100, sale: 0, status: "active" },
-  { id: "stock-bar", name: "BAR", raw: 59000, semi: 251000, sale: 0, status: "active" },
-  { id: "stock-kitchen", name: "KUXNYA", raw: 0, semi: 0, sale: 0, status: "active" },
-];
-
-const demoIncoming = [
-  { id: 66996, supplier: "-", warehouse: "-", date: "30.04.2026", registered: "30.04.2026 / 16:35", accepted: "-", count: 0, total: 0, status: "draft" },
-  { id: 65159, supplier: "BOZOR", warehouse: "Главный склад", date: "23.04.2026", registered: "23.04.2026 / 15:32", accepted: "23.04.2026 / 15:34", count: 2, total: 6150000, status: "accepted" },
-  { id: 64358, supplier: "BOZOR", warehouse: "Главный склад", date: "20.04.2026", registered: "20.04.2026 / 11:43", accepted: "20.04.2026 / 11:44", count: 3, total: 1275000, status: "accepted" },
-  { id: 58794, supplier: "-", warehouse: "-", date: "28.03.2026", registered: "28.03.2026 / 17:49", accepted: "-", count: 3, total: 672500, status: "draft" },
-  { id: 51023, supplier: "BOZOR", warehouse: "Главный склад", date: "02.03.2026", registered: "02.03.2026 / 10:59", accepted: "02.03.2026 / 11:00", count: 1, total: 175000, status: "accepted" },
-];
-
-const demoTransfers = [
-  { date: "20.04.2026", from: "Главный склад", to: "BAR", quantity: 30, created: "20.04.2026 / 11:46", status: "accepted" },
-  { date: "10.09.2025", from: "Главный склад", to: "Главный склад", quantity: 0, created: "10.09.2025 / 14:03", status: "draft" },
-];
-
-const demoInventory = [
-  { id: 4282, date: "23.12.2025 / 15:09", warehouse: "Главный склад", comment: "-", type: "Приход и расход учтены", status: "accepted" },
-  { id: 4281, date: "23.12.2025 / 15:07", warehouse: "Главный склад", comment: "-", type: "Приход и расход учтены", status: "accepted" },
-  { id: 2330, date: "21.08.2025 / 16:42", warehouse: "Главный склад", comment: "-", type: "Приход и расход не учтены", status: "accepted", warning: true },
-  { id: 2329, date: "21.08.2025 / 16:35", warehouse: "Главный склад", comment: "-", type: "Приход и расход не учтены", status: "accepted", warning: true },
-];
-
-const demoWriteOffs = [
-  { id: 14, date: "10.06.2026 / 18:01", category: "Fcvbb", count: 1, status: "accepted" },
-];
-
-function rowTotal(row) {
-  return Number(row.raw || 0) + Number(row.semi || 0) + Number(row.sale || 0);
+/* ─── helpers ───────────────────────────────────────────────── */
+function today() {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
 }
 
-function statusLabel(status) {
-  return status === "accepted" || status === "active" ? "Принято" : "Черновой";
-}
-
-function normalizeStockItem(item, ingredientById) {
-  const ingredient = ingredientById.get(item.ingredient_id);
-  const name = item.name || ingredient?.name || "Складская позиция";
-  const quantity = Number(item.quantity || 0);
-  const cost = Number(item.cost_price || 0);
-  return {
-    id: item.id || item.ingredient_id || name,
-    name,
-    raw: quantity * cost,
-    semi: 0,
-    sale: 0,
-    status: quantity <= Number(item.min_quantity || 0) ? "draft" : "active",
-  };
-}
-
-function WarehouseStatus({ status, warning = false }) {
-  return (
-    <span className={`warehouse-status ${status === "draft" ? "is-draft" : "is-accepted"} ${warning ? "is-warning" : ""}`}>
-      {statusLabel(status)}
-    </span>
-  );
-}
-
-function IconButton({ icon, tone = "blue", label }) {
-  return (
-    <button type="button" className={`warehouse-icon-button warehouse-icon-button--${tone}`} aria-label={label}>
-      <i className={`bi ${icon}`} />
-    </button>
-  );
+function statusLabel(s) {
+  return s === "accepted" || s === "active" ? "Принято" : "Черновой";
 }
 
 function MoneyCell({ value, muted = false }) {
   return <span className={muted ? "is-muted" : ""}>{formatMoney(value)}</span>;
 }
 
-function SummaryTable({ title, rows }) {
+function WarehouseStatus({ status }) {
+  return (
+    <span className={`warehouse-status ${status === "draft" ? "is-draft" : "is-accepted"}`}>
+      {statusLabel(status)}
+    </span>
+  );
+}
+
+function IconBtn({ Icon, tone = "blue", label, onClick }) {
+  return (
+    <button type="button" className={`warehouse-icon-button warehouse-icon-button--${tone}`} aria-label={label} onClick={onClick}>
+      <Icon size={16} />
+    </button>
+  );
+}
+
+function Spinner() {
+  return <Loader2 className="warehouse-spinner" size={20} />;
+}
+
+
+/* ─── modal shell ───────────────────────────────────────────── */
+function Modal({ open, onClose, title, children, wide }) {
+  if (!open) return null;
+  return (
+    <div className="warehouse-modal-backdrop" onClick={onClose}>
+      <div className={`warehouse-modal ${wide ? "warehouse-modal--wide" : ""}`} onClick={(e) => e.stopPropagation()}>
+        <div className="warehouse-modal__head">
+          <h3>{title}</h3>
+          <button type="button" className="warehouse-modal__close" onClick={onClose}><X size={18} /></button>
+        </div>
+        <div className="warehouse-modal__body">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+
+/* ─── Section components ────────────────────────────────────── */
+
+/* Остаток по складам */
+function SummaryTable({ title, rows, loading }) {
   const totals = rows.reduce(
-    (acc, row) => ({
-      raw: acc.raw + Number(row.raw || 0),
-      semi: acc.semi + Number(row.semi || 0),
-      sale: acc.sale + Number(row.sale || 0),
-    }),
+    (a, r) => ({ raw: a.raw + Number(r.raw || 0), semi: a.semi + Number(r.semi || 0), sale: a.sale + Number(r.sale || 0) }),
     { raw: 0, semi: 0, sale: 0 },
   );
+  const rowTotal = (r) => Number(r.raw || 0) + Number(r.semi || 0) + Number(r.sale || 0);
 
   return (
     <article className="warehouse-board">
       <div className="warehouse-title-mark" />
       <h3>{title}</h3>
-      <div className="warehouse-money-table">
-        <div className="warehouse-money-table__head">
-          <span>№</span>
-          <span>Название</span>
-          <span>Сырьё</span>
-          <span>Полуфабрикат</span>
-          <span>Реализация</span>
-          <span>Сумма</span>
-        </div>
-        <div className="warehouse-money-table__row is-total">
-          <span />
-          <strong>Итого</strong>
-          <MoneyCell value={totals.raw} />
-          <MoneyCell value={totals.semi} />
-          <MoneyCell value={totals.sale} />
-          <MoneyCell value={totals.raw + totals.semi + totals.sale} />
-        </div>
-        {rows.map((row, index) => (
-          <div className="warehouse-money-table__row" key={row.id}>
-            <span>{index + 1}</span>
-            <Link to="/warehouse/balance">{row.name}</Link>
-            <MoneyCell value={row.raw} muted={!row.raw} />
-            <MoneyCell value={row.semi} muted={!row.semi} />
-            <MoneyCell value={row.sale} muted={!row.sale} />
-            <MoneyCell value={rowTotal(row)} muted={!rowTotal(row)} />
+      {loading ? <Spinner /> : (
+        <div className="warehouse-money-table">
+          <div className="warehouse-money-table__head">
+            <span>№</span><span>Название</span><span>Сырьё</span><span>Полуфабрикат</span><span>Реализация</span><span>Сумма</span>
           </div>
-        ))}
-      </div>
+          <div className="warehouse-money-table__row is-total">
+            <span /><strong>Итого</strong>
+            <MoneyCell value={totals.raw} /><MoneyCell value={totals.semi} /><MoneyCell value={totals.sale} />
+            <MoneyCell value={totals.raw + totals.semi + totals.sale} />
+          </div>
+          {rows.map((r, i) => (
+            <div className="warehouse-money-table__row" key={r.id}>
+              <span>{i + 1}</span>
+              <Link to="/warehouse/balance">{r.name}</Link>
+              <MoneyCell value={r.raw} muted={!r.raw} /><MoneyCell value={r.semi} muted={!r.semi} />
+              <MoneyCell value={r.sale} muted={!r.sale} /><MoneyCell value={rowTotal(r)} muted={!rowTotal(r)} />
+            </div>
+          ))}
+        </div>
+      )}
     </article>
   );
 }
 
-function IncomingTable({ rows }) {
+
+/* Приходы */
+function IncomingSection({ warehouses, onRefreshStats }) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
+  const [viewDoc, setViewDoc] = useState(null);
+
+  const load = useCallback(async (q = "") => {
+    try {
+      setLoading(true);
+      const { data } = await api.get("/warehouse/purchases", { params: q ? { q } : {} });
+      setRows(data);
+    } catch {
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    load(search);
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm("Удалить документ?")) return;
+    try {
+      await api.delete(`/warehouse/purchases/${id}`);
+      load(search);
+      onRefreshStats?.();
+    } catch { /* ignore */ }
+  };
+
+  const handleAccept = async (id) => {
+    try {
+      await api.patch(`/warehouse/purchases/${id}`, { status: "accepted" });
+      load(search);
+      onRefreshStats?.();
+    } catch { /* ignore */ }
+  };
+
   return (
     <article className="warehouse-board">
       <div className="warehouse-board__head">
@@ -131,291 +151,556 @@ function IncomingTable({ rows }) {
           <div className="warehouse-title-mark" />
           <h3>Поступление товаров</h3>
         </div>
-        <button type="button" className="warehouse-create">Создать <i className="bi bi-plus" /></button>
+        <button type="button" className="warehouse-create" onClick={() => setShowCreate(true)}>
+          Создать <Plus size={16} />
+        </button>
+      </div>
+      <form className="warehouse-search-line" onSubmit={handleSearch}>
+        <label>
+          <input placeholder="Поиск" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <button type="submit" style={{ all: "unset", cursor: "pointer", display: "grid", placeItems: "center", width: 48, height: "100%", position: "absolute", right: 0, top: 0, background: "#dbe5f5" }}>
+            <Search size={16} />
+          </button>
+        </label>
+      </form>
+
+      {loading ? <Spinner /> : rows.length === 0 ? (
+        <p className="warehouse-empty">Документов пока нет. Нажмите «Создать» чтобы добавить приход.</p>
+      ) : (
+        <div className="warehouse-document-table warehouse-document-table--incoming">
+          <div className="warehouse-document-table__head">
+            <span>Номер</span><span>Поставщик</span><span>На склад</span><span>Дата</span>
+            <span>Регистрация</span><span>Приём</span><span>Кол-во</span><span>Сумма</span><span>Действия</span>
+          </div>
+          {rows.map((r) => (
+            <div className="warehouse-document-table__row" key={r.id} onClick={() => setViewDoc(r)} style={{ cursor: "pointer" }}>
+              <strong>{r.number}</strong>
+              <span>{r.supplier || "—"}</span>
+              <span>{r.warehouse_name || "—"}</span>
+              <span>{r.date || "—"}</span>
+              <span>{r.registered_at || "—"}{r.created_by_name ? <small>{r.created_by_name}</small> : null}</span>
+              <span>{r.accepted_at || "—"}</span>
+              <span>{formatNumber(r.items_count)}</span>
+              <MoneyCell value={r.total_amount} muted={!Number(r.total_amount)} />
+              <div className="warehouse-row-actions" onClick={(e) => e.stopPropagation()}>
+                <WarehouseStatus status={r.status} />
+                {r.status === "draft" && (
+                  <IconBtn Icon={Check} tone="green" label="Принять" onClick={() => handleAccept(r.id)} />
+                )}
+                <IconBtn Icon={Eye} label="Открыть" onClick={() => setViewDoc(r)} />
+                {r.status === "draft" && (
+                  <IconBtn Icon={Trash2} tone="red" label="Удалить" onClick={() => handleDelete(r.id)} />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <CreatePurchaseModal open={showCreate} onClose={() => setShowCreate(false)} warehouses={warehouses} onCreated={() => { load(search); onRefreshStats?.(); }} />
+      <Modal open={!!viewDoc} onClose={() => setViewDoc(null)} title={viewDoc ? `Приход #${viewDoc.number}` : ""} wide>
+        {viewDoc && (
+          <div className="warehouse-detail-grid">
+            <div><span>Поставщик</span><strong>{viewDoc.supplier || "—"}</strong></div>
+            <div><span>Склад</span><strong>{viewDoc.warehouse_name || "—"}</strong></div>
+            <div><span>Дата</span><strong>{viewDoc.date || "—"}</strong></div>
+            <div><span>Статус</span><WarehouseStatus status={viewDoc.status} /></div>
+            <div><span>Кол-во позиций</span><strong>{viewDoc.items_count}</strong></div>
+            <div><span>Итого</span><strong>{formatMoney(viewDoc.total_amount)}</strong></div>
+            <div><span>Регистрация</span><strong>{viewDoc.registered_at || "—"}</strong></div>
+            <div><span>Приём</span><strong>{viewDoc.accepted_at || "—"}</strong></div>
+            {viewDoc.note && <div style={{ gridColumn: "1 / -1" }}><span>Примечание</span><strong>{viewDoc.note}</strong></div>}
+          </div>
+        )}
+      </Modal>
+    </article>
+  );
+}
+
+function CreatePurchaseModal({ open, onClose, warehouses, onCreated }) {
+  const [form, setForm] = useState({ supplier: "", warehouse_name: "", date: today(), note: "" });
+  const [items, setItems] = useState([{ name: "", quantity: "", unit: "кг", cost_price: "" }]);
+  const [saving, setSaving] = useState(false);
+
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const setItem = (i, k, v) => setItems((arr) => arr.map((it, idx) => idx === i ? { ...it, [k]: v } : it));
+  const addItem = () => setItems((a) => [...a, { name: "", quantity: "", unit: "кг", cost_price: "" }]);
+  const removeItem = (i) => setItems((a) => a.filter((_, idx) => idx !== i));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.post("/warehouse/purchases", {
+        ...form,
+        items: items.filter((it) => it.name).map((it) => ({
+          name: it.name,
+          quantity: Number(it.quantity) || 0,
+          unit: it.unit,
+          cost_price: Number(it.cost_price) || 0,
+        })),
+      });
+      onCreated();
+      onClose();
+      setForm({ supplier: "", warehouse_name: "", date: today(), note: "" });
+      setItems([{ name: "", quantity: "", unit: "кг", cost_price: "" }]);
+    } catch { /* ignore */ } finally { setSaving(false); }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Новый приход" wide>
+      <form onSubmit={handleSubmit} className="warehouse-form">
+        <div className="warehouse-form__row">
+          <label>Поставщик<input value={form.supplier} onChange={(e) => set("supplier", e.target.value)} placeholder="BOZOR" /></label>
+          <label>Склад
+            <select value={form.warehouse_name} onChange={(e) => set("warehouse_name", e.target.value)}>
+              <option value="">— Выберите —</option>
+              {warehouses.map((w) => <option key={w} value={w}>{w}</option>)}
+            </select>
+          </label>
+          <label>Дата<input value={form.date} onChange={(e) => set("date", e.target.value)} placeholder="11.06.2026" /></label>
+        </div>
+
+        <h4>Позиции</h4>
+        {items.map((it, i) => (
+          <div className="warehouse-form__row warehouse-form__item" key={i}>
+            <label>Наименование<input value={it.name} onChange={(e) => setItem(i, "name", e.target.value)} placeholder="Говядина" required /></label>
+            <label>Кол-во<input type="number" step="0.01" value={it.quantity} onChange={(e) => setItem(i, "quantity", e.target.value)} placeholder="10" /></label>
+            <label>Ед.<input value={it.unit} onChange={(e) => setItem(i, "unit", e.target.value)} style={{ width: 60 }} /></label>
+            <label>Цена<input type="number" step="0.01" value={it.cost_price} onChange={(e) => setItem(i, "cost_price", e.target.value)} placeholder="45000" /></label>
+            {items.length > 1 && (
+              <button type="button" className="warehouse-form__remove" onClick={() => removeItem(i)}><X size={14} /></button>
+            )}
+          </div>
+        ))}
+        <button type="button" className="warehouse-form__add" onClick={addItem}><Plus size={14} /> Добавить позицию</button>
+
+        <label>Примечание<textarea value={form.note} onChange={(e) => set("note", e.target.value)} rows={2} /></label>
+
+        <div className="warehouse-form__actions">
+          <button type="button" className="warehouse-form__cancel" onClick={onClose}>Отмена</button>
+          <button type="submit" className="warehouse-form__submit" disabled={saving}>
+            {saving ? <Spinner /> : "Создать приход"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+
+/* Перемещения */
+function TransferSection({ warehouses, onRefreshStats }) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+
+  const load = useCallback(async () => {
+    try { const { data } = await api.get("/warehouse/transfers"); setRows(data); }
+    catch { setRows([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleDelete = async (id) => {
+    if (!confirm("Удалить перемещение?")) return;
+    try { await api.delete(`/warehouse/transfers/${id}`); load(); } catch {}
+  };
+
+  return (
+    <article className="warehouse-board">
+      <div className="warehouse-board__head">
+        <div><div className="warehouse-title-mark" /><h3>Перемещение товаров</h3></div>
+        <button type="button" className="warehouse-create" onClick={() => setShowCreate(true)}>Создать <Plus size={16} /></button>
+      </div>
+      {loading ? <Spinner /> : rows.length === 0 ? (
+        <p className="warehouse-empty">Перемещений пока нет.</p>
+      ) : (
+        <div className="warehouse-document-table warehouse-document-table--transfer">
+          <div className="warehouse-document-table__head">
+            <span>Дата</span><span>Со склада</span><span>На склад</span><span>Кол-во</span><span>Дата создания</span><span>Действия</span>
+          </div>
+          {rows.map((r) => (
+            <div className="warehouse-document-table__row" key={r.id}>
+              <span>{r.date || "—"}</span>
+              <span>{r.from_warehouse_name || "—"}</span>
+              <span>{r.to_warehouse_name || "—"}</span>
+              <strong>{formatNumber(r.items_count)}</strong>
+              <span>{r.created_at ? new Date(r.created_at).toLocaleString("ru-RU") : "—"}</span>
+              <div className="warehouse-row-actions">
+                <WarehouseStatus status={r.status} />
+                <IconBtn Icon={Trash2} tone="red" label="Удалить" onClick={() => handleDelete(r.id)} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <CreateTransferModal open={showCreate} onClose={() => setShowCreate(false)} warehouses={warehouses} onCreated={() => { load(); onRefreshStats?.(); }} />
+    </article>
+  );
+}
+
+function CreateTransferModal({ open, onClose, warehouses, onCreated }) {
+  const [form, setForm] = useState({ from_warehouse_name: "", to_warehouse_name: "", date: today(), items_count: 0 });
+  const [saving, setSaving] = useState(false);
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const handleSubmit = async (e) => {
+    e.preventDefault(); setSaving(true);
+    try { await api.post("/warehouse/transfers", form); onCreated(); onClose(); } catch {} finally { setSaving(false); }
+  };
+  return (
+    <Modal open={open} onClose={onClose} title="Новое перемещение">
+      <form onSubmit={handleSubmit} className="warehouse-form">
+        <div className="warehouse-form__row">
+          <label>Со склада<select value={form.from_warehouse_name} onChange={(e) => set("from_warehouse_name", e.target.value)}><option value="">—</option>{warehouses.map((w) => <option key={w} value={w}>{w}</option>)}</select></label>
+          <label>На склад<select value={form.to_warehouse_name} onChange={(e) => set("to_warehouse_name", e.target.value)}><option value="">—</option>{warehouses.map((w) => <option key={w} value={w}>{w}</option>)}</select></label>
+        </div>
+        <div className="warehouse-form__row">
+          <label>Дата<input value={form.date} onChange={(e) => set("date", e.target.value)} /></label>
+          <label>Кол-во позиций<input type="number" value={form.items_count} onChange={(e) => set("items_count", +e.target.value)} /></label>
+        </div>
+        <div className="warehouse-form__actions">
+          <button type="button" className="warehouse-form__cancel" onClick={onClose}>Отмена</button>
+          <button type="submit" className="warehouse-form__submit" disabled={saving}>{saving ? <Spinner /> : "Создать"}</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+
+/* Инвентаризация */
+function InventorySection({ warehouses, onRefreshStats }) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const load = useCallback(async () => {
+    try { const { data } = await api.get("/warehouse/inventory-checks"); setRows(data); }
+    catch { setRows([]); } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleDelete = async (id) => {
+    if (!confirm("Удалить инвентаризацию?")) return;
+    try { await api.delete(`/warehouse/inventory-checks/${id}`); load(); } catch {}
+  };
+
+  const filtered = search
+    ? rows.filter((r) => (r.warehouse_name || "").toLowerCase().includes(search.toLowerCase()) || (r.comment || "").toLowerCase().includes(search.toLowerCase()))
+    : rows;
+
+  return (
+    <article className="warehouse-board">
+      <div className="warehouse-board__head">
+        <div><div className="warehouse-title-mark" /><h3>Инвентаризация</h3></div>
+        <button type="button" className="warehouse-create" onClick={() => setShowCreate(true)}>Создать <Plus size={16} /></button>
       </div>
       <div className="warehouse-search-line">
         <label>
-          <input placeholder="Поиск" />
-          <i className="bi bi-search" />
+          <input placeholder="Поиск" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <span style={{ position: "absolute", right: 0, top: 0, width: 48, height: "100%", display: "grid", placeItems: "center", background: "#dbe5f5" }}><Search size={16} /></span>
         </label>
       </div>
-      <div className="warehouse-document-table warehouse-document-table--incoming">
-        <div className="warehouse-document-table__head">
-          <span>Номер</span>
-          <span>Поставщик</span>
-          <span>На склад</span>
-          <span>Дата поступление</span>
-          <span>Дата регистрации</span>
-          <span>Дата приема</span>
-          <span>Кол-во наименование</span>
-          <span>Итоговая сумма</span>
-          <span>Действия</span>
-        </div>
-        {rows.map((row) => (
-          <div className="warehouse-document-table__row" key={row.id}>
-            <strong>{row.id}</strong>
-            <span>{row.supplier}</span>
-            <span>{row.warehouse}</span>
-            <span>{row.date}</span>
-            <span>{row.registered}<small>SARDOR AVTO T</small></span>
-            <span>{row.accepted}</span>
-            <span>{formatNumber(row.count)}</span>
-            <MoneyCell value={row.total} muted={!row.total} />
-            <div className="warehouse-row-actions">
-              <WarehouseStatus status={row.status} />
-              <IconButton icon="bi-eye-fill" label="Открыть" />
-              {row.status === "draft" ? <IconButton icon="bi-trash3" tone="red" label="Удалить" /> : null}
-            </div>
+      {loading ? <Spinner /> : filtered.length === 0 ? (
+        <p className="warehouse-empty">Инвентаризаций пока нет.</p>
+      ) : (
+        <div className="warehouse-document-table warehouse-document-table--inventory">
+          <div className="warehouse-document-table__head">
+            <span>ID</span><span>Дата</span><span>Склад</span><span>Комментарий</span><span>Тип</span><span>Действия</span>
           </div>
-        ))}
-      </div>
+          {filtered.map((r) => (
+            <div className="warehouse-document-table__row" key={r.id}>
+              <strong>{String(r.id).slice(-4)}</strong>
+              <span>{r.created_at ? new Date(r.created_at).toLocaleString("ru-RU") : "—"}{r.created_by_name ? <small>{r.created_by_name}</small> : null}</span>
+              <span>{r.warehouse_name || "—"}</span>
+              <span>{r.comment || "—"}</span>
+              <span className={r.check_type?.includes("не учтены") ? "is-warning-text" : ""}>{r.check_type}</span>
+              <div className="warehouse-row-actions">
+                <WarehouseStatus status={r.status} />
+                <IconBtn Icon={Pencil} tone="yellow" label="Редактировать" onClick={() => {}} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <CreateInventoryModal open={showCreate} onClose={() => setShowCreate(false)} warehouses={warehouses} onCreated={load} />
     </article>
   );
 }
 
-function TransferTable({ rows }) {
+function CreateInventoryModal({ open, onClose, warehouses, onCreated }) {
+  const [form, setForm] = useState({ warehouse_name: "", comment: "", check_type: "Приход и расход учтены" });
+  const [saving, setSaving] = useState(false);
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const handleSubmit = async (e) => {
+    e.preventDefault(); setSaving(true);
+    try { await api.post("/warehouse/inventory-checks", form); onCreated(); onClose(); } catch {} finally { setSaving(false); }
+  };
+  return (
+    <Modal open={open} onClose={onClose} title="Новая инвентаризация">
+      <form onSubmit={handleSubmit} className="warehouse-form">
+        <label>Склад<select value={form.warehouse_name} onChange={(e) => set("warehouse_name", e.target.value)}><option value="">—</option>{warehouses.map((w) => <option key={w} value={w}>{w}</option>)}</select></label>
+        <label>Тип<select value={form.check_type} onChange={(e) => set("check_type", e.target.value)}><option>Приход и расход учтены</option><option>Приход и расход не учтены</option></select></label>
+        <label>Комментарий<textarea value={form.comment} onChange={(e) => set("comment", e.target.value)} rows={2} /></label>
+        <div className="warehouse-form__actions">
+          <button type="button" className="warehouse-form__cancel" onClick={onClose}>Отмена</button>
+          <button type="submit" className="warehouse-form__submit" disabled={saving}>{saving ? <Spinner /> : "Создать"}</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+
+/* Списание */
+function WriteOffSection({ onRefreshStats }) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+
+  const load = useCallback(async () => {
+    try { const { data } = await api.get("/warehouse/write-offs"); setRows(data); }
+    catch { setRows([]); } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleDelete = async (id) => {
+    if (!confirm("Удалить списание?")) return;
+    try { await api.delete(`/warehouse/write-offs/${id}`); load(); } catch {}
+  };
+
   return (
     <article className="warehouse-board">
       <div className="warehouse-board__head">
-        <div>
-          <div className="warehouse-title-mark" />
-          <h3>Перемещение товаров</h3>
-        </div>
-        <button type="button" className="warehouse-create">Создать <i className="bi bi-plus" /></button>
+        <div><div className="warehouse-title-mark" /><h3>Списание</h3></div>
+        <button type="button" className="warehouse-create" onClick={() => setShowCreate(true)}>Создать <Plus size={16} /></button>
       </div>
-      <div className="warehouse-document-table warehouse-document-table--transfer">
-        <div className="warehouse-document-table__head">
-          <span>Дата перемещения</span>
-          <span>Со склада</span>
-          <span>На склад</span>
-          <span>Количество</span>
-          <span>Дата создания</span>
-          <span>Действия</span>
-        </div>
-        {rows.map((row) => (
-          <div className="warehouse-document-table__row" key={`${row.date}-${row.to}`}>
-            <span>{row.date}</span>
-            <span>{row.from}</span>
-            <span>{row.to}</span>
-            <strong>{formatNumber(row.quantity)}</strong>
-            <span>{row.created}</span>
-            <div className="warehouse-row-actions">
-              <WarehouseStatus status={row.status} />
-              <IconButton icon="bi-trash3" tone="red" label="Удалить" />
-            </div>
+      {loading ? <Spinner /> : rows.length === 0 ? (
+        <p className="warehouse-empty">Списаний пока нет.</p>
+      ) : (
+        <div className="warehouse-document-table warehouse-document-table--writeoff">
+          <div className="warehouse-document-table__head">
+            <span>ID</span><span>Дата</span><span>Категория</span><span>Кол-во</span><span>Действия</span>
           </div>
-        ))}
-      </div>
+          {rows.map((r) => (
+            <div className="warehouse-document-table__row" key={r.id}>
+              <strong>{String(r.id).slice(-4)}</strong>
+              <span>{r.created_at ? new Date(r.created_at).toLocaleString("ru-RU") : "—"}{r.created_by_name ? <small>{r.created_by_name}</small> : null}</span>
+              <span>{r.category || "—"}</span>
+              <strong>{formatNumber(r.items_count)}</strong>
+              <div className="warehouse-row-actions">
+                <WarehouseStatus status={r.status} />
+                <IconBtn Icon={Pencil} tone="yellow" label="Редактировать" onClick={() => {}} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <CreateWriteOffModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={load} />
     </article>
   );
 }
 
-function InventoryTable({ rows }) {
+function CreateWriteOffModal({ open, onClose, onCreated }) {
+  const [form, setForm] = useState({ category: "", items_count: 0, note: "" });
+  const [saving, setSaving] = useState(false);
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const handleSubmit = async (e) => {
+    e.preventDefault(); setSaving(true);
+    try { await api.post("/warehouse/write-offs", form); onCreated(); onClose(); } catch {} finally { setSaving(false); }
+  };
   return (
-    <article className="warehouse-board">
-      <div className="warehouse-board__head">
-        <div>
-          <div className="warehouse-title-mark" />
-          <h3>Инвентаризация</h3>
+    <Modal open={open} onClose={onClose} title="Новое списание">
+      <form onSubmit={handleSubmit} className="warehouse-form">
+        <label>Категория<input value={form.category} onChange={(e) => set("category", e.target.value)} placeholder="Просрочка" /></label>
+        <label>Кол-во позиций<input type="number" value={form.items_count} onChange={(e) => set("items_count", +e.target.value)} /></label>
+        <label>Примечание<textarea value={form.note} onChange={(e) => set("note", e.target.value)} rows={2} /></label>
+        <div className="warehouse-form__actions">
+          <button type="button" className="warehouse-form__cancel" onClick={onClose}>Отмена</button>
+          <button type="submit" className="warehouse-form__submit" disabled={saving}>{saving ? <Spinner /> : "Создать"}</button>
         </div>
-        <button type="button" className="warehouse-create">Создать <i className="bi bi-plus" /></button>
-      </div>
-      <div className="warehouse-search-line">
-        <label>
-          <input placeholder="Поиск" />
-          <i className="bi bi-search" />
-        </label>
-      </div>
-      <div className="warehouse-document-table warehouse-document-table--inventory">
-        <div className="warehouse-document-table__head">
-          <span>ID</span>
-          <span>Дата регистрации</span>
-          <span>Склад</span>
-          <span>Комментарие</span>
-          <span>Тип</span>
-          <span>Действия</span>
-        </div>
-        {rows.map((row) => (
-          <div className="warehouse-document-table__row" key={row.id}>
-            <strong>{row.id}</strong>
-            <span>{row.date}<small>SARDOR AVTO T</small></span>
-            <span>{row.warehouse}</span>
-            <span>{row.comment}</span>
-            <span className={row.warning ? "is-warning-text" : ""}>{row.type}</span>
-            <div className="warehouse-row-actions">
-              <WarehouseStatus status={row.status} />
-              <IconButton icon="bi-pencil" tone="yellow" label="Редактировать" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </article>
+      </form>
+    </Modal>
   );
 }
 
-function WriteOffTable({ rows }) {
-  return (
-    <article className="warehouse-board">
-      <div className="warehouse-board__head">
-        <div>
-          <div className="warehouse-title-mark" />
-          <h3>Списание</h3>
-        </div>
-        <button type="button" className="warehouse-create">Создать <i className="bi bi-plus" /></button>
-      </div>
-      <div className="warehouse-document-table warehouse-document-table--writeoff">
-        <div className="warehouse-document-table__head">
-          <span>ID</span>
-          <span>Дата регистрации</span>
-          <span>Категория</span>
-          <span>Кол-во позиций</span>
-          <span>Действия</span>
-        </div>
-        {rows.map((row) => (
-          <div className="warehouse-document-table__row" key={row.id}>
-            <strong>{row.id}</strong>
-            <span>{row.date}<small>SARDOR AVTO T</small></span>
-            <span>{row.category}</span>
-            <strong>{formatNumber(row.count)}</strong>
-            <div className="warehouse-row-actions">
-              <WarehouseStatus status={row.status} />
-              <IconButton icon="bi-pencil" tone="yellow" label="Редактировать" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </article>
-  );
-}
+
+/* ─── navigation sections ───────────────────────────────────── */
+const sections = [
+  { key: "summary", label: "Обзор", icon: BarChart3, path: "/warehouse" },
+  { key: "incoming", label: "Приход", icon: Package, path: "/warehouse/stock-in" },
+  { key: "balance", label: "Остаток", icon: WarehouseIcon, path: "/warehouse/balance" },
+  { key: "transfer", label: "Перемещение", icon: ArrowRightLeft, path: "/warehouse/transfer" },
+  { key: "inventory", label: "Инвентаризация", icon: ClipboardCheck, path: "/warehouse/inventory" },
+  { key: "write-off", label: "Списание", icon: FileX2, path: "/warehouse/write-off" },
+];
 
 const sectionByPath = {
   "/warehouse": "summary",
   "/warehouse/stock-in": "incoming",
-  "/warehouse/stock-out": "expense",
+  "/warehouse/stock-out": "incoming",
   "/warehouse/balance": "balance",
-  "/warehouse/income-log": "incoming-log",
+  "/warehouse/income-log": "incoming",
   "/warehouse/transfer": "transfer",
   "/warehouse/inventory": "inventory",
-  "/warehouse/waste": "waste",
+  "/warehouse/waste": "write-off",
   "/warehouse/write-off": "write-off",
   "/warehouse/write-off-categories": "write-off",
 };
 
+
+/* ─── main page ─────────────────────────────────────────────── */
 export default function WarehousePage({ initialSection }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState(initialSection || sectionByPath[location.pathname] || "summary");
-  const [stockRows, setStockRows] = useState(demoStock);
+  const [warehouseNames, setWarehouseNames] = useState(["Главный склад", "BAR", "KUXNYA"]);
+  const [stockRows, setStockRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [statsKey, setStatsKey] = useState(0);
 
   useEffect(() => {
     setActiveSection(initialSection || sectionByPath[location.pathname] || "summary");
   }, [initialSection, location.pathname]);
 
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadWarehouse() {
-      try {
-        setLoading(true);
-        setError("");
-        const [stockResponse, ingredientsResponse] = await Promise.all([
-          api.get("/inventory/stock"),
-          api.get("/inventory/ingredients").catch(() => ({ data: [] })),
-        ]);
-        if (!mounted) return;
-
-        const ingredientById = new Map((ingredientsResponse.data || []).map((item) => [item.id, item]));
-        const normalized = (stockResponse.data || []).map((item) => normalizeStockItem(item, ingredientById));
-        setStockRows(normalized.length ? normalized : demoStock);
-      } catch (err) {
-        if (!mounted) return;
-        setError("API склада временно недоступен. Показан рабочий демо-вид.");
-        setStockRows(demoStock);
-      } finally {
-        if (mounted) setLoading(false);
+  /* load warehouses + stock */
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const [whRes, stockRes, ingredRes] = await Promise.all([
+        api.get("/warehouse/list").catch(() => ({ data: [] })),
+        api.get("/inventory/stock").catch(() => ({ data: [] })),
+        api.get("/inventory/ingredients").catch(() => ({ data: [] })),
+      ]);
+      if (whRes.data?.length) {
+        setWarehouseNames(whRes.data.map((w) => w.name));
       }
+      const ingredMap = new Map((ingredRes.data || []).map((i) => [i.id, i]));
+      const stockData = (stockRes.data || []).map((s) => {
+        const ing = ingredMap.get(s.ingredient_id);
+        return { id: s.id || s.ingredient_id, name: ing?.name || "Позиция", raw: Number(s.quantity || 0) * Number(s.cost_price || 0), semi: 0, sale: 0, status: "active" };
+      });
+      setStockRows(stockData.length ? stockData : [
+        { id: "demo-1", name: "Главный склад", raw: 7313452, semi: 25100, sale: 0, status: "active" },
+        { id: "demo-2", name: "BAR", raw: 59000, semi: 251000, sale: 0, status: "active" },
+        { id: "demo-3", name: "KUXNYA", raw: 0, semi: 0, sale: 0, status: "active" },
+      ]);
+    } catch {
+      setError("API склада временно недоступен.");
+    } finally {
+      setLoading(false);
     }
-
-    loadWarehouse();
-    return () => {
-      mounted = false;
-    };
   }, []);
 
+  useEffect(() => { loadData(); }, [loadData, statsKey]);
+
+  const refreshStats = () => setStatsKey((k) => k + 1);
+
   const stats = useMemo(() => {
-    const total = stockRows.reduce((sum, row) => sum + rowTotal(row), 0);
-    const acceptedIncoming = demoIncoming.filter((row) => row.status === "accepted").length;
-    return {
-      total,
-      warehouses: warehouses.length,
-      incoming: acceptedIncoming,
-      draft: demoIncoming.length - acceptedIncoming,
-    };
-  }, [stockRows]);
+    const total = stockRows.reduce((s, r) => s + Number(r.raw || 0) + Number(r.semi || 0) + Number(r.sale || 0), 0);
+    return { total, warehouses: warehouseNames.length };
+  }, [stockRows, warehouseNames]);
 
   return (
     <section className="warehouse-workspace">
+      {/* toolbar */}
       <div className="warehouse-workspace__toolbar">
         <button type="button" className="warehouse-date-button">
-          <i className="bi bi-chevron-left" />
-          Выберите дату
-          <i className="bi bi-chevron-right" />
+          <ChevronLeft size={14} /> Выберите дату <ChevronRight size={14} />
         </button>
         <div className="warehouse-toolbar__right">
           <label className="warehouse-global-search">
             <input placeholder="Поиск по складу" />
-            <i className="bi bi-search" />
+            <span style={{ position: "absolute", right: 0, top: 0, width: 48, height: "100%", display: "grid", placeItems: "center", background: "#dbe5f5" }}><Search size={16} /></span>
           </label>
           <button type="button" className="warehouse-filter">
-            <i className="bi bi-sliders" />
-            Фильтровать
+            <SlidersHorizontal size={16} /> Фильтровать
           </button>
         </div>
       </div>
 
-      {error ? (
+      {error && (
         <div className="warehouse-alert">
-          <i className="bi bi-exclamation-triangle" />
-          {error}
+          <AlertTriangle size={18} /> {error}
         </div>
-      ) : null}
+      )}
 
       <div className="warehouse-workspace__layout">
+        {/* sidebar */}
+        <nav className="warehouse-sections">
+          <div className="warehouse-sections__head">
+            <span>Склад</span>
+            <strong>Управление</strong>
+          </div>
+          {sections.map((s) => {
+            const Icon = s.icon;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                className={`warehouse-section-link ${activeSection === s.key ? "is-active" : ""}`}
+                onClick={() => { setActiveSection(s.key); navigate(s.path); }}
+              >
+                <Icon size={16} /> {s.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* content */}
         <div className="warehouse-workspace__content">
+          {/* metrics */}
           <div className="warehouse-metrics">
             <article>
               <span>Стоимость остатков</span>
-              <strong>{formatMoney(stats.total)}</strong>
+              <strong>{loading ? "..." : formatMoney(stats.total)}</strong>
             </article>
             <article>
               <span>Складов</span>
               <strong>{formatNumber(stats.warehouses)}</strong>
             </article>
             <article>
-              <span>Принятых приходов</span>
-              <strong>{formatNumber(stats.incoming)}</strong>
+              <span>Приходов</span>
+              <strong>—</strong>
             </article>
             <article>
               <span>Черновиков</span>
-              <strong>{formatNumber(stats.draft)}</strong>
+              <strong>—</strong>
             </article>
           </div>
 
-          {activeSection === "summary" ? (
+          {activeSection === "summary" && (
             <>
-              <SummaryTable title="Приход" rows={stockRows} />
-              <SummaryTable title="Инвентаризация" rows={stockRows} />
+              <SummaryTable title="Остатки по складам" rows={stockRows} loading={loading} />
             </>
-          ) : null}
+          )}
 
-          {activeSection === "incoming" || activeSection === "incoming-log" ? <IncomingTable rows={demoIncoming} /> : null}
-          {activeSection === "expense" ? <SummaryTable title="Расходы" rows={stockRows.map((row) => ({ ...row, raw: 0, semi: row.semi * 0.4, sale: 0 }))} /> : null}
-          {activeSection === "balance" ? <SummaryTable title="Остаток" rows={stockRows} /> : null}
-          {activeSection === "transfer" ? <TransferTable rows={demoTransfers} /> : null}
-          {activeSection === "inventory" ? <InventoryTable rows={demoInventory} /> : null}
-          {activeSection === "write-off" ? <WriteOffTable rows={demoWriteOffs} /> : null}
-          {activeSection === "waste" ? <IncomingTable rows={demoIncoming.slice(1, 2).map((row) => ({ ...row, id: 64358, supplier: "BOZOR", count: 3 }))} /> : null}
+          {(activeSection === "incoming" || activeSection === "incoming-log") && (
+            <IncomingSection warehouses={warehouseNames} onRefreshStats={refreshStats} />
+          )}
+
+          {activeSection === "balance" && (
+            <SummaryTable title="Остаток" rows={stockRows} loading={loading} />
+          )}
+
+          {activeSection === "transfer" && (
+            <TransferSection warehouses={warehouseNames} onRefreshStats={refreshStats} />
+          )}
+
+          {activeSection === "inventory" && (
+            <InventorySection warehouses={warehouseNames} onRefreshStats={refreshStats} />
+          )}
+
+          {(activeSection === "write-off" || activeSection === "expense") && (
+            <WriteOffSection onRefreshStats={refreshStats} />
+          )}
         </div>
       </div>
     </section>
