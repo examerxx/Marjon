@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api, formatMoney, formatNumber } from "../api/client";
+import MarjonLoader from "../components/MarjonLoader";
 import {
   ChevronLeft, ChevronRight, Search, SlidersHorizontal,
   Plus, Eye, Trash2, Pencil, X, Package, ArrowRightLeft,
@@ -31,7 +32,7 @@ function WarehouseStatus({ status }) {
   );
 }
 
-function IconBtn({ Icon, tone = "blue", label, onClick }) {
+function IconBtn({ Icon, tone = "brand", label, onClick }) {
   return (
     <button type="button" className={`warehouse-icon-button warehouse-icon-button--${tone}`} aria-label={label} onClick={onClick}>
       <Icon size={16} />
@@ -41,6 +42,52 @@ function IconBtn({ Icon, tone = "blue", label, onClick }) {
 
 function Spinner() {
   return <Loader2 className="warehouse-spinner" size={20} />;
+}
+
+
+/* ─── skeleton components ───────────────────────────────────── */
+function SkeletonPulse({ width = "100%", height = 16, rounded = false, style }) {
+  return (
+    <div
+      className="wh-skeleton-pulse"
+      style={{
+        width, height, borderRadius: rounded ? "50%" : 8,
+        ...style,
+      }}
+    />
+  );
+}
+
+function MetricsSkeleton() {
+  return (
+    <div className="warehouse-metrics">
+      {[1, 2, 3, 4].map((i) => (
+        <article key={i} className="wh-skeleton-card">
+          <SkeletonPulse width={100} height={12} />
+          <SkeletonPulse width={140} height={28} style={{ marginTop: 8 }} />
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function TableSkeleton({ cols = 6, rows = 5 }) {
+  return (
+    <div className="wh-skeleton-table">
+      <div className="wh-skeleton-table__head">
+        {Array.from({ length: cols }, (_, i) => (
+          <SkeletonPulse key={i} width={`${60 + Math.random() * 40}%`} height={12} />
+        ))}
+      </div>
+      {Array.from({ length: rows }, (_, ri) => (
+        <div key={ri} className="wh-skeleton-table__row">
+          {Array.from({ length: cols }, (_, ci) => (
+            <SkeletonPulse key={ci} width={`${50 + Math.random() * 50}%`} height={14} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 
@@ -75,7 +122,7 @@ function SummaryTable({ title, rows, loading }) {
     <article className="warehouse-board">
       <div className="warehouse-title-mark" />
       <h3>{title}</h3>
-      {loading ? <Spinner /> : (
+      {loading ? <TableSkeleton cols={6} rows={3} /> : (
         <div className="warehouse-money-table">
           <div className="warehouse-money-table__head">
             <span>№</span><span>Название</span><span>Сырьё</span><span>Полуфабрикат</span><span>Реализация</span><span>Сумма</span>
@@ -101,7 +148,7 @@ function SummaryTable({ title, rows, loading }) {
 
 
 /* Приходы */
-function IncomingSection({ warehouses, onRefreshStats }) {
+function IncomingSection({ warehouses, onRefreshStats, onPurchaseStats }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -113,12 +160,14 @@ function IncomingSection({ warehouses, onRefreshStats }) {
       setLoading(true);
       const { data } = await api.get("/warehouse/purchases", { params: q ? { q } : {} });
       setRows(data);
+      onPurchaseStats?.(data);
     } catch {
       setRows([]);
+      onPurchaseStats?.([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [onPurchaseStats]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -158,13 +207,13 @@ function IncomingSection({ warehouses, onRefreshStats }) {
       <form className="warehouse-search-line" onSubmit={handleSearch}>
         <label>
           <input placeholder="Поиск" value={search} onChange={(e) => setSearch(e.target.value)} />
-          <button type="submit" style={{ all: "unset", cursor: "pointer", display: "grid", placeItems: "center", width: 48, height: "100%", position: "absolute", right: 0, top: 0, background: "#dbe5f5" }}>
+          <button type="submit" className="warehouse-search-btn">
             <Search size={16} />
           </button>
         </label>
       </form>
 
-      {loading ? <Spinner /> : rows.length === 0 ? (
+      {loading ? <TableSkeleton cols={9} rows={4} /> : rows.length === 0 ? (
         <p className="warehouse-empty">Документов пока нет. Нажмите «Создать» чтобы добавить приход.</p>
       ) : (
         <div className="warehouse-document-table warehouse-document-table--incoming">
@@ -314,7 +363,7 @@ function TransferSection({ warehouses, onRefreshStats }) {
         <div><div className="warehouse-title-mark" /><h3>Перемещение товаров</h3></div>
         <button type="button" className="warehouse-create" onClick={() => setShowCreate(true)}>Создать <Plus size={16} /></button>
       </div>
-      {loading ? <Spinner /> : rows.length === 0 ? (
+      {loading ? <TableSkeleton cols={6} rows={3} /> : rows.length === 0 ? (
         <p className="warehouse-empty">Перемещений пока нет.</p>
       ) : (
         <div className="warehouse-document-table warehouse-document-table--transfer">
@@ -402,10 +451,10 @@ function InventorySection({ warehouses, onRefreshStats }) {
       <div className="warehouse-search-line">
         <label>
           <input placeholder="Поиск" value={search} onChange={(e) => setSearch(e.target.value)} />
-          <span style={{ position: "absolute", right: 0, top: 0, width: 48, height: "100%", display: "grid", placeItems: "center", background: "#dbe5f5" }}><Search size={16} /></span>
+          <span className="warehouse-search-btn"><Search size={16} /></span>
         </label>
       </div>
-      {loading ? <Spinner /> : filtered.length === 0 ? (
+      {loading ? <TableSkeleton cols={6} rows={3} /> : filtered.length === 0 ? (
         <p className="warehouse-empty">Инвентаризаций пока нет.</p>
       ) : (
         <div className="warehouse-document-table warehouse-document-table--inventory">
@@ -480,7 +529,7 @@ function WriteOffSection({ onRefreshStats }) {
         <div><div className="warehouse-title-mark" /><h3>Списание</h3></div>
         <button type="button" className="warehouse-create" onClick={() => setShowCreate(true)}>Создать <Plus size={16} /></button>
       </div>
-      {loading ? <Spinner /> : rows.length === 0 ? (
+      {loading ? <TableSkeleton cols={5} rows={3} /> : rows.length === 0 ? (
         <p className="warehouse-empty">Списаний пока нет.</p>
       ) : (
         <div className="warehouse-document-table warehouse-document-table--writeoff">
@@ -564,6 +613,8 @@ export default function WarehousePage({ initialSection }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [statsKey, setStatsKey] = useState(0);
+  const [purchaseCount, setPurchaseCount] = useState(0);
+  const [draftCount, setDraftCount] = useState(0);
 
   useEffect(() => {
     setActiveSection(initialSection || sectionByPath[location.pathname] || "summary");
@@ -574,10 +625,11 @@ export default function WarehousePage({ initialSection }) {
     try {
       setLoading(true);
       setError("");
-      const [whRes, stockRes, ingredRes] = await Promise.all([
+      const [whRes, stockRes, ingredRes, purchRes] = await Promise.all([
         api.get("/warehouse/list").catch(() => ({ data: [] })),
         api.get("/inventory/stock").catch(() => ({ data: [] })),
         api.get("/inventory/ingredients").catch(() => ({ data: [] })),
+        api.get("/warehouse/purchases").catch(() => ({ data: [] })),
       ]);
       if (whRes.data?.length) {
         setWarehouseNames(whRes.data.map((w) => w.name));
@@ -592,6 +644,9 @@ export default function WarehousePage({ initialSection }) {
         { id: "demo-2", name: "BAR", raw: 59000, semi: 251000, sale: 0, status: "active" },
         { id: "demo-3", name: "KUXNYA", raw: 0, semi: 0, sale: 0, status: "active" },
       ]);
+      const purchases = purchRes.data || [];
+      setPurchaseCount(purchases.length);
+      setDraftCount(purchases.filter((p) => p.status === "draft").length);
     } catch {
       setError("API склада временно недоступен.");
     } finally {
@@ -603,10 +658,18 @@ export default function WarehousePage({ initialSection }) {
 
   const refreshStats = () => setStatsKey((k) => k + 1);
 
+  const handlePurchaseStats = useCallback((purchases) => {
+    setPurchaseCount(purchases.length);
+    setDraftCount(purchases.filter((p) => p.status === "draft").length);
+  }, []);
+
   const stats = useMemo(() => {
     const total = stockRows.reduce((s, r) => s + Number(r.raw || 0) + Number(r.semi || 0) + Number(r.sale || 0), 0);
     return { total, warehouses: warehouseNames.length };
   }, [stockRows, warehouseNames]);
+
+  /* full-page loader on first load */
+  if (loading) return <MarjonLoader text="Загрузка склада…" />;
 
   return (
     <section className="warehouse-workspace">
@@ -618,7 +681,7 @@ export default function WarehousePage({ initialSection }) {
         <div className="warehouse-toolbar__right">
           <label className="warehouse-global-search">
             <input placeholder="Поиск по складу" />
-            <span style={{ position: "absolute", right: 0, top: 0, width: 48, height: "100%", display: "grid", placeItems: "center", background: "#dbe5f5" }}><Search size={16} /></span>
+            <span className="warehouse-search-btn"><Search size={16} /></span>
           </label>
           <button type="button" className="warehouse-filter">
             <SlidersHorizontal size={16} /> Фильтровать
@@ -660,7 +723,7 @@ export default function WarehousePage({ initialSection }) {
           <div className="warehouse-metrics">
             <article>
               <span>Стоимость остатков</span>
-              <strong>{loading ? "..." : formatMoney(stats.total)}</strong>
+              <strong>{formatMoney(stats.total)}</strong>
             </article>
             <article>
               <span>Складов</span>
@@ -668,26 +731,26 @@ export default function WarehousePage({ initialSection }) {
             </article>
             <article>
               <span>Приходов</span>
-              <strong>—</strong>
+              <strong>{purchaseCount || "—"}</strong>
             </article>
             <article>
               <span>Черновиков</span>
-              <strong>—</strong>
+              <strong>{draftCount || "—"}</strong>
             </article>
           </div>
 
           {activeSection === "summary" && (
             <>
-              <SummaryTable title="Остатки по складам" rows={stockRows} loading={loading} />
+              <SummaryTable title="Остатки по складам" rows={stockRows} loading={false} />
             </>
           )}
 
           {(activeSection === "incoming" || activeSection === "incoming-log") && (
-            <IncomingSection warehouses={warehouseNames} onRefreshStats={refreshStats} />
+            <IncomingSection warehouses={warehouseNames} onRefreshStats={refreshStats} onPurchaseStats={handlePurchaseStats} />
           )}
 
           {activeSection === "balance" && (
-            <SummaryTable title="Остаток" rows={stockRows} loading={loading} />
+            <SummaryTable title="Остаток" rows={stockRows} loading={false} />
           )}
 
           {activeSection === "transfer" && (
