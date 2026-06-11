@@ -10627,6 +10627,15 @@ html body .staff-manager__photo-upload > span > i {
   display: none !important;
 }
 
+/* btn-ghost with Lucide icon — hide CSS ::after chevron */
+.btn-ghost--lucide::after {
+  display: none !important;
+}
+.btn-ghost--lucide svg {
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+
 /* 2. Period button — full width, content spread */
 .period-dropdown__button {
   width: 100% !important;

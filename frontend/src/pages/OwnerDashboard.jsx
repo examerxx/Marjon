@@ -2,7 +2,7 @@
 import { Chart, Filler, LineController, LineElement, LinearScale, PointElement, CategoryScale, Tooltip } from "chart.js";
 import { Link, useNavigate, useOutletContext } from "react-router-dom";
 import { api, formatMoney, formatNumber } from "../api/client";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import MarjonLoader from "../components/MarjonLoader";
 import { dateRangeEndingAt, formatDateLabel, todayInputValue, toDateInputValue } from "../utils/date";
 
@@ -455,7 +455,7 @@ export default function OwnerDashboard() {
             <div><span className="eyebrow">Revenue analytics</span><h2>Выручка за {period} дней</h2><p>Период заканчивается {formatDateLabel(selectedDate)}</p></div>
             <div className="period-switcher" aria-label="Период выручки">
               <PeriodDropdown value={period} onChange={setPeriod} />
-              <Link className="btn btn-ghost" to="/analytics">Подробнее</Link>
+              <Link className="btn btn-ghost btn-ghost--lucide" to="/analytics">Подробнее <ChevronRight size={16} strokeWidth={2.5} /></Link>
             </div>
           </div>
           <div className="chart-wrap"><RevenueChart sales={displaySales} /></div>
@@ -463,7 +463,7 @@ export default function OwnerDashboard() {
         </div>
 
         <aside className="card card-pad top-dishes-card">
-          <div className="section-header"><div><span className="eyebrow">Menu performance</span><h2>Топ-5 блюд за день</h2></div><Link className="btn btn-ghost" to="/menu">Все блюда</Link></div>
+          <div className="section-header"><div><span className="eyebrow">Menu performance</span><h2>Топ-5 блюд за день</h2></div><Link className="btn btn-ghost btn-ghost--lucide" to="/menu">Все блюда <ChevronRight size={16} strokeWidth={2.5} /></Link></div>
           {displayTopProducts.length ? <div className="top-dishes-list">
             {displayTopProducts.map((item, index) => {
               const quantity = Number(item.quantity_sold || 0);
