@@ -1166,6 +1166,80 @@
   font-weight: 950;
 }
 
+.login-pro-foot a {
+  color: #ff5f35;
+  font-weight: 950;
+  text-decoration: none;
+  transition: 0.15s ease;
+}
+.login-pro-foot a:hover {
+  color: #e85d2a;
+  text-decoration: underline;
+}
+
+/* Eye icon button for password toggle */
+.login-pro-eye {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 0 !important;
+  border-radius: 10px;
+  background: transparent !important;
+  color: #94a3b8;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: 0.15s ease;
+  padding: 0;
+}
+.login-pro-eye:hover {
+  color: #ff6b35;
+  background: rgba(255, 107, 53, 0.08) !important;
+}
+
+/* Screen-reader only (hide native checkbox) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* Toggle switch for "Запомнить меня" */
+.login-pro-toggle {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  background: #cbd5e1;
+  border-radius: 12px;
+  transition: 0.2s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.login-pro-toggle.is-on {
+  background: #ff6b35;
+}
+.login-pro-toggle__thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  transition: 0.2s ease;
+}
+.login-pro-toggle.is-on .login-pro-toggle__thumb {
+  left: 21px;
+}
+
 @media (max-width: 1020px) {
   .login-pro-shell {
     grid-template-columns: 1fr;
