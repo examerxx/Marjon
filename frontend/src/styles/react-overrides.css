@@ -10467,13 +10467,13 @@ html body .staff-manager__photo-upload > span > i {
   flex: 1 1 auto !important;
 }
 
-/* Fix: top-dish name truncation — allow name to show fully */
+/* Fix: top-dish — name shows fully, badge wraps if needed */
 .top-dish__line {
-  flex-wrap: nowrap !important;
+  flex-wrap: wrap !important;
+  gap: 4px 8px !important;
 }
 .top-dish__line strong {
-  flex: 0 1 auto !important;
-  display: block !important;
+  flex: 0 0 auto !important;
   overflow: visible !important;
   text-overflow: unset !important;
   white-space: nowrap !important;
