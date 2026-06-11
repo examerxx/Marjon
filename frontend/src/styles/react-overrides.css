@@ -10467,16 +10467,20 @@ html body .staff-manager__photo-upload > span > i {
   flex: 1 1 auto !important;
 }
 
-/* Fix: top-dish name truncation — badge should shrink, name should flex */
+/* Fix: top-dish name truncation — allow name to show fully */
 .top-dish__line {
   flex-wrap: nowrap !important;
 }
 .top-dish__line strong {
-  flex: 1 1 auto !important;
+  flex: 0 1 auto !important;
   display: block !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  white-space: nowrap !important;
 }
 .top-dish__line .badge {
   flex: 0 0 auto !important;
   white-space: nowrap !important;
-  font-size: 0.72rem !important;
+  font-size: 0.68rem !important;
+  padding: 2px 8px !important;
 }
