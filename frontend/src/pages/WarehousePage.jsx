@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api, formatMoney, formatNumber } from "../api/client";
@@ -91,10 +92,10 @@ function TableSkeleton({ cols = 6, rows = 5 }) {
 }
 
 
-/* ─── modal shell ───────────────────────────────────────────── */
+/* ─── modal shell (portal → body, above sticky topbar) ────── */
 function Modal({ open, onClose, title, children, wide }) {
   if (!open) return null;
-  return (
+  return createPortal(
     <div className="warehouse-modal-backdrop" onClick={onClose}>
       <div className={`warehouse-modal ${wide ? "warehouse-modal--wide" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="warehouse-modal__head">
@@ -103,8 +104,38 @@ function Modal({ open, onClose, title, children, wide }) {
         </div>
         <div className="warehouse-modal__body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
+}
+
+
+/* ─── validation helpers ─────────────────────────────────────── */
+function validatePurchaseForm(form, items) {
+  const errors = {};
+  if (!form.supplier?.trim()) errors.supplier = "Укажите поставщика";
+  if (!form.warehouse_name?.trim()) errors.warehouse_name = "Выберите склад";
+  if (!form.date?.trim()) errors.date = "Укажите дату";
+
+  const itemErrors = [];
+  let hasValidItem = false;
+  items.forEach((it, i) => {
+    const ie = {};
+    if (!it.name?.trim()) ie.name = "Название обязательно";
+    if (!it.quantity || Number(it.quantity) <= 0) ie.quantity = "Кол-во > 0";
+    if (!it.cost_price || Number(it.cost_price) <= 0) ie.cost_price = "Цена > 0";
+    if (!it.unit?.trim()) ie.unit = "Ед.";
+    itemErrors.push(ie);
+    if (it.name?.trim()) hasValidItem = true;
+  });
+  if (!hasValidItem) errors._items = "Добавьте хотя бы одну позицию";
+
+  return { errors, itemErrors, valid: Object.keys(errors).length === 0 && itemErrors.every((e) => Object.keys(e).length === 0) };
+}
+
+function FieldError({ msg }) {
+  if (!msg) return null;
+  return <span className="warehouse-form__error">{msg}</span>;
 }
 
 
@@ -148,7 +179,7 @@ function SummaryTable({ title, rows, loading }) {
 
 
 /* Приходы */
-function IncomingSection({ warehouses, onRefreshStats, onPurchaseStats }) {
+function IncomingSection({ warehouses, onRefreshStats, onPurchaseStats, globalSearch }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -170,6 +201,14 @@ function IncomingSection({ warehouses, onRefreshStats, onPurchaseStats }) {
   }, [onPurchaseStats]);
 
   useEffect(() => { load(); }, [load]);
+
+  // react to globalSearch
+  useEffect(() => {
+    if (globalSearch !== undefined) {
+      setSearch(globalSearch);
+      load(globalSearch);
+    }
+  }, [globalSearch, load]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -206,7 +245,7 @@ function IncomingSection({ warehouses, onRefreshStats, onPurchaseStats }) {
       </div>
       <form className="warehouse-search-line" onSubmit={handleSearch}>
         <label>
-          <input placeholder="Поиск" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input placeholder="Поиск по поставщику, складу…" value={search} onChange={(e) => setSearch(e.target.value)} />
           <button type="submit" className="warehouse-search-btn">
             <Search size={16} />
           </button>
@@ -214,7 +253,7 @@ function IncomingSection({ warehouses, onRefreshStats, onPurchaseStats }) {
       </form>
 
       {loading ? <TableSkeleton cols={9} rows={4} /> : rows.length === 0 ? (
-        <p className="warehouse-empty">Документов пока нет. Нажмите «Создать» чтобы добавить приход.</p>
+        <p className="warehouse-empty">{search ? "Ничего не найдено." : "Документов пока нет. Нажмите «Создать» чтобы добавить приход."}</p>
       ) : (
         <div className="warehouse-document-table warehouse-document-table--incoming">
           <div className="warehouse-document-table__head">
@@ -270,14 +309,36 @@ function CreatePurchaseModal({ open, onClose, warehouses, onCreated }) {
   const [form, setForm] = useState({ supplier: "", warehouse_name: "", date: today(), note: "" });
   const [items, setItems] = useState([{ name: "", quantity: "", unit: "кг", cost_price: "" }]);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [itemErrors, setItemErrors] = useState([]);
+  const [touched, setTouched] = useState(false);
 
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  const setItem = (i, k, v) => setItems((arr) => arr.map((it, idx) => idx === i ? { ...it, [k]: v } : it));
-  const addItem = () => setItems((a) => [...a, { name: "", quantity: "", unit: "кг", cost_price: "" }]);
-  const removeItem = (i) => setItems((a) => a.filter((_, idx) => idx !== i));
+  const set = (k, v) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    if (touched) setErrors((e) => ({ ...e, [k]: undefined }));
+  };
+  const setItem = (i, k, v) => {
+    setItems((arr) => arr.map((it, idx) => idx === i ? { ...it, [k]: v } : it));
+    if (touched) setItemErrors((arr) => arr.map((ie, idx) => idx === i ? { ...ie, [k]: undefined } : ie));
+  };
+  const addItem = () => {
+    setItems((a) => [...a, { name: "", quantity: "", unit: "кг", cost_price: "" }]);
+    setItemErrors((a) => [...a, {}]);
+  };
+  const removeItem = (i) => {
+    setItems((a) => a.filter((_, idx) => idx !== i));
+    setItemErrors((a) => a.filter((_, idx) => idx !== i));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setTouched(true);
+
+    const validation = validatePurchaseForm(form, items);
+    setErrors(validation.errors);
+    setItemErrors(validation.itemErrors);
+    if (!validation.valid) return;
+
     setSaving(true);
     try {
       await api.post("/warehouse/purchases", {
@@ -293,30 +354,62 @@ function CreatePurchaseModal({ open, onClose, warehouses, onCreated }) {
       onClose();
       setForm({ supplier: "", warehouse_name: "", date: today(), note: "" });
       setItems([{ name: "", quantity: "", unit: "кг", cost_price: "" }]);
+      setErrors({});
+      setItemErrors([]);
+      setTouched(false);
     } catch { /* ignore */ } finally { setSaving(false); }
   };
 
+  /* Compute running total */
+  const runTotal = items.reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.cost_price) || 0), 0);
+
   return (
     <Modal open={open} onClose={onClose} title="Новый приход" wide>
-      <form onSubmit={handleSubmit} className="warehouse-form">
+      <form onSubmit={handleSubmit} className="warehouse-form" noValidate>
         <div className="warehouse-form__row">
-          <label>Поставщик<input value={form.supplier} onChange={(e) => set("supplier", e.target.value)} placeholder="BOZOR" /></label>
-          <label>Склад
+          <label className={errors.supplier ? "is-invalid" : ""}>
+            Поставщик
+            <input value={form.supplier} onChange={(e) => set("supplier", e.target.value)} placeholder="BOZOR" />
+            <FieldError msg={errors.supplier} />
+          </label>
+          <label className={errors.warehouse_name ? "is-invalid" : ""}>
+            Склад
             <select value={form.warehouse_name} onChange={(e) => set("warehouse_name", e.target.value)}>
               <option value="">— Выберите —</option>
               {warehouses.map((w) => <option key={w} value={w}>{w}</option>)}
             </select>
+            <FieldError msg={errors.warehouse_name} />
           </label>
-          <label>Дата<input value={form.date} onChange={(e) => set("date", e.target.value)} placeholder="11.06.2026" /></label>
+          <label className={errors.date ? "is-invalid" : ""}>
+            Дата
+            <input value={form.date} onChange={(e) => set("date", e.target.value)} placeholder="11.06.2026" />
+            <FieldError msg={errors.date} />
+          </label>
         </div>
 
-        <h4>Позиции</h4>
+        <h4>Позиции {errors._items && <span className="warehouse-form__error" style={{ fontWeight: 400, fontSize: "0.8rem" }}>— {errors._items}</span>}</h4>
         {items.map((it, i) => (
           <div className="warehouse-form__row warehouse-form__item" key={i}>
-            <label>Наименование<input value={it.name} onChange={(e) => setItem(i, "name", e.target.value)} placeholder="Говядина" required /></label>
-            <label>Кол-во<input type="number" step="0.01" value={it.quantity} onChange={(e) => setItem(i, "quantity", e.target.value)} placeholder="10" /></label>
-            <label>Ед.<input value={it.unit} onChange={(e) => setItem(i, "unit", e.target.value)} style={{ width: 60 }} /></label>
-            <label>Цена<input type="number" step="0.01" value={it.cost_price} onChange={(e) => setItem(i, "cost_price", e.target.value)} placeholder="45000" /></label>
+            <label className={itemErrors[i]?.name ? "is-invalid" : ""}>
+              Наименование
+              <input value={it.name} onChange={(e) => setItem(i, "name", e.target.value)} placeholder="Говядина" />
+              <FieldError msg={itemErrors[i]?.name} />
+            </label>
+            <label className={itemErrors[i]?.quantity ? "is-invalid" : ""}>
+              Кол-во
+              <input type="number" step="0.01" min="0.01" value={it.quantity} onChange={(e) => setItem(i, "quantity", e.target.value)} placeholder="10" />
+              <FieldError msg={itemErrors[i]?.quantity} />
+            </label>
+            <label className={itemErrors[i]?.unit ? "is-invalid" : ""}>
+              Ед.
+              <input value={it.unit} onChange={(e) => setItem(i, "unit", e.target.value)} style={{ width: 60 }} />
+              <FieldError msg={itemErrors[i]?.unit} />
+            </label>
+            <label className={itemErrors[i]?.cost_price ? "is-invalid" : ""}>
+              Цена
+              <input type="number" step="0.01" min="0.01" value={it.cost_price} onChange={(e) => setItem(i, "cost_price", e.target.value)} placeholder="45000" />
+              <FieldError msg={itemErrors[i]?.cost_price} />
+            </label>
             {items.length > 1 && (
               <button type="button" className="warehouse-form__remove" onClick={() => removeItem(i)}><X size={14} /></button>
             )}
@@ -325,6 +418,12 @@ function CreatePurchaseModal({ open, onClose, warehouses, onCreated }) {
         <button type="button" className="warehouse-form__add" onClick={addItem}><Plus size={14} /> Добавить позицию</button>
 
         <label>Примечание<textarea value={form.note} onChange={(e) => set("note", e.target.value)} rows={2} /></label>
+
+        {runTotal > 0 && (
+          <div className="warehouse-form__total">
+            Итого: <strong>{formatMoney(runTotal)}</strong>
+          </div>
+        )}
 
         <div className="warehouse-form__actions">
           <button type="button" className="warehouse-form__cancel" onClick={onClose}>Отмена</button>
@@ -339,7 +438,7 @@ function CreatePurchaseModal({ open, onClose, warehouses, onCreated }) {
 
 
 /* Перемещения */
-function TransferSection({ warehouses, onRefreshStats }) {
+function TransferSection({ warehouses, onRefreshStats, globalSearch }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -357,20 +456,27 @@ function TransferSection({ warehouses, onRefreshStats }) {
     try { await api.delete(`/warehouse/transfers/${id}`); load(); } catch {}
   };
 
+  const filtered = globalSearch
+    ? rows.filter((r) =>
+        (r.from_warehouse_name || "").toLowerCase().includes(globalSearch.toLowerCase())
+        || (r.to_warehouse_name || "").toLowerCase().includes(globalSearch.toLowerCase())
+      )
+    : rows;
+
   return (
     <article className="warehouse-board">
       <div className="warehouse-board__head">
         <div><div className="warehouse-title-mark" /><h3>Перемещение товаров</h3></div>
         <button type="button" className="warehouse-create" onClick={() => setShowCreate(true)}>Создать <Plus size={16} /></button>
       </div>
-      {loading ? <TableSkeleton cols={6} rows={3} /> : rows.length === 0 ? (
-        <p className="warehouse-empty">Перемещений пока нет.</p>
+      {loading ? <TableSkeleton cols={6} rows={3} /> : filtered.length === 0 ? (
+        <p className="warehouse-empty">{globalSearch ? "Ничего не найдено." : "Перемещений пока нет."}</p>
       ) : (
         <div className="warehouse-document-table warehouse-document-table--transfer">
           <div className="warehouse-document-table__head">
             <span>Дата</span><span>Со склада</span><span>На склад</span><span>Кол-во</span><span>Дата создания</span><span>Действия</span>
           </div>
-          {rows.map((r) => (
+          {filtered.map((r) => (
             <div className="warehouse-document-table__row" key={r.id}>
               <span>{r.date || "—"}</span>
               <span>{r.from_warehouse_name || "—"}</span>
@@ -393,21 +499,49 @@ function TransferSection({ warehouses, onRefreshStats }) {
 function CreateTransferModal({ open, onClose, warehouses, onCreated }) {
   const [form, setForm] = useState({ from_warehouse_name: "", to_warehouse_name: "", date: today(), items_count: 0 });
   const [saving, setSaving] = useState(false);
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const [errors, setErrors] = useState({});
+  const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setErrors((e) => ({ ...e, [k]: undefined })); };
+
   const handleSubmit = async (e) => {
-    e.preventDefault(); setSaving(true);
-    try { await api.post("/warehouse/transfers", form); onCreated(); onClose(); } catch {} finally { setSaving(false); }
+    e.preventDefault();
+    const errs = {};
+    if (!form.from_warehouse_name) errs.from_warehouse_name = "Выберите склад";
+    if (!form.to_warehouse_name) errs.to_warehouse_name = "Выберите склад";
+    if (form.from_warehouse_name && form.from_warehouse_name === form.to_warehouse_name) errs.to_warehouse_name = "Должен отличаться";
+    if (!form.items_count || form.items_count <= 0) errs.items_count = "Кол-во > 0";
+    setErrors(errs);
+    if (Object.keys(errs).length) return;
+
+    setSaving(true);
+    try { await api.post("/warehouse/transfers", form); onCreated(); onClose(); setForm({ from_warehouse_name: "", to_warehouse_name: "", date: today(), items_count: 0 }); setErrors({}); } catch {} finally { setSaving(false); }
   };
   return (
     <Modal open={open} onClose={onClose} title="Новое перемещение">
-      <form onSubmit={handleSubmit} className="warehouse-form">
+      <form onSubmit={handleSubmit} className="warehouse-form" noValidate>
         <div className="warehouse-form__row">
-          <label>Со склада<select value={form.from_warehouse_name} onChange={(e) => set("from_warehouse_name", e.target.value)}><option value="">—</option>{warehouses.map((w) => <option key={w} value={w}>{w}</option>)}</select></label>
-          <label>На склад<select value={form.to_warehouse_name} onChange={(e) => set("to_warehouse_name", e.target.value)}><option value="">—</option>{warehouses.map((w) => <option key={w} value={w}>{w}</option>)}</select></label>
+          <label className={errors.from_warehouse_name ? "is-invalid" : ""}>
+            Со склада
+            <select value={form.from_warehouse_name} onChange={(e) => set("from_warehouse_name", e.target.value)}>
+              <option value="">—</option>{warehouses.map((w) => <option key={w} value={w}>{w}</option>)}
+            </select>
+            <FieldError msg={errors.from_warehouse_name} />
+          </label>
+          <label className={errors.to_warehouse_name ? "is-invalid" : ""}>
+            На склад
+            <select value={form.to_warehouse_name} onChange={(e) => set("to_warehouse_name", e.target.value)}>
+              <option value="">—</option>{warehouses.map((w) => <option key={w} value={w}>{w}</option>)}
+            </select>
+            <FieldError msg={errors.to_warehouse_name} />
+          </label>
         </div>
         <div className="warehouse-form__row">
-          <label>Дата<input value={form.date} onChange={(e) => set("date", e.target.value)} /></label>
-          <label>Кол-во позиций<input type="number" value={form.items_count} onChange={(e) => set("items_count", +e.target.value)} /></label>
+          <label className={errors.date ? "is-invalid" : ""}>
+            Дата<input value={form.date} onChange={(e) => set("date", e.target.value)} />
+          </label>
+          <label className={errors.items_count ? "is-invalid" : ""}>
+            Кол-во позиций<input type="number" min="1" value={form.items_count} onChange={(e) => set("items_count", +e.target.value)} />
+            <FieldError msg={errors.items_count} />
+          </label>
         </div>
         <div className="warehouse-form__actions">
           <button type="button" className="warehouse-form__cancel" onClick={onClose}>Отмена</button>
@@ -420,7 +554,7 @@ function CreateTransferModal({ open, onClose, warehouses, onCreated }) {
 
 
 /* Инвентаризация */
-function InventorySection({ warehouses, onRefreshStats }) {
+function InventorySection({ warehouses, onRefreshStats, globalSearch }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -433,13 +567,9 @@ function InventorySection({ warehouses, onRefreshStats }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleDelete = async (id) => {
-    if (!confirm("Удалить инвентаризацию?")) return;
-    try { await api.delete(`/warehouse/inventory-checks/${id}`); load(); } catch {}
-  };
-
-  const filtered = search
-    ? rows.filter((r) => (r.warehouse_name || "").toLowerCase().includes(search.toLowerCase()) || (r.comment || "").toLowerCase().includes(search.toLowerCase()))
+  const effectiveSearch = globalSearch || search;
+  const filtered = effectiveSearch
+    ? rows.filter((r) => (r.warehouse_name || "").toLowerCase().includes(effectiveSearch.toLowerCase()) || (r.comment || "").toLowerCase().includes(effectiveSearch.toLowerCase()))
     : rows;
 
   return (
@@ -455,7 +585,7 @@ function InventorySection({ warehouses, onRefreshStats }) {
         </label>
       </div>
       {loading ? <TableSkeleton cols={6} rows={3} /> : filtered.length === 0 ? (
-        <p className="warehouse-empty">Инвентаризаций пока нет.</p>
+        <p className="warehouse-empty">{effectiveSearch ? "Ничего не найдено." : "Инвентаризаций пока нет."}</p>
       ) : (
         <div className="warehouse-document-table warehouse-document-table--inventory">
           <div className="warehouse-document-table__head">
@@ -484,15 +614,29 @@ function InventorySection({ warehouses, onRefreshStats }) {
 function CreateInventoryModal({ open, onClose, warehouses, onCreated }) {
   const [form, setForm] = useState({ warehouse_name: "", comment: "", check_type: "Приход и расход учтены" });
   const [saving, setSaving] = useState(false);
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const [errors, setErrors] = useState({});
+  const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setErrors((e) => ({ ...e, [k]: undefined })); };
+
   const handleSubmit = async (e) => {
-    e.preventDefault(); setSaving(true);
-    try { await api.post("/warehouse/inventory-checks", form); onCreated(); onClose(); } catch {} finally { setSaving(false); }
+    e.preventDefault();
+    const errs = {};
+    if (!form.warehouse_name) errs.warehouse_name = "Выберите склад";
+    setErrors(errs);
+    if (Object.keys(errs).length) return;
+
+    setSaving(true);
+    try { await api.post("/warehouse/inventory-checks", form); onCreated(); onClose(); setForm({ warehouse_name: "", comment: "", check_type: "Приход и расход учтены" }); } catch {} finally { setSaving(false); }
   };
   return (
     <Modal open={open} onClose={onClose} title="Новая инвентаризация">
-      <form onSubmit={handleSubmit} className="warehouse-form">
-        <label>Склад<select value={form.warehouse_name} onChange={(e) => set("warehouse_name", e.target.value)}><option value="">—</option>{warehouses.map((w) => <option key={w} value={w}>{w}</option>)}</select></label>
+      <form onSubmit={handleSubmit} className="warehouse-form" noValidate>
+        <label className={errors.warehouse_name ? "is-invalid" : ""}>
+          Склад
+          <select value={form.warehouse_name} onChange={(e) => set("warehouse_name", e.target.value)}>
+            <option value="">—</option>{warehouses.map((w) => <option key={w} value={w}>{w}</option>)}
+          </select>
+          <FieldError msg={errors.warehouse_name} />
+        </label>
         <label>Тип<select value={form.check_type} onChange={(e) => set("check_type", e.target.value)}><option>Приход и расход учтены</option><option>Приход и расход не учтены</option></select></label>
         <label>Комментарий<textarea value={form.comment} onChange={(e) => set("comment", e.target.value)} rows={2} /></label>
         <div className="warehouse-form__actions">
@@ -506,7 +650,7 @@ function CreateInventoryModal({ open, onClose, warehouses, onCreated }) {
 
 
 /* Списание */
-function WriteOffSection({ onRefreshStats }) {
+function WriteOffSection({ onRefreshStats, globalSearch }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -523,20 +667,24 @@ function WriteOffSection({ onRefreshStats }) {
     try { await api.delete(`/warehouse/write-offs/${id}`); load(); } catch {}
   };
 
+  const filtered = globalSearch
+    ? rows.filter((r) => (r.category || "").toLowerCase().includes(globalSearch.toLowerCase()) || (r.note || "").toLowerCase().includes(globalSearch.toLowerCase()))
+    : rows;
+
   return (
     <article className="warehouse-board">
       <div className="warehouse-board__head">
         <div><div className="warehouse-title-mark" /><h3>Списание</h3></div>
         <button type="button" className="warehouse-create" onClick={() => setShowCreate(true)}>Создать <Plus size={16} /></button>
       </div>
-      {loading ? <TableSkeleton cols={5} rows={3} /> : rows.length === 0 ? (
-        <p className="warehouse-empty">Списаний пока нет.</p>
+      {loading ? <TableSkeleton cols={5} rows={3} /> : filtered.length === 0 ? (
+        <p className="warehouse-empty">{globalSearch ? "Ничего не найдено." : "Списаний пока нет."}</p>
       ) : (
         <div className="warehouse-document-table warehouse-document-table--writeoff">
           <div className="warehouse-document-table__head">
             <span>ID</span><span>Дата</span><span>Категория</span><span>Кол-во</span><span>Действия</span>
           </div>
-          {rows.map((r) => (
+          {filtered.map((r) => (
             <div className="warehouse-document-table__row" key={r.id}>
               <strong>{String(r.id).slice(-4)}</strong>
               <span>{r.created_at ? new Date(r.created_at).toLocaleString("ru-RU") : "—"}{r.created_by_name ? <small>{r.created_by_name}</small> : null}</span>
@@ -558,16 +706,31 @@ function WriteOffSection({ onRefreshStats }) {
 function CreateWriteOffModal({ open, onClose, onCreated }) {
   const [form, setForm] = useState({ category: "", items_count: 0, note: "" });
   const [saving, setSaving] = useState(false);
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const [errors, setErrors] = useState({});
+  const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setErrors((e) => ({ ...e, [k]: undefined })); };
+
   const handleSubmit = async (e) => {
-    e.preventDefault(); setSaving(true);
-    try { await api.post("/warehouse/write-offs", form); onCreated(); onClose(); } catch {} finally { setSaving(false); }
+    e.preventDefault();
+    const errs = {};
+    if (!form.category?.trim()) errs.category = "Укажите категорию";
+    if (!form.items_count || form.items_count <= 0) errs.items_count = "Кол-во > 0";
+    setErrors(errs);
+    if (Object.keys(errs).length) return;
+
+    setSaving(true);
+    try { await api.post("/warehouse/write-offs", form); onCreated(); onClose(); setForm({ category: "", items_count: 0, note: "" }); } catch {} finally { setSaving(false); }
   };
   return (
     <Modal open={open} onClose={onClose} title="Новое списание">
-      <form onSubmit={handleSubmit} className="warehouse-form">
-        <label>Категория<input value={form.category} onChange={(e) => set("category", e.target.value)} placeholder="Просрочка" /></label>
-        <label>Кол-во позиций<input type="number" value={form.items_count} onChange={(e) => set("items_count", +e.target.value)} /></label>
+      <form onSubmit={handleSubmit} className="warehouse-form" noValidate>
+        <label className={errors.category ? "is-invalid" : ""}>
+          Категория<input value={form.category} onChange={(e) => set("category", e.target.value)} placeholder="Просрочка" />
+          <FieldError msg={errors.category} />
+        </label>
+        <label className={errors.items_count ? "is-invalid" : ""}>
+          Кол-во позиций<input type="number" min="1" value={form.items_count} onChange={(e) => set("items_count", +e.target.value)} />
+          <FieldError msg={errors.items_count} />
+        </label>
         <label>Примечание<textarea value={form.note} onChange={(e) => set("note", e.target.value)} rows={2} /></label>
         <div className="warehouse-form__actions">
           <button type="button" className="warehouse-form__cancel" onClick={onClose}>Отмена</button>
@@ -615,6 +778,10 @@ export default function WarehousePage({ initialSection }) {
   const [statsKey, setStatsKey] = useState(0);
   const [purchaseCount, setPurchaseCount] = useState(0);
   const [draftCount, setDraftCount] = useState(0);
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [appliedGlobalSearch, setAppliedGlobalSearch] = useState("");
+  const [showFilter, setShowFilter] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("all"); // all | draft | accepted
 
   useEffect(() => {
     setActiveSection(initialSection || sectionByPath[location.pathname] || "summary");
@@ -668,6 +835,11 @@ export default function WarehousePage({ initialSection }) {
     return { total, warehouses: warehouseNames.length };
   }, [stockRows, warehouseNames]);
 
+  const handleGlobalSearch = (e) => {
+    e.preventDefault();
+    setAppliedGlobalSearch(globalSearch);
+  };
+
   /* full-page loader on first load */
   if (loading) return <MarjonLoader text="Загрузка склада…" />;
 
@@ -679,15 +851,53 @@ export default function WarehousePage({ initialSection }) {
           <ChevronLeft size={14} /> Выберите дату <ChevronRight size={14} />
         </button>
         <div className="warehouse-toolbar__right">
-          <label className="warehouse-global-search">
-            <input placeholder="Поиск по складу" />
-            <span className="warehouse-search-btn"><Search size={16} /></span>
-          </label>
-          <button type="button" className="warehouse-filter">
+          <form className="warehouse-global-search" onSubmit={handleGlobalSearch}>
+            <input
+              placeholder="Поиск по складу"
+              value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)}
+            />
+            <button type="submit" className="warehouse-search-btn"><Search size={16} /></button>
+          </form>
+          <button
+            type="button"
+            className={`warehouse-filter ${showFilter ? "is-active" : ""}`}
+            onClick={() => setShowFilter((p) => !p)}
+          >
             <SlidersHorizontal size={16} /> Фильтровать
           </button>
         </div>
       </div>
+
+      {/* filter dropdown */}
+      {showFilter && (
+        <div className="warehouse-filter-dropdown">
+          <span className="warehouse-filter-dropdown__label">Статус:</span>
+          {[
+            { key: "all", label: "Все" },
+            { key: "draft", label: "Черновик" },
+            { key: "accepted", label: "Принято" },
+          ].map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              className={`warehouse-filter-chip ${filterStatus === f.key ? "is-active" : ""}`}
+              onClick={() => setFilterStatus(f.key)}
+            >
+              {f.label}
+            </button>
+          ))}
+          {(filterStatus !== "all" || appliedGlobalSearch) && (
+            <button
+              type="button"
+              className="warehouse-filter-chip warehouse-filter-chip--reset"
+              onClick={() => { setFilterStatus("all"); setGlobalSearch(""); setAppliedGlobalSearch(""); }}
+            >
+              <X size={12} /> Сбросить
+            </button>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="warehouse-alert">
@@ -746,7 +956,7 @@ export default function WarehousePage({ initialSection }) {
           )}
 
           {(activeSection === "incoming" || activeSection === "incoming-log") && (
-            <IncomingSection warehouses={warehouseNames} onRefreshStats={refreshStats} onPurchaseStats={handlePurchaseStats} />
+            <IncomingSection warehouses={warehouseNames} onRefreshStats={refreshStats} onPurchaseStats={handlePurchaseStats} globalSearch={appliedGlobalSearch} />
           )}
 
           {activeSection === "balance" && (
@@ -754,15 +964,15 @@ export default function WarehousePage({ initialSection }) {
           )}
 
           {activeSection === "transfer" && (
-            <TransferSection warehouses={warehouseNames} onRefreshStats={refreshStats} />
+            <TransferSection warehouses={warehouseNames} onRefreshStats={refreshStats} globalSearch={appliedGlobalSearch} />
           )}
 
           {activeSection === "inventory" && (
-            <InventorySection warehouses={warehouseNames} onRefreshStats={refreshStats} />
+            <InventorySection warehouses={warehouseNames} onRefreshStats={refreshStats} globalSearch={appliedGlobalSearch} />
           )}
 
           {(activeSection === "write-off" || activeSection === "expense") && (
-            <WriteOffSection onRefreshStats={refreshStats} />
+            <WriteOffSection onRefreshStats={refreshStats} globalSearch={appliedGlobalSearch} />
           )}
         </div>
       </div>
