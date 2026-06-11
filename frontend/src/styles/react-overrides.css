@@ -2816,7 +2816,6 @@ body.dashboard-body,
 }
 .period-switcher .period-dropdown__button {
   min-height: 48px !important;
-  display: grid !important;
   align-items: center !important;
   justify-content: space-between !important;
 }
