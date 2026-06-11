@@ -7,8 +7,18 @@ import {
   ChevronLeft, ChevronRight, Search, SlidersHorizontal,
   Plus, Eye, Trash2, Pencil, X, Package, ArrowRightLeft,
   ClipboardCheck, FileX2, BarChart3, Warehouse as WarehouseIcon,
-  AlertTriangle, Loader2, Check,
+  AlertTriangle, Loader2, Check, Calendar,
 } from "lucide-react";
+
+/* ─── useDebounce hook ──────────────────────────────────────── */
+function useDebounce(value, delay = 250) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
 
 
 /* ─── helpers ───────────────────────────────────────────────── */
@@ -182,14 +192,13 @@ function SummaryTable({ title, rows, loading }) {
 function IncomingSection({ warehouses, onRefreshStats, onPurchaseStats, globalSearch }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [viewDoc, setViewDoc] = useState(null);
 
-  const load = useCallback(async (q = "") => {
+  const load = useCallback(async () => {
     try {
       setLoading(true);
-      const { data } = await api.get("/warehouse/purchases", { params: q ? { q } : {} });
+      const { data } = await api.get("/warehouse/purchases");
       setRows(data);
       onPurchaseStats?.(data);
     } catch {
@@ -202,24 +211,11 @@ function IncomingSection({ warehouses, onRefreshStats, onPurchaseStats, globalSe
 
   useEffect(() => { load(); }, [load]);
 
-  // react to globalSearch
-  useEffect(() => {
-    if (globalSearch !== undefined) {
-      setSearch(globalSearch);
-      load(globalSearch);
-    }
-  }, [globalSearch, load]);
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    load(search);
-  };
-
   const handleDelete = async (id) => {
     if (!confirm("Удалить документ?")) return;
     try {
       await api.delete(`/warehouse/purchases/${id}`);
-      load(search);
+      load();
       onRefreshStats?.();
     } catch { /* ignore */ }
   };
@@ -227,10 +223,21 @@ function IncomingSection({ warehouses, onRefreshStats, onPurchaseStats, globalSe
   const handleAccept = async (id) => {
     try {
       await api.patch(`/warehouse/purchases/${id}`, { status: "accepted" });
-      load(search);
+      load();
       onRefreshStats?.();
     } catch { /* ignore */ }
   };
+
+  /* live filter from global search */
+  const q = (globalSearch || "").toLowerCase();
+  const filtered = q
+    ? rows.filter((r) =>
+        (r.supplier || "").toLowerCase().includes(q)
+        || (r.warehouse_name || "").toLowerCase().includes(q)
+        || String(r.number || "").includes(q)
+        || (r.date || "").includes(q)
+      )
+    : rows;
 
   return (
     <article className="warehouse-board">
@@ -243,24 +250,16 @@ function IncomingSection({ warehouses, onRefreshStats, onPurchaseStats, globalSe
           Создать <Plus size={16} />
         </button>
       </div>
-      <form className="warehouse-search-line" onSubmit={handleSearch}>
-        <label>
-          <input placeholder="Поиск по поставщику, складу…" value={search} onChange={(e) => setSearch(e.target.value)} />
-          <button type="submit" className="warehouse-search-btn">
-            <Search size={16} />
-          </button>
-        </label>
-      </form>
 
-      {loading ? <TableSkeleton cols={9} rows={4} /> : rows.length === 0 ? (
-        <p className="warehouse-empty">{search ? "Ничего не найдено." : "Документов пока нет. Нажмите «Создать» чтобы добавить приход."}</p>
+      {loading ? <TableSkeleton cols={9} rows={4} /> : filtered.length === 0 ? (
+        <p className="warehouse-empty">{q ? "Ничего не найдено." : "Документов пока нет. Нажмите «Создать» чтобы добавить приход."}</p>
       ) : (
         <div className="warehouse-document-table warehouse-document-table--incoming">
           <div className="warehouse-document-table__head">
             <span>Номер</span><span>Поставщик</span><span>На склад</span><span>Дата</span>
             <span>Регистрация</span><span>Приём</span><span>Кол-во</span><span>Сумма</span><span>Действия</span>
           </div>
-          {rows.map((r) => (
+          {filtered.map((r) => (
             <div className="warehouse-document-table__row" key={r.id} onClick={() => setViewDoc(r)} style={{ cursor: "pointer" }}>
               <strong>{r.number}</strong>
               <span>{r.supplier || "—"}</span>
@@ -558,7 +557,6 @@ function InventorySection({ warehouses, onRefreshStats, globalSearch }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
     try { const { data } = await api.get("/warehouse/inventory-checks"); setRows(data); }
@@ -567,9 +565,9 @@ function InventorySection({ warehouses, onRefreshStats, globalSearch }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const effectiveSearch = globalSearch || search;
-  const filtered = effectiveSearch
-    ? rows.filter((r) => (r.warehouse_name || "").toLowerCase().includes(effectiveSearch.toLowerCase()) || (r.comment || "").toLowerCase().includes(effectiveSearch.toLowerCase()))
+  const q = (globalSearch || "").toLowerCase();
+  const filtered = q
+    ? rows.filter((r) => (r.warehouse_name || "").toLowerCase().includes(q) || (r.comment || "").toLowerCase().includes(q))
     : rows;
 
   return (
@@ -578,14 +576,8 @@ function InventorySection({ warehouses, onRefreshStats, globalSearch }) {
         <div><div className="warehouse-title-mark" /><h3>Инвентаризация</h3></div>
         <button type="button" className="warehouse-create" onClick={() => setShowCreate(true)}>Создать <Plus size={16} /></button>
       </div>
-      <div className="warehouse-search-line">
-        <label>
-          <input placeholder="Поиск" value={search} onChange={(e) => setSearch(e.target.value)} />
-          <span className="warehouse-search-btn"><Search size={16} /></span>
-        </label>
-      </div>
       {loading ? <TableSkeleton cols={6} rows={3} /> : filtered.length === 0 ? (
-        <p className="warehouse-empty">{effectiveSearch ? "Ничего не найдено." : "Инвентаризаций пока нет."}</p>
+        <p className="warehouse-empty">{q ? "Ничего не найдено." : "Инвентаризаций пока нет."}</p>
       ) : (
         <div className="warehouse-document-table warehouse-document-table--inventory">
           <div className="warehouse-document-table__head">
@@ -779,9 +771,12 @@ export default function WarehousePage({ initialSection }) {
   const [purchaseCount, setPurchaseCount] = useState(0);
   const [draftCount, setDraftCount] = useState(0);
   const [globalSearch, setGlobalSearch] = useState("");
-  const [appliedGlobalSearch, setAppliedGlobalSearch] = useState("");
+  const debouncedSearch = useDebounce(globalSearch, 200);
   const [showFilter, setShowFilter] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all"); // all | draft | accepted
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
     setActiveSection(initialSection || sectionByPath[location.pathname] || "summary");
@@ -835,10 +830,13 @@ export default function WarehousePage({ initialSection }) {
     return { total, warehouses: warehouseNames.length };
   }, [stockRows, warehouseNames]);
 
-  const handleGlobalSearch = (e) => {
-    e.preventDefault();
-    setAppliedGlobalSearch(globalSearch);
-  };
+  /* date range label */
+  const dateLabel = useMemo(() => {
+    if (dateFrom && dateTo) return `${dateFrom} — ${dateTo}`;
+    if (dateFrom) return `с ${dateFrom}`;
+    if (dateTo) return `до ${dateTo}`;
+    return "Выберите дату";
+  }, [dateFrom, dateTo]);
 
   /* full-page loader on first load */
   if (loading) return <MarjonLoader text="Загрузка склада…" />;
@@ -847,18 +845,50 @@ export default function WarehousePage({ initialSection }) {
     <section className="warehouse-workspace">
       {/* toolbar */}
       <div className="warehouse-workspace__toolbar">
-        <button type="button" className="warehouse-date-button">
-          <ChevronLeft size={14} /> Выберите дату <ChevronRight size={14} />
-        </button>
+        <div className="warehouse-date-wrapper">
+          <button
+            type="button"
+            className={`warehouse-date-button ${(dateFrom || dateTo) ? "is-active" : ""}`}
+            onClick={() => setShowDatePicker((p) => !p)}
+          >
+            <Calendar size={14} /> {dateLabel}
+          </button>
+          {showDatePicker && (
+            <div className="warehouse-date-dropdown">
+              <label>
+                С
+                <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              </label>
+              <label>
+                По
+                <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              </label>
+              {(dateFrom || dateTo) && (
+                <button
+                  type="button"
+                  className="warehouse-date-dropdown__reset"
+                  onClick={() => { setDateFrom(""); setDateTo(""); }}
+                >
+                  <X size={12} /> Сбросить
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <div className="warehouse-toolbar__right">
-          <form className="warehouse-global-search" onSubmit={handleGlobalSearch}>
+          <div className="warehouse-global-search">
+            <Search size={16} className="warehouse-global-search__icon" />
             <input
               placeholder="Поиск по складу"
               value={globalSearch}
               onChange={(e) => setGlobalSearch(e.target.value)}
             />
-            <button type="submit" className="warehouse-search-btn"><Search size={16} /></button>
-          </form>
+            {globalSearch && (
+              <button type="button" className="warehouse-global-search__clear" onClick={() => setGlobalSearch("")}>
+                <X size={14} />
+              </button>
+            )}
+          </div>
           <button
             type="button"
             className={`warehouse-filter ${showFilter ? "is-active" : ""}`}
@@ -887,11 +917,11 @@ export default function WarehousePage({ initialSection }) {
               {f.label}
             </button>
           ))}
-          {(filterStatus !== "all" || appliedGlobalSearch) && (
+          {(filterStatus !== "all" || debouncedSearch) && (
             <button
               type="button"
               className="warehouse-filter-chip warehouse-filter-chip--reset"
-              onClick={() => { setFilterStatus("all"); setGlobalSearch(""); setAppliedGlobalSearch(""); }}
+              onClick={() => { setFilterStatus("all"); setGlobalSearch(""); }}
             >
               <X size={12} /> Сбросить
             </button>
@@ -956,7 +986,7 @@ export default function WarehousePage({ initialSection }) {
           )}
 
           {(activeSection === "incoming" || activeSection === "incoming-log") && (
-            <IncomingSection warehouses={warehouseNames} onRefreshStats={refreshStats} onPurchaseStats={handlePurchaseStats} globalSearch={appliedGlobalSearch} />
+            <IncomingSection warehouses={warehouseNames} onRefreshStats={refreshStats} onPurchaseStats={handlePurchaseStats} globalSearch={debouncedSearch} />
           )}
 
           {activeSection === "balance" && (
@@ -964,15 +994,15 @@ export default function WarehousePage({ initialSection }) {
           )}
 
           {activeSection === "transfer" && (
-            <TransferSection warehouses={warehouseNames} onRefreshStats={refreshStats} globalSearch={appliedGlobalSearch} />
+            <TransferSection warehouses={warehouseNames} onRefreshStats={refreshStats} globalSearch={debouncedSearch} />
           )}
 
           {activeSection === "inventory" && (
-            <InventorySection warehouses={warehouseNames} onRefreshStats={refreshStats} globalSearch={appliedGlobalSearch} />
+            <InventorySection warehouses={warehouseNames} onRefreshStats={refreshStats} globalSearch={debouncedSearch} />
           )}
 
           {(activeSection === "write-off" || activeSection === "expense") && (
-            <WriteOffSection onRefreshStats={refreshStats} globalSearch={appliedGlobalSearch} />
+            <WriteOffSection onRefreshStats={refreshStats} globalSearch={debouncedSearch} />
           )}
         </div>
       </div>
