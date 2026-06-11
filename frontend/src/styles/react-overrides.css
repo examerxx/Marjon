@@ -10627,6 +10627,37 @@ html body .staff-manager__photo-upload > span > i {
   display: none !important;
 }
 
+/* === KPI trend badges — per-variant vivid colors === */
+.premium-kpi--revenue .trend {
+  color: #c2410c !important;
+  border-color: rgba(255, 107, 53, 0.25) !important;
+  background: rgba(255, 237, 213, 0.85) !important;
+}
+.premium-kpi--orders .trend {
+  color: #1d4ed8 !important;
+  border-color: rgba(46, 144, 250, 0.25) !important;
+  background: rgba(219, 234, 254, 0.85) !important;
+}
+.premium-kpi--avg .trend {
+  color: #6d28d9 !important;
+  border-color: rgba(122, 90, 248, 0.25) !important;
+  background: rgba(237, 233, 254, 0.85) !important;
+}
+.premium-kpi--tables .trend {
+  color: #0e7490 !important;
+  border-color: rgba(6, 174, 212, 0.25) !important;
+  background: rgba(207, 250, 254, 0.85) !important;
+}
+
+/* === Quick-actions grid — tighter spacing === */
+.quick-actions--command .quick-actions__grid {
+  gap: 10px !important;
+}
+.quick-actions--command .quick-actions__grid a {
+  padding: 16px !important;
+  min-height: 118px !important;
+}
+
 /* btn-ghost with Lucide icon — hide CSS ::after chevron */
 .btn-ghost--lucide::after {
   display: none !important;
