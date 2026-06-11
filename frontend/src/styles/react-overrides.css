@@ -10540,8 +10540,8 @@ html body .staff-manager__photo-upload > span > i {
   display: none !important;
 }
 
-/* 2. Period button — fit-content width, text left-aligned */
+/* 2. Period button — full width, content spread */
 .period-dropdown__button {
-  width: fit-content !important;
-  min-width: auto !important;
+  width: 100% !important;
+  justify-content: space-between !important;
 }
