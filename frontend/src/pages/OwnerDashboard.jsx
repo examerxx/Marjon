@@ -143,17 +143,19 @@ function RevenueChart({ sales }) {
             padding: 14,
             cornerRadius: 14,
             displayColors: false,
+            titleFont: { family: "'Plus Jakarta Sans', Inter, sans-serif", size: 13, weight: "700" },
+            bodyFont: { family: "'Plus Jakarta Sans', Inter, sans-serif", size: 14, weight: "800" },
             callbacks: { label: (context) => formatMoney(context.parsed.y) },
           },
         },
         scales: {
-          x: { grid: { display: false }, ticks: { color: "#667085", font: { size: 12, weight: "600" } }, border: { display: false } },
+          x: { grid: { display: false }, ticks: { color: "#667085", font: { family: "'Plus Jakarta Sans', Inter, sans-serif", size: 12, weight: "600" } }, border: { display: false } },
           y: {
             beginAtZero: true,
             grid: { color: "rgba(16, 24, 40, 0.08)", drawTicks: false },
             ticks: {
               color: "#667085",
-              font: { size: 12, weight: "600" },
+              font: { family: "'Plus Jakarta Sans', Inter, sans-serif", size: 12, weight: "600" },
               callback: (value) => `${Number(value) / 1000000}M`,
             },
             border: { display: false },
