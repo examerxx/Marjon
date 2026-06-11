@@ -10409,10 +10409,16 @@ html body .staff-manager__photo-upload > span > i {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid var(--mj-border, #d0d5dd);
+  border: 2px solid #94a3b8;
   background: transparent;
   flex-shrink: 0;
   transition: 0.15s ease;
+}
+/* White dot inside selected (orange gradient) button */
+.period-dropdown__menu button.is-selected .period-dropdown__dot {
+  border-color: #fff;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
 }
 .period-dropdown__dot.is-active {
   border-color: var(--mj-brand, #ff6b35);
