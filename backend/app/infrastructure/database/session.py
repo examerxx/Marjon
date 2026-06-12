@@ -12,13 +12,15 @@ def _make_engine():
     engine_kwargs: dict = {"echo": settings.debug}
 
     if is_postgres:
-        # Supabase Transaction Pooler (PgBouncer) requires:
-        # 1. SSL
-        # 2. No prepared statements (transaction mode doesn't support them)
         connect_args = {
-            "ssl": "require",
             "prepared_statement_cache_size": 0,
         }
+        # Enable SSL for remote PostgreSQL (Neon, Supabase, etc.)
+        # Skip SSL only for local Docker (DATABASE_URL contains @db: or @localhost)
+        is_local = any(h in url for h in ("@db:", "@localhost", "@127.0.0.1"))
+        if not is_local:
+            connect_args["ssl"] = "require"
+
         engine_kwargs.update({
             "pool_size": 5,
             "max_overflow": 10,

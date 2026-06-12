@@ -26,7 +26,7 @@ class DashboardResponse(BaseSchema):
     active_orders: int
 
 
-class PaymentMethodBreakdown(BaseSchema):
+class PaymentMethodSummary(BaseSchema):
     method: str
     amount: Decimal
     count: int
@@ -34,7 +34,7 @@ class PaymentMethodBreakdown(BaseSchema):
 
 class ZReportResponse(BaseSchema):
     date: date
-    shift_opened_at: str
+    shift_opened_at: str | None = None
     shift_closed_at: str | None = None
     is_closed: bool = False
     orders_count: int
@@ -52,4 +52,4 @@ class ZReportResponse(BaseSchema):
     change_given_total: Decimal
     non_cash_total: Decimal
     avg_check: Decimal
-    payment_methods: list[PaymentMethodBreakdown]
+    payment_methods: list[PaymentMethodSummary]

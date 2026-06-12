@@ -22,6 +22,17 @@ import app.modules.audit.models          # noqa: F401
 import app.modules.fiscal.models         # noqa: F401
 import app.modules.subscriptions.models  # noqa: F401
 import app.modules.printers.models       # noqa: F401
+# Главная админка (HQ admin panel)
+import app.modules.handbook.models        # noqa: F401
+import app.modules.organizations.models   # noqa: F401
+import app.modules.departments.models     # noqa: F401
+import app.modules.marketing.models       # noqa: F401
+import app.modules.nomenclature.models    # noqa: F401
+import app.modules.storage.models         # noqa: F401
+import app.modules.finance.models         # noqa: F401
+import app.modules.field_service.models   # noqa: F401
+import app.modules.tasks.models           # noqa: F401
+import app.modules.admin_settings.models  # noqa: F401
 
 from app.config import settings
 
@@ -60,7 +71,9 @@ async def run_async_migrations() -> None:
     # Use Session Pooler (port 5432) if available — it supports prepared statements.
     # Transaction Pooler (port 6543) does NOT support them.
     migration_url = settings.migration_database_url or settings.database_url
-    connect_args = {"ssl": "require"} if migration_url.startswith("postgresql") else {}
+    is_pg = migration_url.startswith("postgresql")
+    is_local = any(h in migration_url for h in ("@db:", "@localhost", "@127.0.0.1"))
+    connect_args = {"ssl": "require"} if is_pg and not is_local else {}
     connectable = create_async_engine(
         migration_url,
         poolclass=pool.NullPool,

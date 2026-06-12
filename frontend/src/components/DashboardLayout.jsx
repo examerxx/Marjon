@@ -63,6 +63,7 @@ export default function DashboardLayout() {
   const [user, setUser] = useState(null);
   const [message, setMessage] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => todayInputValue());
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [title, subtitle] = useMemo(() => pageMeta[location.pathname] || ["Dashboard", ""], [location.pathname]);
   const selectedDateContext = useMemo(() => ({
@@ -95,9 +96,16 @@ export default function DashboardLayout() {
   return (
     <div>
       <div className="dashboard-shell">
-        <Sidebar user={user} />
-        <div className="dashboard-main">
-          <Topbar title={title} subtitle={subtitle} selectedDate={selectedDate} onSelectedDateChange={setSelectedDate} />
+        <Sidebar user={user} collapsed={sidebarCollapsed} />
+        <div className={`dashboard-main ${sidebarCollapsed ? "is-sidebar-collapsed" : ""}`}>
+          <Topbar
+            title={title}
+            subtitle={subtitle}
+            selectedDate={selectedDate}
+            onSelectedDateChange={setSelectedDate}
+            sidebarCollapsed={sidebarCollapsed}
+            onSidebarToggle={() => setSidebarCollapsed((value) => !value)}
+          />
           <main className="dashboard-content">
             {message ? <div className="login-error">{message}</div> : null}
             <Outlet context={selectedDateContext} />

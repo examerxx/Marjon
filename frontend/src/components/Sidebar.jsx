@@ -6,23 +6,6 @@ import { logout } from "../api/client";
 const navItems = [
   { key: "dashboard", label: "Дашборд", icon: "bi-bar-chart-line", to: "/" },
   {
-    key: "warehouse",
-    label: "Склад",
-    icon: "bi-box-seam",
-    to: "/warehouse",
-    children: [
-      { key: "stock-in", label: "Приход товаров", to: "/warehouse/stock-in", icon: "bi-box-arrow-in-down" },
-      { key: "stock-out", label: "Расход товаров", to: "/warehouse/stock-out", icon: "bi-box-arrow-up" },
-      { key: "balance", label: "Остаток", to: "/warehouse/balance", icon: "bi-boxes" },
-      { key: "income-log", label: "Журнал приходов", to: "/warehouse/income-log", icon: "bi-clock-history" },
-      { key: "transfer", label: "Перемещение", to: "/warehouse/transfer", icon: "bi-arrow-left-right" },
-      { key: "inventory", label: "Инвентаризация", to: "/warehouse/inventory", icon: "bi-clipboard-check" },
-      { key: "write-off", label: "Списание", to: "/warehouse/write-off", icon: "bi-trash3" },
-      { key: "write-off-categories", label: "Категории списания", to: "/warehouse/write-off-categories", icon: "bi-tags" },
-      { key: "waste", label: "Отход товаров", to: "/warehouse/waste", icon: "bi-recycle" },
-    ],
-  },
-  {
     key: "reports",
     label: "Отчеты",
     icon: "bi-file-earmark-bar-graph",
@@ -52,6 +35,49 @@ const navItems = [
     ],
   },
   {
+    key: "nomenclature",
+    label: "Номенклатура",
+    icon: "bi-boxes",
+    to: "/nomenclature",
+    children: [
+      { key: "dishes", label: "Блюда", to: "/nomenclature/dishes", icon: "bi-cup-hot" },
+      { key: "raw-materials", label: "Сырьё", to: "/nomenclature/raw-materials", icon: "bi-basket" },
+      { key: "semi-finished", label: "Полуфабрикаты", to: "/nomenclature/semi-finished", icon: "bi-box" },
+      { key: "dish-categories", label: "Категория блюд", to: "/nomenclature/dish-categories", icon: "bi-grid" },
+      { key: "raw-categories", label: "Категория сырья", to: "/nomenclature/raw-categories", icon: "bi-boxes" },
+      { key: "semi-finished-categories", label: "Категория полуфабрикатов", to: "/nomenclature/semi-finished-categories", icon: "bi-diagram-3" },
+      { key: "sales-categories", label: "Категория реализации", to: "/nomenclature/sales-categories", icon: "bi-shop" },
+    ],
+  },
+  {
+    key: "warehouse",
+    label: "Склад",
+    icon: "bi-box-seam",
+    to: "/warehouse",
+    children: [
+      { key: "stock-in", label: "Приход товаров", to: "/warehouse/stock-in", icon: "bi-box-arrow-in-down" },
+      { key: "stock-out", label: "Расход товаров", to: "/warehouse/stock-out", icon: "bi-box-arrow-up" },
+      { key: "balance", label: "Остаток", to: "/warehouse/balance", icon: "bi-boxes" },
+      { key: "income-log", label: "Журнал приходов", to: "/warehouse/income-log", icon: "bi-clock-history" },
+      { key: "transfer", label: "Перемещение", to: "/warehouse/transfer", icon: "bi-arrow-left-right" },
+      { key: "inventory", label: "Инвентаризация", to: "/warehouse/inventory", icon: "bi-clipboard-check" },
+      { key: "write-off", label: "Списание", to: "/warehouse/write-off", icon: "bi-trash3" },
+      { key: "write-off-categories", label: "Категории списания", to: "/warehouse/write-off-categories", icon: "bi-tags" },
+      { key: "waste", label: "Отход товаров", to: "/warehouse/waste", icon: "bi-recycle" },
+    ],
+  },
+  {
+    key: "finance",
+    label: "Финансы",
+    icon: "bi-wallet2",
+    to: "/finance",
+    children: [
+      { key: "operations", label: "Денежные операции", to: "/finance/operations", icon: "bi-cash-stack" },
+      { key: "income-categories", label: "Категория приходов", to: "/finance/income-categories", icon: "bi-arrow-down-left-circle" },
+      { key: "expense-categories", label: "Категория расходов", to: "/finance/expense-categories", icon: "bi-arrow-up-right-circle" },
+    ],
+  },
+  {
     key: "settings",
     label: "Настройки",
     icon: "bi-gear",
@@ -68,94 +94,38 @@ const navItems = [
       { key: "support", label: "Тех. поддержка", to: "/settings/support", icon: "bi-headset" },
     ],
   },
-  {
-    key: "finance",
-    label: "Финансы",
-    icon: "bi-wallet2",
-    to: "/finance",
-    children: [
-      { key: "operations", label: "Денежные операции", to: "/finance/operations", icon: "bi-cash-stack" },
-      { key: "income-categories", label: "Категория приходов", to: "/finance/income-categories", icon: "bi-arrow-down-left-circle" },
-      { key: "expense-categories", label: "Категория расходов", to: "/finance/expense-categories", icon: "bi-arrow-up-right-circle" },
-    ],
-  },
-  {
-    key: "nomenclature",
-    label: "Номенклатура",
-    icon: "bi-boxes",
-    to: "/nomenclature",
-    children: [
-      { key: "dishes", label: "Блюда", to: "/nomenclature/dishes", icon: "bi-cup-hot" },
-      { key: "raw-materials", label: "Сырьё", to: "/nomenclature/raw-materials", icon: "bi-basket" },
-      { key: "semi-finished", label: "Полуфабрикаты", to: "/nomenclature/semi-finished", icon: "bi-box" },
-      { key: "dish-categories", label: "Категория блюд", to: "/nomenclature/dish-categories", icon: "bi-grid" },
-      { key: "raw-categories", label: "Категория сырья", to: "/nomenclature/raw-categories", icon: "bi-boxes" },
-      { key: "semi-finished-categories", label: "Категория полуфабрикатов", to: "/nomenclature/semi-finished-categories", icon: "bi-diagram-3" },
-      { key: "sales-categories", label: "Категория реализации", to: "/nomenclature/sales-categories", icon: "bi-shop" },
-    ],
-  },
-  { key: "store", label: "Магазин", icon: "bi-shop", to: "/store" },
-  { key: "reviews", label: "Отзывы", icon: "bi-chat-left", to: "/reviews" },
 ];
 
-function SidebarSubmenu({ item, location, onSelect }) {
-  return (
-    <div className="sidebar-submenu">
-      {item.children.map((child) => (
-        <Link
-          key={child.key}
-          className={`sidebar-submenu__link ${location.pathname === child.to ? "is-active" : ""}`}
-          to={child.to}
-          onClick={() => onSelect(item.key)}
-        >
-          <span className="sidebar-submenu__icon" aria-hidden="true">
-            <i className={`bi ${child.icon || "bi-circle"}`} />
-          </span>
-          <span className="sidebar-submenu__text">{child.label}</span>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-export default function Sidebar({ user }) {
+export default function Sidebar({ user, collapsed }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const closePopoverTimer = useRef(null);
   const [openMenu, setOpenMenu] = useState("");
   const [pinnedMenu, setPinnedMenu] = useState("");
+  const [hoverMenu, setHoverMenu] = useState("");
   const [accountOpen, setAccountOpen] = useState(false);
   const [lang, setLang] = useState(() => localStorage.getItem("marjon_lang") || "ru");
-  const sidebarRef = useRef(null);
   const accountRef = useRef(null);
   const role = user?.role_slugs?.[0] || (user?.is_superadmin ? "superadmin" : "owner");
   const displayName = user?.full_name || user?.email || "Owner";
 
   useEffect(() => {
-    setPinnedMenu("");
-    setOpenMenu("");
+    const activeParent = navItems.find((item) => item.children?.some((child) => location.pathname === child.to));
+    if (activeParent) {
+      setPinnedMenu(activeParent.key);
+      setOpenMenu(activeParent.key);
+    } else {
+      setPinnedMenu("");
+      setOpenMenu("");
+    }
   }, [location.pathname]);
 
   useEffect(() => { setAccountOpen(false); }, [location.pathname]);
+  useEffect(() => { setHoverMenu(""); }, [location.pathname]);
 
-  useEffect(() => {
-    if (!openMenu && !pinnedMenu) return undefined;
-    function closeSubmenu() {
-      setOpenMenu("");
-      setPinnedMenu("");
-    }
-    function onDocClick(event) {
-      if (!sidebarRef.current?.contains(event.target)) closeSubmenu();
-    }
-    function onKey(event) {
-      if (event.key === "Escape") closeSubmenu();
-    }
-    document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [openMenu, pinnedMenu]);
+  useEffect(() => () => {
+    if (closePopoverTimer.current) clearTimeout(closePopoverTimer.current);
+  }, []);
 
   useEffect(() => {
     if (!accountOpen) return undefined;
@@ -183,13 +153,25 @@ export default function Sidebar({ user }) {
     localStorage.setItem("marjon_lang", code);
   }
 
-  function handleSubmenuSelect() {
-    setPinnedMenu("");
-    setOpenMenu("");
+  function closeAccountAndSelectMenu(menuKey = "") {
+    setAccountOpen(false);
+    setPinnedMenu(menuKey);
+    setOpenMenu(menuKey);
+    setHoverMenu("");
+  }
+
+  function openCollapsedPopover(key) {
+    if (closePopoverTimer.current) clearTimeout(closePopoverTimer.current);
+    setHoverMenu(key);
+  }
+
+  function closeCollapsedPopover() {
+    if (closePopoverTimer.current) clearTimeout(closePopoverTimer.current);
+    closePopoverTimer.current = setTimeout(() => setHoverMenu(""), 130);
   }
 
   return (
-    <aside className="dashboard-sidebar" id="dashboardSidebar" ref={sidebarRef}>
+    <aside className={`dashboard-sidebar ${collapsed ? "is-collapsed" : ""}`} id="dashboardSidebar">
       <div className="sidebar-brand">
         <div className="brand-mark">
           <img src={logo} alt="MARJON" className="marjon-logo" decoding="async" />
@@ -204,13 +186,24 @@ export default function Sidebar({ user }) {
         {navItems.map((item) => {
           const active = item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
           const hasChildren = Boolean(item.children?.length);
-          const submenuOpen = openMenu === item.key || pinnedMenu === item.key;
+          const submenuOpen = !collapsed && (openMenu === item.key || pinnedMenu === item.key);
+          const popoverOpen = collapsed && hoverMenu === item.key;
 
           if (hasChildren) {
             return (
               <div
                 key={item.key}
-                className={`sidebar-nav-item sidebar-nav-item--${item.key} has-submenu ${active ? "is-active" : ""} ${submenuOpen ? "is-open" : ""}`}
+                className={`sidebar-nav-item has-submenu ${active ? "is-active" : ""} ${submenuOpen ? "is-open" : ""} ${popoverOpen ? "has-popover" : ""}`}
+                onMouseEnter={() => {
+                  if (collapsed) {
+                    openCollapsedPopover(item.key);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (collapsed) {
+                    closeCollapsedPopover();
+                  }
+                }}
               >
                 <button
                   className={`sidebar-link sidebar-link--button ${active ? "is-active" : ""}`}
@@ -230,7 +223,48 @@ export default function Sidebar({ user }) {
                   <span>{item.label}</span>
                   <i className="bi bi-chevron-down sidebar-link__chevron" aria-hidden="true" />
                 </button>
-                <SidebarSubmenu item={item} location={location} onSelect={handleSubmenuSelect} />
+                <div className="sidebar-submenu">
+                  {item.children.map((child) => (
+                    <Link
+                      key={child.key}
+                      className={`sidebar-submenu__link ${location.pathname === child.to ? "is-active" : ""}`}
+                      to={child.to}
+                      onClick={() => {
+                        setPinnedMenu(item.key);
+                        setOpenMenu(item.key);
+                      }}
+                    >
+                      <span className="sidebar-submenu__dot" aria-hidden="true" />
+                      <span className="sidebar-submenu__icon"><i className={`bi ${child.icon || "bi-circle"}`} /></span>
+                      {child.label}
+                    </Link>
+                  ))}
+                </div>
+                {collapsed ? (
+                  <div
+                    className="sidebar-collapsed-popover"
+                    onMouseEnter={() => openCollapsedPopover(item.key)}
+                    onMouseLeave={closeCollapsedPopover}
+                  >
+                    {item.children.map((child) => (
+                      <Link
+                        key={child.key}
+                        className={`sidebar-collapsed-popover__link ${location.pathname === child.to ? "is-active" : ""}`}
+                        to={child.to}
+                        onClick={() => {
+                          setPinnedMenu(item.key);
+                          setOpenMenu(item.key);
+                          setHoverMenu("");
+                        }}
+                      >
+                        <span className="sidebar-collapsed-popover__icon">
+                          <i className={`bi ${child.icon || "bi-circle"}`} />
+                        </span>
+                        <span>{child.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             );
           }
@@ -262,14 +296,15 @@ export default function Sidebar({ user }) {
               </div>
               <div className="sidebar-account__head-meta">
                 <strong>{displayName}</strong>
-                <span>{user?.company_name || "MARJON"}</span>
+                <span>{role} · {user?.company_name || "MARJON"}</span>
               </div>
+              <i className="bi bi-chevron-up sidebar-account__head-arrow" aria-hidden="true" />
             </div>
-            <Link className="sidebar-account__item" to="/settings/profile" role="menuitem" onClick={() => setAccountOpen(false)}>
+            <Link className="sidebar-account__item" to="/settings/profile" role="menuitem" onClick={() => closeAccountAndSelectMenu("settings")}>
               <i className="bi bi-person-gear" />
               <span>Настройка профиля</span>
             </Link>
-            <Link className="sidebar-account__item" to="/settings/support" role="menuitem" onClick={() => setAccountOpen(false)}>
+            <Link className="sidebar-account__item" to="/settings/support" role="menuitem" onClick={() => closeAccountAndSelectMenu("settings")}>
               <i className="bi bi-headset" />
               <span>Тех. поддержка</span>
             </Link>
@@ -299,6 +334,15 @@ export default function Sidebar({ user }) {
               </div>
             </div>
 
+            <Link className="sidebar-account__item" to="/store" role="menuitem" onClick={() => closeAccountAndSelectMenu("")}>
+              <i className="bi bi-shop" />
+              <span>Магазин</span>
+            </Link>
+            <Link className="sidebar-account__item" to="/reviews" role="menuitem" onClick={() => closeAccountAndSelectMenu("")}>
+              <i className="bi bi-chat-left" />
+              <span>Отзывы</span>
+            </Link>
+
             <button type="button" className="sidebar-account__item sidebar-account__item--danger" role="menuitem" onClick={handleLogout}>
               <i className="bi bi-box-arrow-right" />
               <span>Выйти</span>
@@ -321,7 +365,7 @@ export default function Sidebar({ user }) {
             <span>{role}</span>
             <em>{user?.company_name || "MARJON"}</em>
           </div>
-          <i className="bi bi-chevron-right sidebar-user__arrow" aria-hidden="true" />
+          <i className={`bi ${accountOpen ? "bi-chevron-up" : "bi-chevron-down"} sidebar-user__arrow`} aria-hidden="true" />
         </button>
       </div>
     </aside>

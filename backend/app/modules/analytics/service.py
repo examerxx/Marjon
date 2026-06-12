@@ -4,10 +4,10 @@ from decimal import Decimal
 from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.modules.analytics.schemas import DashboardResponse, PaymentMethodBreakdown, SalesReport, TopProduct, ZReportResponse
+from app.modules.analytics.schemas import DashboardResponse, PaymentMethodSummary, SalesReport, TopProduct, ZReportResponse
 from app.modules.fiscal.models import FiscalReceipt
-from app.modules.pos.models import Order, OrderItem
 from app.modules.payments.models import Payment
+from app.modules.pos.models import Order, OrderItem
 
 
 class AnalyticsService:
@@ -126,7 +126,7 @@ class AnalyticsService:
     async def z_report(self, company_id: UUID, selected_date: date) -> ZReportResponse:
         day_start, day_end = self._date_bounds(selected_date)
 
-        orders_result = await self.db.execute(
+        completed_orders = await self.db.execute(
             select(
                 func.count(Order.id),
                 func.coalesce(func.sum(Order.subtotal), 0),
@@ -142,9 +142,9 @@ class AnalyticsService:
                 Order.created_at <= day_end,
             )
         )
-        orders_count, gross_sales, discounts_total, service_fee_total, tax_total, net_sales = orders_result.one()
+        orders_count, gross_sales, discounts_total, service_fee_total, tax_total, net_sales = completed_orders.one()
 
-        cancelled_result = await self.db.execute(
+        cancelled_orders = await self.db.execute(
             select(func.count(Order.id))
             .where(
                 Order.company_id == company_id,
@@ -153,84 +153,82 @@ class AnalyticsService:
                 Order.created_at <= day_end,
             )
         )
-        cancelled_count = cancelled_result.scalar_one()
+        cancelled_orders_count = cancelled_orders.scalar_one()
 
-        payment_rows = await self.db.execute(
+        payments = await self.db.execute(
             select(
                 Payment.method,
-                Payment.status,
                 func.count(Payment.id),
                 func.coalesce(func.sum(Payment.amount), 0),
                 func.coalesce(func.sum(Payment.cash_received), 0),
                 func.coalesce(func.sum(Payment.change_given), 0),
             )
-            .join(Order, Order.id == Payment.order_id)
             .where(
                 Payment.company_id == company_id,
-                Order.company_id == company_id,
+                Payment.status == "completed",
                 Payment.created_at >= day_start,
                 Payment.created_at <= day_end,
-                Payment.status.in_(["completed", "refunded"]),
             )
-            .group_by(Payment.method, Payment.status)
+            .group_by(Payment.method)
         )
-
-        method_totals: dict[str, dict[str, Decimal | int]] = {}
-        payments_count = 0
-        cash_received_total = Decimal("0")
-        change_given_total = Decimal("0")
-        refunds_total = Decimal("0")
-
-        for method, status, count, amount, cash_received, change_given in payment_rows.all():
-            amount_value = Decimal(str(amount or 0))
-            if status == "refunded":
-                refunds_total += amount_value
-                continue
-
-            bucket = method_totals.setdefault(method, {"amount": Decimal("0"), "count": 0})
-            bucket["amount"] = Decimal(str(bucket["amount"])) + amount_value
-            bucket["count"] = int(bucket["count"]) + int(count)
-            payments_count += int(count)
-            cash_received_total += Decimal(str(cash_received or 0))
-            change_given_total += Decimal(str(change_given or 0))
+        payment_rows = payments.all()
 
         payment_methods = [
-            PaymentMethodBreakdown(method=method, amount=Decimal(str(values["amount"])), count=int(values["count"]))
-            for method, values in sorted(method_totals.items())
+            PaymentMethodSummary(
+                method=row.method,
+                count=row[1],
+                amount=Decimal(str(row[2] or 0)),
+            )
+            for row in payment_rows
         ]
-        cash_total = sum((item.amount for item in payment_methods if item.method == "cash"), Decimal("0"))
-        non_cash_total = sum((item.amount for item in payment_methods if item.method != "cash"), Decimal("0"))
+        payments_count = sum(row[1] for row in payment_rows)
+        cash_total = sum(Decimal(str(row[2] or 0)) for row in payment_rows if row.method == "cash")
+        cash_received_total = sum(Decimal(str(row[3] or 0)) for row in payment_rows)
+        change_given_total = sum(Decimal(str(row[4] or 0)) for row in payment_rows)
+        non_cash_total = sum(Decimal(str(row[2] or 0)) for row in payment_rows if row.method != "cash")
 
-        fiscal_result = await self.db.execute(
+        refunds = await self.db.execute(
+            select(func.coalesce(func.sum(Payment.amount), 0))
+            .where(
+                Payment.company_id == company_id,
+                Payment.status == "refunded",
+                Payment.created_at >= day_start,
+                Payment.created_at <= day_end,
+            )
+        )
+        refunds_total = Decimal(str(refunds.scalar_one() or 0))
+
+        fiscal = await self.db.execute(
             select(func.count(FiscalReceipt.id))
             .where(
                 FiscalReceipt.company_id == company_id,
+                FiscalReceipt.status == "sent",
                 FiscalReceipt.created_at >= day_start,
                 FiscalReceipt.created_at <= day_end,
             )
         )
-        fiscal_count = fiscal_result.scalar_one()
+        fiscal_receipts_count = fiscal.scalar_one()
 
-        avg_check = Decimal(str(net_sales)) / orders_count if orders_count else Decimal("0")
+        net_sales_decimal = Decimal(str(net_sales or 0))
         return ZReportResponse(
             date=selected_date,
             shift_opened_at="09:00",
             shift_closed_at=None,
             is_closed=False,
             orders_count=orders_count,
-            cancelled_orders_count=cancelled_count,
+            cancelled_orders_count=cancelled_orders_count,
             payments_count=payments_count,
-            fiscal_receipts_count=fiscal_count,
-            gross_sales=Decimal(str(gross_sales)),
-            discounts_total=Decimal(str(discounts_total)),
-            service_fee_total=Decimal(str(service_fee_total)),
-            tax_total=Decimal(str(tax_total)),
+            fiscal_receipts_count=fiscal_receipts_count,
+            gross_sales=Decimal(str(gross_sales or 0)),
+            discounts_total=Decimal(str(discounts_total or 0)),
+            service_fee_total=Decimal(str(service_fee_total or 0)),
+            tax_total=Decimal(str(tax_total or 0)),
             refunds_total=refunds_total,
-            net_sales=Decimal(str(net_sales)) - refunds_total,
+            net_sales=net_sales_decimal,
             cash_total=cash_total,
             cash_received_total=cash_received_total,
             change_given_total=change_given_total,
             non_cash_total=non_cash_total,
-            avg_check=avg_check,
+            avg_check=net_sales_decimal / orders_count if orders_count else Decimal("0"),
             payment_methods=payment_methods,
         )

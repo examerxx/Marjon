@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,7 +7,16 @@ from app.modules.kitchen.models import KitchenStation
 from app.modules.kitchen.repository import KitchenStationRepository
 from app.modules.kitchen.schemas import KitchenItemStatusUpdate, StationCreate
 from app.modules.pos.models import Order, OrderItem
-from app.shared.exceptions import NotFoundError
+from app.shared.exceptions import NotFoundError, ValidationError
+
+# Valid item status transitions
+ITEM_TRANSITIONS: dict[str, set[str]] = {
+    "pending":   {"cooking"},
+    "cooking":   {"ready", "cancelled"},
+    "ready":     {"served"},
+    "served":    set(),
+    "cancelled": set(),
+}
 
 
 class KitchenService:
@@ -37,13 +46,28 @@ class KitchenService:
         return list(result.scalars().all())
 
     async def update_item_status(self, company_id: UUID, data: KitchenItemStatusUpdate) -> OrderItem:
+        # Join through Order to validate company_id
         result = await self.db.execute(
-            select(OrderItem).where(OrderItem.id == data.order_item_id)
+            select(OrderItem)
+            .join(Order, Order.id == OrderItem.order_id)
+            .where(
+                OrderItem.id == data.order_item_id,
+                Order.company_id == company_id,
+            )
         )
         item = result.scalar_one_or_none()
         if not item:
             raise NotFoundError("Order item not found")
-        item.status = data.status
+
+        current = item.status
+        target = data.status
+        if target not in ITEM_TRANSITIONS.get(current, set()):
+            raise ValidationError(
+                f"Невозможно перевести позицию из '{current}' в '{target}'. "
+                f"Допустимые: {ITEM_TRANSITIONS.get(current, set()) or 'нет'}"
+            )
+
+        item.status = target
         self.db.add(item)
         await self.db.commit()
         await self.db.refresh(item)

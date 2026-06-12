@@ -1,12 +1,13 @@
-﻿from __future__ import annotations
+from __future__ import annotations
+import json
 from functools import lru_cache
 
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    app_name: str = "SaaS Restaurant Platform"
+    app_name: str = "Marjon — SaaS Restaurant Platform"
     debug: bool = False
 
     secret_key: str | None = None
@@ -14,14 +15,45 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 30
 
-    database_url: str
+    database_url: str = "postgresql+asyncpg://marjon:marjon_secret@localhost:5432/marjon"
     migration_database_url: str | None = None
     redis_url: str = "redis://localhost:6379/0"
+    port: int = 8000  # Render sets PORT env var
 
-    allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    allowed_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ]
+
+    # Бизнес-настройки
+    default_tax_rate: float = 0.12  # НДС 12% (Узбекистан)
+    default_service_fee_rate: float = 0.0  # Сервисный сбор (0% по умолчанию)
+    password_min_length: int = 8
+
+    # Интеграции главной админки (ТЗ §8); пустые значения = интеграция выключена
+    devent_base_url: str | None = None
+    devent_api_key: str | None = None
 
     class Config:
         env_file = ".env"
+
+    @field_validator("allowed_origins", mode="before")
+    @classmethod
+    def parse_origins(cls, v):
+        """Accept JSON array, comma-separated string, or empty string."""
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return []
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except (json.JSONDecodeError, TypeError):
+                pass
+            # Comma-separated fallback
+            return [s.strip() for s in v.split(",") if s.strip()]
+        return v
 
     @model_validator(mode="after")
     def validate_security(self):

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 from decimal import Decimal
 from uuid import UUID
 from sqlalchemy import select
@@ -16,19 +16,30 @@ class PaymentService:
         self.repo = PaymentRepository(db)
 
     async def process(self, company_id: UUID, cashier_id: UUID, data: PaymentCreate) -> Payment:
-        result = await self.db.execute(select(Order).where(Order.id == data.order_id, Order.company_id == company_id))
+        result = await self.db.execute(
+            select(Order).where(Order.id == data.order_id, Order.company_id == company_id)
+        )
         order = result.scalar_one_or_none()
         if not order:
             raise NotFoundError("Order not found")
-        if order.status == "cancelled":
-            raise ValidationError("Cannot pay for a cancelled order")
-        if data.amount <= Decimal("0"):
-            raise ValidationError("Payment amount must be positive")
 
+        if order.status in ("cancelled",):
+            raise ValidationError("Невозможно оплатить отменённый заказ")
+
+        if order.status == "completed":
+            raise ValidationError("Заказ уже оплачен")
+
+        # Validate payment amount matches order total
+        if data.amount != order.total_amount:
+            raise ValidationError(
+                f"Сумма оплаты ({data.amount}) не совпадает с суммой заказа ({order.total_amount})"
+            )
+
+        # Cash change calculation
         change_given = None
         if data.method == "cash" and data.cash_received is not None:
             if data.cash_received < data.amount:
-                raise ValidationError("Cash received is less than the payment amount")
+                raise ValidationError("Полученная сумма меньше суммы заказа")
             change_given = data.cash_received - data.amount
 
         payment = Payment(
@@ -41,14 +52,13 @@ class PaymentService:
             cash_received=data.cash_received,
             change_given=change_given,
         )
-        # Single atomic transaction: the payment and the order status update
-        # must commit together, never one without the other.
-        self.db.add(payment)
+        saved = await self.repo.save(payment)
+
+        # Mark order as completed
         order.status = "completed"
         self.db.add(order)
         await self.db.commit()
-        await self.db.refresh(payment)
-        return payment
+        return saved
 
     async def list_for_order(self, company_id: UUID, order_id: UUID) -> list[Payment]:
         return await self.repo.get_by_order(company_id, order_id)

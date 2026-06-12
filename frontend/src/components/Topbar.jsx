@@ -4,7 +4,14 @@ import { clampToToday, todayInputValue } from "../utils/date";
 import DatePicker from "./DatePicker";
 import GlobalSearch from "./GlobalSearch";
 
-export default function Topbar({ title = "Dashboard", subtitle, selectedDate, onSelectedDateChange }) {
+export default function Topbar({
+  title = "Dashboard",
+  subtitle,
+  selectedDate,
+  onSelectedDateChange,
+  sidebarCollapsed = false,
+  onSidebarToggle,
+}) {
   const notificationsRef = useRef(null);
   const [today] = useState(() => todayInputValue());
   const [stockOpen, setStockOpen] = useState(false);
@@ -41,10 +48,6 @@ export default function Topbar({ title = "Dashboard", subtitle, selectedDate, on
   const notificationLabel = notificationCount
     ? `\u0423\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f: ${notificationCount}`
     : "\u0423\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439 \u043d\u0435\u0442";
-
-  function toggleSidebar() {
-    document.getElementById("dashboardSidebar")?.classList.toggle("is-open");
-  }
 
   function loadLowStock() {
     setStockLoading(true);
@@ -90,10 +93,20 @@ export default function Topbar({ title = "Dashboard", subtitle, selectedDate, on
 
   return (
     <header className="dashboard-topbar">
-      <button className="sidebar-toggle" type="button" data-sidebar-toggle aria-label={"\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043c\u0435\u043d\u044e"} onClick={toggleSidebar}>{"\u2630"}</button>
-      <div className="topbar-heading">
-        <h1>{title}</h1>
-        {subtitle ? <p>{subtitle}</p> : null}
+      <div className="topbar-left">
+        <button
+          className="sidebar-collapse-control"
+          type="button"
+          aria-label={sidebarCollapsed ? "Открыть меню" : "Закрыть меню"}
+          aria-expanded={!sidebarCollapsed}
+          onClick={onSidebarToggle}
+        >
+          {sidebarCollapsed ? "≫" : "≪"}
+        </button>
+        <div className="topbar-heading">
+          <h1>{title}</h1>
+          {subtitle ? <p>{subtitle}</p> : null}
+        </div>
       </div>
       <div className="topbar-actions">
         <DatePicker

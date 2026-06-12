@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: marjon-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false  # Set manually — Neon connection string
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "false"
+      - key: ALLOWED_ORIGINS
+        sync: false  # Set to your Vercel frontend URL

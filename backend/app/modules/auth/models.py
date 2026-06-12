@@ -18,6 +18,9 @@ class User(TimeStampedModel):
         Uuid(as_uuid=True), ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True
     )
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    # Аккаунты главной админки: логин по username (ТЗ админ-панели §4.1)
+    username: Mapped[str | None] = mapped_column(String(150), unique=True, index=True)
+    name: Mapped[str | None] = mapped_column(String(255))
     phone: Mapped[str | None] = mapped_column(String(20))
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
