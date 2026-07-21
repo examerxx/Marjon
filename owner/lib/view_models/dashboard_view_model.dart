@@ -64,27 +64,18 @@ class DashboardViewModel extends ChangeNotifier {
     final wStart = fmtIsoDate(_date.subtract(Duration(days: _chartDays - 1)));
 
     try {
-      final results = await Future.wait([
-        Api().reportOrders(dateFrom: d, dateTo: d),
-        Api().reportOrders(dateFrom: yd, dateTo: yd),
-        Api().financeTransactions(dateFrom: d, dateTo: d),
-        Api().reportDishes(dateFrom: wStart, dateTo: d),
-        Api().reportOrders(dateFrom: wStart, dateTo: d),
-      ]);
+      final today     = await Api().reportOrders(dateFrom: d, dateTo: d);
+      final yesterday = await Api().reportOrders(dateFrom: yd, dateTo: yd);
+      final finance   = await Api().financeTransactions(dateFrom: d, dateTo: d);
+      final dishes    = await Api().reportDishes(dateFrom: wStart, dateTo: d);
+      final week      = await Api().reportOrders(dateFrom: wStart, dateTo: d);
 
-      final today     = results[0];
-      final yesterday = results[1];
-      final finance   = results[2];
-      final dishes    = results[3];
-      final week      = results[4];
-
-      final todayItems = (today['items'] as List? ?? []);
-      _ordersCount = toInt(today['count']) > 0 ? toInt(today['count']) : todayItems.length;
-      _revenue     = toDouble(today['total']);
+      _ordersCount = today.length;
+      _revenue     = today.fold(0.0, (s, o) => s + toDouble(o['total_amount']));
       _avgCheck    = _ordersCount > 0 ? _revenue / _ordersCount : 0;
 
-      _yOrdersCount = toInt(yesterday['count']);
-      _yRevenue     = toDouble(yesterday['total']);
+      _yOrdersCount = yesterday.length;
+      _yRevenue     = yesterday.fold(0.0, (s, o) => s + toDouble(o['total_amount']));
 
       final txItems = (finance['items'] as List? ?? []);
       _incomeTotal  = txItems.where((t) => t['direction'] == 'income')
@@ -92,25 +83,27 @@ class DashboardViewModel extends ChangeNotifier {
       _expenseTotal = txItems.where((t) => t['direction'] == 'expense')
           .fold(0.0, (s, t) => s + toDouble(t['amount']));
 
-      final allOrders = (week['items'] as List? ?? []);
       final byDay = <String, double>{};
       for (int i = 0; i < _chartDays; i++) {
         byDay[fmtIsoDate(_date.subtract(Duration(days: _chartDays - 1 - i)))] = 0;
       }
-      for (final o in allOrders) {
+      for (final o in week) {
         final raw = (o['created_at'] as String?) ?? '';
         if (raw.length >= 10) {
           final day = raw.substring(0, 10);
-          byDay[day] = (byDay[day] ?? 0) + toDouble(o['total'] ?? o['total_amount']);
+          byDay[day] = (byDay[day] ?? 0) + toDouble(o['total_amount']);
         }
       }
       _chartData = byDay.values.toList();
 
-      final dishItems = (dishes['items'] as List? ?? []);
-      _topDishes = List<Map<String, dynamic>>.from(dishItems)
+      // DishReportRow uses `amount` for revenue — remap to `total` for the shared dish-row UI.
+      _topDishes = dishes.map((row) => {
+        ...(row as Map<String, dynamic>),
+        'total': row['amount'],
+      }).toList()
         ..sort((a, b) => toDouble(b['quantity']).compareTo(toDouble(a['quantity'])));
 
-      _recentOrders = List<Map<String, dynamic>>.from(allOrders)
+      _recentOrders = List<Map<String, dynamic>>.from(week)
         ..sort((a, b) => ((b['created_at'] ?? '') as String)
             .compareTo((a['created_at'] ?? '') as String));
       if (_recentOrders.length > 10) _recentOrders = _recentOrders.sublist(0, 10);

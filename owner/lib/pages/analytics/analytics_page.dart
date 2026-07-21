@@ -39,13 +39,11 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         Api().reportDishes(dateFrom: df, dateTo: dt),
       ]);
 
-      final ordersData = results[0];
-      final dishData   = results[1];
+      final allOrders = List<Map<String, dynamic>>.from(results[0]);
+      final dishItems = List<Map<String, dynamic>>.from(results[1]);
 
-      final allOrders = List<Map<String, dynamic>>.from(ordersData['items'] ?? []);
-
-      _totalOrders  = toInt(ordersData['count']) > 0 ? toInt(ordersData['count']) : allOrders.length;
-      _totalRevenue = toDouble(ordersData['total']);
+      _totalOrders  = allOrders.length;
+      _totalRevenue = allOrders.fold(0.0, (s, o) => s + toDouble(o['total_amount']));
       _avgCheck     = _totalOrders > 0 ? _totalRevenue / _totalOrders : 0;
 
       // Status breakdown
@@ -74,11 +72,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       _dailyRevenue = byDay.values.toList();
 
       // Popular dishes from reportDishes
-      final dishItems = List<Map<String, dynamic>>.from(dishData['items'] ?? []);
       _popular = dishItems.map((d) => _PopItem(
         d['name']?.toString() ?? '—',
         toInt(d['quantity']),
-        toDouble(d['total']),
+        toDouble(d['amount']),
       )).toList()..sort((a, b) => b.qty.compareTo(a.qty));
     } catch (_) {}
     if (mounted) setState(() => _loading = false);

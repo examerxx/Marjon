@@ -225,32 +225,38 @@ class Api {
     await dio.delete('/finance/payment-types/$id');
 
   // ── Reports ───────────────────────────────────────────────────────────────
-  Future<Map<String, dynamic>> reportOrders({String? dateFrom, String? dateTo}) async {
+  // Note: backend returns a plain list for these (admin_reports module — its
+  // /reports/* routes are registered before kafe_compat's and shadow them).
+  Future<List<dynamic>> reportOrders({String? dateFrom, String? dateTo}) async {
     final p = <String, dynamic>{};
     if (dateFrom != null) p['date_from'] = dateFrom;
     if (dateTo != null) p['date_to'] = dateTo;
-    return (await dio.get('/reports/orders', queryParameters: p)).data;
+    final r = (await dio.get('/reports/orders', queryParameters: p)).data;
+    return r is List ? r : [];
   }
 
-  Future<Map<String, dynamic>> reportDishes({String? dateFrom, String? dateTo}) async {
+  Future<List<dynamic>> reportDishes({String? dateFrom, String? dateTo}) async {
     final p = <String, dynamic>{};
     if (dateFrom != null) p['date_from'] = dateFrom;
     if (dateTo != null) p['date_to'] = dateTo;
-    return (await dio.get('/reports/dishes', queryParameters: p)).data;
+    final r = (await dio.get('/reports/dishes', queryParameters: p)).data;
+    return r is List ? r : [];
   }
 
-  Future<Map<String, dynamic>> reportWaiters({String? dateFrom, String? dateTo}) async {
+  Future<List<dynamic>> reportWaiters({String? dateFrom, String? dateTo}) async {
     final p = <String, dynamic>{};
     if (dateFrom != null) p['date_from'] = dateFrom;
     if (dateTo != null) p['date_to'] = dateTo;
-    return (await dio.get('/reports/waiters', queryParameters: p)).data;
+    final r = (await dio.get('/reports/waiters', queryParameters: p)).data;
+    return r is List ? r : [];
   }
 
-  Future<Map<String, dynamic>> reportCancelled({String? dateFrom, String? dateTo}) async {
+  Future<List<dynamic>> reportCancelled({String? dateFrom, String? dateTo}) async {
     final p = <String, dynamic>{};
     if (dateFrom != null) p['date_from'] = dateFrom;
     if (dateTo != null) p['date_to'] = dateTo;
-    return (await dio.get('/reports/cancelled', queryParameters: p)).data;
+    final r = (await dio.get('/reports/cancelled', queryParameters: p)).data;
+    return r is List ? r : [];
   }
 
   // ── Analytics ────────────────────────────────────────────────────────────

@@ -49,13 +49,32 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
       final w = results[1];
       final c = results[2];
 
-      _dishes    = List<Map<String, dynamic>>.from(d['items'] ?? []);
-      _waiters   = List<Map<String, dynamic>>.from(w['items'] ?? []);
-      _cancelled = List<Map<String, dynamic>>.from(c['items'] ?? []);
+      // Backend field names (DishReportRow.amount, WaiterReportRow.orders_total)
+      // differ from the UI's `total` — remap here rather than touching every widget.
+      _dishes = d.map((row) => {
+        ...(row as Map<String, dynamic>),
+        'total': row['amount'],
+      }).toList();
+      _waiters = w.map((row) => {
+        ...(row as Map<String, dynamic>),
+        'total': row['orders_total'],
+        'orders': row['orders_count'],
+      }).toList();
+      // CancelledItemRow is per cancelled dish (no order total/timestamp/reason directly).
+      _cancelled = c.map((row) {
+        final m     = row as Map<String, dynamic>;
+        final qty   = toDouble(m['quantity']);
+        final price = toDouble(m['price']);
+        return {
+          ...m,
+          'total': qty * price,
+          'created_at': '${m['date'] ?? ''} ${m['time'] ?? ''}'.trim(),
+        };
+      }).toList();
 
-      _dishesTotal  = toDouble(d['total']);
-      _waitersTotal = toDouble(w['total']);
-      _cancelledCount = toInt(c['count']) > 0 ? toInt(c['count']) : _cancelled.length;
+      _dishesTotal    = _dishes.fold(0.0, (s, r) => s + toDouble(r['total']));
+      _waitersTotal   = _waiters.fold(0.0, (s, r) => s + toDouble(r['total']));
+      _cancelledCount = _cancelled.length;
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
   }

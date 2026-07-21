@@ -151,6 +151,12 @@ class OrderService:
             )
 
         order.status = target
+        if target == "cooking":
+            # Kitchen accepted the whole order — move its pending items into cooking too,
+            # otherwise "mark item ready" fails validation (pending can't skip to ready).
+            for item in order.items:
+                if item.status == "pending":
+                    item.status = "cooking"
         await self.repo.save(order)
         updated_order = await self.get(company_id, order_id)
         try:

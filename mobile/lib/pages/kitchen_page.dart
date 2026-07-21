@@ -109,7 +109,8 @@ class _KitchenPageState extends State<KitchenPage> {
     final status        = order['status'] as String;
     final allItemsReady = items.isNotEmpty &&
         items.every((it) => it['status'] == 'ready');
-    final canSwipe = status == 'new' || (status == 'cooking' && allItemsReady);
+    final notStarted = status == 'new' || status == 'accepted';
+    final canSwipe = notStarted || (status == 'cooking' && allItemsReady);
 
     return Dismissible(
       key: ValueKey('k_${order['id']}_$status'),
@@ -118,21 +119,21 @@ class _KitchenPageState extends State<KitchenPage> {
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 24),
         decoration: BoxDecoration(
-          color: status == 'new' ? AppTheme.accent : AppTheme.success,
+          color: notStarted ? AppTheme.accent : AppTheme.success,
           borderRadius: BorderRadius.circular(12)),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Icon(
-            status == 'new' ? Icons.restaurant : Icons.check_circle_outline,
+            notStarted ? Icons.restaurant : Icons.check_circle_outline,
             color: Colors.white, size: 34),
           const SizedBox(height: 6),
           Text(
-            status == 'new' ? 'Начать готовить' : 'Заказ готов!',
+            notStarted ? 'Начать готовить' : 'Заказ готов!',
             style: const TextStyle(
               color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
         ]),
       ),
       confirmDismiss: (_) async {
-        if (status == 'new') {
+        if (notStarted) {
           await _acceptOrder(order['id'] as String);
         } else if (allItemsReady) {
           await _markOrderReady(order);
@@ -144,7 +145,7 @@ class _KitchenPageState extends State<KitchenPage> {
       decoration: BoxDecoration(
         color: AppTheme.surface,
         border: Border.all(
-          color: status == 'new'
+          color: notStarted
             ? AppTheme.accentLight
             : allItemsReady
               ? AppTheme.success
@@ -186,7 +187,7 @@ class _KitchenPageState extends State<KitchenPage> {
         const SizedBox(height: 10),
         ...items.map((item) => _buildItemRow(item as Map<String, dynamic>, status)),
         const SizedBox(height: 10),
-        if (status == 'new')
+        if (notStarted)
           SizedBox(width: double.infinity, child: ElevatedButton.icon(
             icon: const Icon(Icons.restaurant, size: 18),
             label: const Text('Начать готовить',
