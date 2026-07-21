@@ -1,103 +1,22 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
-import DemoNotice from "../components/DemoNotice";
 import Icon from "../components/Icon";
 import { exportToExcel } from "../utils/excel";
-
-const loginHistoryRows = [
-  {
-    date: "22.06.2026",
-    employee: "SARDORKASSA",
-    role: "Кассир",
-    device: "192.168.1.24 / Windows POS",
-    login: "09:02",
-    logout: "18:12",
-    status: "Успешно",
-  },
-  {
-    date: "22.06.2026",
-    employee: "Azizbek",
-    role: "Официант",
-    device: "192.168.1.38 / Android",
-    login: "10:15",
-    logout: "22:04",
-    status: "Успешно",
-  },
-  {
-    date: "21.06.2026",
-    employee: "Povar Bekzod",
-    role: "Повар",
-    device: "192.168.1.45 / Kitchen tablet",
-    login: "08:48",
-    logout: "20:01",
-    status: "Успешно",
-  },
-  {
-    date: "21.06.2026",
-    employee: "Rustam Manager",
-    role: "Менеджер",
-    device: "192.168.1.12 / MacBook",
-    login: "09:30",
-    logout: "19:10",
-    status: "Успешно",
-  },
-];
-
-const attendanceRows = [
-  {
-    date: "22.06.2026",
-    employee: "SARDORKASSA",
-    role: "Кассир",
-    start: "09:00",
-    end: "18:15",
-    hours: "9 ч 15 мин",
-    status: "Закрыта",
-  },
-  {
-    date: "22.06.2026",
-    employee: "Azizbek",
-    role: "Официант",
-    start: "10:00",
-    end: "22:10",
-    hours: "12 ч 10 мин",
-    status: "Закрыта",
-  },
-  {
-    date: "22.06.2026",
-    employee: "Javohir Courier",
-    role: "Курьер",
-    start: "11:30",
-    end: "21:00",
-    hours: "9 ч 30 мин",
-    status: "Закрыта",
-  },
-  {
-    date: "21.06.2026",
-    employee: "Omborchi",
-    role: "Завсклад",
-    start: "08:30",
-    end: "17:40",
-    hours: "9 ч 10 мин",
-    status: "Закрыта",
-  },
-];
 
 function StaffActivityPage({ type = "login-history" }) {
   const isAttendance = type === "attendance";
   const title = isAttendance ? "Посещаемость" : "История входа";
   const eyebrow = isAttendance ? "Смены сотрудников" : "Безопасность";
-  const [loginRows, setLoginRows] = useState(loginHistoryRows);
-  const [shiftRows, setShiftRows] = useState(attendanceRows);
-  const [isDemo, setIsDemo] = useState(true);
+  const [loginRows, setLoginRows] = useState([]);
+  const [shiftRows, setShiftRows] = useState([]);
 
   useEffect(() => {
     const endpoint = isAttendance ? "/hr/attendance" : "/hr/login-history";
     api.get(endpoint)
       .then(({ data }) => {
         const items = Array.isArray(data) ? data : data?.items || [];
-        if (items.length) {
-          if (isAttendance) {
-            setShiftRows(items.map((item) => ({
+        if (isAttendance) {
+          setShiftRows(items.map((item) => ({
               date: item.date || "",
               employee: item.employee_name || item.employee || "",
               role: item.role || "",
@@ -106,8 +25,8 @@ function StaffActivityPage({ type = "login-history" }) {
               hours: item.hours || "",
               status: item.status || "Закрыта",
             })));
-          } else {
-            setLoginRows(items.map((item) => ({
+        } else {
+          setLoginRows(items.map((item) => ({
               date: item.date || "",
               employee: item.employee_name || item.employee || "",
               role: item.role || "",
@@ -116,11 +35,12 @@ function StaffActivityPage({ type = "login-history" }) {
               logout: item.logout_time || item.logout || "",
               status: item.status || "Успешно",
             })));
-          }
-          setIsDemo(false);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (isAttendance) setShiftRows([]);
+        else setLoginRows([]);
+      });
   }, [isAttendance]);
 
   const displayLoginRows = loginRows;
@@ -129,9 +49,6 @@ function StaffActivityPage({ type = "login-history" }) {
   return (
     <div className="staff-page">
       <section className="staff-card">
-        {isDemo && (
-          <DemoNotice />
-        )}
         <header className="staff-header">
           <div className="staff-header__title">
             <span className="staff-header__accent" aria-hidden="true" />

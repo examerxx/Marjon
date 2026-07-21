@@ -1,9 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
-import DemoNotice from "../components/DemoNotice";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
 import { exportToExcel } from "../utils/excel";
+
+function toApiDate(ddmmyyyy) {
+  if (!ddmmyyyy) return undefined;
+  const [d, m, y] = ddmmyyyy.split(".");
+  return `${y}-${m}-${d}`;
+}
 
 const initialFilters = {
   orderType: "all",
@@ -16,178 +21,144 @@ const initialFilters = {
   maxAmount: "",
 };
 
-const orderRows = [
-  {
-    id: "40969868",
-    orderNumber: "2",
-    date: "22.06.2026 / 20:51",
-    type: "На стол",
-    place: "ЗАЛЛ, 6-стол",
-    waiter: "САБИНА",
-    client: "-",
-    courier: "не указан",
-    goodsPrice: "30 000 UZS",
-    goodsValue: 30000,
-    placePrice: "0 UZS",
-    discount: "0 UZS",
-    deliveryPrice: "0 UZS",
-    servicePrice: "3 000 UZS",
-    serviceValue: 3000,
-    totalPrice: "33 000 UZS",
-    totalValue: 33000,
-    status: "Завершено",
-    dishes: ["КФС x1"],
-  },
-  {
-    id: "40956071",
-    orderNumber: "1",
-    date: "22.06.2026 / 19:36",
-    type: "На стол",
-    place: "ЗАЛЛ, 4-стол",
-    waiter: "САБИНА",
-    client: "-",
-    courier: "не указан",
-    goodsPrice: "66 000 UZS",
-    goodsValue: 66000,
-    placePrice: "0 UZS",
-    discount: "0 UZS",
-    deliveryPrice: "0 UZS",
-    servicePrice: "6 600 UZS",
-    serviceValue: 6600,
-    totalPrice: "72 600 UZS",
-    totalValue: 72600,
-    status: "Завершено",
-    dishes: ["Кайнатма шурва x2"],
-  },
-  {
-    id: "40750410",
-    orderNumber: "4",
-    date: "21.06.2026 / 04:04",
-    type: "На стол",
-    place: "Billiard, 8-стол",
-    waiter: "САБИНА",
-    client: "-",
-    courier: "не указан",
-    goodsPrice: "27 000 UZS",
-    goodsValue: 27000,
-    placePrice: "0 UZS",
-    discount: "0 UZS",
-    deliveryPrice: "0 UZS",
-    servicePrice: "0 UZS",
-    serviceValue: 0,
-    totalPrice: "27 000 UZS",
-    totalValue: 27000,
-    status: "Завершено",
-    dishes: ["Мампар x1"],
-  },
-  {
-    id: "40750408",
-    orderNumber: "3",
-    date: "21.06.2026 / 04:03",
-    type: "На стол",
-    place: "КАБИНА, 2-стол",
-    waiter: "САБИНА",
-    client: "-",
-    courier: "не указан",
-    goodsPrice: "0 UZS",
-    goodsValue: 0,
-    placePrice: "0 UZS",
-    discount: "0 UZS",
-    deliveryPrice: "0 UZS",
-    servicePrice: "0 UZS",
-    serviceValue: 0,
-    totalPrice: "0 UZS",
-    totalValue: 0,
-    status: "Завершено",
-    dishes: ["Без блюд"],
-  },
-  {
-    id: "40056934",
-    orderNumber: "2",
-    date: "15.06.2026 / 20:39",
-    type: "Доставка",
-    place: "-",
-    waiter: "SARDORKASSA",
-    client: "-",
-    courier: "не указан",
-    goodsPrice: "40 000 UZS",
-    goodsValue: 40000,
-    placePrice: "0 UZS",
-    discount: "0 UZS",
-    deliveryPrice: "0 UZS",
-    servicePrice: "0 UZS",
-    serviceValue: 0,
-    totalPrice: "40 000 UZS",
-    totalValue: 40000,
-    status: "Завершено",
-    dishes: ["Ассорти шурва x1"],
-  },
-  {
-    id: "40056830",
-    orderNumber: "1",
-    date: "15.06.2026 / 20:39",
-    type: "Доставка",
-    place: "-",
-    waiter: "SARDORKASSA",
-    client: "-",
-    courier: "не указан",
-    goodsPrice: "84 000 UZS",
-    goodsValue: 84000,
-    placePrice: "0 UZS",
-    discount: "0 UZS",
-    deliveryPrice: "0 UZS",
-    servicePrice: "0 UZS",
-    serviceValue: 0,
-    totalPrice: "84 000 UZS",
-    totalValue: 84000,
-    status: "Завершено",
-    dishes: ["Лагмон x2", "Чучвара x1"],
-  },
+const orderColumnOptions = [
+  { key: "id", label: "ID заказа" },
+  { key: "orderNumber", label: "Номер заказа" },
+  { key: "date", label: "Дата" },
+  { key: "type", label: "Тип" },
+  { key: "place", label: "Место" },
+  { key: "waiter", label: "Официант" },
+  { key: "client", label: "Клиент" },
+  { key: "courier", label: "Курьер" },
+  { key: "goodsPrice", label: "Цена товаров" },
+  { key: "placePrice", label: "Цена места" },
+  { key: "discount", label: "Скидка" },
+  { key: "deliveryPrice", label: "Цена доставки" },
+  { key: "servicePrice", label: "Цена обслуживания" },
+  { key: "totalPrice", label: "Цена всего" },
 ];
 
+const defaultOrderColumnVisibility = orderColumnOptions.reduce((acc, column) => ({
+  ...acc,
+  [column.key]: true,
+}), {});
+const orderColumnsStorageKey = "marjon.orders-report.visible-columns";
+
+function getStoredOrderColumnVisibility() {
+  if (typeof window === "undefined") {
+    return defaultOrderColumnVisibility;
+  }
+
+  try {
+    const stored = window.localStorage.getItem(orderColumnsStorageKey);
+    if (!stored) {
+      return defaultOrderColumnVisibility;
+    }
+
+    const parsed = JSON.parse(stored);
+    const next = { ...defaultOrderColumnVisibility };
+    orderColumnOptions.forEach((column) => {
+      if (typeof parsed?.[column.key] === "boolean") {
+        next[column.key] = parsed[column.key];
+      }
+    });
+
+    return orderColumnOptions.some((column) => next[column.key] !== false)
+      ? next
+      : defaultOrderColumnVisibility;
+  } catch {
+    return defaultOrderColumnVisibility;
+  }
+}
+
 export default function OrdersReportPage() {
+  const tableSettingsRef = useRef(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [dateRange, setDateRange] = useState({ preset: "", start: "01.06.2026", end: "01.07.2026" });
+  const [tableSettingsOpen, setTableSettingsOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState(() => getStoredOrderColumnVisibility());
+  const [dateRange, setDateRange] = useState(() => {
+    const now = new Date();
+    const start = `01.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
+    const end = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
+    return { preset: "", start, end };
+  });
   const [filters, setFilters] = useState(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [rows, setRows] = useState(orderRows);
-  const [isDemo, setIsDemo] = useState(true);
+  const [rows, setRows] = useState([]);
 
   useEffect(() => {
-    api.get("/reports/orders", { params: { start: dateRange.start, end: dateRange.end } })
+    api.get("/reports/orders", { params: { date_from: toApiDate(dateRange.start), date_to: toApiDate(dateRange.end) } })
       .then(({ data }) => {
         const items = Array.isArray(data) ? data : data?.items || data?.orders || [];
-        if (items.length) {
-          setRows(items.map((item) => ({
-            id: String(item.id || ""),
+        setRows(items.map((item) => {
+          const totalValue = Number(item.total_amount || item.total_price || 0);
+          const fmt = (v) => v ? `${Number(v).toLocaleString("ru-RU")} UZS` : "0 UZS";
+          return {
+            id: String(item.order_id || item.id || ""),
             orderNumber: String(item.order_number || item.orderNumber || ""),
-            date: item.date || item.created_at || "",
+            date: item.created_at || item.date || "",
             type: item.order_type || item.type || "На стол",
-            place: item.place || item.table_name || "-",
+            place: item.table_number ? `Стол ${item.table_number}` : (item.place || item.table_name || "-"),
             waiter: item.waiter_name || item.waiter || "-",
             client: item.client_name || item.client || "-",
             courier: item.courier_name || item.courier || "не указан",
-            goodsPrice: item.goods_price ? `${Number(item.goods_price).toLocaleString("ru-RU")} UZS` : "0 UZS",
-            goodsValue: Number(item.goods_price || 0),
-            placePrice: item.place_price ? `${Number(item.place_price).toLocaleString("ru-RU")} UZS` : "0 UZS",
-            discount: item.discount ? `${Number(item.discount).toLocaleString("ru-RU")} UZS` : "0 UZS",
-            deliveryPrice: item.delivery_price ? `${Number(item.delivery_price).toLocaleString("ru-RU")} UZS` : "0 UZS",
-            servicePrice: item.service_price ? `${Number(item.service_price).toLocaleString("ru-RU")} UZS` : "0 UZS",
+            goodsPrice: fmt(item.goods_price || item.total_amount),
+            goodsValue: Number(item.goods_price || item.total_amount || 0),
+            placePrice: fmt(item.place_price),
+            discount: fmt(item.discount),
+            deliveryPrice: fmt(item.delivery_price),
+            servicePrice: fmt(item.service_price),
             serviceValue: Number(item.service_price || 0),
-            totalPrice: item.total_price ? `${Number(item.total_price).toLocaleString("ru-RU")} UZS` : "0 UZS",
-            totalValue: Number(item.total_price || 0),
+            totalPrice: fmt(item.total_amount || item.total_price),
+            totalValue,
             status: item.status_label || item.status || "Завершено",
             dishes: item.dishes || item.order_items?.map((d) => `${d.name} x${d.quantity}`) || [],
-          })));
-          setIsDemo(false);
-        }
+          };
+        }));
       })
-      .catch(() => {});
+      .catch(() => setRows([]));
   }, [dateRange.start, dateRange.end]);
 
-  const orderTypes = useMemo(() => Array.from(new Set(rows.map((row) => row.type))), [rows]);
-  const waiters = useMemo(() => Array.from(new Set(rows.map((row) => row.waiter))), [rows]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(orderColumnsStorageKey, JSON.stringify(visibleColumns));
+    } catch {
+      // localStorage can be unavailable in restricted browser modes.
+    }
+  }, [visibleColumns]);
+
+  useEffect(() => {
+    if (!tableSettingsOpen) {
+      return undefined;
+    }
+
+    function closeOnOutsideClick(event) {
+      if (!tableSettingsRef.current?.contains(event.target)) {
+        setTableSettingsOpen(false);
+      }
+    }
+
+    function closeOnEscape(event) {
+      if (event.key === "Escape") {
+        setTableSettingsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [tableSettingsOpen]);
+
+  const orderTypes = useMemo(() => Array.from(new Set(rows.map((row) => row.type).filter(Boolean))), [rows]);
+  const waiters = useMemo(() => Array.from(new Set(rows.map((row) => row.waiter).filter((w) => w && w !== "-"))), [rows]);
+  const visibleOrderColumns = useMemo(
+    () => orderColumnOptions.filter((column) => visibleColumns[column.key] !== false),
+    [visibleColumns],
+  );
 
   const filteredRows = useMemo(() => rows.filter((row) => {
     const min = appliedFilters.minAmount ? Number(appliedFilters.minAmount) : null;
@@ -212,6 +183,39 @@ export default function OrdersReportPage() {
     setAppliedFilters(filters);
   }
 
+  function toggleColumn(key) {
+    setVisibleColumns((current) => {
+      const isVisible = current[key] !== false;
+      const visibleCount = orderColumnOptions.filter((column) => current[column.key] !== false).length;
+      if (isVisible && visibleCount <= 1) {
+        return current;
+      }
+      return { ...current, [key]: !isVisible };
+    });
+  }
+
+  function renderOrderCell(row, key) {
+    switch (key) {
+      case "id":
+        return <strong>{row.id}</strong>;
+      case "type":
+        return <span className="orders-type-pill">{row.type}</span>;
+      case "client":
+        return <><Icon name="bi-person" size={15} />{row.client}</>;
+      case "courier":
+        return <><Icon name="bi-truck" size={15} />{row.courier}</>;
+      default:
+        return row[key];
+    }
+  }
+
+  function orderCellClassName(row, key) {
+    if (key === "client" || key === "courier") return "report-muted-cell";
+    if (["placePrice", "discount", "deliveryPrice", "servicePrice"].includes(key) && row[key] === "0 UZS") return "report-muted-cell";
+    if (key === "totalPrice") return "report-total-price";
+    return undefined;
+  }
+
   function downloadExcel() {
     const cols = [
       { key: "order_number", label: "Номер заказа" },
@@ -227,9 +231,6 @@ export default function OrdersReportPage() {
   return (
     <section className="orders-report-page">
       <article className="report-page-card">
-        {isDemo && (
-          <DemoNotice />
-        )}
         <div className="report-page-header">
           <div className="report-title-group">
             <span className="report-accent-bar" aria-hidden="true" />
@@ -238,7 +239,33 @@ export default function OrdersReportPage() {
             </div>
           </div>
           <div className="report-actions">
-            <ReportDateRangePicker value={dateRange} onChange={setDateRange} />
+            <div className="orders-table-settings" ref={tableSettingsRef}>
+            <button className="orders-table-settings-button" type="button" onClick={() => setTableSettingsOpen((value) => !value)} aria-expanded={tableSettingsOpen}>
+              <Icon name="bi-gear-wide-connected" size={18} />
+              Настроить таблицу
+            </button>
+              {tableSettingsOpen ? (
+                <div className="orders-table-settings-popover">
+                  <div className="orders-table-settings-head">
+                    <strong>Столбцы таблицы</strong>
+                    <button type="button" onClick={() => setVisibleColumns(defaultOrderColumnVisibility)}>Сбросить</button>
+                  </div>
+                  <div className="orders-table-settings-list">
+                    {orderColumnOptions.map((column) => {
+                      const checked = visibleColumns[column.key] !== false;
+                      const disabled = checked && visibleOrderColumns.length <= 1;
+                      return (
+                        <label key={column.key}>
+                          <input type="checkbox" checked={checked} disabled={disabled} onChange={() => toggleColumn(column.key)} />
+                          <span>{column.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <ReportDateRangePicker value={dateRange} onChange={setDateRange} showDropdownIcon />
             <button className="orders-filter-toggle" type="button" onClick={() => setFiltersOpen((value) => !value)}>
               <Icon name="bi-sliders" size={18} />
               Фильтровать
@@ -300,12 +327,20 @@ export default function OrdersReportPage() {
           </div>
         ) : null}
 
+        <style>
+          {orderColumnOptions.map((column, index) => (
+            visibleColumns[column.key] === false
+              ? `.orders-report-page .report-table thead th:nth-child(${index + 1}), .orders-report-page .report-table tbody tr:not(.report-empty-row) td:nth-child(${index + 1}) { display: none !important; }`
+              : ""
+          )).join("\n")}
+        </style>
+
         <div className="report-table-wrapper">
           <table className="report-table">
             <thead>
               <tr>
                 <th>ID заказа</th>
-                <th>Номер заказа</th>
+                <th>№</th>
                 <th>Дата</th>
                 <th>Тип</th>
                 <th>Место</th>

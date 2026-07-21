@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../api/client";
 import Icon from "../components/Icon";
-import DemoNotice from "../components/DemoNotice";
 import FinanceTransactionDrawer from "./FinanceTransactionDrawer";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
 import { todayInputValue } from "../utils/date";
@@ -27,19 +26,10 @@ function formatDate(isoString) {
   return `${d.toLocaleDateString("ru-RU")} / ${d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-const DEMO_ROWS = [
-  { id: "d1", date: "08.07.2026 / 14:32", amount: 450000, type: "income", paymentType: "Наличные", counterparty: "-", category: "Приход от продаж", comment: "Заказ №20260708-0012" },
-  { id: "d2", date: "08.07.2026 / 13:18", amount: 280000, type: "income", paymentType: "Карта", counterparty: "-", category: "Приход от продаж", comment: "Заказ №20260708-0011" },
-  { id: "d3", date: "08.07.2026 / 11:45", amount: 1200000, type: "expense", paymentType: "Наличные", counterparty: "Fresh Food", category: "Закупка товаров", comment: "Накладная PR-128" },
-  { id: "d4", date: "08.07.2026 / 10:00", amount: 350000, type: "income", paymentType: "Payme", counterparty: "-", category: "Приход от продаж", comment: "Заказ №20260708-0009" },
-  { id: "d5", date: "07.07.2026 / 18:20", amount: 500000, type: "expense", paymentType: "Перевод", counterparty: "Baraka Market", category: "Закупка товаров", comment: "Оплата поставщику" },
-];
-
 function FinanceTransactionsPage() {
   const outlet = useOutletContext();
   const { selectedDate = todayInputValue() } = outlet || {};
-  const [rows, setRows] = useState(DEMO_ROWS);
-  const [isDemo, setIsDemo] = useState(true);
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState({ type: "all", paymentType: "", category: "", counterparty: "", min: "", max: "" });
@@ -53,8 +43,7 @@ function FinanceTransactionsPage() {
     api.get("/finance/transactions", { params: { date_from: selectedDate, date_to: selectedDate } })
       .then(({ data }) => {
         const items = Array.isArray(data) ? data : data?.items || [];
-        if (items.length) {
-          setRows(items.map((tx) => ({
+        setRows(items.map((tx) => ({
             id: tx.id,
             date: formatDate(tx.date),
             amount: Number(tx.amount || 0),
@@ -64,10 +53,8 @@ function FinanceTransactionsPage() {
             category: tx.category_name || "—",
             comment: tx.comment || "",
           })));
-          setIsDemo(false);
-        }
       })
-      .catch(() => {})
+      .catch(() => setRows([]))
       .finally(() => setLoading(false));
   }, [selectedDate]);
 
@@ -98,22 +85,6 @@ function FinanceTransactionsPage() {
   };
 
   const save = async () => {
-    if (isDemo) {
-      const next = {
-        id: editingId || `demo-${Date.now()}`,
-        date: form.date || formatDate(new Date().toISOString()),
-        amount: parseAmount(form.amount),
-        type: form.type,
-        paymentType: form.paymentType,
-        counterparty: form.counterparty || "-",
-        category: form.category,
-        comment: form.comment,
-      };
-      setRows((current) => editingId ? current.map((r) => r.id === editingId ? next : r) : [next, ...current]);
-      setDrawerOpen(false);
-      return;
-    }
-
     try {
       const payload = {
         amount: parseAmount(form.amount),
@@ -145,7 +116,6 @@ function FinanceTransactionsPage() {
 
   return (
     <div className="finance-page">
-      {isDemo && <DemoNotice />}
       <section className="finance-card">
         <header className="finance-header finance-header--transactions">
           <div className="report-actions finance-date-range">

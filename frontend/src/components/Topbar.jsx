@@ -3,6 +3,7 @@ import visaLogo from "../assets/paylogos/visa-mastercard.jpg";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
 import { clampToToday, todayInputValue } from "../utils/date";
+import BackButton from "./BackButton";
 import DatePicker from "./DatePicker";
 import Icon from "./Icon";
 import { InlineLoader } from "./Loader";
@@ -63,7 +64,7 @@ const activeRate = activeCurrency === "USD" ? usdRate
   const [usdAmount, setUsdAmount] = useState("1");
   const [converterDirection, setConverterDirection] = useState("usd-to-uzs");
   const [widgetError, setWidgetError] = useState(false);
-  const [balance, setBalance] = useState(12540000);
+  const [balance, setBalance] = useState(0);
   const [balanceLoading, setBalanceLoading] = useState(true);
   const ingredientById = useMemo(() => new Map(ingredients.map((item) => [item.id, item])), [ingredients]);
   const visibleLowStock = useMemo(
@@ -84,11 +85,7 @@ const activeRate = activeCurrency === "USD" ? usdRate
       });
     }
 
-    return [{
-      id: "demo-chicken-low-stock",
-      title: "\u041a\u0443\u0440\u0438\u043d\u043e\u0435 \u0444\u0438\u043b\u0435",
-      text: "\u0417\u0430\u043a\u0430\u043d\u0447\u0438\u0432\u0430\u0435\u0442\u0441\u044f - \u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c 2 \u043a\u0433",
-    }];
+    return [];
   }, [ingredientById, visibleLowStock]);
   const notificationCount = stockError ? 0 : stockNotifications.length;
   const notificationLabel = notificationCount
@@ -258,11 +255,16 @@ useEffect(() => {
     <>
       <header className="dashboard-topbar">
         <div className="topbar-left">
-          <DatePicker
-            value={selectedDate}
-            max={today}
-            onChange={(value) => onSelectedDateChange(clampToToday(value))}
-          />
+          <span className="topbar-back-slot">
+            <BackButton className="dashboard-back-button--topbar-3d" iconName="bi-chevron-left" />
+          </span>
+          <span className="topbar-date-slot">
+            <DatePicker
+              value={selectedDate}
+              max={today}
+              onChange={(value) => onSelectedDateChange(clampToToday(value))}
+            />
+          </span>
         </div>
         <div className="topbar-actions">
           <div className="topbar-info-widgets" aria-label="Информационные виджеты" ref={rateWidgetRef}>

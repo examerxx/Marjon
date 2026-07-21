@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, formatMoney } from "../../api/client";
-import DemoNotice from "../../components/DemoNotice";
 import Icon from "../../components/Icon";
 
 const STATUS_ACTIVE = "#активно";
@@ -26,8 +25,7 @@ function SettingsResourcePage({
   apiMapRow,
   apiMapFormToPayload,
 }) {
-  const [rows, setRows] = useState(initialRows);
-  const [isDemo, setIsDemo] = useState(!apiEndpoint);
+  const [rows, setRows] = useState(apiEndpoint ? [] : initialRows);
   const [apiLoading, setApiLoading] = useState(!!apiEndpoint);
   const [activeTab, setActiveTab] = useState(tabs?.[0]?.key || "");
   const [search, setSearch] = useState("");
@@ -44,14 +42,9 @@ function SettingsResourcePage({
     api.get(apiEndpoint)
       .then(({ data }) => {
         const items = Array.isArray(data) ? data : data?.items || data?.results || [];
-        if (items.length && apiMapRow) {
-          setRows(items.map(apiMapRow));
-          setIsDemo(false);
-        } else {
-          setIsDemo(true);
-        }
+        setRows(apiMapRow ? items.map(apiMapRow) : []);
       })
-      .catch(() => setIsDemo(true))
+      .catch(() => setRows([]))
       .finally(() => setApiLoading(false));
   }, [apiEndpoint]);
 
@@ -83,7 +76,7 @@ function SettingsResourcePage({
     event.preventDefault();
     const payload = apiEndpoint && apiMapFormToPayload ? apiMapFormToPayload(form) : null;
 
-    if (apiEndpoint && !isDemo && payload) {
+    if (apiEndpoint && payload) {
       const request = editingId
         ? api.patch(`${apiEndpoint}/${editingId}`, payload)
         : api.post(apiEndpoint, payload);
@@ -108,7 +101,7 @@ function SettingsResourcePage({
   };
 
   const archive = (row) => {
-    if (apiEndpoint && !isDemo) {
+    if (apiEndpoint) {
       api.delete(`${apiEndpoint}/${row.id}`)
         .then(() => setRows((current) => current.filter((item) => item.id !== row.id)))
         .catch(() => window.alert("Не удалось удалить. Попробуйте позже."));
@@ -250,9 +243,6 @@ function SettingsResourcePage({
   return (
     <div className={`settings-page ${pageClassName}`.trim()}>
       <section className="settings-card">
-        {isDemo && apiEndpoint ? (
-          <DemoNotice text="Демо-данные. Реальные данные загрузятся после настройки сервера." />
-        ) : null}
         {compactHeader ? (
           <header className="settings-directory-toolbar">
             {renderTabs()}

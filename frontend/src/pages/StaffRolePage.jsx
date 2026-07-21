@@ -94,130 +94,6 @@ const normalizePhone = (value = "", countryKey = "UZ") => {
   return parts[1] ? parts.join("") : "";
 };
 
-const initialStaff = [
-  {
-    id: 5439,
-    fullName: "SARDORKASSA",
-    phone: "998770702103",
-    roleKey: "cashier",
-    permission: "Удаления блюд",
-    status: "active",
-    pin: "5439",
-    password: "cashier5439",
-    comment: "Основная касса",
-  },
-  {
-    id: 5440,
-    fullName: "KACCA 2",
-    phone: "998770702102",
-    roleKey: "cashier",
-    permission: "Удаления блюд",
-    status: "active",
-    pin: "5440",
-    password: "cashier5440",
-    comment: "Вторая касса",
-  },
-  {
-    id: 15349,
-    fullName: "Khusniddin Khusanboyev",
-    phone: "998882229904",
-    roleKey: "cashier",
-    permission: "Удаления блюд",
-    status: "active",
-    pin: "3490",
-    password: "khusniddin",
-    comment: "Дневная смена",
-  },
-  {
-    id: 16751,
-    fullName: "Nurmuxammad",
-    phone: "998943027535",
-    roleKey: "cashier",
-    permission: "Удаления блюд",
-    status: "active",
-    pin: "6751",
-    password: "nurmuxammad",
-    comment: "Вечерняя смена",
-  },
-  {
-    id: 21402,
-    fullName: "Azizbek",
-    phone: "998901112233",
-    roleKey: "waiter",
-    permission: "Приём заказов",
-    status: "active",
-    pin: "1402",
-    password: "azizbek",
-    comment: "Зал",
-  },
-  {
-    id: 21419,
-    fullName: "Dilnoza",
-    phone: "998902224455",
-    roleKey: "waiter",
-    permission: "Приём заказов",
-    status: "archived",
-    pin: "1419",
-    password: "dilnoza",
-    comment: "В архиве",
-  },
-  {
-    id: 23710,
-    fullName: "Javohir Courier",
-    phone: "998933334455",
-    roleKey: "courier",
-    permission: "Доставка",
-    status: "active",
-    pin: "3710",
-    password: "courier",
-    comment: "Центр города",
-  },
-  {
-    id: 24501,
-    fullName: "Terminal 1",
-    phone: "998900001001",
-    roleKey: "monoblock",
-    permission: "Кассовый экран",
-    status: "active",
-    pin: "4501",
-    password: "terminal",
-    comment: "Основной моноблок",
-  },
-  {
-    id: 25118,
-    fullName: "Povar Bekzod",
-    phone: "998977778899",
-    roleKey: "kitchen",
-    permission: "Кухня",
-    status: "active",
-    pin: "5118",
-    password: "kitchen",
-    comment: "Горячий цех",
-  },
-  {
-    id: 26834,
-    fullName: "Rustam Manager",
-    phone: "998944445566",
-    roleKey: "manager",
-    permission: "Отчёты и смены",
-    status: "active",
-    pin: "6834",
-    password: "manager",
-    comment: "Администратор",
-  },
-  {
-    id: 27605,
-    fullName: "Omborchi",
-    phone: "998955556677",
-    roleKey: "warehouse",
-    permission: "Склад",
-    status: "active",
-    pin: "7605",
-    password: "warehouse",
-    comment: "Складская зона",
-  },
-];
-
 const emptyForm = {
   fullName: "",
   phone: "",
@@ -327,36 +203,39 @@ function StaffRolePage({ role = "all" }) {
     routeRole === "all" ? "Список сотрудников" : `Список сотрудников: ${roleMap[routeRole].title}`;
 
   const [staff, setStaff] = useState([]);
-const [staffLoading, setStaffLoading] = useState(true);
+  const [staffLoading, setStaffLoading] = useState(true);
 
-useEffect(() => {
-  fetchStaffUsers()
-    .then((data) => {
-      const mapped = (data || []).map((user) => ({
-        id: user.id,
-        fullName: user.role_name || user.email?.split("@")[0] || "—",
-        phone: user.phone || "",
-        roleKey: user.role_slug || "cashier",
-        permission: user.role_slug || "Базовый доступ",
-        status: user.is_active !== false ? "active" : "archived",
-        pin: "",
-        password: "",
-        comment: "",
-        photo: "",
-        access: {},
-      }));
-      setStaff(mapped);
-    })
-    .catch((err) => console.warn("Не удалось загрузить сотрудников:", err.message))
-    .finally(() => setStaffLoading(false));
-}, []);
-  const [activeTab, setActiveTab] = useState("active");
-  const [draftFilters, setDraftFilters] = useState({
+  useEffect(() => {
+    fetchStaffUsers()
+      .then((data) => {
+        const mapped = (data || []).map((user) => ({
+          id: user.id,
+          fullName: user.name || user.role_name || user.email?.split("@")[0] || "—",
+          phone: user.phone || "",
+          roleKey: user.role_slug || "cashier",
+          permission: user.role_slug || "Базовый доступ",
+          status: user.is_active !== false ? "active" : "archived",
+          pin: "",
+          password: "",
+          comment: "",
+          photo: "",
+          access: {},
+        }));
+        setStaff(mapped);
+      })
+      .catch((err) => console.warn("Не удалось загрузить сотрудников:", err.message))
+      .finally(() => setStaffLoading(false));
+  }, []);
+
+  const defaultFilters = useMemo(() => ({
     query: "",
     roleKey: routeRole === "all" ? "" : routeRole,
     status: "",
-  });
-  const [filters, setFilters] = useState(draftFilters);
+  }), [routeRole]);
+
+  const [activeTab, setActiveTab] = useState("active");
+  const [draftFilters, setDraftFilters] = useState(defaultFilters);
+  const [filters, setFilters] = useState(defaultFilters);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -364,6 +243,11 @@ useEffect(() => {
   const [form, setForm] = useState({
     ...emptyForm,
   });
+
+  useEffect(() => {
+    setDraftFilters(defaultFilters);
+    setFilters(defaultFilters);
+  }, [defaultFilters]);
 
   const visibleStaff = useMemo(() => {
     const normalizedQuery = filters.query.trim().toLowerCase();
@@ -476,6 +360,13 @@ const saveStaff = async (event) => {
         access: form.access || {},
       }, ...current]);
     } else {
+      await api.patch(`/auth/users/${editingId}`, {
+        email,
+        password: form.password || undefined,
+        phone: phone || null,
+        role_slug: form.roleKey || "cashier",
+        role_name: form.fullName,
+      });
       setStaff((current) => current.map((emp) =>
         emp.id === editingId ? { ...emp, ...form, permission: getPermissionSummary(form) } : emp
       ));
@@ -483,14 +374,7 @@ const saveStaff = async (event) => {
     closeModal();
   } catch (err) {
     console.error("Ошибка сохранения:", err.response?.data?.detail || err.message);
-    // Fallback: save locally
-    const normalized = { ...form, permission: getPermissionSummary(form) };
-    if (editingId) {
-      setStaff((c) => c.map((e) => e.id === editingId ? { ...e, ...normalized } : e));
-    } else {
-      setStaff((c) => [{ ...normalized, id: Date.now(), status: "active" }, ...c]);
-    }
-    closeModal();
+    window.alert(err.response?.data?.detail || "Ошибка сохранения");
   }
 };
 

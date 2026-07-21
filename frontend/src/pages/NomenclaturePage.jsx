@@ -1,33 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
-import DemoNotice from "../components/DemoNotice";
 import Icon from "../components/Icon";
 
 const ACTIVE = "Активно";
 const ARCHIVED = "Архив";
-
-const dishStats = [
-  { label: "Кол-во товаров", value: "52", rows: [["Реализация", "10"], ["Блюда", "42"]], icon: "bi-basket", tone: "blue" },
-  { label: "Рецепт", value: "42", rows: [["С рецептом", "10"], ["Без рецепта", "32"]], icon: "bi-journal-bookmark", tone: "green" },
-  { label: "ИКПУ", value: "52", rows: [["Заполнен", "0"], ["Не заполнен", "52"]], icon: "bi-card-heading", tone: "cyan" },
-  { label: "Себестоимость", value: "52", rows: [["Заполнен", "0"], ["Не заполнен", "52"]], icon: "bi-cash-coin", tone: "orange" },
-  { label: "Принтер", value: "52", rows: [["Подключен", "49"], ["Не подключен", "3"]], icon: "bi-printer", tone: "violet" },
-];
-
-const initialDishRows = [
-  { id: 1, name: "Billiard", sort: "1", type: "Блюда", unit: "шт", cost: "0 UZS", price: "0", menu: "Billiard", printer: "", recipe: "Рецепт (0 шт)", stock: "-", auto: false, set: false, category: "Игры", chef: "Бар", photo: "" },
-  { id: 2, name: "Tuxum qoyurma", sort: "1", type: "Блюда", unit: "шт", cost: "1 801 UZS", price: "10000", menu: "БИРИНЧИ ТАОМ", printer: "Кухня 192.168.1.51", recipe: "Рецепт (3 шт)", stock: "-", auto: true, set: false, category: "Горячие блюда", chef: "Повар 1", photo: "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=120&q=80" },
-  { id: 3, name: "Moxito", sort: "10", type: "Реализация", unit: "шт", cost: "0 UZS", price: "15000", menu: "ИЧИМЛИКЛАР", printer: "БАР 192.168.1.36", recipe: "Рецепт (0 шт)", stock: "0 (100)-", auto: null, set: null, category: "Напитки", chef: "Бар", photo: "https://images.unsplash.com/photo-1551538827-9c037cb4f32a?auto=format&fit=crop&w=120&q=80" },
-  { id: 4, name: "Cocktail", sort: "11", type: "Реализация", unit: "шт", cost: "0 UZS", price: "25000", menu: "ИЧИМЛИКЛАР", printer: "БАР 192.168.1.36", recipe: "Рецепт (0 шт)", stock: "0 (100)-", auto: null, set: null, category: "Напитки", chef: "Бар", photo: "https://images.unsplash.com/photo-1570598912132-0ba1dc952b7d?auto=format&fit=crop&w=120&q=80" },
-  { id: 5, name: "Suv (bez gaz) 0.5", sort: "12", type: "Реализация", unit: "шт", cost: "0 UZS", price: "5000", menu: "ИЧИМЛИКЛАР", printer: "БАР 192.168.1.36", recipe: "Рецепт (0 шт)", stock: "0 (100)-", auto: null, set: null, category: "Напитки", chef: "Бар", photo: "" },
-  { id: 6, name: "Suv (bez gaz) 1", sort: "13", type: "Реализация", unit: "шт", cost: "0 UZS", price: "8000", menu: "ИЧИМЛИКЛАР", printer: "БАР 192.168.1.36", recipe: "Рецепт (0 шт)", stock: "0 (100)-", auto: null, set: null, category: "Напитки", chef: "Бар", photo: "" },
-  { id: 7, name: "Suv (bez gaz) 1.5", sort: "14", type: "Реализация", unit: "шт", cost: "0 UZS", price: "12000", menu: "ИЧИМЛИКЛАР", printer: "БАР 192.168.1.36", recipe: "Рецепт (0 шт)", stock: "0 (100)-", auto: null, set: null, category: "Напитки", chef: "Бар", photo: "" },
-  { id: 8, name: "OCARD", sort: "15", type: "Реализация", unit: "шт", cost: "0 UZS", price: "18000", menu: "ИЧИМЛИКЛАР", printer: "БАР 192.168.1.36", recipe: "Рецепт (0 шт)", stock: "0 (100)-", auto: null, set: null, category: "Напитки", chef: "Бар", photo: "" },
-  { id: 9, name: "Боржоми", sort: "16", type: "Реализация", unit: "шт", cost: "0 UZS", price: "20000", menu: "ИЧИМЛИКЛАР", printer: "БАР 192.168.1.36", recipe: "Рецепт (0 шт)", stock: "0 (100)-", auto: null, set: null, category: "Напитки", chef: "Бар", photo: "" },
-  { id: 10, name: "Чорток", sort: "17", type: "Реализация", unit: "шт", cost: "0 UZS", price: "12000", menu: "ИЧИМЛИКЛАР", printer: "БАР 192.168.1.36", recipe: "Рецепт (0 шт)", stock: "0 (100)-", auto: null, set: null, category: "Напитки", chef: "Бар", photo: "" },
-  { id: 11, name: "Сок", sort: "18", type: "Реализация", unit: "шт", cost: "0 UZS", price: "18000", menu: "ИЧИМЛИКЛАР", printer: "БАР 192.168.1.36", recipe: "Рецепт (0 шт)", stock: "0 (100)-", auto: null, set: null, category: "Напитки", chef: "Бар", photo: "" },
-  { id: 12, name: "Сузма", sort: "19", type: "Блюда", unit: "порция", cost: "4 500 UZS", price: "10000", menu: "САЛАТЛАР", printer: "Кухня 192.168.1.51", recipe: "Рецепт (2 шт)", stock: "-", auto: true, set: false, category: "Салаты", chef: "Повар 2", photo: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=120&q=80" },
-];
 
 const dishColumnOptions = [
   { key: "photo", label: "Фото", width: 74 },
@@ -92,20 +68,13 @@ const fallbackConfigs = {
     title: "Сырьё",
     action: "Добавить +",
     columns: ["Название", "Категория", "Подкатегория", "Ед. изм", "Остаток", "Мин. остаток", "Цена закупки", "Поставщик", "Статус", "Действия"],
-    rows: [
-      ["Говядина", "Мясо", "Красное мясо", "кг", "24.5", "5", "78 000 UZS", "Bozor", ACTIVE],
-      ["Рис", "Крупы", "Зерновые", "кг", "55", "10", "15 000 UZS", "Поставщик 1", ACTIVE],
-      ["Лук", "Овощи", "Луковые", "кг", "12", "5", "4 000 UZS", "Bozor", ACTIVE],
-    ],
+    rows: [],
   },
   semi: {
     title: "Полуфабрикаты",
     action: "Добавить +",
     columns: ["Название", "Категория", "Ед. изм", "Себестоимость", "Состав", "Статус", "Действия"],
-    rows: [
-      ["Фарш говяжий", "Заготовки", "кг", "65 000 UZS", "3 ингредиента", ACTIVE],
-      ["Тесто", "Заготовки", "кг", "12 000 UZS", "4 ингредиента", ACTIVE],
-    ],
+    rows: [],
   },
 };
 
@@ -142,8 +111,7 @@ function matchesDishStatFilter(row, filterKey) {
 }
 
 function DishesCatalogPage() {
-  const [rows, setRows] = useState(initialDishRows);
-  const [isDemo, setIsDemo] = useState(true);
+  const [rows, setRows] = useState([]);
   const [apiLoading, setApiLoading] = useState(true);
   const [draftFilters, setDraftFilters] = useState({ search: "", chef: "", category: "" });
   const [filters, setFilters] = useState(draftFilters);
@@ -181,8 +149,7 @@ function DishesCatalogPage() {
     api.get("/inventory/products")
       .then(({ data }) => {
         const items = Array.isArray(data) ? data : data?.items || [];
-        if (items.length) {
-          setRows(items.map((item) => ({
+        setRows(items.map((item) => ({
             id: item.id,
             name: item.name || "",
             sort: String(item.sort_order ?? "1"),
@@ -200,10 +167,8 @@ function DishesCatalogPage() {
             chef: item.station || "",
             photo: item.image_url || "",
           })));
-          setIsDemo(false);
-        }
       })
-      .catch(() => {})
+      .catch(() => setRows([]))
       .finally(() => setApiLoading(false));
   }, []);
 
@@ -243,7 +208,7 @@ function DishesCatalogPage() {
     setDrawerOpen(true);
   };
 
-  const saveDish = () => {
+  const saveDish = async () => {
     const payload = {
       name: form.name,
       sort_order: parseInt(form.sort, 10) || 1,
@@ -255,12 +220,16 @@ function DishesCatalogPage() {
       auto_write_off: form.auto,
       is_set: form.set,
     };
-    if (!isDemo && editing) {
-      api.patch(`/inventory/products/${editing.id}`, payload).catch(() => {});
-    } else if (!isDemo) {
-      api.post("/inventory/products", payload)
-        .then(({ data }) => { if (data?.id) form.id = data.id; })
-        .catch(() => {});
+    try {
+      if (editing) {
+        await api.patch(`/inventory/products/${editing.id}`, payload);
+      } else {
+        const { data } = await api.post("/inventory/products", payload);
+        if (data?.id) form.id = data.id;
+      }
+    } catch (err) {
+      window.alert(err.response?.data?.detail || "Ошибка сохранения");
+      return;
     }
     if (editing) {
       setRows((prev) => prev.map((row) => (row.id === editing.id ? { ...row, ...form } : row)));
@@ -270,9 +239,12 @@ function DishesCatalogPage() {
     setDrawerOpen(false);
   };
 
-  const archiveDish = (id) => {
-    if (!isDemo) {
-      api.delete(`/inventory/products/${id}`).catch(() => {});
+  const archiveDish = async (id) => {
+    try {
+      await api.delete(`/inventory/products/${id}`);
+    } catch (err) {
+      window.alert(err.response?.data?.detail || "Ошибка удаления");
+      return;
     }
     setRows((prev) => prev.filter((row) => row.id !== id));
   };
@@ -292,9 +264,6 @@ function DishesCatalogPage() {
   return (
     <section className="nomenclature-page dish-catalog-page">
       <div className="dish-catalog-card">
-        {isDemo && (
-          <DemoNotice />
-        )}
         <div className="dish-catalog-header">
           <div className="report-title-group">
             <span className="report-accent-bar" />
@@ -604,8 +573,7 @@ const fieldLabels = {
 
 function SimpleNomenclaturePage({ config }) {
   const [query, setQuery] = useState("");
-  const [rows, setRows] = useState(config.rows);
-  const [isDemo, setIsDemo] = useState(true);
+  const [rows, setRows] = useState([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [form, setForm] = useState({});
@@ -636,8 +604,7 @@ function SimpleNomenclaturePage({ config }) {
     api.get(apiEndpoint)
       .then(({ data }) => {
         const items = Array.isArray(data) ? data : data?.items || [];
-        if (items.length) {
-          const mapped = items.map((item) => {
+        const mapped = items.map((item) => {
             if (config.title === "Сырьё") {
               return [
                 item.name || "",
@@ -655,11 +622,9 @@ function SimpleNomenclaturePage({ config }) {
               `${item.ingredients_count ?? 0} ингредиента`, item.is_active !== false ? ACTIVE : ARCHIVED,
             ];
           });
-          setRows(mapped);
-          setIsDemo(false);
-        }
+        setRows(mapped);
       })
-      .catch(() => {});
+      .catch(() => setRows([]));
   }, [apiEndpoint]);
 
   const openEditor = (row = null, index = null) => {
@@ -694,9 +659,6 @@ function SimpleNomenclaturePage({ config }) {
   return (
     <section className={`nomenclature-page ${isRawMaterials ? "nomenclature-page--raw" : "nomenclature-page--semi"}`}>
       <div className="nomenclature-card">
-        {isDemo && apiEndpoint && (
-          <DemoNotice />
-        )}
         <div className="nomenclature-header">
           <div className="report-title-group">
             <span className="report-accent-bar" />

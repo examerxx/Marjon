@@ -1,18 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, formatMoney } from "../api/client";
-import DemoNotice from "../components/DemoNotice";
 import Icon from "../components/Icon";
-
-const demoSalesRows = [
-  { id: "demo-moxito", dish: "Moxito", category: "ИЧИМЛИКЛАР", sold: 34, revenue: 510000 },
-  { id: "demo-cocktail", dish: "Cocktail", category: "ИЧИМЛИКЛАР", sold: 19, revenue: 475000 },
-  { id: "demo-tuxum", dish: "Tuxum qoyurma", category: "БИРИНЧИ ТАОМ", sold: 28, revenue: 280000 },
-  { id: "demo-suv-05", dish: "Suv (bez gaz) 0.5", category: "ИЧИМЛИКЛАР", sold: 52, revenue: 260000 },
-  { id: "demo-suv-1", dish: "Suv (bez gaz) 1", category: "ИЧИМЛИКЛАР", sold: 23, revenue: 184000 },
-  { id: "demo-suv-15", dish: "Suv (bez gaz) 1.5", category: "ИЧИМЛИКЛАР", sold: 14, revenue: 168000 },
-  { id: "demo-borjomi", dish: "Боржоми", category: "ИЧИМЛИКЛАР", sold: 8, revenue: 160000 },
-  { id: "demo-suzma", dish: "Сузма", category: "САЛАТ", sold: 15, revenue: 150000 },
-];
 
 const salesColumnOptions = [
   { key: "index", label: "№", width: 56 },
@@ -81,7 +69,6 @@ function buildSalesRows(orders, products, categories) {
 
 export default function MenuPage() {
   const [rows, setRows] = useState([]);
-  const [isDemo, setIsDemo] = useState(true);
   const [ordersCount, setOrdersCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -106,9 +93,8 @@ export default function MenuPage() {
         const categories = Array.isArray(categoriesRes.data) ? categoriesRes.data : [];
         const builtRows = buildSalesRows(orders, products, categories);
 
-        setRows(builtRows.length ? builtRows : enrichRows(demoSalesRows));
-        if (builtRows.length) setIsDemo(false);
-        setOrdersCount(orders.length || 18);
+        setRows(builtRows);
+        setOrdersCount(orders.length);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -201,7 +187,6 @@ export default function MenuPage() {
 
   return (
     <section className="sales-page">
-      {isDemo && <DemoNotice />}
       <div className="sales-card">
         <header className="sales-header">
           <div className="sales-title-group">

@@ -8422,3 +8422,1233 @@ body:has(.admin-shell),
 .admin-demo-notice {
   display: none !important;
 }
+
+/* Admin sidebar collapse: match Marjon Cafe geometry, timing and brand block. */
+@media (min-width: 981px) {
+  .admin-shell,
+  .admin-shell:not(.is-sidebar-collapsed),
+  .admin-shell.is-sidebar-collapsed {
+    --admin-owner-sidebar-w: 280px !important;
+    --admin-owner-sidebar-collapsed-w: 88px !important;
+    --admin-sidebar-current-w: var(--admin-owner-sidebar-w) !important;
+    --admin-sidebar-brand-left: 12px !important;
+    --admin-sidebar-brand-w: 262px !important;
+    --admin-sidebar-brand-identity-w: 224px !important;
+    --admin-sidebar-logo-box: 56px !important;
+    grid-template-columns: var(--admin-sidebar-current-w) minmax(0, 1fr) !important;
+    transition: grid-template-columns 220ms ease !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed {
+    --admin-sidebar-current-w: var(--admin-owner-sidebar-collapsed-w) !important;
+  }
+
+  .admin-shell .admin-sidebar,
+  .admin-shell .admin-sidebar.is-collapsed {
+    width: var(--admin-sidebar-current-w) !important;
+    min-width: var(--admin-sidebar-current-w) !important;
+    max-width: var(--admin-sidebar-current-w) !important;
+    transition:
+      width 220ms ease,
+      min-width 220ms ease,
+      max-width 220ms ease,
+      padding 220ms ease !important;
+  }
+
+  .admin-shell .admin-main {
+    min-width: 0 !important;
+    transition:
+      background-color 160ms ease,
+      border-radius 160ms ease,
+      box-shadow 160ms ease !important;
+  }
+
+  .admin-shell .admin-sidebar .admin-brand.sidebar-brand,
+  .admin-shell .admin-sidebar.is-collapsed .admin-brand.sidebar-brand,
+  .admin-shell:not(.is-sidebar-collapsed) .admin-sidebar .admin-brand.sidebar-brand {
+    position: fixed !important;
+    top: 18px !important;
+    left: var(--admin-sidebar-brand-left) !important;
+    width: var(--admin-sidebar-brand-w) !important;
+    min-width: var(--admin-sidebar-brand-w) !important;
+    max-width: var(--admin-sidebar-brand-w) !important;
+    height: 72px !important;
+    min-height: 72px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: grid !important;
+    grid-template-columns: var(--admin-sidebar-brand-identity-w) 30px !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    column-gap: 8px !important;
+    border: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    background-image: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .admin-shell .admin-sidebar .sidebar-brand__identity,
+  .admin-shell .admin-sidebar.is-collapsed .sidebar-brand__identity,
+  .admin-shell:not(.is-sidebar-collapsed) .admin-sidebar .sidebar-brand__identity {
+    width: var(--admin-sidebar-brand-identity-w) !important;
+    min-width: var(--admin-sidebar-brand-identity-w) !important;
+    max-width: var(--admin-sidebar-brand-identity-w) !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: grid !important;
+    grid-template-columns: 56px minmax(0, 1fr) !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+    justify-items: stretch !important;
+    gap: 8px !important;
+    overflow: visible !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .admin-shell .admin-sidebar .brand-mark,
+  .admin-shell .admin-sidebar .brand-mark--button,
+  .admin-shell .admin-sidebar.is-collapsed .brand-mark,
+  .admin-shell .admin-sidebar.is-collapsed .brand-mark--button {
+    width: var(--admin-sidebar-logo-box) !important;
+    min-width: var(--admin-sidebar-logo-box) !important;
+    max-width: var(--admin-sidebar-logo-box) !important;
+    height: var(--admin-sidebar-logo-box) !important;
+    min-height: var(--admin-sidebar-logo-box) !important;
+    max-height: var(--admin-sidebar-logo-box) !important;
+    flex: 0 0 var(--admin-sidebar-logo-box) !important;
+    box-sizing: border-box !important;
+    display: grid !important;
+    place-items: center !important;
+    grid-column: 1 !important;
+    justify-self: start !important;
+    margin: 0 0 0 4px !important;
+    padding: 4px !important;
+    border: 0 !important;
+    border-radius: 17px !important;
+    color: inherit !important;
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    cursor: pointer !important;
+    transform: none !important;
+    transition: background-color 160ms ease, box-shadow 160ms ease !important;
+  }
+
+  .admin-shell .admin-sidebar .brand-mark:hover,
+  .admin-shell .admin-sidebar .brand-mark:focus-visible {
+    background: rgba(214, 168, 79, 0.08) !important;
+    outline: 0 !important;
+  }
+
+  .admin-shell .admin-sidebar .brand-mark .marjon-logo,
+  .admin-shell .admin-sidebar .brand-mark--button .marjon-logo {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    transform: none !important;
+  }
+
+  .admin-shell .admin-sidebar .sidebar-brand__identity > div:not(.brand-mark),
+  .admin-shell .admin-sidebar .sidebar-brand__identity > button + div {
+    display: block !important;
+    grid-column: 2 !important;
+    width: 150px !important;
+    min-width: 0 !important;
+    max-width: 150px !important;
+    margin-left: 8px !important;
+    overflow: hidden !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .admin-shell .admin-sidebar .brand-title,
+  .admin-shell .admin-sidebar .brand-subtitle {
+    display: block !important;
+    max-width: none !important;
+    white-space: nowrap !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .admin-shell .admin-sidebar .brand-title {
+    color: #f2c76e !important;
+    font-size: 17px !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+    letter-spacing: 0.02em !important;
+    text-shadow: 0 0 18px rgba(214, 168, 79, 0.18) !important;
+  }
+
+  .admin-shell .admin-sidebar .brand-subtitle {
+    margin-top: 5px !important;
+    color: rgba(244, 247, 248, 0.55) !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    line-height: 1.1 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand,
+  .admin-shell.is-sidebar-collapsed .admin-sidebar.is-collapsed .admin-brand.sidebar-brand {
+    left: 10px !important;
+    width: calc(var(--admin-owner-sidebar-collapsed-w) - 20px) !important;
+    min-width: calc(var(--admin-owner-sidebar-collapsed-w) - 20px) !important;
+    max-width: calc(var(--admin-owner-sidebar-collapsed-w) - 20px) !important;
+    grid-template-columns: 1fr !important;
+    overflow: hidden !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-sidebar .sidebar-brand__identity,
+  .admin-shell.is-sidebar-collapsed .admin-sidebar.is-collapsed .sidebar-brand__identity {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    grid-template-columns: 56px !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-sidebar .sidebar-brand__identity > div:not(.brand-mark),
+  .admin-shell.is-sidebar-collapsed .admin-sidebar .sidebar-brand__identity > button + div,
+  .admin-shell.is-sidebar-collapsed .admin-sidebar .brand-title,
+  .admin-shell.is-sidebar-collapsed .admin-sidebar .brand-subtitle {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .admin-sidebar .admin-nav,
+  .admin-sidebar.is-collapsed .admin-nav,
+  .admin-sidebar:not(.is-collapsed) .admin-nav {
+    margin-top: 76px !important;
+  }
+}
+
+@media (min-width: 1441px) {
+  .admin-sidebar .admin-nav,
+  .admin-sidebar.is-collapsed .admin-nav,
+  .admin-sidebar:not(.is-collapsed) .admin-nav {
+    margin-top: 88px !important;
+  }
+}
+
+@media (max-width: 1440px) and (min-width: 981px) {
+  .admin-shell,
+  .admin-shell:not(.is-sidebar-collapsed),
+  .admin-shell.is-sidebar-collapsed {
+    --admin-sidebar-brand-w: 228px !important;
+    --admin-sidebar-brand-identity-w: 190px !important;
+    --admin-sidebar-logo-box: 46px !important;
+  }
+
+  .admin-shell .admin-sidebar .admin-brand.sidebar-brand,
+  .admin-shell .admin-sidebar.is-collapsed .admin-brand.sidebar-brand,
+  .admin-shell:not(.is-sidebar-collapsed) .admin-sidebar .admin-brand.sidebar-brand {
+    top: 8px !important;
+    width: var(--admin-sidebar-brand-w) !important;
+    min-width: var(--admin-sidebar-brand-w) !important;
+    max-width: var(--admin-sidebar-brand-w) !important;
+    height: 54px !important;
+    min-height: 54px !important;
+    grid-template-columns: var(--admin-sidebar-brand-identity-w) 28px !important;
+    align-items: center !important;
+    column-gap: 6px !important;
+  }
+
+  .admin-shell .admin-sidebar .sidebar-brand__identity,
+  .admin-shell .admin-sidebar.is-collapsed .sidebar-brand__identity,
+  .admin-shell:not(.is-sidebar-collapsed) .admin-sidebar .sidebar-brand__identity {
+    width: var(--admin-sidebar-brand-identity-w) !important;
+    min-width: var(--admin-sidebar-brand-identity-w) !important;
+    max-width: var(--admin-sidebar-brand-identity-w) !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    grid-template-columns: 46px minmax(0, 1fr) !important;
+    align-items: center !important;
+    align-self: center !important;
+    gap: 7px !important;
+  }
+
+  .admin-shell .admin-sidebar .brand-mark,
+  .admin-shell .admin-sidebar .brand-mark--button,
+  .admin-shell .admin-sidebar.is-collapsed .brand-mark,
+  .admin-shell .admin-sidebar.is-collapsed .brand-mark--button {
+    width: var(--admin-sidebar-logo-box) !important;
+    min-width: var(--admin-sidebar-logo-box) !important;
+    max-width: var(--admin-sidebar-logo-box) !important;
+    height: var(--admin-sidebar-logo-box) !important;
+    min-height: var(--admin-sidebar-logo-box) !important;
+    max-height: var(--admin-sidebar-logo-box) !important;
+    margin-left: 3px !important;
+    align-self: center !important;
+    border-radius: 15px !important;
+  }
+
+  .admin-shell .admin-sidebar .sidebar-brand__identity > div:not(.brand-mark),
+  .admin-shell .admin-sidebar .sidebar-brand__identity > button + div {
+    width: 126px !important;
+    max-width: 126px !important;
+    margin-left: 14px !important;
+    align-self: center !important;
+  }
+
+  .admin-shell .admin-sidebar .brand-title {
+    font-size: 15px !important;
+    line-height: 1.05 !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  .admin-shell .admin-sidebar .brand-subtitle {
+    margin-top: 3px !important;
+    font-size: 8px !important;
+    line-height: 1.1 !important;
+    letter-spacing: 0.04em !important;
+  }
+}
+
+/* Final admin collapsed sidebar polish: logo and nav tiles match Marjon Cafe. */
+@media (min-width: 981px) {
+  .admin-shell .admin-sidebar .brand-mark,
+  .admin-shell .admin-sidebar .brand-mark--button,
+  .admin-shell .admin-sidebar.is-collapsed .brand-mark,
+  .admin-shell .admin-sidebar.is-collapsed .brand-mark--button,
+  .admin-shell.is-sidebar-collapsed .admin-sidebar .brand-mark,
+  .admin-shell.is-sidebar-collapsed .admin-sidebar .brand-mark--button {
+    background: #ffffff !important;
+    border: 0 !important;
+    box-shadow: 0 7px 14px rgba(2, 8, 23, 0.175) !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-sidebar .brand-mark,
+  .admin-shell.is-sidebar-collapsed .admin-sidebar .brand-mark--button {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    margin: 0 !important;
+    padding: 4px !important;
+    border-radius: 16px !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand {
+    left: 16px !important;
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    justify-items: center !important;
+    align-items: center !important;
+    overflow: visible !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-sidebar .sidebar-brand__identity {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    grid-template-columns: 56px !important;
+    justify-items: center !important;
+    align-items: center !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav {
+    display: grid !important;
+    justify-items: center !important;
+    gap: 8px !important;
+    padding: 4px 0 8px !important;
+    overflow-x: visible !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav-group,
+  .admin-shell.is-sidebar-collapsed .admin-nav > button {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    border-radius: 16px !important;
+    overflow: visible !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav button,
+  .admin-shell.is-sidebar-collapsed .admin-nav button:hover,
+  .admin-shell.is-sidebar-collapsed .admin-nav button:focus-visible,
+  .admin-shell.is-sidebar-collapsed .admin-nav button.is-active,
+  .admin-shell.is-sidebar-collapsed .admin-nav-group__toggle,
+  .admin-shell.is-sidebar-collapsed .admin-nav-group__toggle:hover,
+  .admin-shell.is-sidebar-collapsed .admin-nav-group__toggle:focus-visible,
+  .admin-shell.is-sidebar-collapsed .admin-nav-group__toggle.is-active {
+    box-sizing: border-box !important;
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    place-items: center !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 16px !important;
+    transform: none !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav button span,
+  .admin-shell.is-sidebar-collapsed .admin-nav button em,
+  .admin-shell.is-sidebar-collapsed .admin-nav-group__chevron {
+    display: none !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav button svg:not(.admin-nav-group__chevron),
+  .admin-shell.is-sidebar-collapsed .admin-nav button i {
+    width: 22px !important;
+    min-width: 22px !important;
+    height: 22px !important;
+    color: currentColor !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .admin-profile-card--collapse {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1440px) and (min-width: 981px) {
+  .admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand {
+    top: 8px !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-sidebar .brand-mark,
+  .admin-shell.is-sidebar-collapsed .admin-sidebar .brand-mark--button {
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+    border-radius: 15px !important;
+  }
+}
+
+/* Admin brand logo must stay identical after click/hover in open and collapsed states. */
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark:hover,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark:focus-visible,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark:active,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button:hover,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button:focus-visible,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button:active,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark:hover,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark:focus-visible,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark:active,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button:hover,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button:focus-visible,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark .marjon-logo,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button .marjon-logo,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark .marjon-logo,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button .marjon-logo {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  box-shadow: none !important;
+  filter: none !important;
+  clip-path: inset(1px round 14px) !important;
+  overflow: hidden !important;
+}
+
+/* Admin brand logo: match the Marjon Cafe white rounded tile. */
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark:hover,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark:focus-visible,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark:active,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button:hover,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button:focus-visible,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button:active,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark:hover,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark:focus-visible,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark:active,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button:hover,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button:focus-visible,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button:active {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  overflow: hidden !important;
+  padding: 4px !important;
+  transform: none !important;
+}
+
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark .marjon-logo,
+.admin-shell .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button .marjon-logo,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark .marjon-logo,
+.admin-shell.is-sidebar-collapsed .admin-sidebar .admin-brand.sidebar-brand .brand-mark--button .marjon-logo {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  clip-path: none !important;
+  filter: none !important;
+  overflow: visible !important;
+}
+
+/* Admin collapsed sidebar: Kafe-style hover flyout in admin colors. */
+.admin-header__title {
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: 44px !important;
+  width: 44px !important;
+  align-items: center !important;
+  gap: 0 !important;
+  margin-left: -18px !important;
+}
+
+.admin-back-button {
+  position: relative !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  border: 1px solid rgba(214, 168, 79, 0.2) !important;
+  border-radius: 14px !important;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.026) 38%, transparent 62%),
+    linear-gradient(180deg, rgba(13, 31, 28, 0.99), rgba(3, 18, 16, 1)) !important;
+  color: #d9ad54 !important;
+  box-shadow:
+    inset 0 5px 8px rgba(255, 255, 255, 0.08),
+    inset 0 -8px 12px rgba(3, 13, 12, 0.58),
+    0 3px 0 #031311,
+    0 8px 15px rgba(3, 13, 12, 0.26) !important;
+}
+
+.admin-back-button svg {
+  width: 24px !important;
+  height: 24px !important;
+  stroke-width: 3.1 !important;
+  color: #d9ad54 !important;
+  stroke: currentColor !important;
+  transform: translateX(-1.5px) !important;
+  filter: drop-shadow(0 0 7px rgba(214, 168, 79, 0.22)) !important;
+}
+
+.admin-date-time {
+  box-sizing: border-box !important;
+  min-width: 184px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  padding: 0 14px !important;
+  border: 1px solid rgba(214, 168, 79, 0.18) !important;
+  border-radius: 12px !important;
+  background: rgba(14, 33, 29, 0.82) !important;
+  color: #f2e5bd !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    0 8px 18px rgba(2, 8, 7, 0.16) !important;
+  white-space: nowrap !important;
+}
+
+.admin-date-time__item {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+}
+
+.admin-date-time__item svg {
+  width: 15px !important;
+  height: 15px !important;
+  color: #d9ad54 !important;
+  stroke: currentColor !important;
+}
+
+.admin-date-time__item strong {
+  color: #f5ead0 !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+}
+
+.admin-date-time__divider {
+  width: 1px !important;
+  height: 20px !important;
+  flex: 0 0 1px !important;
+  background: rgba(214, 168, 79, 0.24) !important;
+}
+
+.admin-content .admin-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+  margin: 0 0 14px !important;
+}
+
+.admin-content .admin-kpi {
+  height: 172px !important;
+  min-height: 172px !important;
+  max-height: 172px !important;
+  display: grid !important;
+  grid-template-rows: 48px 1fr auto !important;
+  gap: 0 !important;
+  padding: 18px 16px 16px !important;
+  border: 1px solid rgba(226, 232, 240, 0.92) !important;
+  border-radius: 20px !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow:
+    0 14px 34px rgba(15, 23, 42, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.672) inset !important;
+  overflow: hidden !important;
+  transform: none !important;
+}
+
+.admin-content .admin-kpi:hover,
+.admin-content .admin-kpi:focus-visible {
+  border-color: rgba(67, 211, 166, 0.45) !important;
+  box-shadow:
+    0 14px 32px rgba(15, 23, 42, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.672) inset !important;
+  transform: none !important;
+}
+
+.admin-content .admin-kpi::before,
+.admin-content .admin-kpi::after {
+  display: none !important;
+  content: none !important;
+}
+
+.admin-content .admin-kpi__top {
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+}
+
+.admin-content .admin-kpi__top span {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  display: grid !important;
+  place-items: center !important;
+  border: 1px solid rgba(45, 212, 191, 0.24) !important;
+  border-radius: 14px !important;
+  background: rgba(45, 212, 191, 0.12) !important;
+  color: #0f766e !important;
+  box-shadow: none !important;
+}
+
+.admin-content .admin-kpi__top span svg,
+.admin-content .admin-kpi__top span svg * {
+  width: 20px !important;
+  height: 20px !important;
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+.admin-content .admin-kpi__top small {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  color: #64748b !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.admin-content .admin-kpi > strong {
+  display: block !important;
+  align-self: center !important;
+  margin: 10px 0 0 !important;
+  overflow: hidden !important;
+  color: #0f172a !important;
+  font-size: 27px !important;
+  font-weight: 800 !important;
+  line-height: 1.06 !important;
+  letter-spacing: 0 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.admin-content .admin-kpi > p {
+  margin: 10px 0 0 !important;
+  overflow: hidden !important;
+  color: #52647d !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.admin-content .admin-spark,
+.admin-content .admin-radar {
+  display: none !important;
+}
+
+@media (max-width: 1360px) {
+  .admin-content .admin-kpi-grid {
+    grid-template-columns: repeat(5, minmax(176px, 1fr)) !important;
+    overflow-x: auto !important;
+    padding-bottom: 2px !important;
+  }
+}
+
+@media (max-width: 780px) {
+  .admin-content .admin-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    overflow-x: visible !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-content .admin-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.admin-shell .admin-back-button:hover,
+.admin-shell .admin-back-button:focus-visible {
+  transform: translateY(-1px) !important;
+  border-color: rgba(242, 199, 110, 0.42) !important;
+  outline: 0 !important;
+  filter: brightness(1.06) !important;
+  box-shadow:
+    inset 0 5px 8px rgba(255, 255, 255, 0.12),
+    inset 0 -8px 12px rgba(3, 13, 12, 0.5),
+    0 4px 0 #031311,
+    0 9px 17px rgba(3, 13, 12, 0.3) !important;
+}
+
+.admin-shell .admin-back-button:active {
+  transform: translateY(3px) scale(0.985) !important;
+  box-shadow:
+    inset 0 3px 12px rgba(3, 13, 12, 0.66),
+    inset 0 -4px 9px rgba(255, 255, 255, 0.07),
+    0 1px 0 #031311,
+    0 5px 10px rgba(3, 13, 12, 0.22) !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-sidebar,
+.admin-shell.is-sidebar-collapsed .admin-nav,
+.admin-shell.is-sidebar-collapsed .admin-nav-group {
+  overflow: visible !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-sidebar {
+  z-index: 900 !important;
+}
+
+.admin-nav-group {
+  position: relative !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover {
+  z-index: 920 !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav-flyout {
+  position: absolute !important;
+  top: 0 !important;
+  left: calc(100% + 14px) !important;
+  z-index: 940 !important;
+  width: 258px !important;
+  display: grid !important;
+  gap: 7px !important;
+  padding: 13px !important;
+  border: 1px solid rgba(242, 199, 110, 0.18) !important;
+  border-radius: 16px !important;
+  background:
+    linear-gradient(180deg, rgba(9, 31, 29, 0.99), rgba(5, 22, 20, 0.99)) !important;
+  box-shadow:
+    0 18px 38px rgba(2, 8, 7, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateX(-8px) !important;
+  transition: opacity 160ms ease, transform 180ms ease !important;
+}
+
+.admin-shell:not(.is-sidebar-collapsed) .admin-nav-flyout {
+  display: none !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover .admin-nav-flyout {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: translateX(0) !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav-flyout::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 100% !important;
+  width: 16px !important;
+  height: 100% !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout .admin-nav-flyout__item {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 40px !important;
+  max-height: none !important;
+  display: grid !important;
+  grid-template-columns: 28px minmax(0, 1fr) !important;
+  align-items: center !important;
+  justify-items: start !important;
+  place-items: center start !important;
+  gap: 10px !important;
+  padding: 8px 10px !important;
+  border: 1px solid transparent !important;
+  border-radius: 11px !important;
+  color: rgba(245, 245, 250, 0.82) !important;
+  background: transparent !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout .admin-nav-flyout__item span,
+.admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout .admin-nav-flyout__item .admin-nav-flyout__icon {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout .admin-nav-flyout__item > span:not(.admin-nav-flyout__icon) {
+  width: auto !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  color: currentColor !important;
+  -webkit-text-fill-color: currentColor !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  white-space: nowrap !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout .admin-nav-flyout__icon {
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 28px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 9px !important;
+  color: rgba(242, 199, 110, 0.92) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout .admin-nav-flyout__icon svg {
+  width: 16px !important;
+  min-width: 16px !important;
+  height: 16px !important;
+  color: currentColor !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout .admin-nav-flyout__item:hover,
+.admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout .admin-nav-flyout__item:focus-visible {
+  color: #ffffff !important;
+  border-color: rgba(67, 211, 166, 0.16) !important;
+  background: rgba(67, 211, 166, 0.11) !important;
+  outline: 0 !important;
+  transform: translateX(2px) !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout .admin-nav-flyout__item.is-active {
+  color: #ffffff !important;
+  border-color: rgba(242, 199, 110, 0.24) !important;
+  background: linear-gradient(90deg, rgba(214, 168, 79, 0.24), rgba(67, 211, 166, 0.12)) !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout .admin-nav-flyout__item.is-active .admin-nav-flyout__icon {
+  color: #081b19 !important;
+  background: linear-gradient(135deg, #f2c76e, #43d3a6) !important;
+}
+
+/* Final flyout isolation: keep collapsed icon-tile rules away from the popover. */
+.admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover .admin-nav-flyout {
+  width: max-content !important;
+  min-width: 206px !important;
+  max-width: 258px !important;
+  padding: 12px !important;
+  gap: 6px !important;
+  border-radius: 16px !important;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(67, 211, 166, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(6, 28, 25, 0.99), rgba(3, 18, 16, 0.99)) !important;
+  box-shadow:
+    0 22px 44px rgba(2, 8, 7, 0.38),
+    0 0 0 1px rgba(242, 199, 110, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover .admin-nav-flyout .admin-nav-flyout__item,
+.admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover .admin-nav-flyout .admin-nav-flyout__item:hover,
+.admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover .admin-nav-flyout .admin-nav-flyout__item:focus-visible,
+.admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover .admin-nav-flyout .admin-nav-flyout__item.is-active {
+  box-sizing: border-box !important;
+  position: relative !important;
+  width: 100% !important;
+  min-width: 182px !important;
+  max-width: none !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  display: grid !important;
+  grid-template-columns: 30px minmax(0, 1fr) !important;
+  align-items: center !important;
+  justify-items: start !important;
+  gap: 10px !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  border-radius: 12px !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover .admin-nav-flyout .admin-nav-flyout__item > span:not(.admin-nav-flyout__icon) {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  color: rgba(245, 245, 250, 0.88) !important;
+  -webkit-text-fill-color: rgba(245, 245, 250, 0.88) !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  text-align: left !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover .admin-nav-flyout .admin-nav-flyout__icon {
+  display: grid !important;
+  width: 30px !important;
+  min-width: 30px !important;
+  max-width: 30px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  max-height: 30px !important;
+  place-items: center !important;
+  margin: 0 !important;
+  border-radius: 10px !important;
+  color: rgba(242, 199, 110, 0.92) !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover .admin-nav-flyout .admin-nav-flyout__item:hover,
+.admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover .admin-nav-flyout .admin-nav-flyout__item:focus-visible {
+  color: #ffffff !important;
+  border-color: rgba(67, 211, 166, 0.18) !important;
+  background: rgba(67, 211, 166, 0.12) !important;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover .admin-nav-flyout .admin-nav-flyout__item:hover > span:not(.admin-nav-flyout__icon),
+.admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover .admin-nav-flyout .admin-nav-flyout__item:focus-visible > span:not(.admin-nav-flyout__icon),
+.admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover .admin-nav-flyout .admin-nav-flyout__item.is-active > span:not(.admin-nav-flyout__icon) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+@media (max-width: 680px) {
+  .admin-header__title {
+    grid-template-columns: 40px !important;
+    width: 40px !important;
+    gap: 0 !important;
+    margin-left: -12px !important;
+  }
+
+  .admin-back-button {
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+  }
+
+  .admin-date-time {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+/* Authoritative collapsed admin flyout. The legacy submenu layer must stay off. */
+@media (min-width: 981px) {
+  .admin-shell.is-sidebar-collapsed .admin-nav-group .admin-nav-sub,
+  .admin-shell.is-sidebar-collapsed .admin-nav-group:hover .admin-nav-sub,
+  .admin-shell.is-sidebar-collapsed .admin-nav-group:focus-within .admin-nav-sub,
+  .admin-shell.is-sidebar-collapsed .admin-nav-group.is-open .admin-nav-sub {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+    transform: none !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-sidebar,
+  .admin-shell.is-sidebar-collapsed .admin-nav,
+  .admin-shell.is-sidebar-collapsed .admin-nav-group {
+    overflow: visible !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-sidebar {
+    z-index: 1200 !important;
+    isolation: isolate !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav {
+    position: relative !important;
+    z-index: 1201 !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover {
+    position: relative !important;
+    z-index: 1220 !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav-group .admin-nav-flyout,
+  .admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover .admin-nav-flyout {
+    box-sizing: border-box !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: calc(100% + 12px) !important;
+    z-index: 1240 !important;
+    width: 246px !important;
+    min-width: 246px !important;
+    max-width: 246px !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-auto-flow: row !important;
+    gap: 7px !important;
+    padding: 13px !important;
+    border: 1px solid rgba(242, 199, 110, 0.18) !important;
+    border-radius: 16px !important;
+    background: linear-gradient(180deg, rgba(8, 31, 27, 0.99), rgba(3, 18, 16, 0.99)) !important;
+    box-shadow:
+      0 17px 36px rgba(2, 8, 7, 0.34),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transform: translateX(-8px) !important;
+    transition: opacity 160ms ease, transform 180ms ease, visibility 0ms linear 180ms !important;
+    overflow: visible !important;
+    isolation: isolate !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav-group.has-popover .admin-nav-flyout {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transform: translateX(0) !important;
+    transition: opacity 160ms ease, transform 180ms ease !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav-group .admin-nav-flyout::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    right: 100% !important;
+    width: 18px !important;
+    height: 100% !important;
+    background: transparent !important;
+    pointer-events: auto !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item,
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item:hover,
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item:focus,
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item:focus-visible,
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item:active,
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item.is-active,
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item.is-active:hover {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    display: grid !important;
+    grid-template-columns: 26px minmax(0, 1fr) !important;
+    align-items: center !important;
+    justify-items: stretch !important;
+    gap: 10px !important;
+    margin: 0 !important;
+    padding: 0 12px !important;
+    border: 1px solid transparent !important;
+    border-radius: 11px !important;
+    color: rgba(245, 245, 250, 0.86) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    letter-spacing: 0 !important;
+    text-align: left !important;
+    white-space: nowrap !important;
+    cursor: pointer !important;
+    transform: none !important;
+    translate: none !important;
+    scale: none !important;
+    overflow: hidden !important;
+    transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item:hover,
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item:focus,
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item:focus-visible {
+    color: #ffffff !important;
+    border-color: rgba(67, 211, 166, 0.14) !important;
+    background: rgba(67, 211, 166, 0.13) !important;
+    outline: 0 !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item.is-active,
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item.is-active:hover {
+    color: #ffffff !important;
+    border-color: rgba(242, 199, 110, 0.22) !important;
+    background: rgba(67, 211, 166, 0.24) !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item .admin-nav-flyout__icon,
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item:hover .admin-nav-flyout__icon,
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item.is-active .admin-nav-flyout__icon {
+    box-sizing: border-box !important;
+    width: 26px !important;
+    min-width: 26px !important;
+    max-width: 26px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+    display: grid !important;
+    place-items: center !important;
+    margin: 0 !important;
+    border-radius: 9px !important;
+    color: rgba(242, 199, 110, 0.92) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item.is-active .admin-nav-flyout__icon {
+    color: #081b19 !important;
+    background: linear-gradient(135deg, #f2c76e, #43d3a6) !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item > span:not(.admin-nav-flyout__icon) {
+    display: block !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    color: currentColor !important;
+    -webkit-text-fill-color: currentColor !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font: inherit !important;
+    line-height: 1.2 !important;
+    letter-spacing: 0 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item .admin-nav-flyout__icon svg,
+  .admin-shell.is-sidebar-collapsed .admin-nav .admin-nav-flyout > button.admin-nav-flyout__item .admin-nav-flyout__icon svg * {
+    width: 16px !important;
+    height: 16px !important;
+    color: currentColor !important;
+    stroke: currentColor !important;
+    opacity: 1 !important;
+  }
+}

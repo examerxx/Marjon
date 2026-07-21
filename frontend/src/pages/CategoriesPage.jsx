@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
-import DemoNotice from "../components/DemoNotice";
 import Icon from "../components/Icon";
 
 const TYPE_CONFIG = {
@@ -11,31 +10,6 @@ const TYPE_CONFIG = {
 };
 
 const DEFAULT_FORM = { name: "", slug: "", sort_order: 0 };
-
-const DEMO_DISH_CATEGORIES = [
-  { id: "demo-first", name: "БИРИНЧИ ТАОМ", slug: "birinchi-taom", sort_order: 1, is_active: true },
-  { id: "demo-tea", name: "НОН ЧОЙ", slug: "non-choy", sort_order: 2, is_active: true },
-  { id: "demo-second", name: "ИККИНЧИ ТАОМ", slug: "ikkinchi-taom", sort_order: 3, is_active: true },
-  { id: "demo-salad", name: "САЛАТ", slug: "salat", sort_order: 4, is_active: true },
-  { id: "demo-grill", name: "МАНГАЛ", slug: "mangal", sort_order: 5, is_active: true },
-  { id: "demo-drinks", name: "ИЧИМЛИКЛАР", slug: "ichimliklar", sort_order: 6, is_active: true },
-  { id: "demo-billiard", name: "Billiard", slug: "billiard", sort_order: 7, is_active: true },
-  { id: "demo-combo", name: "КОМБО", slug: "combo", sort_order: 8, is_active: true },
-];
-
-function withDefaultDishCategories(categories) {
-  const current = Array.isArray(categories) ? categories : [];
-  const seen = new Set(
-    current.map((category) => String(category.slug || category.name || "").trim().toLowerCase()).filter(Boolean),
-  );
-  const missing = DEMO_DISH_CATEGORIES.filter((category) => {
-    const slug = String(category.slug || "").toLowerCase();
-    const name = String(category.name || "").toLowerCase();
-    return !seen.has(slug) && !seen.has(name);
-  });
-
-  return [...current, ...missing];
-}
 
 function makeSlug(name, prefix) {
   const clean = name
@@ -60,7 +34,6 @@ function sortCategories(a, b) {
 export default function CategoriesPage({ type = "dishes" }) {
   const config = TYPE_CONFIG[type] || TYPE_CONFIG.dishes;
   const [rows, setRows] = useState([]);
-  const [isDemo, setIsDemo] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -74,15 +47,10 @@ export default function CategoriesPage({ type = "dishes" }) {
     try {
       const { data } = await api.get("/inventory/categories");
       const loadedCategories = Array.isArray(data) ? data : [];
-      setRows(type === "dishes" ? withDefaultDishCategories(loadedCategories) : loadedCategories);
-      if (loadedCategories.length) setIsDemo(false);
+      setRows(loadedCategories);
     } catch (err) {
-      if (type === "dishes") {
-        setRows(DEMO_DISH_CATEGORIES);
-        setError("");
-      } else {
-        setError(err.response?.data?.detail || "Не удалось загрузить категории.");
-      }
+      setRows([]);
+      setError(err.response?.data?.detail || "Не удалось загрузить категории.");
     } finally {
       setLoading(false);
     }
@@ -140,11 +108,6 @@ export default function CategoriesPage({ type = "dishes" }) {
       }
       closeForm();
     } catch (err) {
-      if (!editingId && type === "dishes" && !err.response) {
-        setRows((current) => [...current, { ...localPayload, id: `local-${Date.now()}` }]);
-        closeForm();
-        return;
-      }
       setError(err.response?.data?.detail || "Не удалось сохранить категорию.");
     } finally {
       setSaving(false);
@@ -160,7 +123,6 @@ export default function CategoriesPage({ type = "dishes" }) {
 
   return (
     <section className="nomenclature-page menu-categories-page">
-      {isDemo && <DemoNotice />}
       <div className="menu-categories-card">
         <div className="menu-categories-header">
           <div className="menu-categories-title">

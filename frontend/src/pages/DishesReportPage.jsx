@@ -1,118 +1,100 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
-import DemoNotice from "../components/DemoNotice";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
 import { exportToExcel } from "../utils/excel";
 
+function toApiDate(ddmmyyyy) {
+  if (!ddmmyyyy) return undefined;
+  const [d, m, y] = ddmmyyyy.split(".");
+  return `${y}-${m}-${d}`;
+}
+
 const initialFilters = {
   query: "",
-  author: "all",
-  chef: "all",
-  product: "all",
-  orderType: "all",
-  orderStatus: "all",
-  category: "all",
-  paymentType: "all",
-};
-
-const dishesRows = [
-  {
-    id: "mastava",
-    name: "1. Мастава",
-    unit: "Порция (пр)",
-    quantity: "9",
-    price: "28 000 UZS",
-    amount: "252 000 UZS",
-    cost: "200 850.08 UZS",
-    profit: "51 149.92 UZS",
-    profitValue: 51149.92,
-    status: "Завершено",
-    details: {
-      orders: "Заказы #1024, #1031, #1040",
-      chef: "Горячий цех",
-      category: "Первые блюда",
-      paymentType: "Наличные / карта",
-      comment: "Продажи за выбранный период без отменённых позиций.",
-    },
-  },
-  { id: "chuchvara", name: "2. Чучвара", unit: "Порция (пр)", quantity: "3", price: "24 000 UZS", amount: "72 000 UZS", cost: "0 UZS", profit: "72 000 UZS", profitValue: 72000, status: "Завершено" },
-  { id: "kuza", name: "3. Куза шурва", unit: "Порция (пр)", quantity: "5", price: "33 000 UZS", amount: "165 000 UZS", cost: "0 UZS", profit: "165 000 UZS", profitValue: 165000, status: "Завершено" },
-  { id: "kaynatma", name: "4. Кайнатма шурва", unit: "Порция (пр)", quantity: "2", price: "33 000 UZS", amount: "66 000 UZS", cost: "0 UZS", profit: "66 000 UZS", profitValue: 66000, status: "Завершено" },
-  { id: "ilik", name: "5. Илик шурва", unit: "Порция (пр)", quantity: "2", price: "33 000 UZS", amount: "66 000 UZS", cost: "0 UZS", profit: "66 000 UZS", profitValue: 66000, status: "Завершено" },
-  { id: "assorti", name: "6. Ассорти шурва", unit: "Порция (пр)", quantity: "2", price: "40 000 UZS", amount: "80 000 UZS", cost: "100 000 UZS", profit: "-20 000 UZS", profitValue: -20000, status: "Завершено" },
-  { id: "mampar", name: "7. Мампар", unit: "Порция (пр)", quantity: "3", price: "27 000 UZS", amount: "81 000 UZS", cost: "0 UZS", profit: "81 000 UZS", profitValue: 81000, status: "Завершено" },
-  { id: "lagmon", name: "8. Лагмон", unit: "Порция (пр)", quantity: "4", price: "32 000 UZS", amount: "128 000 UZS", cost: "50 000 UZS", profit: "78 000 UZS", profitValue: 78000, status: "Завершено" },
-  { id: "osh", name: "9. Ош (туй)", unit: "Порция (пр)", quantity: "4", price: "30 000 UZS", amount: "120 000 UZS", cost: "0 UZS", profit: "120 000 UZS", profitValue: 120000, status: "Завершено" },
-  { id: "kfc", name: "10. КФС", unit: "Порция (пр)", quantity: "1", price: "30 000 UZS", amount: "30 000 UZS", cost: "0 UZS", profit: "30 000 UZS", profitValue: 30000, status: "Завершено" },
-];
-
-const totalRow = {
-  name: "Итого",
-  unit: "",
-  quantity: "1 000 083",
-  price: "",
-  amount: "500 001 649 000 UZS",
-  cost: "371 401.08 UZS",
-  profit: "500 001 277 598.92 UZS",
-  profitValue: 500001277598.92,
-  status: "",
+  status: "all",
 };
 
 const filterNames = {
   query: "Поиск",
-  author: "Автор",
-  chef: "Повар",
-  product: "Продукт",
-  orderType: "Тип заказа",
-  orderStatus: "Статус",
-  category: "Категория",
-  paymentType: "Тип оплаты",
+  status: "Статус",
 };
 
 function optionLabel(value) {
   return value === "all" ? "" : value;
 }
 
+function formatReportMoney(value) {
+  return `${Number(value || 0).toLocaleString("ru-RU")} UZS`;
+}
+
 export default function DishesReportPage() {
-  const [dateRange, setDateRange] = useState({ preset: "", start: "01.04.2026", end: "01.07.2026" });
+  const [dateRange, setDateRange] = useState(() => {
+    const now = new Date();
+    const start = `01.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
+    const end = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
+    return { preset: "", start, end };
+  });
   const [filters, setFilters] = useState(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
-  const [expandedRow, setExpandedRow] = useState("mastava");
-  const [rows, setRows] = useState(dishesRows);
-  const [isDemo, setIsDemo] = useState(true);
+  const [expandedRow, setExpandedRow] = useState("");
+  const [rows, setRows] = useState([]);
 
   useEffect(() => {
-    api.get("/reports/dishes", { params: { start: dateRange.start, end: dateRange.end } })
+    api.get("/reports/dishes", { params: { date_from: toApiDate(dateRange.start), date_to: toApiDate(dateRange.end) } })
       .then(({ data }) => {
         const items = Array.isArray(data) ? data : data?.items || data?.dishes || [];
-        if (items.length) {
-          setRows(items.map((item, index) => ({
+        setRows(items.map((item, index) => {
+          const quantityValue = Number(item.quantity || 0);
+          const priceValue = Number(item.price || 0);
+          const amountValue = Number(item.amount || 0);
+          const costValue = Number(item.cost_price || item.cost || 0);
+          const profitValue = Number(item.profit || 0);
+
+          return {
             id: String(item.id || item.name || index),
             name: `${index + 1}. ${item.name || ""}`,
             unit: item.unit || "Порция (пр)",
-            quantity: String(item.quantity || 0),
-            price: item.price ? `${Number(item.price).toLocaleString("ru-RU")} UZS` : "0 UZS",
-            amount: item.amount ? `${Number(item.amount).toLocaleString("ru-RU")} UZS` : "0 UZS",
-            cost: item.cost_price ? `${Number(item.cost_price).toLocaleString("ru-RU")} UZS` : "0 UZS",
-            profit: item.profit ? `${Number(item.profit).toLocaleString("ru-RU")} UZS` : "0 UZS",
-            profitValue: Number(item.profit || 0),
+            quantity: String(quantityValue),
+            quantityValue,
+            price: formatReportMoney(priceValue),
+            priceValue,
+            amount: formatReportMoney(amountValue),
+            amountValue,
+            cost: formatReportMoney(costValue),
+            costValue,
+            profit: formatReportMoney(profitValue),
+            profitValue,
             status: item.status || "Завершено",
             details: item.details || undefined,
-          })));
-          setIsDemo(false);
-        }
+          };
+        }));
       })
-      .catch(() => {});
+      .catch(() => setRows([]));
   }, [dateRange.start, dateRange.end]);
 
   const filteredRows = useMemo(() => {
     const query = appliedFilters.query.trim().toLowerCase();
     return rows.filter((row) => {
-      if (!query) return true;
-      return row.name.toLowerCase().includes(query);
+      const queryMatch = !query || row.name.toLowerCase().includes(query);
+      const statusMatch = appliedFilters.status === "all" || row.status === appliedFilters.status;
+      return queryMatch && statusMatch;
     });
   }, [rows, appliedFilters]);
+  const totalRow = useMemo(() => {
+    const sum = (key) => filteredRows.reduce((total, row) => total + Number(row[key] || 0), 0);
+
+    return {
+      name: "Итого",
+      unit: "",
+      quantity: String(sum("quantityValue").toLocaleString("ru-RU")),
+      price: "",
+      amount: formatReportMoney(sum("amountValue")),
+      cost: formatReportMoney(sum("costValue")),
+      profit: formatReportMoney(sum("profitValue")),
+      status: "",
+    };
+  }, [filteredRows]);
 
   function updateFilter(key, value) {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -125,7 +107,7 @@ export default function DishesReportPage() {
   function clearFilters() {
     setFilters(initialFilters);
     setAppliedFilters(initialFilters);
-    setExpandedRow("mastava");
+    setExpandedRow("");
   }
 
   function downloadExcel() {
@@ -144,9 +126,6 @@ export default function DishesReportPage() {
   return (
     <section className="dishes-report-page">
       <article className="report-page-card">
-        {isDemo && (
-          <DemoNotice />
-        )}
         <div className="report-page-header">
           <div className="report-title-group">
             <span className="report-accent-bar" aria-hidden="true" />
@@ -156,7 +135,7 @@ export default function DishesReportPage() {
             </div>
           </div>
           <div className="report-actions">
-            <ReportDateRangePicker value={dateRange} onChange={setDateRange} />
+            <ReportDateRangePicker value={dateRange} onChange={setDateRange} showDropdownIcon />
             <button className="report-excel-button" type="button" onClick={downloadExcel}>
               <Icon name="bi-file-earmark-excel" size={18} />
               Скачать Excel
@@ -167,61 +146,14 @@ export default function DishesReportPage() {
         <div className="report-filters-grid">
           <label className="report-filter-input">
             <Icon name="bi-search" size={17} />
-            <input value={filters.query} onChange={(event) => updateFilter("query", event.target.value)} placeholder="Поиск" />
+            <input value={filters.query} onChange={(event) => updateFilter("query", event.target.value)} placeholder="Поиск по названию" />
           </label>
           <label className="report-filter-select">
-            <select value={filters.author} onChange={(event) => updateFilter("author", event.target.value)}>
-              <option value="all">Выберите автора</option>
-              <option value="Admin">Admin</option>
-              <option value="SARDORKASSA">SARDORKASSA</option>
-            </select>
-            <Icon name="bi-chevron-down" size={16} />
-          </label>
-          <label className="report-filter-select">
-            <select value={filters.chef} onChange={(event) => updateFilter("chef", event.target.value)}>
-              <option value="all">Выберите повара</option>
-              <option value="hot">Горячий цех</option>
-              <option value="cold">Холодный цех</option>
-            </select>
-            <Icon name="bi-chevron-down" size={16} />
-          </label>
-          <label className="report-filter-select">
-            <select value={filters.product} onChange={(event) => updateFilter("product", event.target.value)}>
-              <option value="all">Продукт</option>
-              <option value="soup">Супы</option>
-              <option value="main">Основные блюда</option>
-            </select>
-            <Icon name="bi-chevron-down" size={16} />
-          </label>
-          <label className="report-filter-select">
-            <select value={filters.orderType} onChange={(event) => updateFilter("orderType", event.target.value)}>
-              <option value="all">Выберите тип заказа</option>
-              <option value="hall">На стол</option>
-              <option value="delivery">Доставка</option>
-            </select>
-            <Icon name="bi-chevron-down" size={16} />
-          </label>
-          <label className="report-filter-select">
-            <select value={filters.orderStatus} onChange={(event) => updateFilter("orderStatus", event.target.value)}>
-              <option value="all">Выберите статус заказа</option>
-              <option value="done">Завершено</option>
-              <option value="paid">Оплачено</option>
-            </select>
-            <Icon name="bi-chevron-down" size={16} />
-          </label>
-          <label className="report-filter-select">
-            <select value={filters.category} onChange={(event) => updateFilter("category", event.target.value)}>
-              <option value="all">Категория</option>
-              <option value="first">Первые блюда</option>
-              <option value="fast">Фастфуд</option>
-            </select>
-            <Icon name="bi-chevron-down" size={16} />
-          </label>
-          <label className="report-filter-select">
-            <select value={filters.paymentType} onChange={(event) => updateFilter("paymentType", event.target.value)}>
-              <option value="all">Тип оплаты</option>
-              <option value="cash">Наличные</option>
-              <option value="card">Карта</option>
+            <select value={filters.status} onChange={(event) => updateFilter("status", event.target.value)}>
+              <option value="all">Все статусы</option>
+              {Array.from(new Set(rows.map((r) => r.status).filter(Boolean))).map((s) => (
+                <option value={s} key={s}>{s}</option>
+              ))}
             </select>
             <Icon name="bi-chevron-down" size={16} />
           </label>

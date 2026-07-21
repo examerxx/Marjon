@@ -1,20 +1,11 @@
 import { useEffect, useState } from "react";
 import { api, formatMoney } from "../api/client";
-import DemoNotice from "../components/DemoNotice";
 import Icon from "../components/Icon";
-
-const DEMO_EMPLOYEES = [
-  { id: "d1", position: "Кассир", hire_date: "2025-03-15", salary_type: "fixed", salary_amount: 3500000 },
-  { id: "d2", position: "Повар", hire_date: "2025-01-10", salary_type: "fixed", salary_amount: 4000000 },
-  { id: "d3", position: "Официант", hire_date: "2025-06-01", salary_type: "hourly", salary_amount: 25000 },
-  { id: "d4", position: "Менеджер", hire_date: "2024-11-20", salary_type: "fixed", salary_amount: 6000000 },
-];
 
 const emptyForm = { position: "", salary_type: "fixed", salary_amount: "" };
 
 export default function StaffPage() {
-  const [employees, setEmployees] = useState(DEMO_EMPLOYEES);
-  const [isDemo, setIsDemo] = useState(true);
+  const [employees, setEmployees] = useState([]);
   const [error, setError] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -25,10 +16,7 @@ export default function StaffPage() {
     try {
       const { data } = await api.get("/hr/employees");
       const items = Array.isArray(data) ? data : [];
-      if (items.length) {
-        setEmployees(items);
-        setIsDemo(false);
-      }
+      setEmployees(items);
     } catch (err) {
       setError(err.response?.data?.detail || "");
     }
@@ -54,13 +42,6 @@ export default function StaffPage() {
 
   async function handleSave(event) {
     event.preventDefault();
-
-    if (isDemo) {
-      const item = { ...form, id: editingId || `demo-${Date.now()}`, hire_date: new Date().toISOString().slice(0, 10), salary_amount: Number(form.salary_amount) || 0 };
-      setEmployees((c) => editingId ? c.map((e) => e.id === editingId ? { ...e, ...item } : e) : [item, ...c]);
-      setDrawerOpen(false);
-      return;
-    }
 
     setSaving(true);
     try {
@@ -95,10 +76,6 @@ export default function StaffPage() {
   }
 
   async function handleDelete(employee) {
-    if (isDemo) {
-      setEmployees((c) => c.filter((e) => e.id !== employee.id));
-      return;
-    }
     if (!window.confirm(`Удалить сотрудника «${employee.position}»?`)) return;
     try {
       await api.delete(`/hr/employees/${employee.id}`);
@@ -110,7 +87,6 @@ export default function StaffPage() {
 
   return (
     <section className="card card-pad">
-      {isDemo && <DemoNotice />}
       <div className="section-header">
         <div><span className="eyebrow">Staff</span><h2>Сотрудники</h2></div>
         <button type="button" className="btn btn-primary" onClick={openCreate} style={{ display: "flex", alignItems: "center", gap: 6 }}>

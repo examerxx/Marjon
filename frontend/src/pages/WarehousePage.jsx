@@ -1,16 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
-import DemoNotice from "../components/DemoNotice";
 import Icon from "../components/Icon";
 
 const ACTIVE = "active";
 const ARCHIVE = "archive";
 
-const baseProducts = [
-  { product: "Говядина", quantity: 10, unit: "кг", price: 78000 },
-  { product: "Рис", quantity: 25, unit: "кг", price: 15000 },
-  { product: "", quantity: 0, unit: "кг", price: 0 },
-];
+const emptyProductItem = { product: "", quantity: 0, unit: "кг", price: 0 };
 
 const sectionAliases = {
   "stock-in": "incoming",
@@ -236,7 +231,7 @@ function defaultForm(section, config) {
       date: "23.06.2026",
       document: "Приход #IN-223",
       comment: "",
-      items: baseProducts,
+      items: [{ ...emptyProductItem }],
     };
   }
 
@@ -273,8 +268,7 @@ function statusTone(status) {
 function WarehousePage({ initialSection = "incoming" }) {
   const section = normalizeSection(initialSection);
   const config = warehouseConfigs[section] || warehouseConfigs.incoming;
-  const [rows, setRows] = useState(() => config.rows.map((row) => ({ ...row, archiveState: ACTIVE })));
-  const [isDemo, setIsDemo] = useState(true);
+  const [rows, setRows] = useState([]);
   const [activeTab, setActiveTab] = useState(ACTIVE);
   const [draftFilters, setDraftFilters] = useState({ search: "", date: "01.06.2026 - 23.06.2026", warehouse: "", supplier: "", status: "", receiver: "", category: "", author: "", from: "", to: "" });
   const [filters, setFilters] = useState(draftFilters);
@@ -288,8 +282,7 @@ function WarehousePage({ initialSection = "incoming" }) {
     api.get(endpoint)
       .then(({ data }) => {
         const items = Array.isArray(data) ? data : data?.items || [];
-        if (items.length) {
-          setRows(items.map((item) => ({
+        setRows(items.map((item) => ({
             ...item,
             id: item.id,
             document: item.document_number || item.document || "",
@@ -319,14 +312,12 @@ function WarehousePage({ initialSection = "incoming" }) {
             reason: item.reason || "",
             archiveState: item.is_archived ? ARCHIVE : ACTIVE,
           })));
-          setIsDemo(false);
-        }
       })
-      .catch(() => {});
+      .catch(() => setRows([]));
   }, [section]);
 
   const computedSummary = useMemo(() => {
-    if (isDemo || !config.summary) return config.summary;
+    if (!config.summary) return null;
     const activeRows = rows.filter((r) => r.archiveState === ACTIVE);
     const totalCount = activeRows.length;
     const totalSum = activeRows.reduce((sum, r) => {
@@ -344,7 +335,7 @@ function WarehousePage({ initialSection = "incoming" }) {
       if (item.label.includes("Позиций") || item.label.includes("Товаров") || item.label.includes("Категорий")) return { ...item, value: String(totalCount) };
       return item;
     });
-  }, [isDemo, rows, config.summary]);
+  }, [rows, config.summary]);
 
   const visibleRows = useMemo(() => {
     const query = filters.search.trim().toLowerCase();
@@ -371,16 +362,21 @@ function WarehousePage({ initialSection = "incoming" }) {
     setForm({
       ...defaultForm(section, config),
       ...row,
-      items: row.items || baseProducts,
+      items: row.items || [],
       date: row.date || "23.06.2026",
     });
     setDrawerOpen(true);
   };
 
-  const archiveRow = (row) => {
+  const archiveRow = async (row) => {
     const rowId = row.id || row.document || row.name || row.product;
-    if (!isDemo && row.id) {
-      api.delete(`${sectionApiEndpoints[section]}/${row.id}`).catch(() => {});
+    if (row.id) {
+      try {
+        await api.delete(`${sectionApiEndpoints[section]}/${row.id}`);
+      } catch (err) {
+        window.alert(err.response?.data?.detail || "Ошибка архивирования");
+        return;
+      }
     }
     setRows((current) => current.map((item) => ((item.id || item.document || item.name || item.product) === rowId ? { ...item, archiveState: ARCHIVE } : item)));
   };
@@ -390,19 +386,23 @@ function WarehousePage({ initialSection = "incoming" }) {
     setRows((current) => current.map((item) => ((item.id || item.document || item.name || item.product) === rowId ? { ...item, archiveState: ACTIVE } : item)));
   };
 
-  const saveDocument = (status) => {
+  const saveDocument = async (status) => {
     const incomingTotal = section === "incoming" ? form.items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.price || 0), 0) : parseAmount(form.total);
     const nextRow = buildRowFromForm(section, form, status, rows.length + 1, incomingTotal);
 
     const endpoint = sectionApiEndpoints[section];
-    if (!isDemo && endpoint) {
+    if (endpoint) {
       const payload = { ...form, status, total: incomingTotal };
-      if (editingId && typeof editingId === "number") {
-        api.patch(`${endpoint}/${editingId}`, payload).catch(() => {});
-      } else {
-        api.post(endpoint, payload)
-          .then(({ data }) => { if (data?.id) nextRow.id = data.id; })
-          .catch(() => {});
+      try {
+        if (editingId && typeof editingId === "number") {
+          await api.patch(`${endpoint}/${editingId}`, payload);
+        } else {
+          const { data } = await api.post(endpoint, payload);
+          if (data?.id) nextRow.id = data.id;
+        }
+      } catch (err) {
+        window.alert(err.response?.data?.detail || "Ошибка сохранения");
+        return;
       }
     }
 
@@ -426,15 +426,12 @@ function WarehousePage({ initialSection = "incoming" }) {
   };
 
   const addItem = () => {
-    setForm((current) => ({ ...current, items: [...current.items, { product: "", quantity: 0, unit: "кг", price: 0 }] }));
+    setForm((current) => ({ ...current, items: [...current.items, { ...emptyProductItem }] }));
   };
 
   return (
     <div className="warehouse-page">
       <section className="warehouse-card">
-        {isDemo && (
-          <DemoNotice />
-        )}
         <header className="warehouse-header">
           <div className="warehouse-title-group">
             <span className="warehouse-accent-bar" />

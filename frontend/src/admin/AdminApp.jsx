@@ -32,8 +32,7 @@ const SECTION_API_MAP = {
 };
 
 function useAdminData(sectionKey) {
-  const [apiRows, setApiRows] = useState(null);
-  const [isDemo, setIsDemo] = useState(true);
+  const [apiRows, setApiRows] = useState([]);
 
   useEffect(() => {
     const mapping = SECTION_API_MAP[sectionKey];
@@ -41,17 +40,12 @@ function useAdminData(sectionKey) {
     adminApi.get(mapping.endpoint, { params: { size: 100 } })
       .then(({ data }) => {
         const items = Array.isArray(data) ? data : data?.items || data?.results || [];
-        if (items.length && mapping.mapRow) {
-          setApiRows(items.map(mapping.mapRow));
-          setIsDemo(false);
-        } else if (items.length) {
-          setIsDemo(false);
-        }
+        setApiRows(mapping.mapRow ? items.map(mapping.mapRow) : []);
       })
-      .catch(() => {});
+      .catch(() => setApiRows([]));
   }, [sectionKey]);
 
-  return { apiRows, isDemo };
+  return { apiRows };
 }
 
 const navItems = [
@@ -128,49 +122,57 @@ const navItems = [
 const kpis = [
   {
     title: "Всего организаций",
-    value: "1 248",
-    delta: "+12 / +2.1% за месяц",
+    value: "0",
+    delta: "—",
     icon: "bi-buildings",
     tone: "blue",
+    dataKey: "organizations",
     points: [16, 22, 18, 34, 30, 46, 42, 56],
     desc: "Всего подключённых организаций на платформе MARJON, включая активные и на модерации.",
   },
   {
     title: "Активных филиалов",
-    value: "2 987",
-    delta: "+84 / +2.9% за месяц",
+    value: "0",
+    delta: "—",
     icon: "bi-diagram-3",
     tone: "green",
+    dataKey: "branches",
     points: [18, 24, 32, 28, 42, 48, 51, 60],
     desc: "Филиалы с активной кассой и работающей синхронизацией за выбранный период.",
   },
   {
     title: "Ожидают одобрения",
-    value: "37",
-    delta: "-6 / -13.9% за месяц",
+    value: "0",
+    delta: "—",
     icon: "bi-inbox",
     tone: "violet",
+    dataKey: "subscriptions",
     points: [58, 48, 52, 42, 39, 35, 30, 26],
     desc: "Заявки на подключение, изменение тарифа и услуги, ожидающие решения модератора.",
   },
   {
     title: "Оборот за месяц",
-    value: "78 452 340 UZS",
-    delta: "+18.6% к прошлому месяцу",
+    value: "0 UZS",
+    delta: "—",
     icon: "bi-graph-up-arrow",
     tone: "orange",
+    dataKey: "revenue",
     points: [20, 26, 31, 44, 40, 55, 63, 72],
     desc: "Суммарный оборот всех организаций платформы за текущий месяц в узбекских сумах.",
   },
+  {
+    title: "Активных касс",
+    value: "0",
+    delta: "—",
+    icon: "bi-pc-display",
+    tone: "cyan",
+    dataKey: "cashboxes",
+    points: [18, 22, 28, 27, 35, 42, 47, 55],
+    desc: "Подключённые кассовые рабочие места с активной синхронизацией.",
+  },
 ];
 
-const organizationRows = [
-  ["Bella Italia Group", "Ресторанный холдинг", "12", "И. Каримов", "11.06.2026 11:42", "Активна"],
-  ["Coffee House", "Ресторан", "3", "О. Ташматов", "11.06.2026 10:35", "Активна"],
-  ["Sushi Master", "Кафе", "7", "Д. Юнусов", "11.06.2026 09:18", "На модерации"],
-  ["Family Kitchen", "Общепит", "2", "С. Абдуллаев", "11.06.2026 08:05", "Активна"],
-  ["Burger Station", "Фастфуд", "5", "А. Рахимов", "10.06.2026 23:47", "Новый"],
-];
+const organizationRows = [];
 
 const organizationDirectoryRows = [
   {
@@ -494,21 +496,9 @@ const organizationDirectoryRows = [
   },
 ];
 
-const approvalItems = [
-  ["Bella Italia Group", "Новая организация", "10 мин назад", "Одобрить"],
-  ["Coffee House", "Новый филиал", "32 мин назад", "Одобрить"],
-  ["Sushi Master", "Изменение тарифного плана", "1 ч назад", "Рассмотреть"],
-  ["Family Kitchen", "Подключение услуги", "2 ч назад", "Одобрить"],
-  ["Burger Station", "Запрос на скидку", "3 ч назад", "Рассмотреть"],
-];
+const approvalItems = [];
 
-const systemItems = [
-  ["API Gateway", "Работает"],
-  ["База данных", "Работает"],
-  ["Платежи", "Работают"],
-  ["Хамкорбанк", "Работает"],
-  ["Очереди", "Работают"],
-];
+const systemItems = [];
 
 const organizationStatusRows = [
   { id: "closed-bankrupt", name: "JOY YOPILGAN BONKROT", sort: 4, active: true },
@@ -1143,67 +1133,6 @@ function presetRange(label) {
   return { ...range, label: label === "Сегодня" || label === "Вчера" ? label : rangeLabel(range) };
 }
 
-function adminDateLabels(startDay, startMonth, length) {
-  const start = new Date(2026, startMonth - 1, startDay);
-  return Array.from({ length }, (_, index) => {
-    const date = new Date(start);
-    date.setDate(start.getDate() + index);
-    return `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth() + 1).padStart(2, "0")}`;
-  });
-}
-
-// Static turnover datasets per period — wired to the chart toggle so switching
-// День/Неделя/Месяц/Год actually redraws the line, value, axes and tooltip.
-const chartData = {
-  "День": {
-    value: "3 184 000 UZS",
-    delta: "+4.2% к прошлому дню",
-    points: [0.22, 0.28, 0.31, 0.34, 0.3, 0.38, 0.42, 0.48, 0.44, 0.612, 0.56, 0.52, 0.49, 0.46, 0.41, 0.36],
-    labels: ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "00:00"],
-    tickLabels: [[0, "09:00"], [3, "12:00"], [6, "15:00"], [9, "18:00"], [12, "21:00"], [15, "00:00"]],
-    tooltip: { label: "18:00", value: "612 000 UZS" },
-    tooltipIndex: 9,
-    yMax: 0.8,
-    yStep: 0.2,
-  },
-  "Неделя": {
-    value: "21 940 000 UZS",
-    delta: "+7.8% к прошлой неделе",
-    points: [2.8, 3.2, 2.95, 3.62, 3.9, 4.28, 5.1],
-    labels: ["01.06", "02.06", "03.06", "04.06", "05.06", "06.06", "07.06"],
-    tickLabels: [[0, "01.06"], [1, "02.06"], [2, "03.06"], [3, "04.06"], [4, "05.06"], [5, "06.06"], [6, "07.06"]],
-    tooltip: { label: "06.06", value: "4 280 000 UZS" },
-    tooltipIndex: 5,
-    yMax: 6,
-    yStep: 1,
-  },
-  "Месяц": {
-    value: "78 452 340 UZS",
-    delta: "+18.6% к прошлому месяцу",
-    points: [
-      26, 28, 29.5, 30.2, 30.7, 31, 31.2, 31, 30, 29, 28, 27.8, 27.5, 27.9, 29,
-      34, 38, 40, 39, 36.5, 37, 49, 48.5, 46.5, 45.5, 47, 51, 56, 83.12, 78, 81,
-    ],
-    labels: adminDateLabels(12, 5, 31),
-    tickLabels: [[0, "12.05"], [7, "19.05"], [14, "26.05"], [21, "02.06"], [28, "09.06"], [30, "11.06"]],
-    tooltip: { label: "09.06", value: "83 120 000 UZS" },
-    tooltipIndex: 28,
-    yMax: 100,
-    yStep: 20,
-  },
-  "Год": {
-    value: "842 600 000 UZS",
-    delta: "+24.3% к прошлому году",
-    points: [52, 57, 60, 64, 69, 73, 76, 74, 79, 86, 92.4, 88],
-    labels: ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"],
-    tickLabels: [[0, "Янв"], [2, "Мар"], [4, "Май"], [6, "Июл"], [8, "Сен"], [10, "Ноя"]],
-    tooltip: { label: "Ноя", value: "92 400 000 UZS" },
-    tooltipIndex: 10,
-    yMax: 100,
-    yStep: 20,
-  },
-};
-
 const ADMIN_CHART_COLOR = "#4ed3a7";
 const ADMIN_CHART_COLOR_RGB = "78, 211, 167";
 
@@ -1220,6 +1149,28 @@ function formatAdminAxisTick(value) {
   const millions = Number(value) / 1000000;
   if (millions < 1) return `${Math.round(Number(value) / 1000)}K`;
   return `${Number(millions).toLocaleString("ru-RU", { maximumFractionDigits: 1 }).replace(/\u00a0/g, " ")}M`;
+}
+
+function emptyAdminChartData(segment) {
+  const configs = {
+    "День": ["09:00", "12:00", "15:00", "18:00", "21:00", "00:00"],
+    "Неделя": ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
+    "Месяц": ["01", "07", "14", "21", "28", "31"],
+    "Год": ["Янв", "Мар", "Май", "Июл", "Сен", "Ноя"],
+  };
+  const labels = configs[segment] || configs["Месяц"];
+
+  return {
+    value: "0 UZS",
+    delta: "Нет данных backend",
+    points: labels.map(() => 0),
+    labels,
+    tickLabels: labels.map((label, index) => [index, label]),
+    tooltip: { label: labels.at(-1) || "", value: "0 UZS" },
+    tooltipIndex: Math.max(0, labels.length - 1),
+    yMax: 1,
+    yStep: 0.25,
+  };
 }
 
 function AdminRevenueChart({ data, segment }) {
@@ -1475,7 +1426,9 @@ function Sidebar({ active, onSelect, collapsed, onToggle, user, onProfile }) {
     () => navItems.find((item) => item.children?.some((child) => child.key === active))?.key || null,
     [active],
   );
+  const closePopoverTimer = useRef(null);
   const [openGroups, setOpenGroups] = useState(() => (activeParent ? [activeParent] : []));
+  const [hoverGroup, setHoverGroup] = useState("");
 
   useEffect(() => {
     if (activeParent) {
@@ -1483,22 +1436,55 @@ function Sidebar({ active, onSelect, collapsed, onToggle, user, onProfile }) {
     }
   }, [activeParent]);
 
+  useEffect(() => {
+    if (!collapsed) setHoverGroup("");
+  }, [collapsed]);
+
+  useEffect(() => () => {
+    if (closePopoverTimer.current) clearTimeout(closePopoverTimer.current);
+  }, []);
+
   function toggleGroup(key) {
     // Accordion: only one category open at a time.
     setOpenGroups((groups) => (groups.includes(key) ? [] : [key]));
   }
 
+  function openCollapsedPopover(key) {
+    if (!collapsed) return;
+    if (closePopoverTimer.current) clearTimeout(closePopoverTimer.current);
+    setHoverGroup(key);
+  }
+
+  function closeCollapsedPopover() {
+    if (!collapsed) return;
+    if (closePopoverTimer.current) clearTimeout(closePopoverTimer.current);
+    closePopoverTimer.current = setTimeout(() => setHoverGroup(""), 260);
+  }
+
+  function selectNavItem(key) {
+    setHoverGroup("");
+    onSelect(key);
+  }
+
   return (
-    <aside className="admin-sidebar">
-      <div className="admin-brand">
-        <img src={logo} alt="MARJON" />
-        <div>
-          <strong>MARJON</strong>
-          <span>ADMIN</span>
+    <aside className={`admin-sidebar ${collapsed ? "is-collapsed" : ""}`}>
+      <div className="admin-brand sidebar-brand">
+        <div className="sidebar-brand__identity">
+          <button
+            className="brand-mark brand-mark--button"
+            type="button"
+            onClick={onToggle}
+            aria-pressed={collapsed}
+            aria-label={collapsed ? "Развернуть меню" : "Свернуть меню"}
+            title={collapsed ? "Развернуть меню" : "Свернуть меню"}
+          >
+            <img src={logo} alt="MARJON" className="marjon-logo" decoding="async" />
+          </button>
+          <div>
+            <div className="brand-title">MARJON</div>
+            <div className="brand-subtitle">Restaurant OS</div>
+          </div>
         </div>
-        <button className="admin-sidebar-collapse" type="button" onClick={onToggle} aria-pressed={collapsed} aria-label={collapsed ? "Развернуть меню" : "Свернуть меню"}>
-          <Icon name={collapsed ? "bi-chevron-right" : "bi-chevron-left"} size={18} />
-        </button>
       </div>
       <nav className="admin-nav" aria-label="Admin navigation">
         {navItems.map((item) => {
@@ -1508,7 +1494,7 @@ function Sidebar({ active, onSelect, collapsed, onToggle, user, onProfile }) {
                 key={item.key}
                 type="button"
                 className={active === item.key ? "is-active" : ""}
-                onClick={() => onSelect(item.key)}
+                onClick={() => selectNavItem(item.key)}
               >
                 <Icon name={item.icon} size={18} />
                 <span>{item.label}</span>
@@ -1518,8 +1504,14 @@ function Sidebar({ active, onSelect, collapsed, onToggle, user, onProfile }) {
           }
           const open = openGroups.includes(item.key);
           const hasActiveChild = item.children.some((child) => child.key === active);
+          const popoverOpen = collapsed && hoverGroup === item.key;
           return (
-            <div className={`admin-nav-group ${open ? "is-open" : ""} ${hasActiveChild ? "has-active" : ""}`} key={item.key}>
+            <div
+              className={`admin-nav-group ${open ? "is-open" : ""} ${hasActiveChild ? "has-active" : ""} ${popoverOpen ? "has-popover" : ""}`}
+              key={item.key}
+              onMouseEnter={() => openCollapsedPopover(item.key)}
+              onMouseLeave={closeCollapsedPopover}
+            >
               <button
                 type="button"
                 className={`admin-nav-group__toggle ${hasActiveChild ? "is-active" : ""}`}
@@ -1536,26 +1528,38 @@ function Sidebar({ active, onSelect, collapsed, onToggle, user, onProfile }) {
                     key={child.key}
                     type="button"
                     className={`admin-nav-sub__item ${active === child.key ? "is-active" : ""}`}
-                    onClick={() => onSelect(child.key)}
+                    onClick={() => selectNavItem(child.key)}
                   >
                     <Icon name={child.icon || "bi-circle"} size={17} className="admin-nav-sub__icon" />
                     <span>{child.label}</span>
                   </button>
                 ))}
               </div>
+              {collapsed ? (
+                <div
+                  className="admin-nav-flyout"
+                  onMouseEnter={() => openCollapsedPopover(item.key)}
+                  onMouseLeave={closeCollapsedPopover}
+                >
+                  {item.children.map((child) => (
+                    <button
+                      key={child.key}
+                      type="button"
+                      className={`admin-nav-flyout__item ${active === child.key ? "is-active" : ""}`}
+                      onClick={() => selectNavItem(child.key)}
+                    >
+                      <span className="admin-nav-flyout__icon">
+                        <Icon name={child.icon || "bi-circle"} size={16} />
+                      </span>
+                      <span>{child.label}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           );
         })}
       </nav>
-      <button className="admin-profile-card admin-profile-card--collapse" type="button" onClick={onToggle} aria-pressed={collapsed} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
-        <span className="admin-profile-card__avatar admin-profile-card__avatar--collapse">
-          <Icon name={collapsed ? "bi-chevron-right" : "bi-chevron-left"} size={18} />
-        </span>
-        <span className="admin-profile-card__info">
-          <strong>Свернуть</strong>
-          <small>Сайдбар</small>
-        </span>
-      </button>
       <button className="admin-profile-card" type="button" onClick={onProfile}>
         <span className="admin-profile-card__avatar">{(user?.name || "Александр П.").trim().slice(0, 1)}</span>
         <span className="admin-profile-card__info">
@@ -1568,65 +1572,51 @@ function Sidebar({ active, onSelect, collapsed, onToggle, user, onProfile }) {
   );
 }
 
-function Header({ user, onLogout, dateRange, onDateRangeChange, onBellClick, notificationCount, onProfile }) {
-  const [dateOpen, setDateOpen] = useState(false);
-  const [draftRange, setDraftRange] = useState(dateRange);
+function formatAdminHeaderDate(value) {
+  return `${String(value.getDate()).padStart(2, "0")}.${String(value.getMonth() + 1).padStart(2, "0")}.${value.getFullYear()}`;
+}
+
+function formatAdminHeaderTime(value) {
+  return `${String(value.getHours()).padStart(2, "0")}:${String(value.getMinutes()).padStart(2, "0")}`;
+}
+
+function Header({ user, onLogout, onBellClick, notificationCount, onProfile }) {
+  const [now, setNow] = useState(() => new Date());
   const profileName = user?.name || "Александр П.";
   const profileInitial = profileName.trim().slice(0, 1) || "А";
   const profileRole = user?.is_superadmin ? "Суперадмин" : "Суперадмин";
 
-  function applyDraft() {
-    onDateRangeChange({ ...draftRange, label: draftRange.preset || rangeLabel(draftRange) });
-    setDateOpen(false);
-  }
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 30 * 1000);
+    return () => window.clearInterval(id);
+  }, []);
 
-  function choosePreset(label) {
-    setDraftRange(presetRange(label));
-  }
-
-  function shiftMonth(diff) {
-    const next = addMonthsToRange(dateRange, diff);
-    onDateRangeChange(next);
-    setDraftRange(next);
+  function goBack() {
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    window.location.href = "/index.html";
   }
 
   return (
     <header className="admin-header">
-      <div>
-        <h1>Панель администратора</h1>
-        <p>Централизованное управление платформой MARJON</p>
+      <div className="admin-header__title">
+        <button className="admin-back-button" type="button" onClick={goBack} aria-label="Назад" title="Назад">
+          <Icon name="bi-chevron-left" size={24} />
+        </button>
       </div>
       <div className="admin-header__actions">
-        <div className="admin-date-picker">
-          <button className="admin-date-step" type="button" onClick={() => shiftMonth(-1)} aria-label="Предыдущий месяц">
-            <Icon name="bi-chevron-left" size={16} />
-          </button>
-          <button className="admin-date" type="button" onClick={() => { setDraftRange(dateRange); setDateOpen((value) => !value); }} aria-expanded={dateOpen}>
-            <Icon name="bi-calendar3" size={18} />
-            <span>{dateRange.label}</span>
-          </button>
-          <button className="admin-date-step" type="button" onClick={() => shiftMonth(1)} aria-label="Следующий месяц">
-            <Icon name="bi-chevron-right" size={16} />
-          </button>
-          {dateOpen ? (
-            <div className="admin-date-menu">
-              <div className="admin-date-menu__title">
-                <Icon name="bi-calendar-week" size={18} />
-                <span>Выберите дату</span>
-              </div>
-              <div className="admin-date-presets">
-                {datePresets.map((preset) => (
-                  <button className={draftRange.preset === preset ? "is-active" : ""} type="button" key={preset} onClick={() => choosePreset(preset)}>{preset}</button>
-                ))}
-              </div>
-              <div className="admin-date-range">
-                <input value={draftRange.start} onChange={(event) => setDraftRange((current) => ({ ...current, start: event.target.value, preset: "" }))} aria-label="Дата начала" />
-                <span>-</span>
-                <input value={draftRange.end} onChange={(event) => setDraftRange((current) => ({ ...current, end: event.target.value, preset: "" }))} aria-label="Дата окончания" />
-                <button type="button" onClick={applyDraft}>OK</button>
-              </div>
-            </div>
-          ) : null}
+        <div className="admin-date-time" aria-label="Текущая дата и время">
+          <span className="admin-date-time__item">
+            <Icon name="bi-calendar3" size={15} />
+            <strong>{formatAdminHeaderDate(now)}</strong>
+          </span>
+          <span className="admin-date-time__divider" aria-hidden="true" />
+          <span className="admin-date-time__item">
+            <Icon name="bi-clock" size={15} />
+            <strong>{formatAdminHeaderTime(now)}</strong>
+          </span>
         </div>
         <button className="admin-bell" type="button" aria-label="Уведомления" onClick={onBellClick}>
           <Icon name="bi-bell" size={18} />
@@ -1662,24 +1652,12 @@ function KpiCard({ item, onClick }) {
       </div>
       <strong>{item.value}</strong>
       <p>{item.delta}</p>
-      {item.radar ? (
-        <div className="admin-radar" aria-hidden="true">
-          <i />
-          <i />
-          <b />
-        </div>
-      ) : (
-        <svg className="admin-spark" viewBox="0 0 120 46" preserveAspectRatio="none" aria-hidden="true">
-          <path className="admin-spark__fill" d={`${sparklinePath(item.points, 120, 36)} L 120 46 L 0 46 Z`} />
-          <path className="admin-spark__line" d={sparklinePath(item.points, 120, 36)} />
-        </svg>
-      )}
     </article>
   );
 }
 
 function PlatformChart({ segment, onSegmentChange }) {
-  const data = chartData[segment] || chartData["Месяц"];
+  const data = emptyAdminChartData(segment);
   return (
     <section className="admin-chart-card">
       <div className="admin-chart-card__head">
@@ -1947,7 +1925,7 @@ function OrganizationMessageScreen({ row, onBack, onSave, onNotify }) {
 }
 
 function OrganizationDirectoryPage({ search, onRowDetail, onNotify }) {
-  const [rows, setRows] = useState(organizationDirectoryRows);
+  const [rows, setRows] = useState([]);
   const [messageRow, setMessageRow] = useState(null);
   const [query, setQuery] = useState("");
   const [serviceFilter, setServiceFilter] = useState("all");
@@ -1958,47 +1936,43 @@ function OrganizationDirectoryPage({ search, onRowDetail, onNotify }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState(orgDirectoryColumnKeys);
   const [page, setPage] = useState(1);
-  const [isDemo, setIsDemo] = useState(true);
   const pageSize = 20;
 
   useEffect(() => {
     adminApi.get("/organizations", { params: { size: 100 } })
       .then(({ data }) => {
         const items = Array.isArray(data) ? data : data?.items || [];
-        if (items.length) {
-          setRows(items.map((r) => ({
+        setRows(items.map((r) => ({
             id: String(r.id || ""),
             message: Boolean(r.has_message),
             service: r.service_type || "Xizmat",
             paymentType: r.payment_type || "Без оплаты",
             name: r.company_name || r.name || "",
-            clientId: String(r.client_id || r.id || ""),
+            clientId: String(r.client_id || r.virtual_cash_register_number || r.id || ""),
             terminals: String(r.terminals_count || 0),
-            cashboxes: String(r.cashboxes_count || 0),
-            deposit: String(r.deposit || 0),
-            debt: String(r.debt || 0),
+            cashboxes: String(r.cashboxes_count || (r.virtual_cash_register_number ? 1 : 0)),
+            deposit: String(r.deposit ?? (Number(r.cash_balance || 0) > 0 ? r.cash_balance : 0)),
+            debt: String(r.debt ?? (Number(r.cash_balance || 0) < 0 ? Math.abs(Number(r.cash_balance || 0)) : 0)),
             overdue: String(r.overdue || 0),
             contract: String(r.contract_amount || 0),
-            tariff: String(r.tariff_amount || r.tariff || "300 000"),
+            tariff: String(r.tariff_amount || r.tariff || r.tariff_price || "300 000"),
             currency: r.currency || "UZS",
             contact: r.phone || r.contact || "",
             region: r.region || "",
             manager: r.manager_name || r.manager || "",
-            date: r.created_at || "",
+            date: r.installation_date || r.created_at || "",
             source: r.source || "—",
             version: r.app_version || "—",
-            orgStatus: r.org_status || r.status || "",
+            orgStatus: r.org_status || (r.status === "active" ? "ISHLA TURGAN" : "HALI ULANMAGAN"),
             identification: r.identification || "—",
             paymentKind: r.payment_kind || "—",
             status: r.access_status || "Доступен",
             onlineMenu: r.online_menu ? "Активно" : "—",
-            warehouse: r.warehouse_enabled ? "Активно" : "—",
-            cashboxOnline: r.cashbox_online ? "Активно" : "—",
+            warehouse: (r.warehouse_enabled ?? r.enabled_storage_integration) ? "Активно" : "—",
+            cashboxOnline: (r.cashbox_online ?? Boolean(r.virtual_cash_register_number)) ? "Активно" : "—",
           })));
-          setIsDemo(false);
-        }
       })
-      .catch(() => {});
+      .catch(() => setRows([]));
   }, []);
 
   useEffect(() => {
@@ -2082,27 +2056,7 @@ function OrganizationDirectoryPage({ search, onRowDetail, onNotify }) {
   }
 
   function addOrganization() {
-    const suffix = Date.now().toString().slice(-5);
-    const next = {
-      ...organizationDirectoryRows[0],
-      id: `10${suffix}`,
-      message: false,
-      name: `NEW ORGANIZATION ${suffix}`,
-      clientId: `10${suffix}`,
-      service: "Yangi",
-      paymentType: "Без оплаты",
-      contact: "998 00 000 00 00",
-      region: "Toshkent",
-      manager: "SUPER ADMIN",
-      date: "03.07.2026",
-      source: "Admin",
-      version: "",
-      orgStatus: "USTANOVKA JARAYONIDA",
-      identification: "Ожидает",
-      status: "Активно",
-    };
-    setRows((current) => [next, ...current]);
-    onNotify?.("Организация добавлена локально.");
+    onNotify?.("Создание организации должно идти через backend endpoint.");
   }
 
   function openDetail(row) {
@@ -2385,7 +2339,7 @@ function OrganizationsTable({ rows, onExport, onRowAction, onRowClick }) {
 }
 
 function OrganizationStatusPage({ search, onNotify }) {
-  const [rows, setRows] = useState(organizationStatusRows);
+  const [rows, setRows] = useState([]);
   const [sortDirection, setSortDirection] = useState("asc");
   const [editor, setEditor] = useState(null);
 
@@ -2449,7 +2403,7 @@ function OrganizationStatusPage({ search, onNotify }) {
   }
 
   function refreshRows() {
-    setRows(organizationStatusRows);
+    setRows([]);
     setEditor(null);
     onNotify?.("Список статусов обновлен.");
   }
@@ -2586,14 +2540,15 @@ function RightColumn({ approvals, onApprovalAction, onShowApprovals, onApprovalC
           <span className="is-live">live</span>
         </div>
         <div className="admin-system-grid">
-          {systemItems.map((item) => (
+          {systemItems.length ? systemItems.map((item) => (
             <div key={item[0]} role="button" tabIndex={0} onClick={() => onSystemClick(item)} onKeyDown={(event) => { if (event.key === "Enter") onSystemClick(item); }}>
               <strong>{item[0]}</strong>
               <span><i />{item[1]}</span>
             </div>
-          ))}
+          )) : (
+            <div className="admin-empty">Нет статусов из backend.</div>
+          )}
         </div>
-        <div className="admin-uptime">Аптайм платформы <strong>99.98%</strong></div>
       </section>
     </aside>
   );
@@ -2601,7 +2556,7 @@ function RightColumn({ approvals, onApprovalAction, onShowApprovals, onApprovalC
 
 function ProductNomenclaturePage({ search, onNotify }) {
   const [range, setRange] = useState(() => presetRange("Сегодня"));
-  const [rows, setRows] = useState(productBranchRows);
+  const [rows, setRows] = useState([]);
   const query = search.trim().toLowerCase();
 
   useEffect(() => {
@@ -2724,7 +2679,7 @@ function ProductNomenclaturePage({ search, onNotify }) {
 
 function AdminFinanceOperationsPage({ search, onNotify }) {
   const [range, setRange] = useState(() => presetRange("Сегодня"));
-  const [operations, setOperations] = useState(financeOperationRows);
+  const [operations, setOperations] = useState([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState("all");
   const [organizationFilter, setOrganizationFilter] = useState("all");
@@ -2738,9 +2693,9 @@ function AdminFinanceOperationsPage({ search, onNotify }) {
           setOperations(items.map((r) => ({
             date: r.date || r.created_at || "",
             number: r.document_number || r.id || "",
-            organization: r.organization_name || r.counterparty || "—",
+            organization: r.organization_name || r.counterparty_name || r.counterparty || "—",
             type: r.direction === "expense" ? "Расход" : "Приход",
-            amount: Number(r.amount || 0),
+            amount: r.direction === "expense" ? -Math.abs(Number(r.amount || 0)) : Math.abs(Number(r.amount || 0)),
             paymentType: r.payment_type_name || r.payment_type || "—",
             status: r.status || "Проведен",
             comment: r.comment || "",
@@ -2934,7 +2889,7 @@ function AdminFinanceCategoriesPage({
   emptyText,
   apiEndpoint,
 }) {
-  const [categories, setCategories] = useState(initialRows);
+  const [categories, setCategories] = useState([]);
   const [editor, setEditor] = useState(null);
   const [draftName, setDraftName] = useState("");
   const [draftStatus, setDraftStatus] = useState("#активно");
@@ -3151,7 +3106,7 @@ function AdminExpenseCategoriesPage({ search, onNotify }) {
 }
 
 function AdminPaymentMethodsPage({ search, onNotify }) {
-  const [methods, setMethods] = useState(paymentMethodRows);
+  const [methods, setMethods] = useState([]);
   const [editor, setEditor] = useState(null);
   const [draftName, setDraftName] = useState("");
   const [draftType, setDraftType] = useState("Карта");
@@ -3372,7 +3327,7 @@ function AdminPaymentMethodsPage({ search, onNotify }) {
 }
 
 function AdminFinanceHistoryPage({ search, onNotify }) {
-  const [rows, setRows] = useState(financeHistoryRows);
+  const [rows, setRows] = useState([]);
   const [page, setPage] = useState(1);
   const pageSize = 15;
   const query = search.trim().toLowerCase();
@@ -3497,7 +3452,7 @@ function AdminFinanceHistoryPage({ search, onNotify }) {
 }
 
 function AdminCashierBackgroundPage({ search, onNotify }) {
-  const [backgrounds, setBackgrounds] = useState(() => cashierBackgroundRows.map((row, index) => ({ ...row, sort: index + 1 })));
+  const [backgrounds, setBackgrounds] = useState([]);
   const [editor, setEditor] = useState(null);
   const [draftName, setDraftName] = useState("");
   const [draftSort, setDraftSort] = useState("1");
@@ -3703,7 +3658,7 @@ function AdminCashierBackgroundPage({ search, onNotify }) {
 
 function CategoryPage({ active, rowsOverride, search, onCreate, onRowDetail, onNotify }) {
   const content = categoryContent[active] || categoryContent["org-list"];
-  const { apiRows, isDemo } = useAdminData(active);
+  const { apiRows } = useAdminData(active);
   if (active === "org-list") {
     return <OrganizationDirectoryPage search={search} onRowDetail={onRowDetail} onNotify={onNotify} />;
   }
@@ -3731,7 +3686,7 @@ function CategoryPage({ active, rowsOverride, search, onCreate, onRowDetail, onN
   if (active === "set-cashier-bg") {
     return <AdminCashierBackgroundPage search={search} onNotify={onNotify} />;
   }
-  const dataRows = apiRows || rowsOverride || content.rows;
+  const dataRows = apiRows;
   const rows = dataRows.filter((row) => {
     const query = search.trim().toLowerCase();
     if (!query) return true;
@@ -3739,7 +3694,6 @@ function CategoryPage({ active, rowsOverride, search, onCreate, onRowDetail, onN
   });
   return (
     <section className="admin-category-page">
-      {isDemo && <div className="admin-demo-notice">Показаны демо-данные. Подключите сервер для реальных данных.</div>}
       <div className="admin-panel-head">
         <div>
           <h2>{content.title}</h2>
@@ -3761,31 +3715,6 @@ function CategoryPage({ active, rowsOverride, search, onCreate, onRowDetail, onN
   );
 }
 
-const recentTransactionRows = [
-  { id: 18692, uuid: "d3d48b59-cc42-4a17-9c28-54e3fd28acfb", date: "06.07.2026 / 13:29", orgId: "1002472", name: "Bek choyxonasi", payType: "HamkorBank", amount: "500 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18691, uuid: "caffac1c-7203-4400-a002-ca379b9ab6e6", date: "06.07.2026 / 13:23", orgId: "1002444", name: "XAM XAM KAFE", payType: "HamkorBank", amount: "500 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18690, uuid: "ad342fa1-74c4-45c4-8507-111258938cb9", date: "06.07.2026 / 11:05", orgId: "1002190", name: "SHANARAQ 2", payType: "Перечисления", amount: "80 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "06.07.2026" },
-  { id: 18689, uuid: "8676c85f-ba8d-4b00-acdc-18c5a1e37b90", date: "06.07.2026 / 11:04", orgId: "1001057", name: "SHANARAQ", payType: "Перечисления", amount: "580 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "06.07.2026" },
-  { id: 18688, uuid: "267477fe-3d13-46f8-a018-954fce6212f3", date: "06.07.2026 / 09:32", orgId: "1002033", name: "KARVON CHOYXONA", payType: "HamkorBank", amount: "3 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18687, uuid: "df874b45-05a1-4f87-8a9d-4e6d193c6ab3", date: "06.07.2026 / 00:30", orgId: "1002906", name: "Usmon Restourant", payType: "HamkorBank", amount: "90 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18686, uuid: "ebfa7d9e-10e3-47a9-ac5f-fa19621949c7", date: "05.07.2026 / 21:37", orgId: "1002949", name: "Sarbon ( Termiz )", payType: "HamkorBank", amount: "200 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18685, uuid: "7ebc2641-ac3b-4ef0-82d1-aba6f06f22a3", date: "05.07.2026 / 21:35", orgId: "1002950", name: "Fasty. Abdulloh-biznes -group", payType: "HamkorBank", amount: "2 390 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18684, uuid: "ec72edaf-a376-4aa0-8c9c-dccd0ba23de4", date: "05.07.2026 / 21:07", orgId: "1001894", name: "Majnuntol oshxonasi", payType: "HamkorBank", amount: "50 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18683, uuid: "d48de62e-047e-40d3-a956-4b752cb3279e", date: "05.07.2026 / 21:06", orgId: "1002943", name: "Qobil polvon", payType: "HamkorBank", amount: "100 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18682, uuid: "5d84ec16-7772-4ff7-a152-148b1c0e9275", date: "05.07.2026 / 20:51", orgId: "1001894", name: "Majnuntol oshxonasi", payType: "HamkorBank", amount: "50 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18681, uuid: "63e01126-0a25-423f-ad11-4d92b6ab81e4", date: "05.07.2026 / 20:36", orgId: "1002942", name: "Alibaba uyg'ur taomlari(eski Sharq)", payType: "HamkorBank", amount: "2 300 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18680, uuid: "adfb6e94-f30d-45b3-887e-4cb74c861817", date: "05.07.2026 / 20:21", orgId: "1002949", name: "Sarbon ( Termiz )", payType: "HamkorBank", amount: "52 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18679, uuid: "5ff10962-1600-4bfb-af68-258ef3ceab93", date: "05.07.2026 / 20:06", orgId: "1002341", name: "Bek Sazancha", payType: "HamkorBank", amount: "390 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18678, uuid: "eeecf66e-89eb-4fb3-bdf9-376997cce56f", date: "05.07.2026 / 20:04", orgId: "1002159", name: "Luck restaruant Sho'rchi", payType: "HamkorBank", amount: "500 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18677, uuid: "9468f2b2-498f-47a2-9ce2-c633e0223c6d", date: "05.07.2026 / 20:03", orgId: "1001435", name: "Sultan", payType: "HamkorBank", amount: "165 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18676, uuid: "b83a9775-181f-4ea8-b3af-cd185c5ef176", date: "05.07.2026 / 20:01", orgId: "1001450", name: "ZOR SOMSA", payType: "HamkorBank", amount: "30 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18675, uuid: "484c9079-9c64-4379-a957-b3ceb1564d19", date: "05.07.2026 / 19:56", orgId: "1002416", name: "Муяна", payType: "HamkorBank", amount: "240 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18674, uuid: "56a76193-9aa5-41ae-84e1-4b0d96edebab", date: "05.07.2026 / 19:32", orgId: "1002724", name: "Sultan milliy taomlar", payType: "HamkorBank", amount: "390 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18673, uuid: "cf1e436f-ec3e-4862-b4e2-2187fbbd5a26", date: "05.07.2026 / 19:22", orgId: "1001664", name: "Ibrohim bob kafesi", payType: "HamkorBank", amount: "365.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-  { id: 18672, uuid: "a1f7c930-2b44-4d18-9e21-6c0f5b7d8e42", date: "05.07.2026 / 18:58", orgId: "1002210", name: "Osh Markazi", payType: "Перечисления", amount: "150 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "05.07.2026" },
-  { id: 18671, uuid: "b2c9d451-7e63-4a02-8f19-3d5e1a9c7b60", date: "05.07.2026 / 18:41", orgId: "1001788", name: "Choyxona Baraka", payType: "HamkorBank", amount: "75 000.00 UZS", kind: "Приход", status: "PAID", paymentFor: "Ежемесячный платеж", comment: "" },
-];
-
 function getPageList(current, total) {
   // Номера страниц с многоточиями: 1 … c-1 c c+1 … total
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -3802,7 +3731,7 @@ function getPageList(current, total) {
 }
 
 function TransactionsTable() {
-  const [rows, setRows] = useState(recentTransactionRows);
+  const [rows, setRows] = useState([]);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 12;
@@ -3811,21 +3740,19 @@ function TransactionsTable() {
     adminApi.get("/finance/transactions", { params: { size: 50 } })
       .then(({ data }) => {
         const items = Array.isArray(data) ? data : data?.items || [];
-        if (items.length) {
-          setRows(items.map((r, i) => ({
+        setRows(items.map((r, i) => ({
             id: r.id_num || i + 1,
             uuid: r.id || "",
             date: r.date || r.created_at || "",
             orgId: r.organization_id || "",
-            name: r.organization_name || "",
-            payType: r.payment_type || "",
+            name: r.organization_name || r.counterparty_name || "",
+            payType: r.payment_type_name || r.payment_type || "",
             amount: r.amount ? `${Number(r.amount).toLocaleString("ru-RU")} UZS` : "0 UZS",
             kind: r.direction === "income" ? "Приход" : "Расход",
             status: r.status || "PAID",
-            paymentFor: r.payment_for || "",
+            paymentFor: r.payment_for || r.category_name || "",
             comment: r.comment || "",
           })));
-        }
       })
       .catch(() => {});
   }, []);
@@ -4021,8 +3948,8 @@ function AdminShell({ onLogout }) {
   const search = "";
   const [segment, setSegment] = useState("Месяц");
   const [dateRange, setDateRange] = useState(() => presetRange("Сегодня"));
-  const [organizations, setOrganizations] = useState(organizationRows);
-  const [approvals, setApprovals] = useState(approvalItems);
+  const [organizations, setOrganizations] = useState([]);
+  const [approvals, setApprovals] = useState([]);
   const [categoryRows, setCategoryRows] = useState({});
   const [detail, setDetail] = useState(null);
   const [dashKpis, setDashKpis] = useState(kpis);
@@ -4032,7 +3959,7 @@ function AdminShell({ onLogout }) {
   useEffect(() => {
     let mounted = true;
     if (localStorage.getItem("admin_local_login") === "true") {
-      setUser({ email: "900000777", phone: "900000777", name: "Super Admin", is_superadmin: true });
+      setUser({ email: "admin.900078779@marjon.local", phone: "+998900078779", name: "Super Admin", is_superadmin: true });
       adminApi.get("/organizations", { params: { size: 5 } })
         .then(({ data }) => {
           if (!mounted) return;
@@ -4049,9 +3976,8 @@ function AdminShell({ onLogout }) {
       adminApi.get("/admin-reports/dashboard-kpis")
         .then(({ data }) => {
           if (!mounted || !data) return;
-          setDashKpis((prev) => prev.map((kpi, i) => {
-            const key = ["organizations", "branches", "revenue", "subscriptions", "employees", "cashboxes"][i];
-            const v = data[key];
+          setDashKpis((prev) => prev.map((kpi) => {
+            const v = data[kpi.dataKey];
             return v != null ? { ...kpi, value: typeof v === "number" ? v.toLocaleString("ru-RU") : String(v) } : kpi;
           }));
         })
@@ -4077,9 +4003,8 @@ function AdminShell({ onLogout }) {
     adminApi.get("/admin-reports/dashboard-kpis")
       .then(({ data }) => {
         if (!mounted || !data) return;
-        setDashKpis((prev) => prev.map((kpi, i) => {
-          const key = ["organizations", "branches", "revenue", "subscriptions", "employees", "cashboxes"][i];
-          const v = data[key];
+        setDashKpis((prev) => prev.map((kpi) => {
+          const v = data[kpi.dataKey];
           return v != null ? { ...kpi, value: typeof v === "number" ? v.toLocaleString("ru-RU") : String(v) } : kpi;
         }));
       })
@@ -4243,7 +4168,7 @@ function AdminShell({ onLogout }) {
     ) : (
       <CategoryPage active={active} rowsOverride={categoryRows[active]} search={search} onCreate={handleCreate} onRowDetail={openCategoryRowDetail} onNotify={setMessage} />
     )
-  ), [active, approvals, categoryRows, filteredOrganizations, search, segment]);
+  ), [active, approvals, categoryRows, dashKpis, filteredOrganizations, search, segment]);
 
   function logout() {
     adminLogout();

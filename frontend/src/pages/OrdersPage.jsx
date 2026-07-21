@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { api, formatMoney } from "../api/client";
 import { printKitchenReceipt, printOrderReceipt } from "../api/receipt";
 import { formatDateLabel, todayInputValue } from "../utils/date";
-import DemoNotice from "../components/DemoNotice";
-import { getWsConnection } from "../api/ws";
 
 function orderItemsLabel(order) {
   const items = order.items || [];
@@ -16,45 +14,20 @@ export default function OrdersPage() {
   const outlet = useOutletContext();
   const { selectedDate = todayInputValue() } = outlet || {};
   const [orders, setOrders] = useState([]);
-  const [isDemo, setIsDemo] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [error, setError] = useState("");
   const [printState, setPrintState] = useState({ id: "", type: "", loading: false, message: "", error: "" });
 
-  const loadOrders = useCallback(() => {
-    setError("");
-    return api.get("/pos/orders", { params: { date: selectedDate } })
-      .then(({ data }) => {
-        setOrders(data);
-        setIsDemo(!data.length);
-        setSelectedOrderId((current) => current || data[0]?.id || null);
-      })
-      .catch((err) => { setError(err.response?.data?.detail || "Не удалось загрузить заказы."); setIsDemo(true); });
-  }, [selectedDate]);
-
   useEffect(() => {
-    loadOrders();
-
-    const ws = getWsConnection("/ws/kitchen");
-    let fallbackTimer = null;
-    const refresh = () => loadOrders();
-
-    const unsubs = [
-      ws.on("new_order",       refresh),
-      ws.on("order_updated",   refresh),
-      ws.on("order_cancelled", refresh),
-    ];
-    ws.onOpen(() => { if (fallbackTimer) { clearInterval(fallbackTimer); fallbackTimer = null; } });
-    ws.onClose(() => { if (!fallbackTimer) fallbackTimer = window.setInterval(refresh, 15_000); });
-    ws.connect();
-    fallbackTimer = window.setInterval(refresh, 15_000);
-
-    return () => {
-      unsubs.forEach((fn) => fn());
-      ws.disconnect();
-      if (fallbackTimer) clearInterval(fallbackTimer);
-    };
-  }, [loadOrders]);
+    setError("");
+    api.get("/pos/orders", { params: { date: selectedDate } })
+      .then(({ data }) => {
+        const items = Array.isArray(data) ? data : [];
+        setOrders(items);
+        setSelectedOrderId((current) => current || items[0]?.id || null);
+      })
+      .catch((err) => { setOrders([]); setError(err.response?.data?.detail || "Не удалось загрузить заказы."); });
+  }, [selectedDate]);
 
   const selectedOrder = useMemo(
     () => orders.find((order) => String(order.id) === String(selectedOrderId)) || null,
@@ -77,7 +50,7 @@ export default function OrdersPage() {
 
   return (
     <section className="card card-pad">
-      {isDemo && <DemoNotice />}      <div className="section-header">
+      <div className="section-header">
         <div>
           <span className="eyebrow">Orders</span>
           <h2>Заказы за {formatDateLabel(selectedDate)}</h2>

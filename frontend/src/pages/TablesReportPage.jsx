@@ -1,9 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
-import DemoNotice from "../components/DemoNotice";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
 import { exportToExcel } from "../utils/excel";
+
+function toApiDate(ddmmyyyy) {
+  if (!ddmmyyyy) return undefined;
+  const [d, m, y] = ddmmyyyy.split(".");
+  return `${y}-${m}-${d}`;
+}
 
 const initialFilters = {
   zone: "all",
@@ -13,6 +18,51 @@ const initialFilters = {
   minAmount: "",
   maxAmount: "",
 };
+
+const tableColumnOptions = [
+  { key: "tableNumber", label: "Номер стола" },
+  { key: "date", label: "Дата" },
+  { key: "servicePrice", label: "Цена обслуживания" },
+  { key: "discount", label: "Скидка" },
+  { key: "placePrice", label: "Цена места" },
+  { key: "dishesAmount", label: "Сумма блюд" },
+  { key: "total", label: "Сумма" },
+  { key: "transaction", label: "Транзакции" },
+  { key: "action", label: "Действие" },
+];
+
+const defaultTableColumnVisibility = tableColumnOptions.reduce((acc, column) => ({
+  ...acc,
+  [column.key]: true,
+}), {});
+const tableColumnsStorageKey = "marjon.tables-report.visible-columns";
+
+function getStoredTableColumnVisibility() {
+  if (typeof window === "undefined") {
+    return defaultTableColumnVisibility;
+  }
+
+  try {
+    const stored = window.localStorage.getItem(tableColumnsStorageKey);
+    if (!stored) {
+      return defaultTableColumnVisibility;
+    }
+
+    const parsed = JSON.parse(stored);
+    const next = { ...defaultTableColumnVisibility };
+    tableColumnOptions.forEach((column) => {
+      if (typeof parsed?.[column.key] === "boolean") {
+        next[column.key] = parsed[column.key];
+      }
+    });
+
+    return tableColumnOptions.some((column) => next[column.key] !== false)
+      ? next
+      : defaultTableColumnVisibility;
+  } catch {
+    return defaultTableColumnVisibility;
+  }
+}
 
 const datePresets = [
   "Сегодня",
@@ -39,7 +89,7 @@ function formatPeriodLabel(range) {
 }
 
 function presetRange(label) {
-  const today = new Date(2026, 5, 27);
+  const today = new Date();
   const start = new Date(today);
   const end = new Date(today);
 
@@ -69,171 +119,93 @@ function presetRange(label) {
   return { preset: label, start: formatDate(start), end: formatDate(end) };
 }
 
-const tableRows = [
-  {
-    id: "table-8",
-    tableNumber: "8 - Billiard",
-    date: "10.06.2026 / 16:23",
-    servicePrice: "0 UZS",
-    serviceValue: 0,
-    discount: "0 UZS",
-    placePrice: "31 297 334 UZS",
-    dishesAmount: "111 000 UZS",
-    total: "31 408 334 UZS",
-    totalValue: 31408334,
-    transaction: "Terminal - 31 408 334 UZS",
-    zone: "Billiard",
-    paymentType: "Terminal",
-    waiter: "Nurmuxammad",
-    orders: [
-      { number: "#1421", date: "10.06.2026 / 16:23", waiter: "Nurmuxammad", amount: "31 408 334 UZS", status: "Оплачен" },
-      { number: "#1419", date: "10.06.2026 / 15:58", waiter: "Nurmuxammad", amount: "111 000 UZS", status: "Закрыт" },
-    ],
-  },
-  {
-    id: "table-6",
-    tableNumber: "6 - ЗАЛЛ",
-    date: "10.06.2026 / 16:23",
-    servicePrice: "8 500 UZS",
-    serviceValue: 8500,
-    discount: "0 UZS",
-    placePrice: "0 UZS",
-    dishesAmount: "85 000 UZS",
-    total: "93 500 UZS",
-    totalValue: 93500,
-    transaction: "NAXT - 93 500 UZS",
-    zone: "ЗАЛЛ",
-    paymentType: "NAXT",
-    waiter: "САБИНА",
-    orders: [
-      { number: "#1408", date: "10.06.2026 / 16:23", waiter: "САБИНА", amount: "93 500 UZS", status: "Оплачен" },
-    ],
-  },
-  {
-    id: "table-3",
-    tableNumber: "3 - ЗАЛЛ",
-    date: "10.06.2026 / 16:23",
-    servicePrice: "6 500 UZS",
-    serviceValue: 6500,
-    discount: "0 UZS",
-    placePrice: "0 UZS",
-    dishesAmount: "97 000 UZS",
-    total: "103 500 UZS",
-    totalValue: 103500,
-    transaction: "NAXT - 103 500 UZS",
-    zone: "ЗАЛЛ",
-    paymentType: "NAXT",
-    waiter: "Азизбек",
-    orders: [
-      { number: "#1407", date: "10.06.2026 / 16:23", waiter: "Азизбек", amount: "103 500 UZS", status: "Оплачен" },
-    ],
-  },
-  {
-    id: "table-2",
-    tableNumber: "2 - КАБИНА",
-    date: "10.06.2026 / 16:23",
-    servicePrice: "10 400 UZS",
-    serviceValue: 10400,
-    discount: "0 UZS",
-    placePrice: "0 UZS",
-    dishesAmount: "52 000 UZS",
-    total: "62 400 UZS",
-    totalValue: 62400,
-    transaction: "NAXT - 62 400 UZS",
-    zone: "КАБИНА",
-    paymentType: "NAXT",
-    waiter: "Дилноза",
-    orders: [
-      { number: "#1403", date: "10.06.2026 / 16:23", waiter: "Дилноза", amount: "62 400 UZS", status: "Оплачен" },
-    ],
-  },
-  {
-    id: "table-7",
-    tableNumber: "7 - Billiard",
-    date: "01.05.2026 / 14:21",
-    servicePrice: "0 UZS",
-    serviceValue: 0,
-    discount: "0 UZS",
-    placePrice: "112 UZS",
-    dishesAmount: "99 000 UZS",
-    total: "99 112 UZS",
-    totalValue: 99112,
-    transaction: "NAXT - 99 112 UZS",
-    zone: "Billiard",
-    paymentType: "NAXT",
-    waiter: "Сардор",
-    orders: [
-      { number: "#1201", date: "01.05.2026 / 14:21", waiter: "Сардор", amount: "99 112 UZS", status: "Оплачен" },
-    ],
-  },
-  {
-    id: "table-1",
-    tableNumber: "1 - VIP",
-    date: "01.05.2026 / 13:02",
-    servicePrice: "0 UZS",
-    serviceValue: 0,
-    discount: "0 UZS",
-    placePrice: "0 UZS",
-    dishesAmount: "0 UZS",
-    total: "0 UZS",
-    totalValue: 0,
-    transaction: "NAXT - 0 UZS",
-    zone: "VIP",
-    paymentType: "NAXT",
-    waiter: "Менеджер",
-    orders: [
-      { number: "#1194", date: "01.05.2026 / 13:02", waiter: "Менеджер", amount: "0 UZS", status: "Закрыт" },
-    ],
-  },
-];
-
-const summaries = [
-  { key: "service", label: "Цена обслуживания", value: "25 400 UZS", className: "tables-summary-service", icon: "bi-percent" },
-  { key: "place", label: "Цена места", value: "31 297 446 UZS", className: "tables-summary-place", icon: "bi-grid-3x3-gap" },
-  { key: "dishes", label: "Сумма блюд", value: "444 000 UZS", className: "tables-summary-dishes", icon: "bi-cup-hot" },
-  { key: "total", label: "Сумма", value: "31 766 846 UZS", className: "tables-summary-total", icon: "bi-cash-stack" },
-];
-
 export default function TablesReportPage() {
+  const tableSettingsRef = useRef(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [dateRange, setDateRange] = useState({ preset: "", start: "01.06.2026", end: "01.07.2026" });
+  const [tableSettingsOpen, setTableSettingsOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState(() => getStoredTableColumnVisibility());
+  const [dateRange, setDateRange] = useState(() => {
+    const now = new Date();
+    const start = `01.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
+    const end = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
+    return { preset: "", start, end };
+  });
   const [filters, setFilters] = useState(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
   const [selectedTable, setSelectedTable] = useState(null);
-  const [rows, setRows] = useState(tableRows);
-  const [isDemo, setIsDemo] = useState(true);
+  const [rows, setRows] = useState([]);
 
   useEffect(() => {
-    api.get("/reports/tables", { params: { start: dateRange.start, end: dateRange.end } })
+    api.get("/reports/tables", { params: { date_from: toApiDate(dateRange.start), date_to: toApiDate(dateRange.end) } })
       .then(({ data }) => {
         const items = Array.isArray(data) ? data : data?.items || data?.tables || [];
-        if (items.length) {
-          setRows(items.map((item) => ({
-            id: String(item.id || ""),
+        setRows(items.map((item) => {
+          const fmt = (v) => v ? `${Number(v).toLocaleString("ru-RU")} UZS` : "0 UZS";
+          const revenueValue = Number(item.revenue || item.total || 0);
+          return {
+            id: String(item.id || item.table_number || ""),
             tableNumber: item.table_number || item.tableNumber || "",
-            date: item.date || "",
-            servicePrice: item.service_price ? `${Number(item.service_price).toLocaleString("ru-RU")} UZS` : "0 UZS",
+            date: item.date || `${dateRange.start} - ${dateRange.end}`,
+            servicePrice: fmt(item.service_price),
             serviceValue: Number(item.service_price || 0),
-            discount: item.discount ? `${Number(item.discount).toLocaleString("ru-RU")} UZS` : "0 UZS",
-            placePrice: item.place_price ? `${Number(item.place_price).toLocaleString("ru-RU")} UZS` : "0 UZS",
-            dishesAmount: item.dishes_amount ? `${Number(item.dishes_amount).toLocaleString("ru-RU")} UZS` : "0 UZS",
-            total: item.total ? `${Number(item.total).toLocaleString("ru-RU")} UZS` : "0 UZS",
-            totalValue: Number(item.total || 0),
-            transaction: item.transaction || "",
+            discount: fmt(item.discount),
+            placePrice: fmt(item.place_price),
+            placeValue: Number(item.place_price || 0),
+            dishesAmount: fmt(item.dishes_amount || item.revenue),
+            dishesValue: Number(item.dishes_amount || item.revenue || 0),
+            total: fmt(item.total || item.revenue),
+            totalValue: revenueValue,
+            transaction: item.transaction || (item.orders_count ? `${item.orders_count} заказ(ов)` : "-"),
             zone: item.zone || "",
             paymentType: item.payment_type || item.paymentType || "",
             waiter: item.waiter_name || item.waiter || "",
             orders: item.orders || [],
-          })));
-          setIsDemo(false);
-        }
+          };
+        }));
       })
-      .catch(() => {});
+      .catch(() => setRows([]));
   }, [dateRange.start, dateRange.end]);
 
-  const zones = useMemo(() => Array.from(new Set(rows.map((row) => row.zone))), [rows]);
-  const waiters = useMemo(() => Array.from(new Set(rows.map((row) => row.waiter))), [rows]);
-  const paymentTypes = useMemo(() => Array.from(new Set(rows.map((row) => row.paymentType))), [rows]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(tableColumnsStorageKey, JSON.stringify(visibleColumns));
+    } catch {
+      // localStorage can be unavailable in restricted browser modes.
+    }
+  }, [visibleColumns]);
+
+  useEffect(() => {
+    if (!tableSettingsOpen) {
+      return undefined;
+    }
+
+    function closeOnOutsideClick(event) {
+      if (!tableSettingsRef.current?.contains(event.target)) {
+        setTableSettingsOpen(false);
+      }
+    }
+
+    function closeOnEscape(event) {
+      if (event.key === "Escape") {
+        setTableSettingsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [tableSettingsOpen]);
+
+  const zones = useMemo(() => Array.from(new Set(rows.map((row) => row.zone).filter(Boolean))), [rows]);
+  const waiters = useMemo(() => Array.from(new Set(rows.map((row) => row.waiter).filter(Boolean))), [rows]);
+  const paymentTypes = useMemo(() => Array.from(new Set(rows.map((row) => row.paymentType).filter(Boolean))), [rows]);
+  const visibleTableColumns = useMemo(
+    () => tableColumnOptions.filter((column) => visibleColumns[column.key] !== false),
+    [visibleColumns],
+  );
 
   const filteredRows = useMemo(() => rows.filter((row) => {
     const min = appliedFilters.minAmount ? Number(appliedFilters.minAmount) : null;
@@ -247,6 +219,17 @@ export default function TablesReportPage() {
       (max === null || row.totalValue <= max)
     );
   }), [rows, appliedFilters]);
+  const summaries = useMemo(() => {
+    const sum = (key) => filteredRows.reduce((total, row) => total + Number(row[key] || 0), 0);
+    const format = (value) => `${Number(value || 0).toLocaleString("ru-RU")} UZS`;
+
+    return [
+      { key: "service", label: "Цена обслуживания", value: format(sum("serviceValue")), className: "tables-summary-service", icon: "bi-percent" },
+      { key: "place", label: "Цена места", value: format(sum("placeValue")), className: "tables-summary-place", icon: "bi-grid-3x3-gap" },
+      { key: "dishes", label: "Сумма блюд", value: format(sum("dishesValue")), className: "tables-summary-dishes", icon: "bi-cup-hot" },
+      { key: "total", label: "Сумма", value: format(sum("totalValue")), className: "tables-summary-total", icon: "bi-cash-stack" },
+    ];
+  }, [filteredRows]);
 
   function updateFilter(key, value) {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -254,6 +237,17 @@ export default function TablesReportPage() {
 
   function applyFilters() {
     setAppliedFilters(filters);
+  }
+
+  function toggleColumn(key) {
+    setVisibleColumns((current) => {
+      const isVisible = current[key] !== false;
+      const visibleCount = tableColumnOptions.filter((column) => current[column.key] !== false).length;
+      if (isVisible && visibleCount <= 1) {
+        return current;
+      }
+      return { ...current, [key]: !isVisible };
+    });
   }
 
   function downloadExcel() {
@@ -271,9 +265,6 @@ export default function TablesReportPage() {
   return (
     <section className="tables-report-page">
       <article className="report-page-card">
-        {isDemo && (
-          <DemoNotice />
-        )}
         <div className="report-page-header">
           <div className="report-title-group">
             <span className="report-accent-bar" aria-hidden="true" />
@@ -283,7 +274,33 @@ export default function TablesReportPage() {
             </div>
           </div>
           <div className="report-actions">
-            <ReportDateRangePicker value={dateRange} onChange={setDateRange} />
+            <div className="tables-table-settings" ref={tableSettingsRef}>
+              <button className="tables-table-settings-button" type="button" onClick={() => setTableSettingsOpen((value) => !value)} aria-expanded={tableSettingsOpen}>
+                <Icon name="bi-gear-wide-connected" size={18} />
+                Настроить таблицу
+              </button>
+              {tableSettingsOpen ? (
+                <div className="tables-table-settings-popover">
+                  <div className="tables-table-settings-head">
+                    <strong>Столбцы таблицы</strong>
+                    <button type="button" onClick={() => setVisibleColumns(defaultTableColumnVisibility)}>Сбросить</button>
+                  </div>
+                  <div className="tables-table-settings-list">
+                    {tableColumnOptions.map((column) => {
+                      const checked = visibleColumns[column.key] !== false;
+                      const disabled = checked && visibleTableColumns.length <= 1;
+                      return (
+                        <label key={column.key}>
+                          <input type="checkbox" checked={checked} disabled={disabled} onChange={() => toggleColumn(column.key)} />
+                          <span>{column.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <ReportDateRangePicker value={dateRange} onChange={setDateRange} showDropdownIcon />
             <button className="tables-filter-toggle" type="button" onClick={() => setFiltersOpen((value) => !value)}>
               <Icon name="bi-sliders" size={18} />
               Фильтровать
@@ -348,6 +365,14 @@ export default function TablesReportPage() {
             </article>
           ))}
         </div>
+
+        <style>
+          {tableColumnOptions.map((column, index) => (
+            visibleColumns[column.key] === false
+              ? `.tables-report-page .report-table thead th:nth-child(${index + 1}), .tables-report-page .report-table tbody tr:not(.report-empty-row) td:nth-child(${index + 1}) { display: none !important; }`
+              : ""
+          )).join("\n")}
+        </style>
 
         <div className="report-table-wrapper">
           <table className="report-table">

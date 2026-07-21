@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { api, formatMoney, formatNumber } from "../api/client";
 import { formatDateLabel, todayInputValue } from "../utils/date";
-import DemoNotice from "../components/DemoNotice";
 
 function getDayRange(date) {
   return { date_from: date, date_to: date };
@@ -11,19 +10,18 @@ function getDayRange(date) {
 export default function AnalyticsPage() {
   const { selectedDate = todayInputValue() } = useOutletContext();
   const [rows, setRows] = useState([]);
-  const [isDemo, setIsDemo] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     setError("");
     api.get("/analytics/sales", { params: getDayRange(selectedDate) })
-      .then(({ data }) => { setRows(data); setIsDemo(!data.length); })
-      .catch((err) => { setError(err.response?.data?.detail || "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0430\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0443."); setIsDemo(true); });
+      .then(({ data }) => { setRows(Array.isArray(data) ? data : []); })
+      .catch((err) => { setRows([]); setError(err.response?.data?.detail || "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0430\u043d\u0430\u043b\u0438\u0442\u0438\u043a\u0443."); });
   }, [selectedDate]);
 
   return (
     <section className="card card-pad">
-      {isDemo && <DemoNotice />}      <div className="section-header"><div><span className="eyebrow">Analytics</span><h2>{"\u041f\u0440\u043e\u0434\u0430\u0436\u0438 \u0437\u0430"} {formatDateLabel(selectedDate)}</h2></div></div>
+      <div className="section-header"><div><span className="eyebrow">Analytics</span><h2>{"\u041f\u0440\u043e\u0434\u0430\u0436\u0438 \u0437\u0430"} {formatDateLabel(selectedDate)}</h2></div></div>
       {error ? <div className="login-error">{error}</div> : null}
       <div className="table-responsive"><table className="data-table"><thead><tr><th>{"\u0414\u0430\u0442\u0430"}</th><th>{"\u0417\u0430\u043a\u0430\u0437\u044b"}</th><th>{"\u0412\u044b\u0440\u0443\u0447\u043a\u0430"}</th><th>{"\u0421\u0440\u0435\u0434\u043d\u0438\u0439 \u0447\u0435\u043a"}</th></tr></thead><tbody>
         {rows.map((row) => <tr key={row.date}><td>{row.date}</td><td>{formatNumber(row.orders_count)}</td><td>{formatMoney(row.revenue)}</td><td>{formatMoney(row.avg_check)}</td></tr>)}

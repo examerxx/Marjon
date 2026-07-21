@@ -1,11 +1,11 @@
 ﻿import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import BackButton from "./BackButton";
 import Sidebar from "./Sidebar";
 import SupportWidget from "./SupportWidget";
 import Topbar from "./Topbar";
 import { clampToToday, todayInputValue } from "../utils/date";
 import { useAuth } from "../hooks/useAuth";
+import { getRole } from "../utils/permissions";
 
 const pageMeta = {
   "/": ["Owner Dashboard", "Ключевые показатели ресторана"],
@@ -68,7 +68,6 @@ export default function DashboardLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [title, subtitle] = useMemo(() => pageMeta[location.pathname] || ["Dashboard", ""], [location.pathname]);
-  const showBackButton = location.pathname !== "/";
   const isUsersSection = location.pathname.startsWith("/users");
   const selectedDateContext = useMemo(() => ({
     user,
@@ -84,7 +83,7 @@ export default function DashboardLayout() {
   // Редирект waiter/kitchen на их рабочие места
   useEffect(() => {
     if (loading || !user) return;
-    const role = user.role_slugs?.[0];
+    const role = getRole(user);
     if (role === "waiter" && !location.pathname.startsWith("/waiter")) {
       navigate("/waiter", { replace: true });
     } else if (role === "kitchen" && !location.pathname.startsWith("/kitchen")) {

@@ -37,7 +37,14 @@ export const ROLE_HOME = {
 export function getRole(user) {
   if (!user) return null;
   if (user.is_superadmin) return ROLES.SUPERADMIN;
-  return user.role_slugs?.[0] || ROLES.OWNER;
+  const roles = user.role_slugs || [];
+  if (roles.includes(ROLES.OWNER)) return ROLES.OWNER;
+  if (roles.includes(ROLES.MANAGER)) return ROLES.MANAGER;
+  if (roles.includes(ROLES.CASHIER)) return ROLES.CASHIER;
+  if (roles.includes(ROLES.WAITER)) return ROLES.WAITER;
+  if (roles.includes(ROLES.KITCHEN)) return ROLES.KITCHEN;
+  if (roles.includes(ROLES.MONOBLOCK)) return ROLES.MONOBLOCK;
+  return roles[0] || ROLES.OWNER;
 }
 
 export function canAccessSection(user, sectionKey) {

@@ -108,8 +108,11 @@ function presetRange(label) {
   };
 }
 
-function toDateInputText(range, key) {
+function toDateInputText(range, key, showTime = true) {
   const current = withDefaultTimes(range);
+  if (!showTime) {
+    return current[key];
+  }
   const time = current[`${key}Time`] || "00:00";
   return time === "00:00" ? current[key] : `${current[key]} ${time}`;
 }
@@ -129,7 +132,17 @@ function fromDateInputText(value) {
   };
 }
 
-export default function ReportDateRangePicker({ value, onChange, buttonClassName = "", showChevrons = false }) {
+export default function ReportDateRangePicker({
+  value,
+  onChange,
+  buttonClassName = "",
+  showChevrons = false,
+  showTime = true,
+  labelPrefix = "",
+  showDropdownIcon = false,
+  presets = datePresets,
+  formatButtonLabel,
+}) {
   const rootRef = useRef(null);
   const hourListRef = useRef(null);
   const minuteListRef = useRef(null);
@@ -182,7 +195,12 @@ export default function ReportDateRangePicker({ value, onChange, buttonClassName
   }
 
   function selectPreset(preset) {
-    setDraft(presetRange(preset));
+    const option = typeof preset === "string" ? { label: preset } : preset;
+    const nextRange = option.getRange ? option.getRange() : presetRange(option.value || option.label);
+    setDraft({
+      ...withDefaultTimes(nextRange),
+      preset: option.label,
+    });
   }
 
   function updateDateTime(key, nextValue) {
@@ -270,7 +288,7 @@ export default function ReportDateRangePicker({ value, onChange, buttonClassName
   const [activeHour = "00", activeMinute = "00"] = activeTime.split(":");
 
   useEffect(() => {
-    if (!activePicker) {
+    if (!showTime || !activePicker) {
       return;
     }
 
@@ -280,24 +298,33 @@ export default function ReportDateRangePicker({ value, onChange, buttonClassName
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [activePicker, activeTime]);
+  }, [activePicker, activeTime, showTime]);
 
-  const periodLabel = formatPeriodLabel(value);
+  const presetOptions = presets.map((preset) => (typeof preset === "string" ? { label: preset } : preset));
+  const periodLabel = formatButtonLabel ? formatButtonLabel(value) : formatPeriodLabel(value);
   const buttonClasses = ["report-period-button", buttonClassName].filter(Boolean).join(" ");
 
   return (
     <div className="report-period-picker" ref={rootRef}>
       <button className={buttonClasses} type="button" onClick={openPicker} aria-expanded={open}>
         {showChevrons ? <Icon name="bi-chevron-left" size={18} /> : null}
-        <span>{periodLabel}</span>
+        {labelPrefix ? (
+          <>
+            <span>{labelPrefix}</span>
+            <strong>{periodLabel}</strong>
+          </>
+        ) : (
+          <span>{periodLabel}</span>
+        )}
         {showChevrons ? <Icon name="bi-chevron-right" size={18} /> : null}
+        {showDropdownIcon ? <Icon name="bi-chevron-down" size={18} /> : null}
       </button>
       {open ? (
         <div className="report-date-menu">
           <div className="report-date-presets">
-            {datePresets.map((preset) => (
-              <button className={draft.preset === preset ? "is-active" : ""} type="button" key={preset} onClick={() => selectPreset(preset)}>
-                {preset}
+            {presetOptions.map((preset) => (
+              <button className={draft.preset === preset.label ? "is-active" : ""} type="button" key={preset.value || preset.label} onClick={() => selectPreset(preset)}>
+                {preset.label}
               </button>
             ))}
           </div>
@@ -306,7 +333,7 @@ export default function ReportDateRangePicker({ value, onChange, buttonClassName
               className="report-date-input"
               type="text"
               inputMode="numeric"
-              value={toDateInputText(draft, "start")}
+              value={toDateInputText(draft, "start", showTime)}
               onChange={(event) => updateDateTime("start", event.target.value)}
               onClick={() => openDateTimePicker("start")}
               onFocus={() => openDateTimePicker("start")}
@@ -317,7 +344,7 @@ export default function ReportDateRangePicker({ value, onChange, buttonClassName
               className="report-date-input"
               type="text"
               inputMode="numeric"
-              value={toDateInputText(draft, "end")}
+              value={toDateInputText(draft, "end", showTime)}
               onChange={(event) => updateDateTime("end", event.target.value)}
               onClick={() => openDateTimePicker("end")}
               onFocus={() => openDateTimePicker("end")}
@@ -327,7 +354,7 @@ export default function ReportDateRangePicker({ value, onChange, buttonClassName
           </div>
           {activePicker ? (
             <div className="report-date-calendar-popover">
-              <div className="report-date-picker-body">
+              <div className={`report-date-picker-body ${showTime ? "" : "report-date-picker-body--date-only"}`.trim()}>
                 <div className="report-date-calendar-panel">
                   <div className="report-date-calendar-toolbar">
                     <button type="button" onClick={() => setCalendarView(new Date(calendarView.getFullYear(), calendarView.getMonth() - 1, 1))} aria-label="Предыдущий месяц">

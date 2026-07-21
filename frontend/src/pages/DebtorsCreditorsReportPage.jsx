@@ -1,94 +1,12 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../api/client";
-import DemoNotice from "../components/DemoNotice";
 import DatePicker from "../components/DatePicker";
 import Icon from "../components/Icon";
 import { formatMoney } from "../api/client";
 import { todayInputValue } from "../utils/date";
 
 const exchangeRate = 12650;
-
-const parties = [
-  {
-    id: "cl-001",
-    type: "debtors",
-    name: "Клиент",
-    category: "Гость",
-    phone: "+998 90 120 45 77",
-    owner: "Администратор",
-    amount: 354919,
-    dueDate: "2026-06-25",
-    status: "active",
-    note: "Постоплата по банкетному заказу.",
-    operations: [
-      { date: "2026-06-22", document: "Заказ #1048", amount: 224900 },
-      { date: "2026-06-23", document: "Заказ #1057", amount: 130019 },
-    ],
-  },
-  {
-    id: "cl-002",
-    type: "debtors",
-    name: "Dilnoza Catering",
-    category: "Партнер",
-    phone: "+998 93 501 22 10",
-    owner: "Менеджер",
-    amount: 2480000,
-    dueDate: "2026-06-28",
-    status: "watch",
-    note: "Ожидается оплата по корпоративному обеду.",
-    operations: [
-      { date: "2026-06-21", document: "Счет #DC-14", amount: 1720000 },
-      { date: "2026-06-23", document: "Доставка #118", amount: 760000 },
-    ],
-  },
-  {
-    id: "cl-003",
-    type: "debtors",
-    name: "VIP зал",
-    category: "Внутренний счет",
-    phone: "+998 71 200 80 08",
-    owner: "Кассир",
-    amount: 1195000,
-    dueDate: "2026-06-24",
-    status: "active",
-    note: "Закрытие после сверки с гостем.",
-    operations: [
-      { date: "2026-06-23", document: "Стол #7", amount: 1195000 },
-    ],
-  },
-  {
-    id: "cr-001",
-    type: "creditors",
-    name: "Fresh Market",
-    category: "Поставщик",
-    phone: "+998 95 010 11 12",
-    owner: "Склад",
-    amount: 17859000,
-    dueDate: "2026-06-26",
-    status: "overdue",
-    note: "Поставка овощей и зелени, требуется сверка накладной.",
-    operations: [
-      { date: "2026-06-20", document: "Накладная #FM-883", amount: 12450000 },
-      { date: "2026-06-22", document: "Накладная #FM-891", amount: 5409000 },
-    ],
-  },
-  {
-    id: "cr-002",
-    type: "creditors",
-    name: "Premium Meat",
-    category: "Поставщик",
-    phone: "+998 99 711 40 00",
-    owner: "Шеф-повар",
-    amount: 6900000,
-    dueDate: "2026-06-29",
-    status: "active",
-    note: "Оплата мясной поставки после проверки качества.",
-    operations: [
-      { date: "2026-06-23", document: "Накладная #PM-217", amount: 6900000 },
-    ],
-  },
-];
 
 const tabLabels = {
   debtors: "Дебиторы",
@@ -112,6 +30,7 @@ function displayAmount(value, currency) {
 }
 
 function formatDate(value) {
+  if (!value) return "—";
   const [year, month, day] = value.split("-");
   return `${day}.${month}.${year}`;
 }
@@ -121,33 +40,34 @@ export default function DebtorsCreditorsReportPage() {
   const [activeTab, setActiveTab] = useState("debtors");
   const [currency, setCurrency] = useState("UZS");
   const [search, setSearch] = useState("");
-  const [expandedId, setExpandedId] = useState("cl-001");
-  const [rows, setRows] = useState(parties);
-  const [isDemo, setIsDemo] = useState(true);
+  const [expandedId, setExpandedId] = useState("");
+  const [rows, setRows] = useState([]);
 
   useEffect(() => {
-    api.get("/reports/debt-credit")
+    api.get("/reports/debt-credit", { params: { date: selectedDate } })
       .then(({ data }) => {
         const items = Array.isArray(data) ? data : data?.items || data?.parties || [];
-        if (items.length) {
-          setRows(items.map((item) => ({
+        setRows(items.map((item) => {
+          const balance = Number(item.closing_balance ?? item.closingBalance ?? item.balance ?? item.amount ?? 0);
+          const amount = Math.abs(Number(item.amount ?? balance) || 0);
+
+          return {
             id: String(item.id || ""),
-            type: item.type || "debtors",
-            name: item.name || "",
-            category: item.category || "",
+            type: item.type || (balance < 0 ? "creditors" : "debtors"),
+            name: item.name || item.counterparty_name || item.counterparty || "",
+            category: item.category || item.kind || "",
             phone: item.phone || "",
             owner: item.owner || "",
-            amount: Number(item.amount || 0),
+            amount,
             dueDate: item.due_date || item.dueDate || "",
             status: item.status || "active",
             note: item.note || "",
             operations: item.operations || [],
-          })));
-          setIsDemo(false);
-        }
+          };
+        }));
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => setRows([]));
+  }, [selectedDate]);
 
   const totals = useMemo(() => {
     const debtors = rows.filter((party) => party.type === "debtors");
@@ -179,9 +99,6 @@ export default function DebtorsCreditorsReportPage() {
   return (
     <section className="dc-report-page">
       <article className="dc-report-card">
-        {isDemo && (
-          <DemoNotice />
-        )}
         <div className="dc-report-head">
           <div>
             <span className="dc-report-eyebrow">Marjon finance</span>

@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import Icon from "./Icon";
 
-export default function BackButton() {
+export default function BackButton({ className = "", iconName = "bi-arrow-left", label = "" }) {
   const navigate = useNavigate();
 
   function handleBack() {
@@ -12,9 +12,13 @@ export default function BackButton() {
     }
   }
 
+  const buttonLabel = label || "Назад";
+  const buttonClassName = ["dashboard-back-button", className].filter(Boolean).join(" ");
+
   return (
-    <button className="dashboard-back-button" type="button" onClick={handleBack} aria-label="Назад" title="Назад">
-      <Icon name="bi-arrow-left" size={18} />
+    <button className={buttonClassName} type="button" onClick={handleBack} aria-label={buttonLabel} title={buttonLabel}>
+      <Icon name={iconName} size={18} />
+      {label ? <span>{label}</span> : null}
     </button>
   );
 }

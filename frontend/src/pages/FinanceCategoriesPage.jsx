@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, formatMoney } from "../api/client";
-import DemoNotice from "../components/DemoNotice";
 import Icon from "../components/Icon";
 
-function FinanceCategoriesPage({ title, kind, initialRows }) {
-  const [rows, setRows] = useState(initialRows.map((row, index) => ({ ...row, id: `demo-${index}`, status: "Активно" })));
-  const [isDemo, setIsDemo] = useState(true);
+function FinanceCategoriesPage({ title, kind }) {
+  const [rows, setRows] = useState([]);
   const [activeTab, setActiveTab] = useState("Активно");
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -17,8 +15,7 @@ function FinanceCategoriesPage({ title, kind, initialRows }) {
     try {
       const { data } = await api.get("/finance/transaction-categories", { params: { kind } });
       const items = Array.isArray(data) ? data : data?.items || [];
-      if (items.length) {
-        setRows(items.map((item) => ({
+      setRows(items.map((item) => ({
           id: item.id,
           name: item.name,
           description: item.kind === "income" ? "Приход" : "Расход",
@@ -26,10 +23,8 @@ function FinanceCategoriesPage({ title, kind, initialRows }) {
           total: "—",
           status: item.status ? "Активно" : "Архив",
         })));
-        setIsDemo(false);
-      }
     } catch {
-      // остаёмся на демо-данных
+      setRows([]);
     }
   }
 
@@ -53,10 +48,6 @@ function FinanceCategoriesPage({ title, kind, initialRows }) {
   };
 
   const archive = async (row) => {
-    if (isDemo) {
-      setRows((current) => current.map((item) => item.id === row.id ? { ...item, status: "Архив" } : item));
-      return;
-    }
     try {
       await api.patch(`/finance/transaction-categories/${row.id}`, { status: false });
       await loadCategories();
@@ -66,10 +57,6 @@ function FinanceCategoriesPage({ title, kind, initialRows }) {
   };
 
   const restore = async (row) => {
-    if (isDemo) {
-      setRows((current) => current.map((item) => item.id === row.id ? { ...item, status: "Активно" } : item));
-      return;
-    }
     try {
       await api.patch(`/finance/transaction-categories/${row.id}`, { status: true });
       await loadCategories();
@@ -80,16 +67,6 @@ function FinanceCategoriesPage({ title, kind, initialRows }) {
 
   const save = async (event) => {
     event.preventDefault();
-    if (isDemo) {
-      if (editingId) {
-        setRows((current) => current.map((row) => row.id === editingId ? { ...form, id: editingId, operations: "0", total: "0 UZS", status: "Активно" } : row));
-      } else {
-        setRows((current) => [{ ...form, id: `demo-${Date.now()}`, operations: "0", total: "0 UZS", status: "Активно" }, ...current]);
-      }
-      setDrawerOpen(false);
-      return;
-    }
-
     setSaving(true);
     try {
       if (editingId) {
@@ -108,7 +85,6 @@ function FinanceCategoriesPage({ title, kind, initialRows }) {
 
   return (
     <div className="finance-page">
-      {isDemo && <DemoNotice />}
       <section className="finance-card">
         <header className="finance-header">
           <div className="finance-title-group">

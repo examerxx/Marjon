@@ -2,7 +2,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/marjon-logo.svg";
 import { logout } from "../api/client";
-import { filterNavItems } from "../utils/permissions";
+import { filterNavItems, getRole } from "../utils/permissions";
 import Icon from "./Icon";
 
 const PROFILE_STORAGE_KEY = "marjon_profile_settings";
@@ -156,7 +156,7 @@ export default function Sidebar({ user, collapsed, onToggle }) {
   const [lang, setLang] = useState(() => localStorage.getItem("marjon_lang") || "ru");
   const [storedProfile, setStoredProfile] = useState(() => readStoredProfile());
   const accountRef = useRef(null);
-  const role = user?.role_slugs?.[0] || (user?.is_superadmin ? "superadmin" : "owner");
+  const role = getRole(user) || "owner";
   const displayName = storedProfile.name || user?.full_name || user?.email || "Owner";
   const profileCardName = storedProfile.name || (user?.email ? `${user.email.slice(0, 14)}...` : "manager@marjon...");
   const profileCardRole = role === "owner" ? "manager" : role;
