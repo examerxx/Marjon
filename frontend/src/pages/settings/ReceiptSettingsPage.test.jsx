@@ -96,7 +96,11 @@ describe("ReceiptSettingsPage scroll layout", () => {
   });
 
   it("defines the desktop layout with only the settings panel as the scroll container", () => {
+    expect(cssRule(".receipt-page")).toContain("height: calc(100dvh");
+    expect(cssRule(".receipt-page")).toContain("min-height: 0");
+    expect(cssRule(".receipt-page")).toContain("overflow: hidden");
     expect(cssRule(".receipt-layout")).toContain("overflow: hidden");
+    expect(cssRule(".receipt-layout")).toContain("grid-template-rows: minmax(0, 1fr)");
     expect(cssRule(".receipt-settings")).toContain("overflow-y: auto");
     expect(cssRule(".receipt-settings")).toContain("scrollbar-gutter: stable");
     expect(cssRule(".receipt-preview-sticky")).toContain("overflow: hidden");

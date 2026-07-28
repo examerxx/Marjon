@@ -1,6 +1,10 @@
 .receipt-page {
   display: grid;
   gap: 18px;
+  height: calc(100dvh - var(--admin-owner-header-h, 84px) - 62px);
+  max-height: calc(100dvh - var(--admin-owner-header-h, 84px) - 62px);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .receipt-page__header {
@@ -47,10 +51,11 @@
 .receipt-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(420px, 520px);
+  grid-template-rows: minmax(0, 1fr);
   gap: 22px;
   align-items: stretch;
-  height: calc(100dvh - var(--admin-owner-header-h, 84px) - 62px);
-  max-height: calc(100dvh - var(--admin-owner-header-h, 84px) - 62px);
+  height: 100%;
+  max-height: 100%;
   min-height: 0;
   overflow: hidden;
 }
@@ -923,8 +928,16 @@
 }
 
 @media (max-width: 1024px) {
+  .receipt-page {
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    overflow: visible;
+  }
+
   .receipt-layout {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
     height: auto;
     max-height: none;
     min-height: 0;
