@@ -1,8 +1,13 @@
 .receipt-page {
   display: grid;
+  grid-template-rows: minmax(0, 1fr);
   gap: 18px;
-  height: calc(100dvh - var(--admin-owner-header-h, 84px) - 62px);
-  max-height: calc(100dvh - var(--admin-owner-header-h, 84px) - 62px);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.dashboard-body .dashboard-shell .dashboard-main .dashboard-content:has(> .receipt-page) {
   min-height: 0;
   overflow: hidden;
 }
@@ -55,7 +60,6 @@
   gap: 22px;
   align-items: stretch;
   height: 100%;
-  max-height: 100%;
   min-height: 0;
   overflow: hidden;
 }
@@ -65,30 +69,16 @@
   align-content: start;
   gap: 18px;
   width: 100%;
+  min-width: 0;
+}
+
+.receipt-settings.card.card-pad {
   height: 100%;
   max-height: 100%;
   min-height: 0;
-  min-width: 0;
-  padding-right: 10px;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
-}
-
-.receipt-settings::-webkit-scrollbar {
-  width: 8px;
-}
-
-.receipt-settings::-webkit-scrollbar-track {
-  background: rgba(241, 245, 249, 0.9);
-  border-radius: 999px;
-}
-
-.receipt-settings::-webkit-scrollbar-thumb {
-  background: rgba(29, 181, 181, 0.55);
-  border-radius: 999px;
 }
 
 .receipt-panel-title {
@@ -928,9 +918,13 @@
 }
 
 @media (max-width: 1024px) {
+  body.dashboard-body .dashboard-shell .dashboard-main .dashboard-content:has(> .receipt-page) {
+    overflow: visible;
+  }
+
   .receipt-page {
-    height: auto;
-    max-height: none;
+    grid-template-rows: auto;
+    flex: 0 1 auto;
     min-height: 0;
     overflow: visible;
   }
@@ -939,7 +933,6 @@
     grid-template-columns: 1fr;
     grid-template-rows: auto;
     height: auto;
-    max-height: none;
     min-height: 0;
     overflow: visible;
   }
@@ -951,10 +944,10 @@
     overflow: visible;
   }
 
-  .receipt-settings {
+  .receipt-settings.card.card-pad {
     height: auto;
     max-height: none;
-    overflow: visible;
+    overflow: hidden;
   }
 }
 
@@ -965,7 +958,7 @@
 
   .receipt-preview-shell {
     width: 100%;
-    overflow: hidden;
+    overflow: visible;
     padding: 20px 12px;
   }
 
