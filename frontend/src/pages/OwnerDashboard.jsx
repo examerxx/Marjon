@@ -786,7 +786,7 @@ function buildWarehouseSummary(reports = EMPTY_WAREHOUSE_REPORTS, financeRows = 
   );
 
   return [
-    { label: "Приход товаров", value: incomeTotal, icon: "bi-download", tone: "income", rows: incomeRows },
+    { label: "Приход товаров", value: incomeTotal, icon: "bi-download", tone: "income", rows: incomeRows, to: "/stock-report/incoming" },
     { label: "Расход товаров", value: expenseTotal, icon: "bi-upload", tone: "expense", rows: expenseRows, to: "/stock-report/outgoing" },
     { label: "Остаток склада", value: stockBalance, icon: "bi-box", tone: "stock", rows: stockRows, to: "/stock-report/stock" },
     { label: "Общие затраты", value: totalCosts, icon: "bi-wallet2", tone: "costs", rows: totalCostRows },
