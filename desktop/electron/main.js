@@ -4,6 +4,7 @@ const net = require('net')
 const os = require('os')
 const http = require('http')
 const https = require('https')
+const crypto = require('crypto')
 const { WebSocketServer } = require('ws')
 
 const isDev = process.env.NODE_ENV === 'development'
@@ -14,12 +15,17 @@ const isDev = process.env.NODE_ENV === 'development'
 //   - relays cloud kitchen events to connected mobile clients over WS
 //   - transparently proxies REST requests to the cloud API, so mobile devices
 //     on the LAN don't need direct internet access / cloud URL configuration
+//
+// Anyone on the LAN can otherwise reach this port, so every request/connection
+// must present the pairing token shown in the desktop UI (LocalWsBadge) — the
+// restaurant owner types it into the mobile app's "local desktop" settings once.
 
 const LOCAL_WS_PORT = 8765
 let localHttpServer = null
 let localWsServer = null
 const localClients = new Set()
 let cloudServerUrl = null // e.g. "http://api.marjon.uz/api/v1", set via IPC from renderer
+const pairingToken = crypto.randomBytes(16).toString('hex')
 
 function getLocalIp() {
   for (const iface of Object.values(os.networkInterfaces())) {
@@ -30,7 +36,18 @@ function getLocalIp() {
   return '127.0.0.1'
 }
 
+function tokenFromRequest(req, requestUrl) {
+  return req.headers['x-local-token'] || requestUrl.searchParams.get('token')
+}
+
 function proxyToCloud(req, res) {
+  const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
+  if (tokenFromRequest(req, requestUrl) !== pairingToken) {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ detail: 'Desktop proxy: invalid pairing token' }));
+    return;
+  }
+
   if (!cloudServerUrl) {
     res.writeHead(503, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ detail: 'Desktop proxy: cloud server not configured' }));
@@ -38,7 +55,7 @@ function proxyToCloud(req, res) {
   }
 
   const origin = cloudServerUrl.replace(/\/api\/v1\/?$/, '');
-  const target = new URL(origin + req.url);
+  const target = new URL(origin + requestUrl.pathname + requestUrl.search.replace(/[?&]token=[^&]*/, ''));
   const client = target.protocol === 'https:' ? https : http;
 
   const upstream = client.request(target, {
@@ -58,10 +75,16 @@ function proxyToCloud(req, res) {
 }
 
 function startLocalWsServer() {
-  if (localHttpServer) return { ip: getLocalIp(), port: LOCAL_WS_PORT }
+  if (localHttpServer) return { ip: getLocalIp(), port: LOCAL_WS_PORT, token: pairingToken }
 
   localHttpServer = http.createServer(proxyToCloud)
-  localWsServer = new WebSocketServer({ server: localHttpServer })
+  localWsServer = new WebSocketServer({
+    server: localHttpServer,
+    verifyClient: ({ req }) => {
+      const requestUrl = new URL(req.url, 'http://localhost')
+      return requestUrl.searchParams.get('token') === pairingToken
+    },
+  })
 
   localWsServer.on('connection', (ws) => {
     localClients.add(ws)
@@ -74,8 +97,8 @@ function startLocalWsServer() {
   })
 
   localHttpServer.listen(LOCAL_WS_PORT)
-  console.log(`[LocalWS] Listening on ws://${getLocalIp()}:${LOCAL_WS_PORT} (+ REST proxy)`)
-  return { ip: getLocalIp(), port: LOCAL_WS_PORT }
+  console.log(`[LocalWS] Listening on ws://${getLocalIp()}:${LOCAL_WS_PORT} (+ REST proxy), pairing token required`)
+  return { ip: getLocalIp(), port: LOCAL_WS_PORT, token: pairingToken }
 }
 
 function stopLocalWsServer() {
@@ -185,6 +208,7 @@ ipcMain.handle('printer:ping', async (_event, { ip, port }) => {
 ipcMain.handle('localws:info', () => ({
   ip: getLocalIp(),
   port: LOCAL_WS_PORT,
+  token: pairingToken,
   clients: localClients.size,
   running: localWsServer !== null,
 }))

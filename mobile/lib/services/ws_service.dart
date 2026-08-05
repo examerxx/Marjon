@@ -26,6 +26,7 @@ class WsService {
 
   String? _branchId;
   String? _localIp;         // set when using local desktop WS
+  String? _localToken;      // pairing token required by the desktop proxy
   bool _active = false;
   int _retryDelay = 1;
 
@@ -49,6 +50,7 @@ class WsService {
     final prefs = await SharedPreferences.getInstance();
     final localIpPref = prefs.getString('local_desktop_ip')?.trim() ?? '';
     _localIp = localIpPref.isNotEmpty ? localIpPref : null;
+    _localToken = prefs.getString('local_desktop_token')?.trim();
     _cleanup();
     await _doConnect();
   }
@@ -59,8 +61,11 @@ class WsService {
     try {
       final String uri;
       if (_localIp != null) {
-        // Local mode: connect directly to desktop on LAN, no auth needed
-        uri = 'ws://$_localIp:8765';
+        // Local mode: connect to the desktop's LAN proxy, pairing token required
+        final token = _localToken;
+        uri = (token != null && token.isNotEmpty)
+            ? 'ws://$_localIp:8765?token=$token'
+            : 'ws://$_localIp:8765';
       } else {
         if (_branchId == null) return;
         final prefs = await SharedPreferences.getInstance();

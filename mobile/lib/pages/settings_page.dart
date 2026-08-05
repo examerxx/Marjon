@@ -14,6 +14,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   String _lang = 'ru';
   String _localDesktopIp = '';
+  String _localDesktopToken = '';
 
   @override
   void initState() {
@@ -25,8 +26,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
       setState(() {
-        _lang           = prefs.getString('lang') ?? 'ru';
-        _localDesktopIp = prefs.getString('local_desktop_ip') ?? '';
+        _lang              = prefs.getString('lang') ?? 'ru';
+        _localDesktopIp    = prefs.getString('local_desktop_ip') ?? '';
+        _localDesktopToken = prefs.getString('local_desktop_token') ?? '';
       });
     }
   }
@@ -38,20 +40,22 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _editLocalDesktopIp() async {
-    final ctrl = TextEditingController(text: _localDesktopIp);
-    final result = await showDialog<String>(
+    final ipCtrl    = TextEditingController(text: _localDesktopIp);
+    final tokenCtrl = TextEditingController(text: _localDesktopToken);
+    final result = await showDialog<(String, String)>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('IP-адрес десктопа'),
+        title: const Text('Подключение к десктопу'),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           const Text(
-            'Введите локальный IP десктопного терминала (например 192.168.1.5).\n'
+            'Введите локальный IP десктопного терминала и код подключения '
+            '(показан на экране десктопа справа внизу).\n'
             'Оставьте пустым — будет использоваться облачный сервер.',
             style: TextStyle(fontSize: 13),
           ),
           const SizedBox(height: 12),
           TextField(
-            controller: ctrl,
+            controller: ipCtrl,
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
               hintText: '192.168.x.x',
@@ -59,24 +63,35 @@ class _SettingsPageState extends State<SettingsPage> {
               suffixText: ':8765',
             ),
           ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: tokenCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Код подключения',
+              hintText: 'например a1b2c3...',
+            ),
+          ),
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
           TextButton(
-            onPressed: () => Navigator.pop(context, ctrl.text.trim()),
+            onPressed: () => Navigator.pop(context, (ipCtrl.text.trim(), tokenCtrl.text.trim())),
             child: const Text('Сохранить'),
           ),
         ],
       ),
     );
     if (result == null || !mounted) return;
+    final (ip, token) = result;
     final prefs = await SharedPreferences.getInstance();
-    if (result.isEmpty) {
+    if (ip.isEmpty) {
       await prefs.remove('local_desktop_ip');
+      await prefs.remove('local_desktop_token');
     } else {
-      await prefs.setString('local_desktop_ip', result);
+      await prefs.setString('local_desktop_ip', ip);
+      await prefs.setString('local_desktop_token', token);
     }
-    setState(() => _localDesktopIp = result);
+    setState(() { _localDesktopIp = ip; _localDesktopToken = token; });
   }
 
   @override

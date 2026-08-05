@@ -114,7 +114,13 @@ function LocalWsBadge({ info }) {
             📱 Локальный WS
           </div>
           <div>ws://{info.ip}:{info.port}</div>
-          <div style={{ color: '#7a94b4', marginTop: 4 }}>
+          <div style={{ marginTop: 6 }}>
+            <div style={{ color: '#7a94b4' }}>Код подключения (ввести на телефоне):</div>
+            <div style={{ color: '#1db5b5', fontWeight: 700, letterSpacing: 1, wordBreak: 'break-all' }}>
+              {info.token}
+            </div>
+          </div>
+          <div style={{ color: '#7a94b4', marginTop: 6 }}>
             Подключено устройств: {info.clients}
           </div>
           <button

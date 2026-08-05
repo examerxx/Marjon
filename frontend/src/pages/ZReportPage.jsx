@@ -1,6 +1,27 @@
 import { useEffect, useRef, useState } from "react";
+import { api, formatMoney } from "../api/client";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
+
+function toApiDate(ddmmyyyy) {
+  if (!ddmmyyyy) return undefined;
+  const [d, m, y] = ddmmyyyy.split(".");
+  return `${y}-${m}-${d}`;
+}
+
+const PAYMENT_METHOD_LABELS = {
+  cash: "NAXT",
+  card: "Terminal",
+  terminal: "Terminal",
+  click: "CLICK",
+  payme: "Payme",
+  uzum: "UzumBank",
+  humo: "Humo",
+};
+
+function methodLabel(method) {
+  return PAYMENT_METHOD_LABELS[method?.toLowerCase()] || method || "—";
+}
 
 const printReports = [
   { key: "cashiers", title: "Отчет по кассирам", icon: "bi-person-badge", fields: [{ type: "select", label: "Кассир", options: ["Все кассиры", "Administrator", "Кассир 1"] }] },
@@ -87,20 +108,18 @@ function formatPrintMoment(date = new Date()) {
   return `${formatRangeDate(date)}, ${padDate(date.getHours())}:${padDate(date.getMinutes())}`;
 }
 
-function buildPaymentRows() {
-  return [
-    ["Terminal", "0"],
-    ["NAXT", "0"],
-    ["CLICK", "0"],
-    ["Humo", "0"],
-    ["Payme", "0"],
-    ["Vip", "0"],
-    ["UzumBank", "0"],
-    ["Долг", "0"],
-  ];
+function buildPaymentRows(zReport) {
+  if (!zReport) {
+    return [["Нет данных", "0"]];
+  }
+  const rows = (zReport.payment_methods || []).map((m) => [methodLabel(m.method), m.amount]);
+  if (rows.length === 0) {
+    rows.push(["Оплат нет", "0"]);
+  }
+  return rows;
 }
 
-function buildReportSection(title, rows = buildPaymentRows()) {
+function buildReportSection(title, rows, total) {
   return `
     <section class="print-section">
       ${title ? `<h3>${escapeHtml(title)}</h3>` : ""}
@@ -115,7 +134,7 @@ function buildReportSection(title, rows = buildPaymentRows()) {
           `).join("")}
           <tr class="total">
             <td>Итого:</td>
-            <td>0</td>
+            <td>${escapeHtml(total ?? "0")}</td>
           </tr>
         </tbody>
       </table>
@@ -123,9 +142,10 @@ function buildReportSection(title, rows = buildPaymentRows()) {
   `;
 }
 
-function buildPrintDocument(report, range) {
+function buildPrintDocument(report, range, zReport) {
   const title = report?.title || "Отчет";
   const period = `${range.start || ""} ${range.startTime || "00:00"} - ${range.end || ""} ${range.endTime || "00:00"}`;
+  const netSales = zReport?.net_sales ?? "0";
 
   return `<!doctype html>
 <html lang="ru">
@@ -265,11 +285,19 @@ function buildPrintDocument(report, range) {
     </div>
     <h1>${escapeHtml(title)}</h1>
     <p class="period">Дата: ${escapeHtml(period)}</p>
-    <p class="cashbox">КАССА 2</p>
-    ${buildReportSection("Итого приходов")}
-    ${buildReportSection("Итого расходов")}
-    ${buildReportSection("Кассир: Khusniddin Khusanboyev")}
-    <div class="footer">Итого по отчету: 0</div>
+    ${buildReportSection("Оплаты", buildPaymentRows(zReport), netSales)}
+    ${buildReportSection("Статистика", [
+      ["Заказов", zReport?.orders_count ?? "0"],
+      ["Отменено", zReport?.cancelled_orders_count ?? "0"],
+      ["Скидки", zReport?.discounts_total ?? "0"],
+      ["Возвраты", zReport?.refunds_total ?? "0"],
+      ["Средний чек", zReport?.avg_check ?? "0"],
+    ], zReport?.gross_sales ?? "0")}
+    ${buildReportSection("Итого по кассе", [
+      ["Наличные", zReport?.cash_total ?? "0"],
+      ["Безналичные", zReport?.non_cash_total ?? "0"],
+    ], netSales)}
+    <div class="footer">Итого по отчету: ${escapeHtml(String(netSales))}</div>
   </main>
   <div class="page-foot">
     <span>MARJON</span>
@@ -281,6 +309,26 @@ function buildPrintDocument(report, range) {
 
 export default function ZReportPage() {
   const [dateRange, setDateRange] = useState(() => defaultReportRange());
+  const [zReport, setZReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(false);
+    api.get("/analytics/z-report", { params: { date: toApiDate(dateRange.end) } })
+      .then(({ data }) => {
+        if (!cancelled) setZReport(data);
+      })
+      .catch(() => {
+        if (!cancelled) { setZReport(null); setLoadError(true); }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [dateRange.end]);
 
   function handlePrintReport(report) {
     const iframe = document.createElement("iframe");
@@ -302,7 +350,7 @@ export default function ZReportPage() {
     }
 
     printDocument.open();
-    printDocument.write(buildPrintDocument(report, dateRange));
+    printDocument.write(buildPrintDocument(report, dateRange, zReport));
     printDocument.close();
 
     printWindow.onafterprint = () => iframe.remove();
@@ -325,6 +373,39 @@ export default function ZReportPage() {
           showDropdownIcon
         />
       </div>
+      {loadError ? (
+        <div className="message message-error">Не удалось загрузить данные Z-отчёта. Проверьте соединение с сервером.</div>
+      ) : null}
+      <section className="kpi-grid">
+        <article className="kpi-card compact">
+          <div className="kpi-icon green"><Icon name="bi-cash-stack" size={20} /></div>
+          <div>
+            <div className="kpi-label">Выручка (netto)</div>
+            <div className="kpi-value">{loading ? "…" : formatMoney(zReport?.net_sales ?? 0)}</div>
+          </div>
+        </article>
+        <article className="kpi-card compact">
+          <div className="kpi-icon blue"><Icon name="bi-receipt" size={20} /></div>
+          <div>
+            <div className="kpi-label">Заказов</div>
+            <div className="kpi-value">{loading ? "…" : (zReport?.orders_count ?? 0)}</div>
+          </div>
+        </article>
+        <article className="kpi-card compact">
+          <div className="kpi-icon orange"><Icon name="bi-x-circle" size={20} /></div>
+          <div>
+            <div className="kpi-label">Отменено</div>
+            <div className="kpi-value">{loading ? "…" : (zReport?.cancelled_orders_count ?? 0)}</div>
+          </div>
+        </article>
+        <article className="kpi-card compact">
+          <div className="kpi-icon green"><Icon name="bi-graph-up" size={20} /></div>
+          <div>
+            <div className="kpi-label">Средний чек</div>
+            <div className="kpi-value">{loading ? "…" : formatMoney(zReport?.avg_check ?? 0)}</div>
+          </div>
+        </article>
+      </section>
       <article className="z-report-card z-report-print-panel">
         <div className="z-report-print-table-wrap">
           <table className="z-report-print-table">

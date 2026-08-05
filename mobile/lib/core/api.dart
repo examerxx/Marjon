@@ -40,11 +40,18 @@ class Api {
       onRequest: (options, handler) async {
         final prefs = await SharedPreferences.getInstance();
         final localIp = prefs.getString('local_desktop_ip')?.trim() ?? '';
-        options.baseUrl = localIp.isNotEmpty
-            // Route through the desktop's local REST proxy so mobile devices
-            // on the LAN don't need direct internet/cloud access.
-            ? 'http://$localIp:8765/api/v1'
-            : prefs.getString('server_url') ?? 'http://localhost:8000/api/v1';
+        if (localIp.isNotEmpty) {
+          // Route through the desktop's local REST proxy so mobile devices
+          // on the LAN don't need direct internet/cloud access. The proxy
+          // requires the pairing token shown on the desktop screen.
+          options.baseUrl = 'http://$localIp:8765/api/v1';
+          final localToken = prefs.getString('local_desktop_token')?.trim() ?? '';
+          if (localToken.isNotEmpty) {
+            options.headers['X-Local-Token'] = localToken;
+          }
+        } else {
+          options.baseUrl = prefs.getString('server_url') ?? 'http://localhost:8000/api/v1';
+        }
         if (_token != null) {
           options.headers['Authorization'] = 'Bearer $_token';
         }
