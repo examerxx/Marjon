@@ -47,7 +47,7 @@ function normalizeAdminPhone(phone) {
 
 export async function adminLogin(phone, password) {
   const normalizedPhone = normalizeAdminPhone(phone);
-  const { data } = await adminApi.post("/auth/login", { phone: normalizedPhone, password });
+  const { data } = await adminApi.post("/auth/admin/login", { phone: normalizedPhone, password });
   saveAuthTokens(data, { scope: AUTH_SCOPES.ADMIN });
   return data;
 }

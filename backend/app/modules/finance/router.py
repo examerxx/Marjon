@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Header, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.session import get_db
-from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.dependencies import get_current_user, require_hq_admin
 from app.modules.auth.models import User
 from app.modules.finance import models, schemas
 from app.modules.finance.service import TransactionService
@@ -16,12 +16,17 @@ from app.shared.pagination import Page, PageParams
 
 router = APIRouter(prefix="/finance", tags=["finance"])
 
-# NOTE (BE-02/BE-04): these four resources are reached by both the HQ admin
-# panel AND the owner/kafe app under the same /finance/* path with different
-# expected semantics (owner_finance vs hq_finance — see BE-04). Explicitly
-# keeping user_dep=get_current_user here — do NOT let this pick up
-# crud_router's require_hq_admin default, that would 403 the owner app.
-# Splitting these into separate hq/kafe namespaces is BE-04's job, not BE-02's.
+# BE-04: /finance/transactions and /finance/transaction-categories used to be
+# reached by BOTH the HQ admin panel and the owner/kafe app under the same
+# path with different semantics (organization_id vs company_id) — kafe_compat's
+# handlers for those two were being silently shadowed. Moved the HQ versions
+# to /hq/finance/* below; kafe_compat/router.py is now the sole, reachable
+# resolver for the unprefixed /finance/transactions(-categories) path, and
+# its handlers were fixed to actually filter by company_id.
+#
+# payment-types, finance-templates and counterparties are NOT part of this
+# conflict — kafe_compat never implemented those, so the admin frontend's
+# existing calls to them are untouched and still work as before.
 router.include_router(crud_router(
     prefix="/payment-types", tags=["finance"],
     model=models.PaymentType,
@@ -34,8 +39,10 @@ router.include_router(crud_router(
     user_dep=get_current_user,
 ))
 
-router.include_router(crud_router(
-    prefix="/transaction-categories", tags=["finance"],
+hq_router = APIRouter(prefix="/hq/finance", tags=["hq-finance"])
+
+hq_router.include_router(crud_router(
+    prefix="/transaction-categories", tags=["hq-finance"],
     model=models.TransactionCategory,
     create_schema=schemas.TransactionCategoryCreate,
     update_schema=schemas.TransactionCategoryUpdate,
@@ -43,7 +50,6 @@ router.include_router(crud_router(
     search_fields=("name",),
     filter_fields=("status", "kind", "parent_id"),
     default_sort="name",
-    user_dep=get_current_user,
 ))
 
 router.include_router(crud_router(
@@ -97,8 +103,9 @@ async def counterparty_transactions(
 router.include_router(counterparties)
 
 
-# ── Транзакции ───────────────────────────────────────────────────────────────
-transactions = APIRouter(prefix="/transactions", tags=["finance"])
+# ── Транзакции (HQ) ──────────────────────────────────────────────────────────
+# Mounted under hq_router (/hq/finance/transactions) — see BE-04 note above.
+transactions = APIRouter(prefix="/transactions", tags=["hq-finance"])
 
 TX_FILTERS = ("direction", "payment_type_id", "counterparty_id", "category_id", "organization_id")
 
@@ -112,7 +119,7 @@ async def list_transactions(
     sort: str | None = Query(None),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     org_scope: OrgScope = Depends(get_org_scope),
     db: AsyncSession = Depends(get_db),
 ):
@@ -131,7 +138,7 @@ async def list_transactions(
 async def create_transaction(
     data: schemas.TransactionCreate,
     idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     db: AsyncSession = Depends(get_db),
 ):
     return await TransactionService(db).create_transaction(data, user.id, idempotency_key)
@@ -143,28 +150,28 @@ async def create_transaction(
 async def pay(
     data: schemas.PayRequest,
     idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     db: AsyncSession = Depends(get_db),
 ):
     return await TransactionService(db).pay(data, user.id, idempotency_key)
 
 
 @transactions.get("/{tx_id}", response_model=schemas.TransactionResponse)
-async def get_transaction(tx_id: UUID, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def get_transaction(tx_id: UUID, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     return await TransactionService(db).get(tx_id)
 
 
 @transactions.patch("/{tx_id}", response_model=schemas.TransactionResponse)
-async def update_transaction(tx_id: UUID, data: schemas.TransactionUpdate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def update_transaction(tx_id: UUID, data: schemas.TransactionUpdate, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     return await TransactionService(db).update_transaction(tx_id, data, user.id)
 
 
 @transactions.delete("/{tx_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_transaction(tx_id: UUID, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def delete_transaction(tx_id: UUID, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     await TransactionService(db).delete_transaction(tx_id, user.id)
 
 
-router.include_router(transactions)
+hq_router.include_router(transactions)
 
 
 # ── История изменений сумм (только чтение) ──────────────────────────────────

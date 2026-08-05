@@ -27,7 +27,7 @@ const SECTION_API_MAP = {
   "srv-employees": { endpoint: "/departments", mapRow: (r) => [r.name || "", r.position || r.role || "—", r.department || "—", r.privileges || "—", r.status !== false ? "Активна" : "Неактивна"] },
   "srv-source": { endpoint: "/sources", mapRow: (r) => [r.name || "", r.type || "—", r.url || "—", String(r.leads_count || 0), r.status !== false ? "Активна" : "Неактивна"] },
   "bank-stats": { endpoint: "/reports/debt-credit", mapRow: null },
-  "bank-transactions": { endpoint: "/finance/transactions", mapRow: null },
+  "bank-transactions": { endpoint: "/hq/finance/transactions", mapRow: null },
   "set-store": { endpoint: "/store-versions", mapRow: (r) => [r.version || r.name || "", r.platform || "—", r.release_date || "—", r.status || "Активна"] },
   "set-cashier-bg": { endpoint: "/image-backgrounds", mapRow: null },
   "set-languages": { endpoint: "/languages", mapRow: (r) => [r.name || "", r.code || "", r.is_default ? "Да" : "Нет", r.status !== false ? "Активна" : "Неактивна"] },
@@ -8294,10 +8294,10 @@ const ADMIN_FINANCE_REQUIRED_FIELDS = ["amount", "paymentTypeId", "organizationI
 
 const adminFinanceApi = {
   listTransactions(params = {}) {
-    return adminApi.get("/finance/transactions", { params: { size: 100, ...params } });
+    return adminApi.get("/hq/finance/transactions", { params: { size: 100, ...params } });
   },
   createTransaction(payload, idempotencyKey) {
-    return adminApi.post("/finance/transactions", payload, {
+    return adminApi.post("/hq/finance/transactions", payload, {
       headers: { "Idempotency-Key": idempotencyKey },
     });
   },
@@ -8308,7 +8308,7 @@ const adminFinanceApi = {
     return adminApi.get("/organizations", { params: { size: 100, status: "active" } });
   },
   listCategories(kind) {
-    return adminApi.get("/finance/transaction-categories", { params: { size: 200, kind, status: true } });
+    return adminApi.get("/hq/finance/transaction-categories", { params: { size: 200, kind, status: true } });
   },
   listCounterparties(type) {
     return adminApi.get("/finance/counterparties", { params: { size: 200, type } });
@@ -9685,7 +9685,7 @@ function AdminIncomeCategoriesPage({ search, onNotify }) {
       createDescription="Создайте новую категорию для приходных операций."
       editDescription="Измените название и статус категории."
       emptyText="Категории приходов не найдены."
-      apiEndpoint="/finance/transaction-categories?kind=income"
+      apiEndpoint="/hq/finance/transaction-categories?kind=income"
     />
   );
 }
@@ -9703,7 +9703,7 @@ function AdminExpenseCategoriesPage({ search, onNotify }) {
       createDescription="Создайте новую категорию для расходных операций."
       editDescription="Измените название и статус категории расходов."
       emptyText="Категории расходов не найдены."
-      apiEndpoint="/finance/transaction-categories?kind=expense"
+      apiEndpoint="/hq/finance/transaction-categories?kind=expense"
     />
   );
 }
@@ -11105,7 +11105,7 @@ function TransactionsTable() {
 
   useEffect(() => {
     if (ADMIN_DASHBOARD_DEMO_MODE) return;
-    adminApi.get("/finance/transactions", { params: { size: 50 } })
+    adminApi.get("/hq/finance/transactions", { params: { size: 50 } })
       .then(({ data }) => {
         const items = Array.isArray(data) ? data : data?.items || [];
         setRows(items.map((r, i) => ({

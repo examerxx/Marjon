@@ -57,6 +57,12 @@ class FinTransaction(TimeStampedModel, SoftDeleteMixin):
     organization_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("organizations.id", ondelete="SET NULL"), index=True
     )
+    # BE-04: separate from organization_id (HQ concept) — set/filtered by the
+    # kafe-panel endpoints (kafe_compat/router.py) so owner data stays scoped
+    # to their own company, independent of the HQ admin panel's org-scoping.
+    company_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("companies.id", ondelete="SET NULL"), index=True
+    )
     comment: Mapped[str | None] = mapped_column(Text)
     user_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")

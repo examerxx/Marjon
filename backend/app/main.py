@@ -76,7 +76,7 @@ from app.modules.departments.router    import router as departments_router
 from app.modules.marketing.router      import router as marketing_router
 from app.modules.nomenclature.router   import router as nomenclature_router
 from app.modules.storage.router        import router as storage_router
-from app.modules.finance.router        import router as finance_router
+from app.modules.finance.router        import router as finance_router, hq_router as finance_hq_router
 from app.modules.field_service.router  import router as field_service_router
 from app.modules.tasks.router          import router as tasks_router
 from app.modules.ratings.router        import router as ratings_router
@@ -131,7 +131,7 @@ routers = [
     # Главная админка
     handbook_router, organizations_router, departments_router,
     marketing_router, nomenclature_router, storage_router,
-    finance_router, field_service_router, tasks_router,
+    finance_router, finance_hq_router, field_service_router, tasks_router,
     ratings_router, admin_settings_router, admin_reports_router,
     hq_reports_router,
 ]

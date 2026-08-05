@@ -46,7 +46,12 @@ async def kafe_list_transactions(
     direction: str | None = Query(None),
     user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db),
 ):
-    q = select(FinTransaction).where(FinTransaction.deleted_at.is_(None))
+    # BE-04: was unfiltered (despite the module docstring claiming
+    # "company-scoped") — every company saw every other company's transactions.
+    q = select(FinTransaction).where(
+        FinTransaction.deleted_at.is_(None),
+        FinTransaction.company_id == user.company_id,
+    )
     if date_from:
         q = q.where(func.date(FinTransaction.date) >= date_from)
     if date_to:
@@ -67,6 +72,7 @@ async def kafe_create_transaction(data: dict, user: User = Depends(get_current_u
         payment_type_id=data.get("payment_type_id"),
         counterparty_id=data.get("counterparty_id"),
         user_id=user.id,
+        company_id=user.company_id,
     )
     db.add(t)
     await db.commit()
@@ -77,7 +83,7 @@ async def kafe_create_transaction(data: dict, user: User = Depends(get_current_u
 @router.patch("/finance/transactions/{tx_id}", tags=["finance-kafe"])
 async def kafe_update_transaction(tx_id: UUID, data: dict, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     t = await db.get(FinTransaction, tx_id)
-    if not t:
+    if not t or t.company_id != user.company_id:
         raise NotFoundError("Transaction not found")
     if data.get("amount") is not None:
         t.amount = abs(float(data["amount"]))
