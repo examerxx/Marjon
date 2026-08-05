@@ -27,9 +27,18 @@ class UserRepository(BaseRepository[User]):
         )
         return result.scalar_one_or_none()
 
+    async def get_by_phone(self, phone: str) -> Optional[User]:
+        result = await self.db.execute(select(User).where(User.phone == phone))
+        return result.scalar_one_or_none()
+
     async def get_company_users(self, company_id: UUID) -> list[User]:
+        # BE-07: was filtered to is_active == True, which made a deactivated
+        # employee (DELETE /auth/users/{id} soft-deactivates) permanently
+        # invisible to the staff list — with no way to find them again to
+        # flip is_active back on. Now returns everyone; the response's
+        # is_active field lets the frontend badge/filter as it likes.
         result = await self.db.execute(
-            select(User).where(User.company_id == company_id, User.is_active == True)
+            select(User).where(User.company_id == company_id)
         )
         return list(result.scalars().all())
 

@@ -82,6 +82,10 @@ class CompanyUserUpdate(BaseSchema):
     phone: str | None = None
     password: str | None = None
     role_slug: str | None = None
+    # BE-07: was missing entirely — a deactivated employee (DELETE
+    # /auth/users/{id} soft-deactivates, doesn't hard-delete) had no way to
+    # be reactivated through the API.
+    is_active: bool | None = None
 
     @field_validator("password")
     @classmethod

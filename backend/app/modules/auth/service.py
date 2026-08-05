@@ -140,6 +140,10 @@ class AuthService:
 
         if await self.user_repo.get_by_email(email):
             raise ConflictError("Email already registered")
+        if phone and await self.user_repo.get_by_phone(phone):
+            # get_by_login() resolves email/username/phone with .limit(1) —
+            # a duplicate phone would make login resolution ambiguous.
+            raise ConflictError("Phone already registered")
 
         # BE-05: role_slug is validated against the canonical allowlist here
         # (raises ValidationError otherwise) and the role's default
@@ -175,6 +179,7 @@ class AuthService:
         phone: str | None = None,
         password: str | None = None,
         role_slug: str | None = None,
+        is_active: bool | None = None,
     ) -> tuple[User, list[str]]:
         if not company_id:
             raise ValidationError("Current user is not assigned to a company")
@@ -191,9 +196,15 @@ class AuthService:
                 raise ConflictError("Email already in use")
             user.email = email
         if phone is not None:
+            # BE-07: spec requires 409 on duplicate phone too, not just email.
+            existing_phone = await self.user_repo.get_by_phone(phone)
+            if existing_phone and existing_phone.id != user_id:
+                raise ConflictError("Phone already in use")
             user.phone = phone
         if password is not None:
             user.password_hash = hash_password(password)
+        if is_active is not None:
+            user.is_active = is_active
 
         if role_slug is not None:
             from sqlalchemy import delete as sql_delete

@@ -174,6 +174,7 @@ async def update_company_user(
         phone=data.phone,
         password=data.password,
         role_slug=data.role_slug,
+        is_active=data.is_active,
     )
     return CompanyUserResponse.model_validate(user).model_copy(
         update={"role_slugs": slugs, "role_slug": slugs[0] if slugs else None}
