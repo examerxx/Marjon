@@ -1,140 +1,143 @@
-/* Дополнения для LoginPage: переключатель email/phone и ссылка на PIN-вход.
-   Подключается рядом с auth.css. */
+@layer marjon-base {
+  /* Дополнения для LoginPage: переключатель email/phone и ссылка на PIN-вход.
+     Подключается рядом с auth.css. */
 
-.login-pro-tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: clamp(8px, 1.4vh, 16px);
-  padding: 4px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 12px;
-}
+  .login-pro-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: clamp(8px, 1.4vh, 16px);
+    padding: 4px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+  }
 
-.login-pro-tab {
-  flex: 1;
-  padding: clamp(7px, 1vh, 10px) 14px;
-  background: transparent;
-  border: none;
-  color: var(--neutral-500);
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 9px;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
+  .login-pro-tab {
+    flex: 1;
+    padding: clamp(7px, 1vh, 10px) 14px;
+    background: transparent;
+    border: none;
+    color: var(--neutral-500);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
 
-.login-pro-tab:hover {
-  background: rgba(0, 0, 0, 0.06);
-  color: var(--neutral-700);
-}
+  .login-pro-tab:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--neutral-700);
+  }
 
-.login-pro-tab.is-active {
-  background: rgba(29, 181, 181, 0.12);
-  color: var(--color-brand);
-}
+  .login-pro-tab.is-active {
+    background: rgba(29, 181, 181, 0.12);
+    color: var(--color-brand);
+  }
 
-.login-pro-alt {
-  margin-top: clamp(6px, 1vh, 14px);
-  text-align: center;
-}
+  .login-pro-alt {
+    margin-top: clamp(6px, 1vh, 14px);
+    text-align: center;
+  }
 
-.login-pro-alt__link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: clamp(7px, 1vh, 10px) 14px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.05);
-  color: var(--neutral-600);
-  text-decoration: none;
-  font-size: 14px;
-  transition: background 0.15s ease;
-}
+  .login-pro-alt__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: clamp(7px, 1vh, 10px) 14px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--neutral-600);
+    text-decoration: none;
+    font-size: 14px;
+    transition: background 0.15s ease;
+  }
 
-.login-pro-alt__link:hover {
-  background: rgba(255, 255, 255, 0.09);
-}
+  .login-pro-alt__link:hover {
+    background: rgba(255, 255, 255, 0.09);
+  }
 
-/* ── Eye toggle (show/hide password) ─────────────────── */
+  /* ── Eye toggle (show/hide password) ─────────────────── */
 
-.login-pro-eye {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  background: none;
-  border: none;
-  color: var(--neutral-400);
-  cursor: pointer;
-  border-radius: 6px;
-  transition: color 0.15s ease;
-  flex-shrink: 0;
-}
+  .login-pro-eye {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    background: none;
+    border: none;
+    color: var(--neutral-400);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: color 0.15s ease;
+    flex-shrink: 0;
+  }
 
-.login-pro-eye:hover {
-  color: var(--neutral-700);
-}
+  .login-pro-eye:hover {
+    color: var(--neutral-700);
+  }
 
-/* ── Forgot password link ─────────────────────────────── */
+  /* ── Forgot password link ─────────────────────────────── */
 
-.login-pro-forgot {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-brand-dark);
-  text-decoration: none;
-  white-space: nowrap;
-  transition: color 0.15s ease;
-}
+  .login-pro-forgot {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-brand-dark);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 0.15s ease;
+  }
 
-.login-pro-forgot:hover {
-  color: var(--color-brand);
-  text-decoration: underline;
-}
+  .login-pro-forgot:hover {
+    color: var(--color-brand);
+    text-decoration: underline;
+  }
 
-/* ── Custom checkbox «Запомнить меня» ─────────────────── */
+  /* ── Custom checkbox «Запомнить меня» ─────────────────── */
 
-.login-pro-check {
-  cursor: pointer;
-  user-select: none;
-}
+  .login-pro-check {
+    cursor: pointer;
+    user-select: none;
+  }
 
-.login-pro-check input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
-  min-width: 20px;
-  border: 2px solid var(--neutral-300);
-  border-radius: 6px;
-  background: #fff;
-  cursor: pointer;
-  position: relative;
-  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-}
+  .login-pro-check input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    border: 2px solid var(--neutral-300);
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+  }
 
-.login-pro-check input[type="checkbox"]::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='10' viewBox='0 0 12 10'%3E%3Cpath d='M1 4.5L4.5 8.5L11 1' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E") center / 12px 10px no-repeat;
-  opacity: 0;
-  transform: scale(0.6);
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
+  .login-pro-check input[type="checkbox"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='10' viewBox='0 0 12 10'%3E%3Cpath d='M1 4.5L4.5 8.5L11 1' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E") center / 12px 10px no-repeat;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
 
-.login-pro-check input[type="checkbox"]:hover {
-  border-color: var(--teal-400);
-  box-shadow: 0 0 0 3px rgba(29, 181, 181, 0.14);
-}
+  .login-pro-check input[type="checkbox"]:hover {
+    border-color: var(--teal-400);
+    box-shadow: 0 0 0 3px rgba(29, 181, 181, 0.14);
+  }
 
-.login-pro-check input[type="checkbox"]:checked {
-  background: var(--color-brand);
-  border-color: var(--color-brand);
-  box-shadow: 0 2px 8px rgba(29, 181, 181, 0.32);
-}
+  .login-pro-check input[type="checkbox"]:checked {
+    background: var(--color-brand);
+    border-color: var(--color-brand);
+    box-shadow: 0 2px 8px rgba(29, 181, 181, 0.32);
+  }
 
-.login-pro-check input[type="checkbox"]:checked::after {
-  opacity: 1;
-  transform: scale(1);
+  .login-pro-check input[type="checkbox"]:checked::after {
+    opacity: 1;
+    transform: scale(1);
+  }
+
 }

@@ -330,7 +330,7 @@ export default function OrdersReportPage() {
         <style>
           {orderColumnOptions.map((column, index) => (
             visibleColumns[column.key] === false
-              ? `.orders-report-page .report-table thead th:nth-child(${index + 1}), .orders-report-page .report-table tbody tr:not(.report-empty-row) td:nth-child(${index + 1}) { display: none !important; }`
+              ? `.orders-report-page .report-table thead th:nth-child(${index + 1}), .orders-report-page .report-table tbody tr:not(.report-empty-row) td:nth-child(${index + 1}) { display: none; }`
               : ""
           )).join("\n")}
         </style>

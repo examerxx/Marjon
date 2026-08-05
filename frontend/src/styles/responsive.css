@@ -1,55 +1,76 @@
-@media (max-width: 1024px) {
-    .dashboard-sidebar { width: 240px; }
-    .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .content-grid { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 768px) {
-    .dashboard-sidebar {
-        position: fixed;
-        left: -280px;
-        z-index: 40;
-        transition: left .2s ease;
-    }
-    .dashboard-sidebar.is-open { left: 0; }
-    .sidebar-toggle {
-        display: inline-flex;
-        width: 38px;
-        height: 38px;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        background: #fff;
-    }
-    .dashboard-topbar { align-items: flex-start; padding: 14px 16px; flex-wrap: wrap; }
-    .topbar-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
-    .dashboard-content { padding: 16px; }
-    .kpi-grid { grid-template-columns: 1fr; }
-    .form-grid { grid-template-columns: 1fr; }
-    .data-table { display: block; overflow-x: auto; }
-}
-
-
-/* ============================================================
-   RESPONSIVE: единый механизм мобильного сайдбара (≤768)
-   Перебивает конфликт transform vs left из dashboard.css.
-   ============================================================ */
-@media (max-width: 768px) {
-  .dashboard-sidebar,
-  .marjon-owner-dashboard .sidebar {
-    position: fixed;
-    top: 0; bottom: 0; left: 0 !important;
-    width: 280px; min-width: 280px;
-    transform: translateX(-100%);
-    transition: transform .25s var(--mj-ease, ease);
-    z-index: 50;
+@layer marjon-base {
+  @media (max-width: 1024px) {
+      .dashboard-sidebar { width: 240px; }
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .content-grid { grid-template-columns: 1fr; }
   }
-  .dashboard-sidebar.is-open,
-  .marjon-owner-dashboard .sidebar.is-open {
-    transform: translateX(0) !important;
+
+  @media (max-width: 768px) {
+      .dashboard-sidebar {
+          position: fixed;
+          left: -280px;
+          z-index: 40;
+          transition: left .2s ease;
+      }
+      .dashboard-sidebar.is-open { left: 0; }
+      .sidebar-toggle {
+          display: inline-flex;
+          width: 38px;
+          height: 38px;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          background: #fff;
+      }
+      .dashboard-topbar { align-items: flex-start; padding: 14px 16px; flex-wrap: wrap; }
+      .topbar-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+      .dashboard-content { padding: 16px; }
+      .kpi-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .data-table { display: block; overflow-x: auto; }
   }
-  .marjon-owner-dashboard .main-content,
-  .dashboard-content { margin-left: 0 !important; }
+
+  /* ============================================================
+     RESPONSIVE: единый механизм мобильного сайдбара (≤768)
+     Перебивает конфликт transform vs left из dashboard.css.
+     ============================================================ */
+  @media (max-width: 768px) {
+    .dashboard-sidebar,
+    .marjon-owner-dashboard .sidebar {
+      position: fixed;
+      top: 0; bottom: 0; 
+      width: 280px; min-width: 280px;
+      transform: translateX(-100%);
+      transition: transform .25s var(--mj-ease, ease);
+      z-index: 50;
+    }
+
+  }
+
 }
 
+@layer marjon-important {
+
+  /* ============================================================
+     RESPONSIVE: единый механизм мобильного сайдбара (≤768)
+     Перебивает конфликт transform vs left из dashboard.css.
+     ============================================================ */
+  @media (max-width: 768px) {
+    
+.marjon-owner-dashboard .sidebar {
+  left: 0;
+}
+
+    .dashboard-sidebar.is-open,
+    .marjon-owner-dashboard .sidebar.is-open {
+      transform: translateX(0);
+    }
+    
+.marjon-owner-dashboard .main-content {
+  margin-left: 0;
+}
+
+  }
+
+}

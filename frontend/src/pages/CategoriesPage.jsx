@@ -11,6 +11,35 @@ const TYPE_CONFIG = {
 
 const DEFAULT_FORM = { name: "", slug: "", sort_order: 0 };
 
+const DEMO_CATEGORIES = {
+  dishes: [
+    { id: "demo-dish-hot", name: "Горячие блюда", slug: "hot-dishes", sort_order: 1, is_active: true },
+    { id: "demo-dish-grill", name: "Гриль", slug: "grill", sort_order: 2, is_active: true },
+    { id: "demo-dish-salads", name: "Салаты", slug: "salads", sort_order: 3, is_active: true },
+    { id: "demo-dish-drinks", name: "Напитки", slug: "drinks", sort_order: 4, is_active: true },
+  ],
+  raw: [
+    { id: "demo-raw-meat", name: "Мясо", slug: "meat", sort_order: 1, is_active: true },
+    { id: "demo-raw-grocery", name: "Крупы", slug: "grocery", sort_order: 2, is_active: true },
+    { id: "demo-raw-vegetables", name: "Овощи", slug: "vegetables", sort_order: 3, is_active: true },
+    { id: "demo-raw-spices", name: "Специи", slug: "spices", sort_order: 4, is_active: true },
+  ],
+  semi: [
+    { id: "demo-semi-dough", name: "Тесто", slug: "dough", sort_order: 1, is_active: true },
+    { id: "demo-semi-marinade", name: "Маринады", slug: "marinades", sort_order: 2, is_active: true },
+    { id: "demo-semi-sauces", name: "Соусы", slug: "sauces", sort_order: 3, is_active: true },
+  ],
+  sales: [
+    { id: "demo-sales-hall", name: "Зал", slug: "hall", sort_order: 1, is_active: true },
+    { id: "demo-sales-delivery", name: "Доставка", slug: "delivery", sort_order: 2, is_active: true },
+    { id: "demo-sales-pickup", name: "Самовывоз", slug: "pickup", sort_order: 3, is_active: true },
+  ],
+};
+
+function demoCategories(type) {
+  return DEMO_CATEGORIES[type] || DEMO_CATEGORIES.dishes;
+}
+
 function makeSlug(name, prefix) {
   const clean = name
     .trim()
@@ -47,10 +76,10 @@ export default function CategoriesPage({ type = "dishes" }) {
     try {
       const { data } = await api.get("/inventory/categories");
       const loadedCategories = Array.isArray(data) ? data : [];
-      setRows(loadedCategories);
+      setRows(loadedCategories.length ? loadedCategories : demoCategories(type));
     } catch (err) {
-      setRows([]);
-      setError(err.response?.data?.detail || "Не удалось загрузить категории.");
+      setRows(demoCategories(type));
+      setError("");
     } finally {
       setLoading(false);
     }

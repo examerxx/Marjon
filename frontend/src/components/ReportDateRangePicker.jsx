@@ -142,6 +142,14 @@ export default function ReportDateRangePicker({
   showDropdownIcon = false,
   presets = datePresets,
   formatButtonLabel,
+  blockPageScrollOnWheel = false,
+  openCalendarOnOpen = false,
+  applyPresetOnSelect = false,
+  showMenuOk = true,
+  leadingIconName = "",
+  leadingIconSize = 16,
+  trailingIconName = "",
+  trailingIconSize = 16,
 }) {
   const rootRef = useRef(null);
   const hourListRef = useRef(null);
@@ -155,9 +163,9 @@ export default function ReportDateRangePicker({
   useEffect(() => {
     if (open) {
       setDraft(withDefaultTimes(value));
-      setActivePicker(null);
+      setActivePicker(openCalendarOnOpen ? "start" : null);
     }
-  }, [open, value]);
+  }, [open, value, openCalendarOnOpen]);
 
   useEffect(() => {
     if (!activePicker) {
@@ -185,7 +193,13 @@ export default function ReportDateRangePicker({
 
   function openPicker() {
     setDraft(withDefaultTimes(value));
-    setOpen((current) => !current);
+    setOpen((current) => {
+      const nextOpen = !current;
+      if (!nextOpen) {
+        setActivePicker(null);
+      }
+      return nextOpen;
+    });
   }
 
   function applyDraft() {
@@ -197,10 +211,17 @@ export default function ReportDateRangePicker({
   function selectPreset(preset) {
     const option = typeof preset === "string" ? { label: preset } : preset;
     const nextRange = option.getRange ? option.getRange() : presetRange(option.value || option.label);
-    setDraft({
+    const nextDraft = {
       ...withDefaultTimes(nextRange),
       preset: option.label,
-    });
+    };
+    setDraft(nextDraft);
+
+    if (applyPresetOnSelect) {
+      onChange(nextDraft);
+      setActivePicker(null);
+      setOpen(false);
+    }
   }
 
   function updateDateTime(key, nextValue) {
@@ -303,11 +324,18 @@ export default function ReportDateRangePicker({
   const presetOptions = presets.map((preset) => (typeof preset === "string" ? { label: preset } : preset));
   const periodLabel = formatButtonLabel ? formatButtonLabel(value) : formatPeriodLabel(value);
   const buttonClasses = ["report-period-button", buttonClassName].filter(Boolean).join(" ");
+  const blockWheelScroll = blockPageScrollOnWheel
+    ? (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    : undefined;
 
   return (
     <div className="report-period-picker" ref={rootRef}>
       <button className={buttonClasses} type="button" onClick={openPicker} aria-expanded={open}>
         {showChevrons ? <Icon name="bi-chevron-left" size={18} /> : null}
+        {leadingIconName ? <Icon name={leadingIconName} size={leadingIconSize} /> : null}
         {labelPrefix ? (
           <>
             <span>{labelPrefix}</span>
@@ -318,9 +346,10 @@ export default function ReportDateRangePicker({
         )}
         {showChevrons ? <Icon name="bi-chevron-right" size={18} /> : null}
         {showDropdownIcon ? <Icon name="bi-chevron-down" size={18} /> : null}
+        {trailingIconName ? <Icon name={trailingIconName} size={trailingIconSize} /> : null}
       </button>
       {open ? (
-        <div className="report-date-menu">
+        <div className="report-date-menu" onWheel={blockWheelScroll}>
           <div className="report-date-presets">
             {presetOptions.map((preset) => (
               <button className={draft.preset === preset.label ? "is-active" : ""} type="button" key={preset.value || preset.label} onClick={() => selectPreset(preset)}>
@@ -350,10 +379,10 @@ export default function ReportDateRangePicker({
               onFocus={() => openDateTimePicker("end")}
               aria-label="Конец периода"
             />
-            <button className="report-date-ok" type="button" onClick={applyDraft}>ОК</button>
+            {showMenuOk ? <button className="report-date-ok" type="button" onClick={applyDraft}>ОК</button> : null}
           </div>
           {activePicker ? (
-            <div className="report-date-calendar-popover">
+            <div className={`report-date-calendar-popover report-date-calendar-popover--${activePicker}`}>
               <div className={`report-date-picker-body ${showTime ? "" : "report-date-picker-body--date-only"}`.trim()}>
                 <div className="report-date-calendar-panel">
                   <div className="report-date-calendar-toolbar">

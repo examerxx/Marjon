@@ -1,0 +1,61 @@
+.marjon-logo {
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.marjon-logo--sm {
+  width: 40px;
+  height: 40px;
+}
+
+.marjon-logo--md {
+  width: 52px;
+  height: 52px;
+}
+
+.marjon-logo--lg {
+  width: 72px;
+  height: 72px;
+}
+
+.marjon-logo--xl {
+  width: 112px;
+  height: 112px;
+}
+
+.brand-mark .marjon-logo,
+.brand-mark.marjon-logo-wrap {
+  width: 46px;
+  height: 46px;
+}
+
+.pos-brand__mark .marjon-logo {
+  width: 44px;
+  height: 44px;
+}
+
+.login-logo-wrap .marjon-logo {
+  width: 52px;
+  height: 52px;
+}
+
+.visual-mark .marjon-logo {
+  width: 96px;
+  height: 96px;
+}
+
+.guest-logo.marjon-logo,
+img.guest-logo[src*="marjon-logo"] {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: #fff;
+  padding: 4px;
+}
+
+.kitchen-brand-logo {
+  width: 42px;
+  height: 42px;
+  margin-right: 10px;
+}

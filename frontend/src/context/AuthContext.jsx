@@ -3,6 +3,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api, isAuthenticated, login as apiLogin, loginByPhone as apiLoginByPhone, loginByPin as apiLoginByPin, logout as apiLogout } from "../api/client";
+import { AUTH_SCOPES, subscribeToAuthSessionEnded } from "../auth/session";
 import { getRole, ROLE_HOME } from "../utils/permissions";
 
 const AuthContext = createContext(null);
@@ -11,19 +12,23 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const loadProfile = useCallback(async () => {
     if (!isAuthenticated()) {
       setUser(null);
+      setSessionExpired(false);
       setLoading(false);
       return null;
     }
     try {
       const { data } = await api.get("/auth/me");
       setUser(data);
+      setSessionExpired(false);
       return data;
     } catch (e) {
       setUser(null);
+      if (e?.response?.status === 401) setSessionExpired(true);
       return null;
     } finally {
       setLoading(false);
@@ -34,10 +39,18 @@ export function AuthProvider({ children }) {
     loadProfile();
   }, [loadProfile]);
 
+  useEffect(() => subscribeToAuthSessionEnded(({ reason, scope }) => {
+    if (scope === AUTH_SCOPES.ADMIN) return;
+    setUser(null);
+    setLoading(false);
+    setSessionExpired(reason !== "logout");
+  }), []);
+
   const loginEmail = useCallback(async (email, password) => {
     setError(null);
     try {
       await apiLogin(email, password);
+      setSessionExpired(false);
       return await loadProfile();
     } catch (e) {
       setError(e?.response?.data?.detail || "Ошибка входа");
@@ -49,6 +62,7 @@ export function AuthProvider({ children }) {
     setError(null);
     try {
       await apiLoginByPhone(phone, password);
+      setSessionExpired(false);
       return await loadProfile();
     } catch (e) {
       setError(e?.response?.data?.detail || "Ошибка входа");
@@ -60,6 +74,7 @@ export function AuthProvider({ children }) {
     setError(null);
     try {
       await apiLoginByPin(employeeId, pin);
+      setSessionExpired(false);
       return await loadProfile();
     } catch (e) {
       setError(e?.response?.data?.detail || "Неверный PIN");
@@ -70,6 +85,7 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     apiLogout();
     setUser(null);
+    setSessionExpired(false);
   }, []);
 
   const value = useMemo(() => ({
@@ -77,6 +93,7 @@ export function AuthProvider({ children }) {
     role: getRole(user),
     isAuthenticated: Boolean(user),
     loading,
+    sessionExpired,
     error,
     loginEmail,
     loginPhone,
@@ -84,7 +101,7 @@ export function AuthProvider({ children }) {
     logout,
     reload: loadProfile,
     homeFor: (u) => ROLE_HOME[getRole(u || user)] || "/",
-  }), [user, loading, error, loginEmail, loginPhone, loginPin, logout, loadProfile]);
+  }), [user, loading, sessionExpired, error, loginEmail, loginPhone, loginPin, logout, loadProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

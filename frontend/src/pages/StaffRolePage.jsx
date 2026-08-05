@@ -103,7 +103,6 @@ const emptyForm = {
   pin: "",
   password: "",
   printerIp: "",
-  organization: "",
   nfcId: "",
   canDeleteDishes: false,
   canTakeawayAtTable: false,
@@ -270,7 +269,12 @@ function StaffRolePage({ role = "all" }) {
     setEditingId(null);
     setShowPassword(false);
     setPhoneCountryOpen(false);
-    setForm({ ...emptyForm, phoneCountry: "UZ", access: {} });
+    setForm({
+      ...emptyForm,
+      phoneCountry: "UZ",
+      roleKey: routeRole === "all" ? "cashier" : routeRole,
+      access: {},
+    });
     setModalOpen(true);
   };
 
@@ -350,7 +354,7 @@ const saveStaff = async (event) => {
         id: newUser.id,
         fullName: form.fullName,
         phone,
-        roleKey: form.roleKey,
+        roleKey: form.roleKey || "cashier",
         permission: getPermissionSummary(form),
         status: "active",
         pin: form.pin,
@@ -714,7 +718,7 @@ const saveStaff = async (event) => {
                   </button>
                 </div>
               </label>
-              <label>
+              <label className="staff-form__printer-ip">
                 <span>IP адрес принтера *</span>
                 <input
                   required
@@ -723,21 +727,6 @@ const saveStaff = async (event) => {
                   onChange={(event) => updateForm("printerIp", event.target.value)}
                   placeholder="192.168.0.100"
                 />
-              </label>
-              <label>
-                <span>Организации</span>
-                <select
-                  required
-                  value={form.roleKey}
-                  onChange={(event) => updateForm("roleKey", event.target.value)}
-                >
-                  <option value="">Выберите тип организации</option>
-                  {roleOptions.map((item) => (
-                    <option key={item.key} value={item.key}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
               </label>
               <label>
                 <span>NFC-идентификатор</span>

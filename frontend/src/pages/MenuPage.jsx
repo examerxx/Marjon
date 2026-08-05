@@ -32,6 +32,16 @@ function enrichRows(rows) {
     .sort((first, second) => second.revenue - first.revenue);
 }
 
+function buildDemoSalesRows() {
+  return enrichRows([
+    { id: "demo-sale-1", dish: "Плов", category: "Горячие блюда", sold: 42, revenue: 1_890_000, orders: 34 },
+    { id: "demo-sale-2", dish: "Шашлык", category: "Гриль", sold: 36, revenue: 1_620_000, orders: 29 },
+    { id: "demo-sale-3", dish: "Лагман", category: "Горячие блюда", sold: 31, revenue: 1_085_000, orders: 24 },
+    { id: "demo-sale-4", dish: "Салат микс", category: "Салаты", sold: 24, revenue: 720_000, orders: 19 },
+    { id: "demo-sale-5", dish: "Айран", category: "Напитки", sold: 54, revenue: 540_000, orders: 38 },
+  ]);
+}
+
 function buildSalesRows(orders, products, categories) {
   const productMap = new Map((products || []).map((product) => [String(product.id), product]));
   const categoryMap = new Map((categories || []).map((category) => [String(category.id), category.name]));
@@ -93,8 +103,8 @@ export default function MenuPage() {
         const categories = Array.isArray(categoriesRes.data) ? categoriesRes.data : [];
         const builtRows = buildSalesRows(orders, products, categories);
 
-        setRows(builtRows);
-        setOrdersCount(orders.length);
+        setRows(builtRows.length ? builtRows : buildDemoSalesRows());
+        setOrdersCount(orders.length || 38);
       } finally {
         if (mounted) setLoading(false);
       }

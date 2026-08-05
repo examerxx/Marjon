@@ -1,4 +1,5 @@
-import { Navigate, RouterProvider, createBrowserRouter } from "react-router-dom";
+import { useMemo } from "react";
+import { Navigate, RouterProvider, createBrowserRouter, useLocation } from "react-router-dom";
 import { PageLoader } from "./components/Loader";
 import DashboardLayout from "./components/DashboardLayout";
 import LoginPage from "./pages/LoginPage";
@@ -40,23 +41,39 @@ import { AuthProvider } from "./context/AuthContext";
 import { OrgProvider } from "./context/OrgContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { useAuth } from "./hooks/useAuth";
+import { canAccessPath, canAccessSection, getRoleHomePath } from "./utils/permissions";
 
-function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
+function ProtectedRoute({ children, sectionKey = "" }) {
+  const { user, isAuthenticated, loading } = useAuth();
+  const location = useLocation();
+
   if (loading) return <PageLoader />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  const allowed = sectionKey
+    ? canAccessSection(user, sectionKey)
+    : canAccessPath(user, location.pathname);
+
+  if (!allowed) {
+    const homePath = getRoleHomePath(user);
+    if (location.pathname === homePath) return <Navigate to="/login" replace />;
+    return <Navigate to={homePath} replace />;
+  }
+
   return children;
 }
 
-const router = createBrowserRouter([
+export function createAppRouter() {
+  return createBrowserRouter([
+  { path: "/index.html", element: <Navigate to="/" replace /> },
   { path: "/login", element: <LoginPage /> },
   { path: "/login/staff", element: <StaffLoginPage /> },
   { path: "/login/pin/:employeeId", element: <PinLoginPage /> },
-  { path: "/waiter", element: <ProtectedRoute><WaiterPage /></ProtectedRoute> },
-  { path: "/waiter/new", element: <ProtectedRoute><WaiterPage mode="new" /></ProtectedRoute> },
-  { path: "/waiter/order/:orderId", element: <ProtectedRoute><WaiterPage mode="order" /></ProtectedRoute> },
-  { path: "/waiter/orders", element: <ProtectedRoute><WaiterPage mode="orders" /></ProtectedRoute> },
-  { path: "/kitchen", element: <ProtectedRoute><KitchenPage /></ProtectedRoute> },
+  { path: "/waiter", element: <ProtectedRoute sectionKey="waiter"><WaiterPage /></ProtectedRoute> },
+  { path: "/waiter/new", element: <ProtectedRoute sectionKey="waiter"><WaiterPage mode="new" /></ProtectedRoute> },
+  { path: "/waiter/order/:orderId", element: <ProtectedRoute sectionKey="waiter"><WaiterPage mode="order" /></ProtectedRoute> },
+  { path: "/waiter/orders", element: <ProtectedRoute sectionKey="waiter"><WaiterPage mode="orders" /></ProtectedRoute> },
+  { path: "/kitchen", element: <ProtectedRoute sectionKey="kitchen"><KitchenPage /></ProtectedRoute> },
   {
     path: "/",
     element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
@@ -143,8 +160,11 @@ const router = createBrowserRouter([
     ],
   },
 ]);
+}
 
 export default function App() {
+  const router = useMemo(() => createAppRouter(), []);
+
   return (
     <ThemeProvider>
       <AuthProvider>

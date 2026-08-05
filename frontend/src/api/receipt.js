@@ -28,7 +28,6 @@ export const KITCHEN_BLOCKS = [
   "table",
   "waiter",
   "createdAt",
-  "station",
   "items",
   "modifiers",
   "itemComments",
@@ -184,6 +183,13 @@ async function postPrint(url, payload) {
   }
 }
 
+function localTestPrint() {
+  if (typeof window !== "undefined" && typeof window.print === "function") {
+    window.print();
+  }
+  return Promise.resolve({ ok: true, source: "local" });
+}
+
 export function getCustomerTemplate(org) {
   return getTemplate("/settings/receipt-template", CUSTOMER_TEMPLATE_KEY, buildCustomerTemplate(org));
 }
@@ -201,11 +207,11 @@ export function saveKitchenTemplate(template) {
 }
 
 export function testPrintReceipt(template) {
-  return postPrint("/printers/print/test-receipt", { template });
+  return localTestPrint(template);
 }
 
 export function testPrintKitchen(template) {
-  return postPrint("/printers/print/test-kitchen", { template });
+  return localTestPrint(template);
 }
 
 export function printOrderReceipt(orderId) {

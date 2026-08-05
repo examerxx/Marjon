@@ -1,0 +1,46 @@
+{
+  "nav": {
+    "menu": "Menu"
+  },
+  "sidebar": {
+    "navigation": "Navigation"
+  },
+  "auth": {
+    "login": "Sign in",
+    "sign_in": "Sign in",
+    "login_title": "Sign in",
+    "email_placeholder": "Enter email",
+    "password_placeholder": "Enter password",
+    "pin_placeholder": "Enter PIN",
+    "forgot_password": "Forgot password?",
+    "register": "Register",
+    "login_error": "Invalid login or password",
+    "session_expired": "Session expired. Sign in again.",
+    "staff_login": "Staff login",
+    "owner_login": "Owner login",
+    "pin_login": "PIN login",
+    "enter_pin": "Enter PIN to sign in",
+    "wrong_pin": "Invalid PIN",
+    "no_account": "No account?",
+    "welcome_title": "Welcome back",
+    "welcome_subtitle": "Sign in to your restaurant workspace.",
+    "phone_label": "Phone number",
+    "password_label": "Password",
+    "remember_me": "Remember me",
+    "loading": "Signing in...",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
+    "language_toggle": "Change language",
+    "home": "Home",
+    "cafe": "Cafe",
+    "contact": "Contact",
+    "hero_badge": "Restaurant management platform",
+    "hero_title_start": "Run your restaurant",
+    "hero_title_accent": "smarter",
+    "hero_title_end": "",
+    "hero_text": "Manage orders, table bookings, staff, and finance in one system. Serve faster and grow profit.",
+    "hero_feature_orders": "Order control — fast and accurate service",
+    "hero_feature_stock": "Inventory tracking — monitor product balances",
+    "hero_feature_reports": "Reports — real-time analytics"
+  }
+}

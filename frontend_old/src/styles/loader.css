@@ -1,0 +1,62 @@
+/* ─── Unified Loader ────────────────────────────────────────── */
+.mj-loader {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.mj-loader--inline {
+  flex-direction: row;
+  gap: 8px;
+}
+
+.mj-loader__ring {
+  display: block;
+  border-radius: 50%;
+  border-style: solid;
+  border-color: rgba(29, 181, 181, 0.15);
+  border-top-color: var(--color-brand);
+  animation: mjSpin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+/* sizes */
+.mj-loader--sm .mj-loader__ring  { width: 18px; height: 18px; border-width: 2px; }
+.mj-loader--md .mj-loader__ring  { width: 28px; height: 28px; border-width: 3px; }
+.mj-loader--lg .mj-loader__ring  { width: 40px; height: 40px; border-width: 3.5px; }
+
+.mj-loader__text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+
+.mj-loader--sm .mj-loader__text { font-size: 12px; }
+.mj-loader--lg .mj-loader__text { font-size: 14px; }
+
+@keyframes mjSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Page-level: centered in available space */
+.mj-loader-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: 100%;
+  min-height: 100dvh; /* fallback when outside flex layout (auth screen) */
+}
+
+/* inside dashboard content area — don't expand to full viewport */
+.dashboard-content > .mj-loader-page {
+  min-height: 0;
+}
+
+/* Table cell */
+.mj-loader-cell {
+  padding: 28px 0 !important;
+  text-align: center;
+}

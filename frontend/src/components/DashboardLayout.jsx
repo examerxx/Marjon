@@ -5,7 +5,7 @@ import SupportWidget from "./SupportWidget";
 import Topbar from "./Topbar";
 import { clampToToday, todayInputValue } from "../utils/date";
 import { useAuth } from "../hooks/useAuth";
-import { getRole } from "../utils/permissions";
+import { canAccessPath, getRole } from "../utils/permissions";
 
 const pageMeta = {
   "/": ["Owner Dashboard", "Ключевые показатели ресторана"],
@@ -84,9 +84,10 @@ export default function DashboardLayout() {
   useEffect(() => {
     if (loading || !user) return;
     const role = getRole(user);
-    if (role === "waiter" && !location.pathname.startsWith("/waiter")) {
+    const canOpenCurrentPath = canAccessPath(user, location.pathname);
+    if (role === "waiter" && !location.pathname.startsWith("/waiter") && !canOpenCurrentPath) {
       navigate("/waiter", { replace: true });
-    } else if (role === "kitchen" && !location.pathname.startsWith("/kitchen")) {
+    } else if (role === "kitchen" && !location.pathname.startsWith("/kitchen") && !canOpenCurrentPath) {
       navigate("/kitchen", { replace: true });
     }
   }, [user, loading, location.pathname, navigate]);

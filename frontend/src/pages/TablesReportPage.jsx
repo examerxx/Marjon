@@ -369,7 +369,7 @@ export default function TablesReportPage() {
         <style>
           {tableColumnOptions.map((column, index) => (
             visibleColumns[column.key] === false
-              ? `.tables-report-page .report-table thead th:nth-child(${index + 1}), .tables-report-page .report-table tbody tr:not(.report-empty-row) td:nth-child(${index + 1}) { display: none !important; }`
+              ? `.tables-report-page .report-table thead th:nth-child(${index + 1}), .tables-report-page .report-table tbody tr:not(.report-empty-row) td:nth-child(${index + 1}) { display: none; }`
               : ""
           )).join("\n")}
         </style>

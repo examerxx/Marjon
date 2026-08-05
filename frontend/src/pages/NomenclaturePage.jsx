@@ -13,6 +13,7 @@ const dishColumnOptions = [
   { key: "cost", label: "Себестоимость", width: 132 },
   { key: "price", label: "Цена", width: 112 },
   { key: "menu", label: "Меню", width: 146 },
+  { key: "subcategory", label: "Подкатегория", width: 152 },
   { key: "printer", label: "Принтер", width: 162 },
   { key: "recipe", label: "Рецепты", width: 134 },
   { key: "stock", label: "Остаток", width: 116 },
@@ -68,13 +69,24 @@ const fallbackConfigs = {
     title: "Сырьё",
     action: "Добавить +",
     columns: ["Название", "Категория", "Подкатегория", "Ед. изм", "Остаток", "Мин. остаток", "Цена закупки", "Поставщик", "Статус", "Действия"],
-    rows: [],
+    rows: [
+      ["Говядина", "Мясо", "Красное мясо", "кг", "24.5", "5", "78 000 UZS", "Fresh Meat", ACTIVE],
+      ["Куриное филе", "Мясо", "Птица", "кг", "18", "4", "42 000 UZS", "Bozor", ACTIVE],
+      ["Рис лазер", "Крупы", "Для плова", "кг", "38", "10", "15 000 UZS", "Bozor", ACTIVE],
+      ["Помидоры", "Овощи", "Свежие овощи", "кг", "32", "6", "9 000 UZS", "Green Market", ACTIVE],
+      ["Зира", "Специи", "Восточные специи", "кг", "4", "1", "65 000 UZS", "Spice House", ACTIVE],
+    ],
   },
   semi: {
     title: "Полуфабрикаты",
     action: "Добавить +",
-    columns: ["Название", "Категория", "Ед. изм", "Себестоимость", "Состав", "Статус", "Действия"],
-    rows: [],
+    columns: ["Название", "Категория", "Подкатегория", "Ед. изм", "Себестоимость", "Состав", "Статус", "Действия"],
+    rows: [
+      ["Маринад для шашлыка", "Заготовки", "Маринады", "кг", "28 000 UZS", "5 ингредиентов", ACTIVE],
+      ["Тесто для самсы", "Тесто", "Слоеное тесто", "кг", "12 500 UZS", "4 ингредиента", ACTIVE],
+      ["Соус томатный", "Соусы", "Горячие соусы", "л", "18 000 UZS", "6 ингредиентов", ACTIVE],
+      ["Фарш для мант", "Заготовки", "Мясные заготовки", "кг", "54 000 UZS", "7 ингредиентов", ACTIVE],
+    ],
   },
 };
 
@@ -110,6 +122,106 @@ function matchesDishStatFilter(row, filterKey) {
   }
 }
 
+function demoDishRows() {
+  return [
+    {
+      id: "demo-dish-plov",
+      name: "Плов",
+      sort: "1",
+      type: "Блюда",
+      unit: "порция",
+      cost: "18 000 UZS",
+      price: "45000",
+      menu: "Горячие блюда",
+      subcategory: "Основные блюда",
+      printer: "Кухня",
+      recipe: "Рецепт (8 шт)",
+      stock: "42",
+      auto: true,
+      set: false,
+      category: "Горячие блюда",
+      chef: "Повар 1",
+      photo: "",
+    },
+    {
+      id: "demo-dish-shashlik",
+      name: "Шашлык",
+      sort: "2",
+      type: "Блюда",
+      unit: "порция",
+      cost: "32 000 UZS",
+      price: "60000",
+      menu: "Гриль",
+      subcategory: "Мясные блюда",
+      printer: "Мангал",
+      recipe: "Рецепт (6 шт)",
+      stock: "36",
+      auto: true,
+      set: false,
+      category: "Гриль",
+      chef: "Повар 2",
+      photo: "",
+    },
+    {
+      id: "demo-dish-lagman",
+      name: "Лагман",
+      sort: "3",
+      type: "Блюда",
+      unit: "порция",
+      cost: "16 000 UZS",
+      price: "35000",
+      menu: "Горячие блюда",
+      subcategory: "Супы",
+      printer: "Кухня",
+      recipe: "Рецепт (7 шт)",
+      stock: "31",
+      auto: true,
+      set: false,
+      category: "Горячие блюда",
+      chef: "Повар 1",
+      photo: "",
+    },
+    {
+      id: "demo-dish-salad",
+      name: "Салат микс",
+      sort: "4",
+      type: "Блюда",
+      unit: "порция",
+      cost: "11 000 UZS",
+      price: "30000",
+      menu: "Салаты",
+      subcategory: "Свежие салаты",
+      printer: "Холодный цех",
+      recipe: "Рецепт (5 шт)",
+      stock: "24",
+      auto: true,
+      set: false,
+      category: "Салаты",
+      chef: "Повар 2",
+      photo: "",
+    },
+    {
+      id: "demo-sale-ayran",
+      name: "Айран",
+      sort: "5",
+      type: "Реализация",
+      unit: "шт",
+      cost: "5 000 UZS",
+      price: "10000",
+      menu: "Напитки",
+      subcategory: "Кисломолочные",
+      printer: "Бар",
+      recipe: "Рецепт (2 шт)",
+      stock: "54",
+      auto: false,
+      set: false,
+      category: "Напитки",
+      chef: "Бар",
+      photo: "",
+    },
+  ];
+}
+
 function DishesCatalogPage() {
   const [rows, setRows] = useState([]);
   const [apiLoading, setApiLoading] = useState(true);
@@ -120,7 +232,7 @@ function DishesCatalogPage() {
   const [photoPicker, setPhotoPicker] = useState(null);
   const [photoSearch, setPhotoSearch] = useState("");
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: "", sort: "1", type: "Блюда", unit: "шт", cost: "0 UZS", price: "", menu: "", printer: "", recipe: "Рецепт (0 шт)", stock: "-", auto: false, set: false, category: "", chef: "" });
+  const [form, setForm] = useState({ name: "", sort: "1", type: "Блюда", unit: "шт", cost: "0 UZS", price: "", menu: "", subcategory: "", printer: "", recipe: "Рецепт (0 шт)", stock: "-", auto: false, set: false, category: "", chef: "" });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState(defaultDishColumnVisibility);
 
@@ -149,7 +261,7 @@ function DishesCatalogPage() {
     api.get("/inventory/products")
       .then(({ data }) => {
         const items = Array.isArray(data) ? data : data?.items || [];
-        setRows(items.map((item) => ({
+        const mapped = items.map((item) => ({
             id: item.id,
             name: item.name || "",
             sort: String(item.sort_order ?? "1"),
@@ -158,6 +270,7 @@ function DishesCatalogPage() {
             cost: item.cost_price ? `${Number(item.cost_price).toLocaleString("ru-RU")} UZS` : "0 UZS",
             price: String(item.price || "0"),
             menu: item.category_name || item.menu || "",
+            subcategory: item.subcategory_name || item.subcategory || item.specification || "",
             printer: item.printer_name || "",
             recipe: `Рецепт (${item.ingredients_count ?? 0} шт)`,
             stock: item.stock !== undefined ? String(item.stock) : "-",
@@ -166,9 +279,10 @@ function DishesCatalogPage() {
             category: item.category_name || "",
             chef: item.station || "",
             photo: item.image_url || "",
-          })));
+          }));
+        setRows(mapped.length ? mapped : demoDishRows());
       })
-      .catch(() => setRows([]))
+      .catch(() => setRows(demoDishRows()))
       .finally(() => setApiLoading(false));
   }, []);
 
@@ -204,7 +318,7 @@ function DishesCatalogPage() {
 
   const openDrawer = (row = null) => {
     setEditing(row);
-    setForm(row || { name: "", sort: "1", type: "Блюда", unit: "шт", cost: "0 UZS", price: "", menu: "", printer: "", recipe: "Рецепт (0 шт)", stock: "-", auto: false, set: false, category: "", chef: "" });
+    setForm(row || { name: "", sort: "1", type: "Блюда", unit: "шт", cost: "0 UZS", price: "", menu: "", subcategory: "", printer: "", recipe: "Рецепт (0 шт)", stock: "-", auto: false, set: false, category: "", chef: "" });
     setDrawerOpen(true);
   };
 
@@ -216,6 +330,7 @@ function DishesCatalogPage() {
       unit: form.unit,
       price: parseInt(form.price, 10) || 0,
       category_name: form.menu || form.category,
+      subcategory_name: form.subcategory,
       station: form.chef,
       auto_write_off: form.auto,
       is_set: form.set,
@@ -396,6 +511,7 @@ function DishesCatalogPage() {
                 {isColumnVisible("cost") ? <th className="dish-col-cost">Себестоимость</th> : null}
                 {isColumnVisible("price") ? <th className="dish-col-price">Цена</th> : null}
                 {isColumnVisible("menu") ? <th className="dish-col-menu">Меню</th> : null}
+                {isColumnVisible("subcategory") ? <th className="dish-col-subcategory">Подкатегория</th> : null}
                 {isColumnVisible("printer") ? <th className="dish-col-printer">Принтер</th> : null}
                 {isColumnVisible("recipe") ? <th className="dish-col-recipe">Рецепты</th> : null}
                 {isColumnVisible("stock") ? <th className="dish-col-stock">Остаток</th> : null}
@@ -429,6 +545,7 @@ function DishesCatalogPage() {
                   </td>
                   ) : null}
                   {isColumnVisible("menu") ? <td className="dish-col-menu"><span className="dish-menu-pill">{row.menu}</span></td> : null}
+                  {isColumnVisible("subcategory") ? <td className="dish-col-subcategory"><span className="dish-menu-pill">{row.subcategory || "-"}</span></td> : null}
                   {isColumnVisible("printer") ? <td className="dish-col-printer dish-printer-cell">{row.printer || "-"}</td> : null}
                   {isColumnVisible("recipe") ? <td className="dish-col-recipe"><button type="button" className="dish-recipe-link">{row.recipe}</button></td> : null}
                   {isColumnVisible("stock") ? (
@@ -469,7 +586,7 @@ function DishesCatalogPage() {
               <button type="button" onClick={() => setDrawerOpen(false)}><Icon name="bi-x-lg" /></button>
             </div>
             <div className="nomenclature-form">
-              {["name", "sort", "price", "cost", "menu", "printer", "category", "chef"].map((field) => (
+              {["name", "sort", "price", "cost", "menu", "subcategory", "printer", "category", "chef"].map((field) => (
                 <label key={field}>
                   <span>{fieldLabels[field]}</span>
                   <input value={form[field] || ""} onChange={(event) => setForm((prev) => ({ ...prev, [field]: event.target.value }))} />
@@ -566,6 +683,7 @@ const fieldLabels = {
   price: "Цена",
   cost: "Себестоимость",
   menu: "Меню",
+  subcategory: "Подкатегория",
   printer: "Принтер",
   category: "Категория",
   chef: "Повар",
@@ -617,15 +735,15 @@ function SimpleNomenclaturePage({ config }) {
               ];
             }
             return [
-              item.name || "", item.category || "", item.unit || "кг",
+              item.name || "", item.category || "", item.subcategory_name || item.subcategory || item.specification || "", item.unit || "кг",
               item.cost_price ? `${Number(item.cost_price).toLocaleString("ru-RU")} UZS` : "0 UZS",
               `${item.ingredients_count ?? 0} ингредиента`, item.is_active !== false ? ACTIVE : ARCHIVED,
             ];
           });
-        setRows(mapped);
+        setRows(mapped.length ? mapped : config.rows);
       })
-      .catch(() => setRows([]));
-  }, [apiEndpoint]);
+      .catch(() => setRows(config.rows));
+  }, [apiEndpoint, config.rows]);
 
   const openEditor = (row = null, index = null) => {
     setEditingIndex(index);

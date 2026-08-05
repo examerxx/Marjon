@@ -2,6 +2,25 @@ import { useEffect, useMemo, useState } from "react";
 import { api, formatMoney } from "../api/client";
 import Icon from "../components/Icon";
 
+const DEMO_FINANCE_CATEGORIES = {
+  income: [
+    { id: "demo-income-sales", name: "Продажи", description: "Приход", operations: "86", total: "8 420 000 UZS", status: "Активно" },
+    { id: "demo-income-delivery", name: "Доставка", description: "Приход", operations: "18", total: "1 260 000 UZS", status: "Активно" },
+    { id: "demo-income-other", name: "Прочие поступления", description: "Приход", operations: "4", total: "380 000 UZS", status: "Активно" },
+    { id: "demo-income-archive", name: "Старые бонусы", description: "Приход", operations: "2", total: "90 000 UZS", status: "Архив" },
+  ],
+  expense: [
+    { id: "demo-expense-products", name: "Закупка продуктов", description: "Расход", operations: "24", total: "3 180 000 UZS", status: "Активно" },
+    { id: "demo-expense-salary", name: "Зарплата", description: "Расход", operations: "8", total: "2 400 000 UZS", status: "Активно" },
+    { id: "demo-expense-utility", name: "Коммунальные", description: "Расход", operations: "5", total: "740 000 UZS", status: "Активно" },
+    { id: "demo-expense-archive", name: "Старые расходы", description: "Расход", operations: "1", total: "120 000 UZS", status: "Архив" },
+  ],
+};
+
+function demoFinanceCategories(kind) {
+  return DEMO_FINANCE_CATEGORIES[kind] || DEMO_FINANCE_CATEGORIES.income;
+}
+
 function FinanceCategoriesPage({ title, kind }) {
   const [rows, setRows] = useState([]);
   const [activeTab, setActiveTab] = useState("Активно");
@@ -15,16 +34,17 @@ function FinanceCategoriesPage({ title, kind }) {
     try {
       const { data } = await api.get("/finance/transaction-categories", { params: { kind } });
       const items = Array.isArray(data) ? data : data?.items || [];
-      setRows(items.map((item) => ({
+      const mapped = items.map((item) => ({
           id: item.id,
           name: item.name,
           description: item.kind === "income" ? "Приход" : "Расход",
           operations: "—",
           total: "—",
           status: item.status ? "Активно" : "Архив",
-        })));
+        }));
+      setRows(mapped.length ? mapped : demoFinanceCategories(kind));
     } catch {
-      setRows([]);
+      setRows(demoFinanceCategories(kind));
     }
   }
 

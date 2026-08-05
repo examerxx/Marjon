@@ -1,463 +1,362 @@
-import { useState } from "react";
 import logo from "../../assets/marjon-logo.svg";
-import { formatMoney } from "../../api/client";
 
-const customerSampleOrder = {
+export const customerSampleOrder = {
   order_number: "3",
   table_number: "1 (Divanli Kabina)",
   waiter: "Kassir",
   order_type: "На стол",
-  payment_method: "Наличные",
-  discount: 8000,
+  payment_method: "Смешанная оплата",
+  discount: 0,
   service_fee: 8000,
   vat: 0,
   total_amount: 108640,
   created_at: "2025-07-31T18:17:00",
+  payments: [
+    { label: "Наличные", amount: 108000 },
+    { label: "Карта", amount: 600 },
+  ],
   items: [
     { id: 1, name: "Somsa", quantity: 10, price: 8000, total: 80000 },
     { id: 2, name: "Shashlik tovuqli 200g", quantity: 2, price: 32000, total: 64000 },
   ],
 };
 
-const kitchenSampleOrder = {
+export const kitchenSampleOrder = {
   order_number: "A-1042",
   table_number: "12",
   waiter: "Aziz",
-  station: "Горячий цех",
   priority: "Срочно",
   note: "Без лука в салате",
-  created_at: new Date().toISOString(),
+  created_at: "2026-07-27T10:41:00",
   items: [
     {
       id: 1,
       name: "Плов чайханский",
       quantity: 2,
       modifiers: ["Без казы", "Острый соус отдельно"],
-      note: "Один без моркови",
+      note: "",
     },
     { id: 2, name: "Салат Ачичук", quantity: 1, modifiers: ["Меньше соли"], note: "" },
+    { id: 3, name: "Плов чайханский", quantity: 1, modifiers: ["Один без моркови"], note: "" },
   ],
 };
 
-const qrCells = [
-  0, 1, 2, 3, 4, 6, 8, 9, 10, 11, 12,
-  14, 18, 20, 24, 26, 30, 31, 32, 34, 36,
-  38, 39, 42, 43, 45, 47, 49, 50, 52, 55,
-  56, 57, 59, 61, 63, 66, 69, 70, 72, 73,
-  75, 77, 78, 81, 82, 84, 86, 88, 90, 91,
-  92, 94, 96, 98, 99, 100,
-];
-
-const movableCustomerBlocks = new Set(["logo", "restaurantName", "qr", "thankYouText", "footerText"]);
-
-function isEnabled(template, block) {
-  return template?.enabled?.[block] !== false;
+function normalizePaperSize(value) {
+  return String(value || "80mm").includes("58") ? "58" : "80";
 }
 
-function formatReceiptDate(value) {
+function hasValue(value) {
+  return value !== undefined && value !== null && String(value).trim() !== "";
+}
+
+function toNumber(value) {
+  const number = Number(value || 0);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function money(value) {
+  return toNumber(value).toLocaleString("ru-RU", { maximumFractionDigits: 0 }).replace(/\s/g, " ");
+}
+
+function itemTotal(item) {
+  return toNumber(item.total ?? item.amount ?? toNumber(item.price) * toNumber(item.quantity || 1));
+}
+
+function itemName(item) {
+  return item.name || item.title || item.product_name || item.dish_name || "Позиция";
+}
+
+function itemQuantity(item) {
+  return toNumber(item.quantity ?? item.qty ?? 1);
+}
+
+function itemPrice(item) {
+  return toNumber(item.price ?? item.unit_price ?? item.amount);
+}
+
+function formatCustomerDate(value) {
   const date = new Date(value || Date.now());
   return new Intl.DateTimeFormat("ru-RU", {
-    hour: "2-digit",
-    minute: "2-digit",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   }).format(date).replace(",", "");
 }
 
 function formatKitchenDate(value) {
+  const date = new Date(value || Date.now());
   return new Intl.DateTimeFormat("ru-RU", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(value || Date.now()));
+  }).format(date);
 }
 
-function money(value) {
-  return Number(value || 0).toLocaleString("ru-RU").replace(/\s/g, " ");
+export function getCustomerReceiptTotals(order = {}) {
+  const items = Array.isArray(order.items) ? order.items : [];
+  const subtotal = items.reduce((sum, item) => sum + itemTotal(item), 0);
+  const discount = toNumber(order.discount ?? order.discount_amount);
+  const service = toNumber(order.service_fee ?? order.service_amount);
+  const tax = toNumber(order.vat ?? order.tax ?? order.tax_amount);
+  const total = hasValue(order.total_amount)
+    ? toNumber(order.total_amount)
+    : subtotal - discount + service + tax;
+  return { subtotal, discount, service, tax, total };
 }
 
-function ReceiptDivider() {
-  return <div className="receipt-preview__divider" aria-hidden="true" />;
-}
-
-function EditableText({ value, fallback, multiline = false, className = "", onChange, ariaLabel }) {
-  const [editing, setEditing] = useState(false);
-  const text = value || fallback || "";
-
-  if (!onChange) return multiline ? (
-    <span className={className}>{text.split("\n").map((line) => <span key={line || "line"}>{line}</span>)}</span>
-  ) : <span className={className}>{text}</span>;
-
-  if (editing) {
-    const commonProps = {
-      value: text,
-      autoFocus: true,
-      "aria-label": ariaLabel,
-      onChange: (event) => onChange(event.target.value),
-      onBlur: () => setEditing(false),
-      onKeyDown: (event) => {
-        if (event.key === "Escape") setEditing(false);
-        if (!multiline && event.key === "Enter") setEditing(false);
-      },
-    };
-    return multiline
-      ? <textarea className="receipt-preview__inline-input receipt-preview__inline-input--area" rows="3" {...commonProps} />
-      : <input className="receipt-preview__inline-input" {...commonProps} />;
-  }
-
-  return (
-    <button className={`receipt-preview__editable ${className}`} type="button" onClick={() => setEditing(true)} title="Изменить текст">
-      {multiline ? text.split("\n").map((line) => <span key={line || "line"}>{line}</span>) : text}
-    </button>
-  );
-}
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function MovableBlock({ block, template, onTemplateChange, children }) {
-  const [drag, setDrag] = useState(null);
-  const position = template?.positions?.[block] || { x: 0, y: 0 };
-  const canMove = Boolean(onTemplateChange);
-
-  function updatePosition(next) {
-    onTemplateChange?.({
-      positions: {
-        ...(template.positions || {}),
-        [block]: {
-          x: clamp(Math.round(next.x), -90, 90),
-          y: clamp(Math.round(next.y), -80, 80),
-        },
-      },
+function getPaymentRows(order = {}, total = 0) {
+  const paymentRows = [];
+  if (Array.isArray(order.payments)) {
+    order.payments.forEach((payment) => {
+      const amount = toNumber(payment.amount ?? payment.sum ?? payment.total);
+      if (amount > 0) {
+        paymentRows.push({
+          label: payment.label || payment.name || payment.method || payment.payment_method || "Оплата",
+          amount,
+        });
+      }
     });
   }
 
-  function startDrag(event) {
-    if (!canMove) return;
-    if (event.target.closest?.(".receipt-preview__drag-reset")) return;
-    if (event.target.closest?.(".receipt-preview__editable")) return;
-    if (event.target.closest?.(".receipt-preview__inline-input")) return;
-    event.preventDefault();
-    event.stopPropagation();
-    const pointer = event;
-    setDrag({
-      pointerId: pointer.pointerId,
-      startX: pointer.clientX,
-      startY: pointer.clientY,
-      originX: position.x || 0,
-      originY: position.y || 0,
-    });
-    event.currentTarget.setPointerCapture?.(pointer.pointerId);
+  [
+    ["Наличные", order.cash_amount ?? order.cash],
+    ["Карта", order.card_amount ?? order.card],
+    ["Перечисление", order.transfer_amount ?? order.transfer],
+  ].forEach(([label, value]) => {
+    const amount = toNumber(value);
+    if (amount > 0) paymentRows.push({ label, amount });
+  });
+
+  if (!paymentRows.length && hasValue(order.payment_method) && total > 0) {
+    paymentRows.push({ label: order.payment_method, amount: total });
   }
 
-  function moveDrag(event) {
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    updatePosition({
-      x: drag.originX + event.clientX - drag.startX,
-      y: drag.originY + event.clientY - drag.startY,
-    });
-  }
-
-  function endDrag(event) {
-    if (drag?.pointerId === event.pointerId) setDrag(null);
-  }
-
-  function resetPosition(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    updatePosition({ x: 0, y: 0 });
-  }
-
-  if (!canMove) {
-    return <div style={{ transform: `translate(${position.x || 0}px, ${position.y || 0}px)` }}>{children}</div>;
-  }
-
-  return (
-    <div
-      className={`receipt-preview__movable ${drag ? "is-dragging" : ""}`}
-      style={{ transform: `translate(${position.x || 0}px, ${position.y || 0}px)` }}
-      onPointerDown={startDrag}
-      onPointerMove={moveDrag}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-      title="Перетащите блок"
-    >
-      <button
-        className="receipt-preview__drag-reset"
-        type="button"
-        onClick={resetPosition}
-        title="Сбросить позицию"
-        aria-label="Сбросить позицию"
-      >
-        x
-      </button>
-      {children}
-    </div>
-  );
+  return paymentRows;
 }
 
-function blockStyleClass(template, block) {
-  const style = template?.blockStyles?.[block] || {};
+function getContactRows(template = {}, org = {}) {
   return [
-    `receipt-preview__block--size-${style.size || "standard"}`,
-    `receipt-preview__block--align-${style.align || "left"}`,
-    `receipt-preview__block--weight-${style.weight || "standard"}`,
-  ].join(" ");
+    template.footerText || template.phone || org.phone,
+    template.address || org.address,
+  ].filter(hasValue);
 }
 
-function Line({ label, value, strong }) {
+function getOrderNumber(order = {}) {
+  return hasValue(order.order_number) ? String(order.order_number) : "-";
+}
+
+function ReceiptRule({ solid = false }) {
+  return <div className={`receipt-preview__rule ${solid ? "is-solid" : ""}`} aria-hidden="true" />;
+}
+
+function InfoRows({ rows }) {
+  const visibleRows = rows.filter((row) => hasValue(row.value));
+  if (!visibleRows.length) return null;
   return (
-    <div className={`receipt-preview__line ${strong ? "is-strong" : ""}`}>
-      <span>{label}</span>
-      <b>{value}</b>
+    <div className="receipt-preview__info">
+      {visibleRows.map((row) => (
+        <div className="receipt-preview__info-row" key={row.label}>
+          <b>{row.label}</b>
+          <span>{row.value}</span>
+        </div>
+      ))}
     </div>
   );
 }
 
-function CustomerBlock({ block, template, org, order, onTemplateChange }) {
-  const restaurantName = template.restaurantName || org?.name || "Sardon BMW";
-  const subtotal = order.items.reduce((sum, item) => sum + Number(item.total || item.price * item.quantity || 0), 0);
-  const serviceRate = Number(template.serviceFee || 8);
-  const phone = template.footerText || template.phone || org?.phone || "+998770702101";
-
-  switch (block) {
-    case "logo":
-      return <img className="receipt-preview__logo" src={org?.logo || logo} alt={restaurantName} />;
-    case "restaurantName":
-      return (
-        <h3 className="receipt-preview__brand">
-          <EditableText
-            value={template.restaurantName}
-            fallback={restaurantName}
-            ariaLabel="Название ресторана"
-            onChange={(value) => onTemplateChange?.({ restaurantName: value })}
-          />
-        </h3>
-      );
-    case "address":
-      return template.address || org?.address ? (
-        <p className="receipt-preview__muted">
-          <EditableText
-            value={template.address}
-            fallback={org.address}
-            ariaLabel="Адрес"
-            onChange={(value) => onTemplateChange?.({ address: value })}
-          />
-        </p>
-      ) : null;
-    case "phone":
-      return template.phone || org?.phone ? (
-        <p className="receipt-preview__muted">
-          <EditableText
-            value={template.phone}
-            fallback={org.phone}
-            ariaLabel="Телефон"
-            onChange={(value) => onTemplateChange?.({ phone: value })}
-          />
-        </p>
-      ) : null;
-    case "orderNumber":
-      return <p className="receipt-preview__top-meta">Номер заказа: {order.order_number}</p>;
-    case "dateTime":
-      return <p className="receipt-preview__top-meta">Дата: {formatReceiptDate(order.created_at)}</p>;
-    case "table":
-      return (
-        <>
-          <ReceiptDivider />
-          <div className="receipt-preview__two-col">
-            <span>Тип заказа</span>
-            <b>{order.order_type || "На стол"}</b>
-          </div>
-          <ReceiptDivider />
-          <div className="receipt-preview__two-col receipt-preview__two-col--wide-value">
-            <span>Номер стола</span>
-            <b>{order.table_number || "-"}</b>
-          </div>
-        </>
-      );
-    case "waiter":
-      return (
-        <>
-          <ReceiptDivider />
-          <div className="receipt-preview__two-col">
-            <span>Официант</span>
-            <b>{order.waiter || "-"}</b>
-          </div>
-        </>
-      );
-    case "items":
-      return (
-        <div className="receipt-preview__items">
-          <ReceiptDivider />
-          <div className="receipt-preview__items-head">
-            <span>Наименование</span>
-            <span>Кол-<br />во</span>
-            <span>Цена</span>
-            <span>Итого</span>
-          </div>
-          <ReceiptDivider />
-          {order.items.map((item) => (
-            <div className="receipt-preview__item" key={item.id}>
-              <span>{item.name}</span>
-              <b>{Number(item.quantity)}</b>
-              <b>{money(item.price)}</b>
-              <b>{money(item.total || item.price * item.quantity)}</b>
-            </div>
-          ))}
+function CustomerItems({ items = [] }) {
+  return (
+    <div className="receipt-preview__items" data-receipt-items>
+      <div className="receipt-preview__items-head">
+        <span>НАИМЕНОВАНИЕ</span>
+        <span>КОЛ-ВО</span>
+        <span>ЦЕНА</span>
+        <span>ИТОГО</span>
+      </div>
+      {items.map((item, index) => (
+        <div className="receipt-preview__item-row" key={item.id || `${itemName(item)}-${index}`}>
+          <span className="receipt-preview__item-name">{itemName(item)}</span>
+          <span>{money(itemQuantity(item))}</span>
+          <span>{money(itemPrice(item))}</span>
+          <span>{money(itemTotal(item))}</span>
         </div>
-      );
-    case "discount":
-      return <div className="receipt-preview__discount">{money(order.discount)}</div>;
-    case "serviceFee":
-      return (
-        <>
-          <ReceiptDivider />
-          <div className="receipt-preview__service">
-            <span>Обслуживание</span>
-            <b>{serviceRate}%</b>
-            <b>{money(order.service_fee || subtotal * serviceRate / 100)}</b>
-          </div>
-        </>
-      );
-    case "vat":
-      return Number(template.vatRate || 0) ? (
-        <div className="receipt-preview__service">
-          <span>НДС</span>
-          <b>{Number(template.vatRate)}%</b>
-          <b>{money(order.vat)}</b>
-        </div>
-      ) : null;
-    case "total":
-      return (
-        <>
-          <ReceiptDivider />
-          <div className="receipt-preview__total">
-            <span>Итого:</span>
-            <b>{money(order.total_amount)}</b>
-          </div>
-        </>
-      );
-    case "paymentMethod":
-      return (
-        <div className="receipt-preview__payments">
-          <div><span>Наличные:</span><b>{money(108000)}</b></div>
-          <div><span>Карта:</span><b>{money(600)}</b></div>
-          <ReceiptDivider />
-        </div>
-      );
-    case "qr":
-      return (
-        <div className="receipt-preview__qr">
-          {Array.from({ length: 100 }, (_, index) => (
-            <i className={qrCells.includes(index) ? "is-dark" : ""} key={index} />
-          ))}
-        </div>
-      );
-    case "thankYouText":
-      return (
-        <p className="receipt-preview__thanks">
-          <EditableText
-            value={template.thankYouText}
-            fallback="XARIDINGIZ\nUCHUN RAXMAT!"
-            multiline
-            ariaLabel="Текст благодарности"
-            onChange={(value) => onTemplateChange?.({ thankYouText: value })}
-          />
-        </p>
-      );
-    case "footerText":
-      return (
-        <div className="receipt-preview__bottom-order">
-          <strong>
-            <EditableText
-              value={template.footerText}
-              fallback={phone}
-              ariaLabel="Нижний текст"
-              onChange={(value) => onTemplateChange?.({ footerText: value })}
-            />
-          </strong>
-          <span>НОМЕР ЗАКАЗА</span>
-          <b>{order.order_number}</b>
-        </div>
-      );
-    default:
-      return null;
-  }
+      ))}
+    </div>
+  );
 }
 
-function KitchenBlock({ block, order }) {
-  switch (block) {
-    case "orderNumber":
-      return <h3 className="receipt-preview__kitchen-number">#{order.order_number}</h3>;
-    case "table":
-      return <Line label="Стол" value={order.table_number || "-"} strong />;
-    case "waiter":
-      return <Line label="Официант" value={order.waiter || "-"} />;
-    case "createdAt":
-      return <Line label="Время" value={formatKitchenDate(order.created_at)} />;
-    case "station":
-      return <Line label="Станция" value={order.station || "Общая кухня"} />;
-    case "priority":
-      return <div className="receipt-preview__priority">{order.priority || "Обычный"}</div>;
-    case "items":
-      return (
-        <div className="receipt-preview__kitchen-items">
-          <ReceiptDivider />
-          {order.items.map((item) => (
-            <div className="receipt-preview__kitchen-item" key={item.id}>
-              <strong>{Number(item.quantity)} x {item.name}</strong>
-            </div>
-          ))}
+function SummaryRows({ totals }) {
+  const rows = [
+    { label: "Сумма товаров", value: totals.subtotal, show: totals.subtotal > 0 },
+    { label: "Скидка", value: totals.discount, show: totals.discount > 0 },
+    { label: "Обслуживание", value: totals.service, show: totals.service > 0 },
+    { label: "Налог", value: totals.tax, show: totals.tax > 0 },
+  ].filter((row) => row.show);
+
+  if (!rows.length) return null;
+  return (
+    <div className="receipt-preview__summary">
+      {rows.map((row) => (
+        <div className="receipt-preview__summary-row" key={row.label}>
+          <span>{row.label}</span>
+          <b>{money(row.value)}</b>
         </div>
-      );
-    case "modifiers":
-      return (
-        <div className="receipt-preview__notes">
-          {order.items.map((item) => item.modifiers?.length ? (
-            <p key={item.id}><b>{item.name}:</b> {item.modifiers.join(", ")}</p>
-          ) : null)}
-        </div>
-      );
-    case "itemComments":
-      return (
-        <div className="receipt-preview__notes">
-          {order.items.map((item) => item.note ? <p key={item.id}><b>{item.name}:</b> {item.note}</p> : null)}
-        </div>
-      );
-    case "orderNote":
-      return order.note ? <p className="receipt-preview__order-note">Комментарий: {order.note}</p> : null;
-    default:
-      return null;
-  }
+      ))}
+    </div>
+  );
 }
 
-export default function ReceiptPreview({ type = "customer", template, org, order, onTemplateChange }) {
-  const sample = order || (type === "kitchen" ? kitchenSampleOrder : customerSampleOrder);
-  const blocks = template?.blocks || [];
+function PaymentRows({ rows }) {
+  if (!rows.length) return null;
+  return (
+    <div className="receipt-preview__payments">
+      {rows.map((row) => (
+        <div className="receipt-preview__payment-row" key={row.label}>
+          <span>{row.label}:</span>
+          <b>{money(row.amount)}</b>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CustomerReceipt({ template = {}, org, order }) {
+  const restaurantName = template.restaurantName || org?.name || "MARJON";
+  const totals = getCustomerReceiptTotals(order);
+  const payments = getPaymentRows(order, totals.total);
+  const contacts = getContactRows(template, org);
+  const infoRows = [
+    { label: "Номер заказа:", value: getOrderNumber(order) },
+    { label: "Тип заказа:", value: order.order_type },
+    { label: "Номер стола:", value: order.table_number },
+    { label: "Официант:", value: order.waiter },
+    { label: "Дата:", value: formatCustomerDate(order.created_at) },
+  ];
 
   return (
-    <div className="receipt-preview-shell">
-      <div className="receipt-preview-shell__label">{template?.paperSize || "80mm"} preview</div>
-      <div className={`receipt-preview receipt-preview--${template?.paperSize || "80mm"} ${type === "kitchen" ? "receipt-preview--kitchen" : ""}`}>
-        {blocks.filter((block) => isEnabled(template, block)).map((block) => {
-          const content = type === "kitchen"
-            ? <KitchenBlock block={block} order={sample} />
-            : <CustomerBlock block={block} template={template} org={org} order={sample} onTemplateChange={onTemplateChange} />;
-          const movable = type === "customer" && movableCustomerBlocks.has(block);
-          return (
-            <div className={`receipt-preview__block receipt-preview__block--${block} ${type === "customer" ? blockStyleClass(template, block) : ""}`} key={block}>
-              {movable ? (
-                <MovableBlock block={block} template={template} onTemplateChange={onTemplateChange}>
-                  {content}
-                </MovableBlock>
-              ) : content}
-            </div>
-          );
-        })}
+    <>
+      <header className="receipt-preview__brand-block">
+        <img className="receipt-preview__logo" src={org?.logo || logo} alt={restaurantName} />
+        <div className="receipt-preview__brand">MARJON</div>
+      </header>
+      <ReceiptRule solid />
+      <InfoRows rows={infoRows} />
+      <ReceiptRule solid />
+      <CustomerItems items={order.items || []} />
+      <ReceiptRule solid />
+      <SummaryRows totals={totals} />
+      <ReceiptRule solid />
+      <div className="receipt-preview__total">
+        <span>ИТОГО:</span>
+        <b>{money(totals.total)}</b>
+      </div>
+      <ReceiptRule solid />
+      <PaymentRows rows={payments} />
+      {payments.length ? <ReceiptRule solid /> : null}
+      <footer className="receipt-preview__customer-footer">
+        <strong>{template.thankYouText || "XARIDINGIZ UCHUN RAXMAT!"}</strong>
+        {contacts.map((contact) => <b key={contact}>{contact}</b>)}
+      </footer>
+      <ReceiptRule />
+      <div className="receipt-preview__bottom-order">
+        <span>НОМЕР ЗАКАЗА</span>
+        <b>{getOrderNumber(order)}</b>
+      </div>
+    </>
+  );
+}
+
+function getModifierText(modifier) {
+  if (typeof modifier === "string") return modifier;
+  return modifier?.name || modifier?.title || modifier?.label || "";
+}
+
+function itemNotes(item) {
+  const notes = [];
+  if (Array.isArray(item.modifiers)) {
+    const modifierText = item.modifiers.map(getModifierText).filter(hasValue).join(", ");
+    if (modifierText) notes.push(modifierText);
+  }
+  if (hasValue(item.note) || hasValue(item.comment)) {
+    notes.push(item.note || item.comment);
+  }
+  return notes;
+}
+
+function isUrgent(order = {}) {
+  const value = String(order.priority || order.urgency || "").toLowerCase();
+  return Boolean(order.is_urgent || order.urgent || value.includes("сроч") || value.includes("urgent"));
+}
+
+function KitchenItems({ items = [] }) {
+  return (
+    <div className="receipt-preview__kitchen-items">
+      {items.map((item, index) => {
+        const notes = itemNotes(item);
+        return (
+          <div className="receipt-preview__kitchen-item" key={item.id || `${itemName(item)}-${index}`}>
+            <strong>{money(itemQuantity(item))} x {itemName(item)}</strong>
+            {notes.map((note) => <span key={note}>- {note}</span>)}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function KitchenReceipt({ order }) {
+  const infoRows = [
+    { label: "Стол:", value: order.table_number },
+    { label: "Официант:", value: order.waiter },
+    { label: "Время:", value: formatKitchenDate(order.created_at) },
+  ];
+
+  return (
+    <>
+      <h3 className="receipt-preview__kitchen-number">#{getOrderNumber(order)}</h3>
+      <InfoRows rows={infoRows} />
+      <ReceiptRule />
+      <KitchenItems items={order.items || []} />
+      {hasValue(order.note) ? (
+        <>
+          <ReceiptRule />
+          <div className="receipt-preview__kitchen-comment">
+            <b>Комментарий:</b>
+            <span>- {order.note}</span>
+          </div>
+        </>
+      ) : null}
+      {isUrgent(order) ? (
+        <>
+          <ReceiptRule />
+          <div className="receipt-preview__kitchen-urgent">! СРОЧНО !</div>
+        </>
+      ) : null}
+    </>
+  );
+}
+
+export default function ReceiptPreview({ type = "customer", template = {}, org, order }) {
+  const paperSize = normalizePaperSize(template.paperSize);
+  const sample = order || (type === "kitchen" ? kitchenSampleOrder : customerSampleOrder);
+
+  return (
+    <div className="receipt-preview-shell" data-receipt-preview-shell>
+      <div className="receipt-preview-shell__label">{paperSize} mm preview</div>
+      <div
+        className={`receipt-preview receipt-preview--${type} receipt-preview--${paperSize}mm`}
+        data-paper-size={paperSize}
+        data-receipt-type={type}
+        data-receipt-component="shared"
+        data-receipt-print-root
+      >
+        {type === "kitchen"
+          ? <KitchenReceipt order={sample} />
+          : <CustomerReceipt template={template} org={org} order={sample} />}
       </div>
     </div>
   );

@@ -1,273 +1,281 @@
-/* ═══════════════════════════════════════════════════════
-   MARJON DESIGN SYSTEM — TOKENS v2.0
-   Палитра: White · Teal (голубой) · Blue (синий) · Navy
-   ═══════════════════════════════════════════════════════ */
+/* Порядок каскадных слоёв. Объявлен один раз, до первого использования.
+   marjon-important заменяет прежний !important: бьёт marjon-base
+   независимо от специфичности, как раньше это делал флаг. */
+@layer marjon-base, marjon-important;
 
-:root {
+@layer marjon-base {
+  /* ═══════════════════════════════════════════════════════
+     MARJON DESIGN SYSTEM — TOKENS v2.0
+     Палитра: White · Teal (голубой) · Blue (синий) · Navy
+     ═══════════════════════════════════════════════════════ */
 
-  /* ────────────────────────────────────
-     COLOR SCALES
-     ──────────────────────────────────── */
+  :root {
 
-  /* Teal — бренд (голубой) */
-  --teal-50:  #ecfeff;
-  --teal-100: #cffafe;
-  --teal-200: #a5f3fc;
-  --teal-300: #67e8f9;
-  --teal-400: #22d3ee;
-  --teal-500: #1db5b5;
-  --teal-600: #0fa3a3;
-  --teal-700: #0e8080;
-  --teal-800: #0d6262;
-  --teal-900: #0a4a4a;
+    /* ────────────────────────────────────
+       COLOR SCALES
+       ──────────────────────────────────── */
 
-  /* Blue — интерактивный (синий) */
-  --blue-50:  #eff6ff;
-  --blue-100: #dbeafe;
-  --blue-200: #bfdbfe;
-  --blue-300: #93c5fd;
-  --blue-400: #60a5fa;
-  --blue-500: #3b82f6;
-  --blue-600: #2563eb;
-  --blue-700: #1d4ed8;
-  --blue-800: #1e40af;
-  --blue-900: #1e3a8a;
+    /* Teal — бренд (голубой) */
+    --teal-50:  #ecfeff;
+    --teal-100: #cffafe;
+    --teal-200: #a5f3fc;
+    --teal-300: #67e8f9;
+    --teal-400: #22d3ee;
+    --teal-500: #1db5b5;
+    --teal-600: #0fa3a3;
+    --teal-700: #0e8080;
+    --teal-800: #0d6262;
+    --teal-900: #0a4a4a;
 
-  /* Neutral — navy → white */
-  --neutral-0:   #ffffff;
-  --neutral-50:  #f4f7fc;
-  --neutral-100: #e8edf6;
-  --neutral-200: #d0d9e8;
-  --neutral-300: #a8b9d0;
-  --neutral-400: #7a94b4;
-  --neutral-500: #536d8e;
-  --neutral-600: #374f6e;
-  --neutral-700: #243a56;
-  --neutral-800: #162840;
-  --neutral-900: #0b1f3f;
-  --neutral-950: #071428;
+    /* Blue — интерактивный (синий) */
+    --blue-50:  #eff6ff;
+    --blue-100: #dbeafe;
+    --blue-200: #bfdbfe;
+    --blue-300: #93c5fd;
+    --blue-400: #60a5fa;
+    --blue-500: #3b82f6;
+    --blue-600: #2563eb;
+    --blue-700: #1d4ed8;
+    --blue-800: #1e40af;
+    --blue-900: #1e3a8a;
 
-  /* Purple — акцент (аналитика / premium) */
-  --purple-100: #ede9fe;
-  --purple-200: #ddd6fe;
-  --purple-300: #c4b5fd;
-  --purple-400: #a78bfa;
-  --purple-500: #8b5cf6;
-  --purple-600: #7c3aed;
-  --purple-700: #6d28d9;
+    /* Neutral — navy → white */
+    --neutral-0:   #ffffff;
+    --neutral-50:  #f4f7fc;
+    --neutral-100: #e8edf6;
+    --neutral-200: #d0d9e8;
+    --neutral-300: #a8b9d0;
+    --neutral-400: #7a94b4;
+    --neutral-500: #536d8e;
+    --neutral-600: #374f6e;
+    --neutral-700: #243a56;
+    --neutral-800: #162840;
+    --neutral-900: #0b1f3f;
+    --neutral-950: #071428;
 
-  /* Semantic primitives */
-  --green-100: #dcfce7;
-  --green-300: #86efac;
-  --green-500: #16a34a;
-  --green-600: #15803d;
-  --amber-100: #fef3c7;
-  --amber-500: #f59e0b;
-  --red-100:   #fee2e2;
-  --red-500:   #ef4444;
+    /* Purple — акцент (аналитика / premium) */
+    --purple-100: #ede9fe;
+    --purple-200: #ddd6fe;
+    --purple-300: #c4b5fd;
+    --purple-400: #a78bfa;
+    --purple-500: #8b5cf6;
+    --purple-600: #7c3aed;
+    --purple-700: #6d28d9;
 
-  /* ────────────────────────────────────
-     SEMANTIC ALIASES
-     ──────────────────────────────────── */
+    /* Semantic primitives */
+    --green-100: #dcfce7;
+    --green-300: #86efac;
+    --green-500: #16a34a;
+    --green-600: #15803d;
+    --amber-100: #fef3c7;
+    --amber-500: #f59e0b;
+    --red-100:   #fee2e2;
+    --red-500:   #ef4444;
 
-  /* Brand */
-  --color-brand:         var(--teal-500);
-  --color-brand-hover:   var(--teal-400);
-  --color-brand-dark:    var(--teal-600);
-  --color-brand-subtle:  var(--teal-50);
-  --color-brand-muted:   rgba(29, 181, 181, 0.12);
-  --color-brand-glow:    rgba(29, 181, 181, 0.22);
+    /* ────────────────────────────────────
+       SEMANTIC ALIASES
+       ──────────────────────────────────── */
 
-  /* Interactive */
-  --color-interactive:        var(--blue-600);
-  --color-interactive-hover:  var(--blue-700);
-  --color-interactive-subtle: var(--blue-50);
+    /* Brand */
+    --color-brand:         var(--teal-500);
+    --color-brand-hover:   var(--teal-400);
+    --color-brand-dark:    var(--teal-600);
+    --color-brand-subtle:  var(--teal-50);
+    --color-brand-muted:   rgba(29, 181, 181, 0.12);
+    --color-brand-glow:    rgba(29, 181, 181, 0.22);
 
-  /* Text */
-  --color-text-primary:   var(--neutral-900);
-  --color-text-secondary: var(--neutral-600);
-  --color-text-muted:     var(--neutral-500);
-  --color-text-placeholder: var(--neutral-400);
-  --color-text-disabled:  var(--neutral-300);
-  --color-text-inverse:   var(--neutral-0);
+    /* Interactive */
+    --color-interactive:        var(--blue-600);
+    --color-interactive-hover:  var(--blue-700);
+    --color-interactive-subtle: var(--blue-50);
 
-  /* Surface */
-  --color-bg:     var(--neutral-50);
-  --color-card:   var(--neutral-0);
-  --color-subtle: var(--neutral-100);
+    /* Text */
+    --color-text-primary:   var(--neutral-900);
+    --color-text-secondary: var(--neutral-600);
+    --color-text-muted:     var(--neutral-500);
+    --color-text-placeholder: var(--neutral-400);
+    --color-text-disabled:  var(--neutral-300);
+    --color-text-inverse:   var(--neutral-0);
 
-  /* Border */
-  --color-border:        var(--neutral-200);
-  --color-border-strong: var(--neutral-300);
-  --color-border-focus:  var(--teal-500);
+    /* Surface */
+    --color-bg:     var(--neutral-50);
+    --color-card:   var(--neutral-0);
+    --color-subtle: var(--neutral-100);
 
-  /* Purple accent */
-  --color-purple:       var(--purple-500);
-  --color-purple-hover: var(--purple-600);
-  --color-purple-bg:    var(--purple-100);
+    /* Border */
+    --color-border:        var(--neutral-200);
+    --color-border-strong: var(--neutral-300);
+    --color-border-focus:  var(--teal-500);
 
-  /* Status */
-  --color-success:    var(--green-500);
-  --color-success-bg: var(--green-100);
-  --color-warning:    var(--amber-500);
-  --color-warning-bg: var(--amber-100);
-  --color-danger:     var(--red-500);
-  --color-danger-bg:  var(--red-100);
+    /* Purple accent */
+    --color-purple:       var(--purple-500);
+    --color-purple-hover: var(--purple-600);
+    --color-purple-bg:    var(--purple-100);
 
-  /* Dark surfaces (staff / PIN экраны) */
-  --color-dark-bg:    var(--neutral-950);
-  --color-dark-card:  var(--neutral-900);
-  --color-dark-text:  #e7e8eb;
-  --color-dark-muted: var(--neutral-400);
+    /* Status */
+    --color-success:    var(--green-500);
+    --color-success-bg: var(--green-100);
+    --color-warning:    var(--amber-500);
+    --color-warning-bg: var(--amber-100);
+    --color-danger:     var(--red-500);
+    --color-danger-bg:  var(--red-100);
 
-  /* ────────────────────────────────────
-     TYPOGRAPHY
-     ──────────────────────────────────── */
+    /* Dark surfaces (staff / PIN экраны) */
+    --color-dark-bg:    var(--neutral-950);
+    --color-dark-card:  var(--neutral-900);
+    --color-dark-text:  #e7e8eb;
+    --color-dark-muted: var(--neutral-400);
 
-  --font-display: "Manrope", sans-serif;
-  --font-body:    "Golos Text", "Manrope", sans-serif;
-  --font-mono:    "JetBrains Mono", "Fira Code", Consolas, monospace;
+    /* ────────────────────────────────────
+       TYPOGRAPHY
+       ──────────────────────────────────── */
 
-  /* Размеры (шкала) */
-  --text-xs:   11px;
-  --text-sm:   13px;
-  --text-base: 14px;
-  --text-md:   16px;
-  --text-lg:   18px;
-  --text-xl:   20px;
-  --text-2xl:  24px;
-  --text-3xl:  30px;
-  --text-4xl:  36px;
-  --text-5xl:  48px;
+    --font-display: "Manrope", sans-serif;
+    --font-body:    "Golos Text", "Manrope", sans-serif;
+    --font-mono:    "JetBrains Mono", "Fira Code", Consolas, monospace;
 
-  /* Насыщенность (только стандартные CSS значения) */
-  --weight-regular:   400;
-  --weight-medium:    500;
-  --weight-semibold:  600;
-  --weight-bold:      700;
-  --weight-extrabold: 800;
+    /* Размеры (шкала) */
+    --text-xs:   11px;
+    --text-sm:   13px;
+    --text-base: 14px;
+    --text-md:   16px;
+    --text-lg:   18px;
+    --text-xl:   20px;
+    --text-2xl:  24px;
+    --text-3xl:  30px;
+    --text-4xl:  36px;
+    --text-5xl:  48px;
 
-  /* Межстрочный интервал */
-  --leading-tight:   1.2;
-  --leading-snug:    1.35;
-  --leading-normal:  1.5;
-  --leading-relaxed: 1.65;
+    /* Насыщенность (только стандартные CSS значения) */
+    --weight-regular:   400;
+    --weight-medium:    500;
+    --weight-semibold:  600;
+    --weight-bold:      700;
+    --weight-extrabold: 800;
 
-  /* ────────────────────────────────────
-     SPACING (база 4px)
-     ──────────────────────────────────── */
+    /* Межстрочный интервал */
+    --leading-tight:   1.2;
+    --leading-snug:    1.35;
+    --leading-normal:  1.5;
+    --leading-relaxed: 1.65;
 
-  --space-1:  4px;
-  --space-2:  8px;
-  --space-3:  12px;
-  --space-4:  16px;
-  --space-5:  20px;
-  --space-6:  24px;
-  --space-8:  32px;
-  --space-10: 40px;
-  --space-12: 48px;
-  --space-16: 64px;
-  --space-20: 80px;
+    /* ────────────────────────────────────
+       SPACING (база 4px)
+       ──────────────────────────────────── */
 
-  /* ────────────────────────────────────
-     BORDER RADIUS
-     ──────────────────────────────────── */
+    --space-1:  4px;
+    --space-2:  8px;
+    --space-3:  12px;
+    --space-4:  16px;
+    --space-5:  20px;
+    --space-6:  24px;
+    --space-8:  32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+    --space-20: 80px;
 
-  --radius-xs:   6px;
-  --radius-sm:   10px;
-  --radius-md:   14px;
-  --radius-lg:   20px;
-  --radius-xl:   28px;
-  --radius-2xl:  36px;
-  --radius-full: 9999px;
+    /* ────────────────────────────────────
+       BORDER RADIUS
+       ──────────────────────────────────── */
 
-  /* ────────────────────────────────────
-     SHADOWS
-     ──────────────────────────────────── */
+    --radius-xs:   6px;
+    --radius-sm:   10px;
+    --radius-md:   14px;
+    --radius-lg:   20px;
+    --radius-xl:   28px;
+    --radius-2xl:  36px;
+    --radius-full: 9999px;
 
-  --shadow-xs:   0 1px 3px rgba(11, 31, 63, .05);
-  --shadow-sm:   0 2px 8px rgba(11, 31, 63, .07);
-  --shadow-md:   0 8px 24px rgba(11, 31, 63, .09);
-  --shadow-lg:   0 16px 48px rgba(11, 31, 63, .11);
-  --shadow-xl:   0 24px 64px rgba(11, 31, 63, .13);
-  --shadow-glow: 0 8px 32px var(--color-brand-glow);
+    /* ────────────────────────────────────
+       SHADOWS
+       ──────────────────────────────────── */
 
-  /* ────────────────────────────────────
-     TRANSITIONS
-     ──────────────────────────────────── */
+    --shadow-xs:   0 1px 3px rgba(11, 31, 63, .05);
+    --shadow-sm:   0 2px 8px rgba(11, 31, 63, .07);
+    --shadow-md:   0 8px 24px rgba(11, 31, 63, .09);
+    --shadow-lg:   0 16px 48px rgba(11, 31, 63, .11);
+    --shadow-xl:   0 24px 64px rgba(11, 31, 63, .13);
+    --shadow-glow: 0 8px 32px var(--color-brand-glow);
 
-  --ease:        cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-in:     cubic-bezier(0.4, 0, 1, 1);
-  --ease-out:    cubic-bezier(0, 0, 0.2, 1);
-  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --duration-fast: 120ms;
-  --duration-base: 200ms;
-  --duration-slow: 350ms;
+    /* ────────────────────────────────────
+       TRANSITIONS
+       ──────────────────────────────────── */
 
-  /* ════════════════════════════════════
-     LEGACY ALIASES — обратная совместимость
-     (не удалять — используются в старом коде)
-     ════════════════════════════════════ */
+    --ease:        cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-in:     cubic-bezier(0.4, 0, 1, 1);
+    --ease-out:    cubic-bezier(0, 0, 0.2, 1);
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --duration-fast: 120ms;
+    --duration-base: 200ms;
+    --duration-slow: 350ms;
 
-  /* --mj-* */
-  --mj-brand:       var(--teal-500);
-  --mj-brand-2:     var(--teal-400);
-  --mj-brand-dark:  var(--teal-600);
-  --mj-navy:        var(--neutral-900);
-  --mj-navy-2:      var(--neutral-950);
-  --mj-ink:         var(--neutral-900);
-  --mj-surface:     var(--neutral-50);
-  --mj-card:        var(--neutral-0);
-  --mj-muted:       var(--neutral-500);
-  --mj-border:      var(--neutral-200);
-  --mj-success:     var(--green-500);
-  --mj-warning:     var(--amber-500);
-  --mj-danger:      var(--red-500);
-  --mj-radius-sm:   var(--radius-md);
-  --mj-radius-md:   var(--radius-lg);
-  --mj-radius-lg:   var(--radius-xl);
-  --mj-radius-xl:   var(--radius-2xl);
-  --mj-shadow-sm:   var(--shadow-sm);
-  --mj-shadow-md:   var(--shadow-md);
-  --mj-shadow-glow: var(--shadow-glow);
-  --mj-font-display: var(--font-display);
-  --mj-font-body:    var(--font-body);
-  --mj-ease:         var(--ease);
+    /* ════════════════════════════════════
+       LEGACY ALIASES — обратная совместимость
+       (не удалять — используются в старом коде)
+       ════════════════════════════════════ */
 
-  /* dashboard.css legacy */
-  --primary:   var(--neutral-900);
-  --primary-2: var(--neutral-800);
-  --accent:    var(--teal-500);
-  --accent-2:  var(--teal-400);
-  --bg:        var(--neutral-50);
-  --card:      var(--neutral-0);
-  --text:      var(--neutral-900);
-  --muted:     var(--neutral-500);
-  --border:    var(--neutral-200);
-  --success:   var(--green-500);
-  --warning:   var(--amber-500);
-  --danger:    var(--red-500);
+    /* --mj-* */
+    --mj-brand:       var(--teal-500);
+    --mj-brand-2:     var(--teal-400);
+    --mj-brand-dark:  var(--teal-600);
+    --mj-navy:        var(--neutral-900);
+    --mj-navy-2:      var(--neutral-950);
+    --mj-ink:         var(--neutral-900);
+    --mj-surface:     var(--neutral-50);
+    --mj-card:        var(--neutral-0);
+    --mj-muted:       var(--neutral-500);
+    --mj-border:      var(--neutral-200);
+    --mj-success:     var(--green-500);
+    --mj-warning:     var(--amber-500);
+    --mj-danger:      var(--red-500);
+    --mj-radius-sm:   var(--radius-md);
+    --mj-radius-md:   var(--radius-lg);
+    --mj-radius-lg:   var(--radius-xl);
+    --mj-radius-xl:   var(--radius-2xl);
+    --mj-shadow-sm:   var(--shadow-sm);
+    --mj-shadow-md:   var(--shadow-md);
+    --mj-shadow-glow: var(--shadow-glow);
+    --mj-font-display: var(--font-display);
+    --mj-font-body:    var(--font-body);
+    --mj-ease:         var(--ease);
 
-  /* auth.css legacy */
-  --marjon-bg:     var(--neutral-950);
-  --marjon-text:   #e7e8eb;
-  --marjon-muted:  var(--neutral-400);
-  --marjon-accent: var(--teal-500);
-}
+    /* dashboard.css legacy */
+    --primary:   var(--neutral-900);
+    --primary-2: var(--neutral-800);
+    --accent:    var(--teal-500);
+    --accent-2:  var(--teal-400);
+    --bg:        var(--neutral-50);
+    --card:      var(--neutral-0);
+    --text:      var(--neutral-900);
+    --muted:     var(--neutral-500);
+    --border:    var(--neutral-200);
+    --success:   var(--green-500);
+    --warning:   var(--amber-500);
+    --danger:    var(--red-500);
 
-body {
-  font-family: var(--font-body);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
+    /* auth.css legacy */
+    --marjon-bg:     var(--neutral-950);
+    --marjon-text:   #e7e8eb;
+    --marjon-muted:  var(--neutral-400);
+    --marjon-accent: var(--teal-500);
+  }
 
-input,
-button,
-select,
-textarea,
-optgroup {
-  font-family: inherit;
-  font-size: inherit;
+  body {
+    font-family: var(--font-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  input,
+  button,
+  select,
+  textarea,
+  optgroup {
+    font-family: inherit;
+    font-size: inherit;
+  }
+
 }

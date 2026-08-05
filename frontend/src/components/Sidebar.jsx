@@ -2,11 +2,10 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/marjon-logo.svg";
 import { logout } from "../api/client";
-import { filterNavItems, getRole } from "../utils/permissions";
+import { canAccessPath, filterNavItems, getRole } from "../utils/permissions";
 import Icon from "./Icon";
 
 const PROFILE_STORAGE_KEY = "marjon_profile_settings";
-const SIDEBAR_PROFILE_PANEL_BG = "#041c18";
 const sidebarLanguages = [
   {
     code: "uz",
@@ -164,6 +163,10 @@ export default function Sidebar({ user, collapsed, onToggle }) {
 
   // Ролевая фильтрация пунктов меню (ТЗ §2.2)
   const visibleNavItems = useMemo(() => filterNavItems(navItems, user), [user]);
+  const canOpenProfile = canAccessPath(user, "/settings/profile");
+  const canOpenSupport = canAccessPath(user, "/settings/support");
+  const canOpenStore = canAccessPath(user, "/store");
+  const canOpenReviews = canAccessPath(user, "/reviews");
   const exactChildParentKey = useMemo(() => (
     visibleNavItems.find((item) => item.children?.some((child) => location.pathname === child.to))?.key || ""
   ), [location.pathname, visibleNavItems]);
@@ -402,7 +405,6 @@ export default function Sidebar({ user, collapsed, onToggle }) {
           <div
             className="sidebar-account__menu"
             role="menu"
-            style={{ background: SIDEBAR_PROFILE_PANEL_BG, backgroundImage: "none" }}
             onMouseEnter={openCollapsedAccount}
             onMouseLeave={closeCollapsedAccount}
           >
@@ -416,14 +418,18 @@ export default function Sidebar({ user, collapsed, onToggle }) {
               </div>
               <Icon name="bi-chevron-up" size={16} className="sidebar-account__head-arrow" />
             </div>
-            <Link className="sidebar-account__item" to="/settings/profile" role="menuitem" onClick={() => closeAccountAndSelectMenu("settings")}>
-              <Icon name="bi-person-gear" size={16} />
-              <span>Настройка профиля</span>
-            </Link>
-            <Link className="sidebar-account__item" to="/settings/support" role="menuitem" onClick={() => closeAccountAndSelectMenu("settings")}>
-              <Icon name="bi-headset" size={16} />
-              <span>Тех. поддержка</span>
-            </Link>
+            {canOpenProfile ? (
+              <Link className="sidebar-account__item" to="/settings/profile" role="menuitem" onClick={() => closeAccountAndSelectMenu("settings")}>
+                <Icon name="bi-person-gear" size={16} />
+                <span>Настройка профиля</span>
+              </Link>
+            ) : null}
+            {canOpenSupport ? (
+              <Link className="sidebar-account__item" to="/settings/support" role="menuitem" onClick={() => closeAccountAndSelectMenu("settings")}>
+                <Icon name="bi-headset" size={16} />
+                <span>Тех. поддержка</span>
+              </Link>
+            ) : null}
 
             <div className={`sidebar-account__lang ${langPanelOpen ? "is-open" : ""}`}>
               <button
@@ -462,14 +468,18 @@ export default function Sidebar({ user, collapsed, onToggle }) {
               ) : null}
             </div>
 
-            <Link className="sidebar-account__item" to="/store" role="menuitem" onClick={() => closeAccountAndSelectMenu("")}>
-              <Icon name="bi-shop" size={16} />
-              <span>Магазин</span>
-            </Link>
-            <Link className="sidebar-account__item" to="/reviews" role="menuitem" onClick={() => closeAccountAndSelectMenu("")}>
-              <Icon name="bi-chat-left" size={16} />
-              <span>Отзывы</span>
-            </Link>
+            {canOpenStore ? (
+              <Link className="sidebar-account__item" to="/store" role="menuitem" onClick={() => closeAccountAndSelectMenu("")}>
+                <Icon name="bi-shop" size={16} />
+                <span>Магазин</span>
+              </Link>
+            ) : null}
+            {canOpenReviews ? (
+              <Link className="sidebar-account__item" to="/reviews" role="menuitem" onClick={() => closeAccountAndSelectMenu("")}>
+                <Icon name="bi-chat-left" size={16} />
+                <span>Отзывы</span>
+              </Link>
+            ) : null}
 
             <button type="button" className="sidebar-account__item sidebar-account__item--danger" role="menuitem" onClick={handleLogout}>
               <Icon name="bi-box-arrow-right" size={16} />
@@ -490,7 +500,6 @@ export default function Sidebar({ user, collapsed, onToggle }) {
         <button
           type="button"
           className="sidebar-user sidebar-user--button"
-          style={{ background: SIDEBAR_PROFILE_PANEL_BG, backgroundImage: "none" }}
           onClick={() => setAccountOpen((v) => !v)}
           aria-haspopup="menu"
           aria-expanded={accountOpen}
@@ -538,20 +547,22 @@ export default function Sidebar({ user, collapsed, onToggle }) {
                 })}
               </nav>
               <div className="mobile-bottom-nav__drawer-footer">
-                <button
-                  type="button"
-                  className="mobile-drawer-item mobile-drawer-item--user"
-                  onClick={() => { setMoreOpen(false); navigate("/settings/profile"); }}
-                >
-                  <div className="mobile-drawer-item__avatar">
-                    <img src={profilePhoto} alt={displayName} decoding="async" />
-                  </div>
-                  <div className="mobile-drawer-item__user-meta">
-                    <strong>{displayName}</strong>
-                    <span>{profileCardRole}</span>
-                  </div>
-                  <Icon name="bi-chevron-right" size={14} className="mobile-drawer-item__chevron" aria-hidden="true" />
-                </button>
+                {canOpenProfile ? (
+                  <button
+                    type="button"
+                    className="mobile-drawer-item mobile-drawer-item--user"
+                    onClick={() => { setMoreOpen(false); navigate("/settings/profile"); }}
+                  >
+                    <div className="mobile-drawer-item__avatar">
+                      <img src={profilePhoto} alt={displayName} decoding="async" />
+                    </div>
+                    <div className="mobile-drawer-item__user-meta">
+                      <strong>{displayName}</strong>
+                      <span>{profileCardRole}</span>
+                    </div>
+                    <Icon name="bi-chevron-right" size={14} className="mobile-drawer-item__chevron" aria-hidden="true" />
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   className="mobile-drawer-item mobile-drawer-item--logout"

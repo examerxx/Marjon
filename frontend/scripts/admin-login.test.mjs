@@ -2,18 +2,21 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const app = readFileSync(new URL("../src/admin/AdminApp.jsx", import.meta.url), "utf8");
+const adminApiSource = readFileSync(new URL("../src/admin/api.js", import.meta.url), "utf8");
+const authSessionSource = readFileSync(new URL("../src/auth/session.js", import.meta.url), "utf8");
 const restaurantLogin = readFileSync(new URL("../src/pages/LoginPage.jsx", import.meta.url), "utf8");
 const tablesReport = readFileSync(new URL("../src/pages/TablesReportPage.jsx", import.meta.url), "utf8");
 const ordersReport = readFileSync(new URL("../src/pages/OrdersReportPage.jsx", import.meta.url), "utf8");
 const dishesReport = readFileSync(new URL("../src/pages/DishesReportPage.jsx", import.meta.url), "utf8");
 const reportDateRangePicker = readFileSync(new URL("../src/components/ReportDateRangePicker.jsx", import.meta.url), "utf8");
 const css = readFileSync(new URL("../src/admin/styles.css", import.meta.url), "utf8");
-const appCss = readFileSync(new URL("../src/styles/app.css", import.meta.url), "utf8");
-const unifiedShellIndex = css.lastIndexOf("Unified admin shell header/sidebar");
-assert.notEqual(unifiedShellIndex, -1, "Admin CSS must include the unified shell header/sidebar block.");
-const unifiedShellCss = css.slice(unifiedShellIndex);
+const ruLocale = readFileSync(new URL("../src/i18n/ru.json", import.meta.url), "utf8");
 
 const loginSection = app.slice(app.indexOf("function LoginView"), app.indexOf("function Sidebar"));
+const adminSessionResolver = authSessionSource.slice(
+  authSessionSource.indexOf("export function resolveAdminAuthSession"),
+  authSessionSource.indexOf("export function prepareAuthRequest"),
+);
 
 assert.match(loginSection, /const \[phone, setPhone\]/, "Login form must use phone state.");
 assert.match(loginSection, /adminLogin\(phone, password\)/, "Login submit must send phone and password.");
@@ -25,52 +28,49 @@ assert.match(loginSection, /Забыли пароль\?/, "Forgot-password actio
 assert.doesNotMatch(loginSection, /<input[^>]+type="email"/, "Super admin login must not render the old email input.");
 assert.doesNotMatch(loginSection, /placeholder="900000777"/, "Phone input must not show background example text.");
 assert.doesNotMatch(loginSection, /placeholder="0000777"/, "Password input must not show background example text.");
+assert.doesNotMatch(adminApiSource, /\b(?:LOCAL_)?ADMIN_(?:PHONE|PASSWORD)\b\s*=/i, "Admin API must not contain hardcoded credential constants.");
+assert.doesNotMatch(adminApiSource, /isLocalAdmin(?:Host|Credential)/, "Admin API must not contain a local credential bypass.");
+assert.doesNotMatch(adminApiSource, /admin_local_login/, "Admin API must not use the legacy local admin flag.");
+assert.doesNotMatch(app, /admin_local_login/, "Admin application must not use the legacy local admin flag.");
+assert.doesNotMatch(app, /setUser\(\{[\s\S]*?is_superadmin:\s*true\s*\}\)/, "Admin application must not synthesize a superadmin profile.");
+assert.match(adminSessionResolver, /getTokenRecord\(AUTH_SCOPES\.ADMIN\)/, "Admin session resolver must read the admin scope.");
+assert.doesNotMatch(adminSessionResolver, /AUTH_SCOPES\.DEFAULT/, "Admin session resolver must never fall back to the default scope.");
 
 const submitButtons = loginSection.match(/type="submit"/g) || [];
 assert.equal(submitButtons.length, 1, "Login form must render exactly one submit button.");
 
-assert.match(css, /\.admin-login__panel\s*{[\s\S]*?width:\s*min\(500px,\s*calc\(100vw - 32px\)\)/, "Login panel must use the requested wider 500px width.");
-assert.match(css, /\.admin-login__input\s*{[\s\S]*?min-height:\s*48px/, "Login inputs must use compact height.");
-assert.match(css, /\.admin-login__submit\s*{[\s\S]*?min-height:\s*50px/, "Login submit button must use compact height.");
-assert.match(css, /\.admin-login__panel \.admin-login__eye\s*{[\s\S]*?background:\s*transparent/, "Eye button must stay transparent.");
-assert.match(css, /\.admin-login__field--password \.admin-login__input\s*{[\s\S]*?column-gap:\s*14px/, "Password input must have spacing after the lock icon.");
-assert.match(css, /\.admin-login__input input\s*{[\s\S]*?color:\s*#fff8e6/, "Login input values must be fully readable.");
-assert.match(css, /\.admin-login__input input::placeholder\s*{[\s\S]*?opacity:\s*1/, "Login placeholders must not look transparent.");
 assert.match(css, /url\("\.\.\/assets\/tashkent-admin-bg\.jpg"\)/, "Admin login must use the local Tashkent background asset.");
 assert.doesNotMatch(css, /images\.unsplash\.com\/photo-1695220858703-4ab11b4caed7/, "Admin login must not depend on the old remote Tashkent background.");
-assert.match(css, /\.admin-login__input input:-webkit-autofill[\s\S]*?rgba\(9,\s*24,\s*30,\s*0\.78\)/, "Admin login autofill must match the field background instead of drawing a black block.");
-assert.match(unifiedShellCss, /--admin-shell-bar-bg:\s*#141f23/, "Admin header and sidebar must share the previous sidebar color.");
-assert.match(unifiedShellCss, /\.admin-sidebar\s*{[\s\S]*?background:\s*var\(--admin-shell-bar-bg\)\s*!important;[\s\S]*?background-image:\s*none\s*!important;/, "Admin sidebar must be solid and non-gradient.");
-assert.match(unifiedShellCss, /\.admin-header\s*{[\s\S]*?background:\s*var\(--admin-shell-bar-bg\)\s*!important;[\s\S]*?background-image:\s*none\s*!important;/, "Admin header must use the same solid color as the sidebar.");
-assert.match(unifiedShellCss, /\.admin-sidebar\s*{[\s\S]*?border-right:\s*0\s*!important;/, "Admin sidebar must not show a vertical divider line.");
-assert.match(unifiedShellCss, /\.admin-header\s*{[\s\S]*?border-bottom:\s*0\s*!important;/, "Admin header must not show a bottom divider line.");
-assert.match(unifiedShellCss, /\.admin-main\s*{[\s\S]*?background:\s*var\(--admin-shell-page-bg\)\s*!important;[\s\S]*?background-image:\s*none\s*!important;/, "Admin main area must not keep the old transparent gradient backdrop.");
-assert.match(unifiedShellCss, /\.admin-main::before\s*{[\s\S]*?display:\s*none\s*!important;[\s\S]*?background:\s*none\s*!important;/, "Admin background overlay must be disabled.");
-assert.match(unifiedShellCss, /\.admin-nav button\.is-active\s*{[\s\S]*?background-image:\s*none\s*!important;[\s\S]*?box-shadow:\s*none\s*!important;/, "Admin active sidebar button must stay flat without gradient glow.");
-assert.match(unifiedShellCss, /scrollbar-width:\s*none\s*!important;/, "Admin page must hide the visible scrollbar track.");
-assert.match(unifiedShellCss, /::-webkit-scrollbar[\s\S]*?display:\s*none\s*!important;/, "Admin page must hide the WebKit scrollbar.");
-assert.match(app, /const datePresets = \[/, "Admin date picker must define quick date presets.");
-assert.match(app, /Сегодня[\s\S]*Вчера[\s\S]*Этот месяц[\s\S]*Прошлый год/, "Admin date picker must include the expected quick presets.");
-assert.match(app, /className="admin-date-picker"/, "Admin header must render the date picker wrapper.");
-assert.match(app, /className="admin-date-menu"/, "Admin date picker must render a dropdown menu.");
-assert.match(app, /aria-label="Предыдущий месяц"/, "Admin date picker must support previous-month navigation.");
-assert.match(app, /aria-label="Следующий месяц"/, "Admin date picker must support next-month navigation.");
-assert.match(app, /Дата начала/, "Admin date picker must include a start date input.");
-assert.match(app, /Дата окончания/, "Admin date picker must include an end date input.");
-assert.match(css, /\.admin-date-menu\s*{[\s\S]*?position:\s*absolute/, "Admin date menu must be positioned as a dropdown.");
-assert.match(css, /\.admin-date-range\s*{[\s\S]*?grid-template-columns:/, "Admin date range controls must be laid out cleanly.");
+// Exact visual properties are covered by tools/css-verify.sh.
+assert.match(css, /--admin-shell-bar-bg:\s*[^;]+;/, "Admin shell bar color token must be declared.");
+assert.match(css, /\.admin-sidebar\s*{[\s\S]*?background:\s*var\(--admin-shell-bar-bg\)\s*;/, "Admin sidebar must use the shared shell bar token.");
+assert.match(css, /\.admin-header\s*{[\s\S]*?background:\s*var\(--admin-shell-bar-bg\)\s*;/, "Admin header must use the shared shell bar token.");
+assert.match(app, /const datePresets = useMemo/, "Admin date picker must define quick date presets.");
+assert.match(app, /Сегодня[\s\S]*Вчера[\s\S]*Этот месяц[\s\S]*Этот год/, "Admin date picker must include the expected quick presets.");
+assert.match(app, /<ReportDateRangePicker[\s\S]*?buttonClassName="admin-finance-date-button"/, "Admin finance header must render the shared report date picker.");
+assert.match(reportDateRangePicker, /className="report-period-picker"/, "Shared admin date picker must render the date picker wrapper.");
+assert.match(reportDateRangePicker, /className="report-date-menu"/, "Shared admin date picker must render a dropdown menu.");
+assert.match(reportDateRangePicker, /aria-label="Предыдущий месяц"/, "Shared admin date picker must support previous-month navigation.");
+assert.match(reportDateRangePicker, /aria-label="Следующий месяц"/, "Shared admin date picker must support next-month navigation.");
+assert.match(reportDateRangePicker, /aria-label="Начало периода"/, "Shared admin date picker must include a start date input.");
+assert.match(reportDateRangePicker, /aria-label="Конец периода"/, "Shared admin date picker must include an end date input.");
 
 const restaurantPasswordInput = restaurantLogin.slice(
   restaurantLogin.indexOf('type={showPassword ? "text" : "password"}'),
   restaurantLogin.indexOf('className="login-pro-eye"')
 );
 
-assert.match(restaurantPasswordInput, /placeholder="Введите пароль"/, "Restaurant login password must show a readable password placeholder.");
+assert.match(restaurantPasswordInput, /placeholder={t\("auth\.password_placeholder"\)}/, "Restaurant login password must use the localized password placeholder.");
 assert.doesNotMatch(restaurantPasswordInput, /[•вЂў]{3,}/, "Restaurant login password must not show background dot text.");
-assert.match(restaurantLogin, /Добро пожаловать/, "Restaurant login title must be readable Russian text.");
-assert.match(restaurantLogin, /Войдите в рабочее место вашего ресторана\./, "Restaurant login subtitle must be readable Russian text.");
-assert.match(restaurantLogin, /Запомнить меня/, "Restaurant login remember label must be readable Russian text.");
-assert.match(restaurantLogin, /Забыли пароль\?/, "Restaurant login forgot label must be readable Russian text.");
+assert.match(restaurantLogin, /t\("auth\.welcome_title"\)/, "Restaurant login title must use the localized title key.");
+assert.match(restaurantLogin, /t\("auth\.welcome_subtitle"\)/, "Restaurant login subtitle must use the localized subtitle key.");
+assert.match(restaurantLogin, /t\("auth\.remember_me"\)/, "Restaurant login remember label must use the localized remember key.");
+assert.match(restaurantLogin, /t\("auth\.forgot_password"\)/, "Restaurant login forgot label must use the localized forgot-password key.");
+assert.match(ruLocale, /"password_placeholder":\s*"Введите пароль"/, "Russian locale must provide a readable password placeholder.");
+assert.match(ruLocale, /"welcome_title":\s*"Добро пожаловать"/, "Russian locale must provide a readable login title.");
+assert.match(ruLocale, /"welcome_subtitle":\s*"Войдите в рабочее место вашего ресторана\."/, "Russian locale must provide a readable login subtitle.");
+assert.match(ruLocale, /"remember_me":\s*"Запомнить меня"/, "Russian locale must provide a readable remember label.");
+assert.match(ruLocale, /"forgot_password":\s*"Забыли пароль\?"/, "Russian locale must provide a readable forgot-password label.");
 assert.doesNotMatch(restaurantLogin, /Р[ќџћ”’•—]/, "Restaurant login must not contain mojibake Russian text.");
 assert.match(reportDateRangePicker, /className="report-period-picker"/, "Shared report period button must open a date picker wrapper.");
 assert.match(reportDateRangePicker, /className="report-date-menu"/, "Shared report date picker must render a dropdown menu.");
@@ -85,7 +85,7 @@ assert.match(reportDateRangePicker, /updateDateTime\("start"/, "Shared report da
 assert.doesNotMatch(reportDateRangePicker, /showPicker/, "Shared report date picker must not open the native picker over the preset menu.");
 assert.match(reportDateRangePicker, /report-date-calendar-popover/, "Shared report date picker must render its own calendar outside the preset area.");
 assert.match(reportDateRangePicker, /report-date-time-columns/, "Shared report date picker must split time into hour and minute columns.");
-assert.match(reportDateRangePicker, /Select time/, "Shared report date picker time panel must match the requested reference title.");
+assert.match(reportDateRangePicker, /Время/, "Shared report date picker time panel must match the current localized title.");
 assert.match(reportDateRangePicker, /selectHour/, "Shared report date picker must allow selecting hours separately.");
 assert.match(reportDateRangePicker, /selectMinute/, "Shared report date picker must allow selecting minutes separately.");
 assert.match(reportDateRangePicker, /report-date-today-button/, "Shared report date picker must include the reference Today action.");
@@ -94,22 +94,75 @@ assert.match(reportDateRangePicker, /className="report-date-ok"/, "Shared report
 assert.doesNotMatch(reportDateRangePicker, /function MiniCalendar/, "Shared report date picker must rely on the native datetime calendar, not the old internal calendar.");
 assert.doesNotMatch(reportDateRangePicker, /report-mini-calendar/, "Shared report date picker must not render the old internal mini calendar.");
 assert.match(reportDateRangePicker, /applyDraft/, "Shared report date picker must apply the selected range.");
-assert.match(tablesReport, /<ReportDateRangePicker value={dateRange} onChange={setDateRange} \/>/, "Tables report must use the shared date picker.");
-assert.match(ordersReport, /<ReportDateRangePicker value={dateRange} onChange={setDateRange} \/>/, "Orders report must use the shared date picker.");
-assert.match(dishesReport, /<ReportDateRangePicker value={dateRange} onChange={setDateRange} \/>/, "Dishes report must use the shared date picker.");
-const reportDatePickerCss = appCss.slice(appCss.lastIndexOf("Report date picker: compact native datetime popup"));
-assert.match(appCss, /\.report-actions \.report-date-menu\s*{[\s\S]*?position:\s*absolute/, "Shared report date menu must be a dropdown.");
-assert.match(reportDatePickerCss, /\.report-actions \.report-date-menu\s*{[\s\S]*?width:\s*min\(620px/, "Shared report date menu and calendar panel must have equal width.");
-assert.match(reportDatePickerCss, /\.report-actions \.report-date-range\s*{[\s\S]*?position:\s*relative/, "Shared report lower date controls must stay inside the native datetime popup.");
-assert.match(reportDatePickerCss, /\.report-actions \.report-date-range\s*{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto\s*minmax\(0,\s*1fr\)\s*27px/, "Shared report date range fields must be laid out like the reference.");
-assert.match(reportDatePickerCss, /\.report-actions \.report-date-input\s*{[\s\S]*?background:\s*#fff/, "Shared report lower date fields must stay white like the requested reference.");
-assert.match(reportDatePickerCss, /\.report-actions \.report-date-input\s*{[\s\S]*?font-size:\s*12px/, "Shared report lower date fields must use compact readable digits.");
-assert.doesNotMatch(reportDatePickerCss, /::-webkit-calendar-picker-indicator/, "Shared report lower date fields must not keep native calendar indicator styles.");
-assert.match(reportDatePickerCss, /\.report-actions \.report-date-calendar-popover\s*{[\s\S]*?width:\s*100%/, "Shared report calendar must match the preset panel width.");
-assert.match(reportDatePickerCss, /\.report-actions \.report-date-picker-body\s*{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s*190px/, "Shared report calendar must place calendar and time columns side by side.");
-assert.match(reportDatePickerCss, /\.report-actions \.report-date-calendar-grid button:hover,[\s\S]*?background:\s*var\(--report-date-accent\)/, "Shared report calendar selection must use the turquoise accent.");
-assert.match(reportDatePickerCss, /\.report-actions \.report-date-time-columns\s*{[\s\S]*?grid-template-columns:\s*1fr 1fr/, "Shared report time selector must show separate hour and minute columns.");
-assert.match(reportDatePickerCss, /\.report-actions \.report-date-time-list button\s*{[\s\S]*?min-height:\s*42px/, "Shared report time lists must use compact selectable rows.");
-assert.match(reportDatePickerCss, /\.report-actions \.report-date-calendar-footer\s*{[\s\S]*?grid-template-columns:\s*1fr 190px/, "Shared report calendar footer must match the Today and OK reference layout.");
+assert.match(tablesReport, /<ReportDateRangePicker[\s\S]*?value={dateRange}[\s\S]*?onChange={setDateRange}/, "Tables report must use the shared date picker.");
+assert.match(ordersReport, /<ReportDateRangePicker[\s\S]*?value={dateRange}[\s\S]*?onChange={setDateRange}/, "Orders report must use the shared date picker.");
+assert.match(dishesReport, /<ReportDateRangePicker[\s\S]*?value={dateRange}[\s\S]*?onChange={setDateRange}/, "Dishes report must use the shared date picker.");
+
+const adminFinanceSection = app.slice(
+  app.indexOf("function AdminFinanceOperationsPage"),
+  app.indexOf("function AdminFinanceCategoriesPage")
+);
+const adminFinanceModal = app.slice(
+  app.indexOf("function AdminFinanceTransactionModal"),
+  app.indexOf("function AdminFinanceOperationsPage")
+);
+const adminFinanceFilterDrawer = app.slice(
+  app.indexOf("function AdminFinanceFilterDrawer"),
+  app.indexOf("function AdminFinanceOperationsPage")
+);
+const adminFinanceDateInput = app.slice(
+  app.indexOf("function AdminFinanceDateInput"),
+  app.indexOf("function AdminFinanceTransactionModal")
+);
+const adminFinanceCategoriesPage = app.slice(
+  app.indexOf("function AdminFinanceCategoriesPage"),
+  app.indexOf("function AdminIncomeCategoriesPage")
+);
+const adminPaymentMethodsPage = app.slice(
+  app.indexOf("function AdminPaymentMethodsPage"),
+  app.indexOf("function AdminFinanceHistoryPage")
+);
+const adminFinanceHistoryPage = app.slice(
+  app.indexOf("function AdminFinanceHistoryPage"),
+  app.indexOf("function AdminCashierBackgroundPage")
+);
+
+assert.match(app, /const adminFinanceApi = {[\s\S]*?createTransaction\(payload, idempotencyKey\)[\s\S]*?adminApi\.post\("\/finance\/transactions", payload/, "Admin finance must create transactions through the existing finance endpoint.");
+assert.match(app, /headers:\s*{ "Idempotency-Key": idempotencyKey }/, "Admin finance submit must send an idempotency key to protect repeated requests.");
+assert.match(adminFinanceSection, /if \(financeSubmitting\) return;/, "Admin finance submit must block repeated clicks while a request is in flight.");
+assert.match(adminFinanceSection, /direction:\s*financeDraft\.operationType/, "Admin finance payload must send backend direction income or expense.");
+assert.doesNotMatch(adminFinanceSection, /window\.confirm/, "Admin finance close confirmation must not use the native browser confirm dialog.");
+assert.doesNotMatch(app, /adminFinanceDraftNeedsCloseConfirm|admin-finance-close-confirm/, "Admin finance modal must close directly without any dirty-close confirmation panel.");
+assert.match(adminFinanceSection, /function requestCloseFinanceModal\(\) \{[\s\S]*?if \(financeSubmitting \|\| financeModalClosing\) return;[\s\S]*?closeFinanceModal\(\);[\s\S]*?\}/, "Admin finance close flow must close the panel directly.");
+assert.match(adminFinanceSection, /financeModalClosing[\s\S]*?ADMIN_FINANCE_MODAL_ANIMATION_MS/, "Admin finance modal must keep rendering briefly for the close animation.");
+assert.match(adminFinanceModal, /closing \? "is-closing" : "is-opening"/, "Admin finance modal must expose opening and closing animation states.");
+assert.match(adminFinanceFilterDrawer, /className="admin-finance-filter-drawer"[\s\S]*?Выберите тип[\s\S]*?Фильтр по контрагентам[\s\S]*?Фильтр по категории[\s\S]*?Фильтровать[\s\S]*?Очистить/, "Admin finance filter button must open the requested filter drawer controls.");
+assert.match(adminFinanceSection, /counterpartyFilter[\s\S]*?categoryFilter[\s\S]*?counterpartyMatches[\s\S]*?categoryMatches/, "Admin finance table must filter by counterparty and category.");
+assert.match(adminFinanceSection, /<AdminFinanceFilterDrawer[\s\S]*?counterpartyOptions={filterCounterpartyOptions}[\s\S]*?categoryOptions={filterCategoryOptions}/, "Admin finance page must pass table-derived filter options to the drawer.");
+assert.match(adminFinanceSection, /onNotify\?\.\(financeDraft\.operationType === "income" \? "Приход успешно добавлен"/, "Admin finance must notify after successful income creation.");
+assert.match(adminFinanceSection, /catch \(error\)[\s\S]*?setFinanceSubmitError\(message\)/, "Admin finance must keep form data and show backend errors.");
+assert.match(app, /function validateAdminFinanceDraft\(draft\)[\s\S]*?Введите сумму[\s\S]*?Сумма должна быть больше нуля[\s\S]*?Выберите способ оплаты[\s\S]*?Выберите филиал[\s\S]*?Выберите дату[\s\S]*?Выберите категорию/, "Admin finance validation must cover amount, payment, branch, date and category.");
+assert.match(adminFinanceModal, /Добавление…/, "Admin finance submit button must show the required loading text.");
+assert.match(adminFinanceModal, /maxLength={ADMIN_FINANCE_COMMENT_LIMIT}/, "Admin finance comment field must have a hard character limit.");
+assert.match(app, /ADMIN_FINANCE_COUNTERPARTY_TYPES\.map/, "Admin finance modal must render counterparty type selector options.");
+assert.doesNotMatch(adminFinanceDateInput, /type="date"/, "Admin finance date field must not use the native browser date picker.");
+assert.match(adminFinanceDateInput, /createPortal\([\s\S]*?admin-finance-calendar[\s\S]*?document\.body/, "Admin finance date calendar must render through a portal above scrollable modal content.");
+assert.match(adminFinanceDateInput, /admin-finance-calendar__today[\s\S]*?Сегодня[\s\S]*?admin-finance-calendar__ok[\s\S]*?OK/, "Admin finance date field must render the custom admin calendar footer.");
+assert.match(adminFinanceCategoriesPage, /admin-income-page admin-finance-category-page/, "Admin finance category pages must have their own template class.");
+assert.match(adminFinanceCategoriesPage, /const fallbackCategories = useMemo/, "Admin finance category pages must render their existing local rows when the API is empty or unavailable.");
+assert.match(adminFinanceCategoriesPage, /setCategories\(fallbackCategories\)/, "Admin finance category pages must keep the local fallback rows in sync.");
+assert.match(adminFinanceCategoriesPage, /admin-income-table-shell[\s\S]*?admin-income-list-head[\s\S]*?admin-income-list/, "Admin finance category page must render a clear table shell with column headings.");
+assert.match(adminFinanceCategoriesPage, /editor\.mode === "create" \? "Добавить" : "Сохранить"/, "Admin finance category create modal must use an add action label.");
+assert.match(adminPaymentMethodsPage, /const paymentFallbackRows = useMemo\(\(\) => paymentMethodRows\.map/, "Admin payment methods must render existing local rows when the API is empty or unavailable.");
+assert.match(adminPaymentMethodsPage, /setMethods\(paymentFallbackRows\)/, "Admin payment methods must keep local fallback rows in sync.");
+assert.match(adminPaymentMethodsPage, /sort:\s*Number\(r\.sort_order \?\? r\.sort \?\? index \+ 1\)/, "Admin payment API rows must preserve sort values.");
+assert.match(adminFinanceHistoryPage, /const historyFallbackRows = useMemo/, "Admin finance history must render existing local rows when the API is empty or unavailable.");
+assert.match(adminFinanceHistoryPage, /setRows\(historyFallbackRows\)/, "Admin finance history must keep local fallback rows in sync.");
+assert.match(adminFinanceHistoryPage, /adminApi\.get\("\/finance\/finance-history"/, "Admin finance history must use the existing finance history endpoint.");
+assert.match(adminFinanceHistoryPage, /const historyScrollRef = useRef/, "Admin finance history must manage a dedicated visible horizontal scrollbar.");
+assert.match(adminFinanceHistoryPage, /className="admin-history-table-wrap"[\s\S]*?ref={historyScrollRef}[\s\S]*?onScroll={updateHistoryScroll}[\s\S]*?onWheelCapture={keepWheelInsideScroller}/, "Admin finance history must keep wheel and scrollbar state synced inside the table scroller.");
+assert.match(adminFinanceHistoryPage, /className="admin-history-scrollbar"[\s\S]*?admin-history-scrollbar__button is-prev[\s\S]*?admin-history-scrollbar__track[\s\S]*?admin-history-scrollbar__thumb[\s\S]*?admin-history-scrollbar__button is-next/, "Admin finance history must render the visible reference-style scrollbar under the table.");
+assert.match(adminFinanceSection, /<colgroup>[\s\S]*?admin-finance-col-comment[\s\S]*?admin-finance-col-actions[\s\S]*?<\/colgroup>/, "Admin finance table must define stable columns for resize and zoom.");
+assert.match(adminFinanceSection, /<td className="admin-finance-comment"><span>{row\.comment}<\/span><\/td>/, "Admin finance comments must render inside a wrapper for multiline clamping.");
 
 console.log("admin login tests passed");

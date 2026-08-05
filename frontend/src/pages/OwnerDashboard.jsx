@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Chart, Filler, LineController, LineElement, LinearScale, PointElement, CategoryScale, Tooltip } from "chart.js";
-import { Link, useOutletContext } from "react-router-dom";
+import { Link, useNavigate, useOutletContext } from "react-router-dom";
 import { api, formatMoney, formatNumber } from "../api/client";
 import { formatDateLabel, todayInputValue, toDateInputValue } from "../utils/date";
 import Icon from "../components/Icon";
@@ -404,6 +404,190 @@ function signed(n) {
   return n > 0 ? `+${n}` : `${n}`;
 }
 
+const DEMO_PLACE_SETTINGS = [
+  { id: "demo-place-hall", name: "Зал" },
+  { id: "demo-place-terrace", name: "Терраса" },
+  { id: "demo-place-delivery", name: "Доставка" },
+  { id: "demo-place-pickup", name: "Самовывоз" },
+];
+
+const DEMO_TOP_PRODUCTS = [
+  { product_id: "demo-top-1", name: "Плов", quantity_sold: 42, revenue: 1_890_000 },
+  { product_id: "demo-top-2", name: "Шашлык", quantity_sold: 36, revenue: 1_620_000 },
+  { product_id: "demo-top-3", name: "Лагман", quantity_sold: 31, revenue: 1_085_000 },
+  { product_id: "demo-top-4", name: "Манты", quantity_sold: 28, revenue: 980_000 },
+  { product_id: "demo-top-5", name: "Салат микс", quantity_sold: 24, revenue: 720_000 },
+];
+
+function roundedMoney(value) {
+  return Math.round((Number(value) || 0) / 1000) * 1000;
+}
+
+function hasRows(rows) {
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+function hasPositiveAmount(rows = [], fields = ["amount", "total", "value", "revenue"]) {
+  return rows.some((row) => fields.some((field) => Math.abs(toFiniteNumber(row?.[field])) > 0));
+}
+
+function hasBalanceRows(rows = []) {
+  return rows.some((row) => Math.abs(toFiniteNumber(row.closing_balance ?? row.closingBalance ?? row.balance)) > 0);
+}
+
+function buildSimulatedDashboard(sales = []) {
+  const current = sales.at(-1) || { revenue: 0 };
+  const prev = sales.at(-2) || current;
+  const revenue = Math.max(1_500_000, roundedMoney(current.revenue));
+  const prevRevenue = Math.max(1, roundedMoney(prev.revenue || revenue * 0.92));
+  const orders = Math.max(14, Math.round(revenue / 115_000));
+  const activeOrders = Math.max(3, Math.round(orders * 0.16));
+  const avgCheck = Math.round(revenue / Math.max(orders, 1));
+  const cashTotal = roundedMoney(revenue * 0.42);
+  const nonCashTotal = Math.max(0, revenue - cashTotal);
+  const cardTotal = roundedMoney(nonCashTotal * 0.46);
+  const clickTotal = roundedMoney(nonCashTotal * 0.28);
+  const paymeTotal = roundedMoney(nonCashTotal * 0.18);
+  const otherPaymentTotal = Math.max(0, nonCashTotal - cardTotal - clickTotal - paymeTotal);
+  const incomeTotal = roundedMoney(revenue * 1.08);
+  const expenseTotal = roundedMoney(revenue * 0.34);
+
+  return {
+    today_revenue: revenue,
+    today_orders: orders,
+    avg_check: avgCheck,
+    active_orders: activeOrders,
+    cash_total: cashTotal,
+    non_cash_total: nonCashTotal,
+    income_total: incomeTotal,
+    expense_total: expenseTotal,
+    payment_methods: [
+      { name: "cash", amount: cashTotal },
+      { name: "card", amount: cardTotal },
+      { name: "click", amount: clickTotal },
+      { name: "payme", amount: paymeTotal },
+      { name: "Другие оплаты", amount: otherPaymentTotal },
+    ],
+    order_locations: [
+      { name: "Зал", count: Math.round(orders * 0.48) },
+      { name: "Терраса", count: Math.round(orders * 0.22) },
+      { name: "Доставка", order_type: "delivery", count: Math.round(orders * 0.18) },
+      { name: "Самовывоз", order_type: "takeaway", count: Math.max(1, orders - Math.round(orders * 0.88)) },
+    ],
+    avg_check_segments: [
+      { name: "Зал", avg_check: roundedMoney(avgCheck * 1.06), orders_count: Math.round(orders * 0.48) },
+      { name: "Терраса", avg_check: roundedMoney(avgCheck * 1.12), orders_count: Math.round(orders * 0.22) },
+      { name: "Доставка", order_type: "delivery", avg_check: roundedMoney(avgCheck * 0.94), orders_count: Math.round(orders * 0.18) },
+      { name: "Самовывоз", order_type: "takeaway", avg_check: roundedMoney(avgCheck * 0.82), orders_count: Math.max(1, orders - Math.round(orders * 0.88)) },
+    ],
+    income_breakdown: [
+      { name: "Продажи зал", amount: roundedMoney(incomeTotal * 0.46) },
+      { name: "Продажи доставка", amount: roundedMoney(incomeTotal * 0.24) },
+      { name: "Терминал и карты", amount: roundedMoney(incomeTotal * 0.20) },
+      { name: "Прочие поступления", amount: Math.max(0, incomeTotal - roundedMoney(incomeTotal * 0.90)) },
+    ],
+    expense_breakdown: [
+      { name: "Закупка продуктов", amount: roundedMoney(expenseTotal * 0.52) },
+      { name: "Зарплата смены", amount: roundedMoney(expenseTotal * 0.22) },
+      { name: "Хоз. расходы", amount: roundedMoney(expenseTotal * 0.16) },
+      { name: "Доставка и упаковка", amount: Math.max(0, expenseTotal - roundedMoney(expenseTotal * 0.90)) },
+    ],
+    previous_revenue: prevRevenue,
+  };
+}
+
+function mergeDashboardWithSimulation(dash, sales) {
+  const source = dash || EMPTY_DASHBOARD;
+  const demo = buildSimulatedDashboard(sales);
+  const positive = (field) => toFiniteNumber(source[field]) > 0;
+  const sourceRows = (...fields) => fields.map((field) => source[field]).find((rows) => Array.isArray(rows) && rows.length > 0);
+  const paymentRows = sourceRows("payment_methods", "paymentMethods", "payment_breakdown", "paymentBreakdown");
+  const orderRows = sourceRows("order_locations", "orderLocations", "place_orders", "placeOrders", "order_places", "orderPlaces");
+  const avgRows = sourceRows("avg_check_segments", "avgCheckSegments", "average_check_segments", "averageCheckSegments");
+  const incomeRows = sourceRows("income_breakdown", "incomeBreakdown", "income_sources", "incomeSources");
+  const expenseRows = sourceRows("expense_breakdown", "expenseBreakdown", "expense_categories", "expenseCategories");
+
+  return {
+    ...source,
+    today_revenue: positive("today_revenue") ? source.today_revenue : demo.today_revenue,
+    today_orders: positive("today_orders") ? source.today_orders : demo.today_orders,
+    avg_check: positive("avg_check") ? source.avg_check : demo.avg_check,
+    active_orders: positive("active_orders") ? source.active_orders : demo.active_orders,
+    cash_total: positive("cash_total") ? source.cash_total : demo.cash_total,
+    non_cash_total: positive("non_cash_total") ? source.non_cash_total : demo.non_cash_total,
+    income_total: positive("income_total") ? source.income_total : demo.income_total,
+    expense_total: positive("expense_total") ? source.expense_total : demo.expense_total,
+    payment_methods: paymentRows || demo.payment_methods,
+    order_locations: orderRows || demo.order_locations,
+    avg_check_segments: avgRows || demo.avg_check_segments,
+    income_breakdown: incomeRows || demo.income_breakdown,
+    expense_breakdown: expenseRows || demo.expense_breakdown,
+  };
+}
+
+function buildSimulatedFinanceTransactions(selectedDate) {
+  return [
+    { id: "demo-fin-1", date: selectedDate, direction: "income", payment_type_name: "Наличные", counterparty_name: "Гости зала", category_name: "Продажи зал", amount: 1_240_000, comment: "Демо приход" },
+    { id: "demo-fin-2", date: selectedDate, direction: "income", payment_type_name: "Terminal", counterparty_name: "Гости террасы", category_name: "Терминал и карты", amount: 980_000, comment: "Демо приход" },
+    { id: "demo-fin-3", date: selectedDate, direction: "expense", payment_type_name: "Наличные", counterparty_name: "Bozor", category_name: "Закупка продуктов", amount: 640_000, comment: "Демо расход" },
+    { id: "demo-fin-4", date: selectedDate, direction: "expense", payment_type_name: "CLICK", counterparty_name: "Logistika", category_name: "Доставка и упаковка", amount: 210_000, comment: "Демо расход" },
+  ];
+}
+
+function buildSimulatedWarehouseReports() {
+  return {
+    incomes: [
+      { product_name: "Говядина", provider_name: "Fresh Meat", storage_name: "Основной склад", total: 1_840_000 },
+      { product_name: "Рис лазер", provider_name: "Bozor", storage_name: "Кухня", total: 620_000 },
+      { product_name: "Овощи", provider_name: "Green Market", storage_name: "Кухня", total: 410_000 },
+    ],
+    consumption: [
+      { product_name: "Говядина", receiver: "Кухня", storage_name: "Основной склад", total: 780_000 },
+      { product_name: "Напитки", receiver: "Бар", storage_name: "Бар", total: 360_000 },
+      { product_name: "Упаковка", receiver: "Доставка", storage_name: "Основной склад", total: 190_000 },
+    ],
+    balances: [
+      { ingredient_name: "Говядина", warehouse_name: "Основной склад", quantity: 24, cost_price: 78_000 },
+      { ingredient_name: "Рис", warehouse_name: "Кухня", quantity: 38, cost_price: 15_000 },
+    ],
+    debtCredit: [
+      { counterparty_name: "Fresh Meat", closing_balance: -2_150_000, status: "К оплате" },
+      { counterparty_name: "Green Market", closing_balance: -760_000, status: "К оплате" },
+      { counterparty_name: "VIP клиент", closing_balance: 940_000, status: "Ожидается" },
+      { counterparty_name: "Кейтеринг", closing_balance: 520_000, status: "Ожидается" },
+    ],
+    stock: [
+      { ingredient_name: "Говядина", warehouse_name: "Основной склад", quantity: 24, cost_price: 78_000 },
+      { ingredient_name: "Рис", warehouse_name: "Кухня", quantity: 38, cost_price: 15_000 },
+      { ingredient_name: "Овощи", warehouse_name: "Кухня", quantity: 45, cost_price: 9_000 },
+      { ingredient_name: "Напитки", warehouse_name: "Бар", quantity: 66, cost_price: 12_000 },
+    ],
+  };
+}
+
+function mergeWarehouseReportsWithSimulation(reports = EMPTY_WAREHOUSE_REPORTS) {
+  const demo = buildSimulatedWarehouseReports();
+  const source = reports || EMPTY_WAREHOUSE_REPORTS;
+
+  return {
+    incomes: hasPositiveAmount(source.incomes, ["total", "amount", "value"]) ? source.incomes : demo.incomes,
+    consumption: hasPositiveAmount(source.consumption, ["total", "amount", "value"]) ? source.consumption : demo.consumption,
+    balances: hasRows(source.balances) ? source.balances : demo.balances,
+    debtCredit: hasBalanceRows(source.debtCredit) ? source.debtCredit : demo.debtCredit,
+    stock: hasPositiveAmount(source.stock, ["quantity", "total", "amount", "value"]) ? source.stock : demo.stock,
+  };
+}
+
+function buildSimulatedRecentOrders(selectedDate) {
+  return [
+    { id: "demo-order-1", order_number: "10428", created_at: `${selectedDate}T20:45:00`, table_number: "12", total_amount: 286_000, status: "completed" },
+    { id: "demo-order-2", order_number: "10427", created_at: `${selectedDate}T20:31:00`, table_number: "7", total_amount: 194_000, status: "ready" },
+    { id: "demo-order-3", order_number: "10426", created_at: `${selectedDate}T20:10:00`, order_type: "Доставка", total_amount: 342_000, status: "completed" },
+    { id: "demo-order-4", order_number: "10425", created_at: `${selectedDate}T19:48:00`, table_number: "3", total_amount: 128_000, status: "in_progress" },
+    { id: "demo-order-5", order_number: "10424", created_at: `${selectedDate}T19:22:00`, order_type: "Самовывоз", total_amount: 96_000, status: "completed" },
+  ];
+}
+
 function buildRealKpis(dash, sales, selectedDate, placeSettings = [], financeRows = []) {
   const day = sales.at(-1) || { revenue: 0, orders_count: 0, avg_check: 0 };
   const prev = sales.at(-2) || day;
@@ -602,9 +786,9 @@ function buildWarehouseSummary(reports = EMPTY_WAREHOUSE_REPORTS, financeRows = 
   );
 
   return [
-    { label: "Приход товаров", value: incomeTotal, icon: "bi-download", tone: "income", rows: incomeRows },
-    { label: "Расход товаров", value: expenseTotal, icon: "bi-upload", tone: "expense", rows: expenseRows },
-    { label: "Остаток склада", value: stockBalance, icon: "bi-box", tone: "stock", rows: stockRows },
+    { label: "Приход товаров", value: incomeTotal, icon: "bi-download", tone: "income", rows: incomeRows, to: "/stock-report/incoming" },
+    { label: "Расход товаров", value: expenseTotal, icon: "bi-upload", tone: "expense", rows: expenseRows, to: "/stock-report/outgoing" },
+    { label: "Остаток склада", value: stockBalance, icon: "bi-box", tone: "stock", rows: stockRows, to: "/stock-report/stock" },
     { label: "Общие затраты", value: totalCosts, icon: "bi-wallet2", tone: "costs", rows: totalCostRows },
     { label: "Кредиторка", value: creditorTotal, icon: "bi-arrow-up-right-circle", tone: "creditor", rows: creditorRows },
     { label: "Дебиторка", value: debtorTotal, icon: "bi-arrow-down-left-circle", tone: "debtor", rows: debtorRows },
@@ -634,6 +818,59 @@ function dishPhotoClass(name = "", index = 0) {
   if (normalized.includes("сал") || normalized.includes("sal")) return "dish-photo--salad";
   if (normalized.includes("мант") || normalized.includes("mant")) return "dish-photo--manti";
   return `dish-photo--${(index % 5) + 1}`;
+}
+
+function formatAxisValue(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "0";
+  const normalized = Math.abs(number) < 1 ? 0 : number;
+  return normalized.toLocaleString("ru-RU", { maximumFractionDigits: 1 });
+}
+
+function formatRevenueAxisTick(value, hasRevenue) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return "0";
+  if (!hasRevenue) return "";
+  if (amount >= 1_000_000_000) return `${formatAxisValue(amount / 1_000_000_000)}B`;
+  if (amount >= 1_000_000) return `${formatAxisValue(amount / 1_000_000)}M`;
+  if (amount >= 1_000) return `${formatAxisValue(amount / 1_000)}K`;
+  return formatNumber(amount);
+}
+
+function simulatedRevenueAmount(index, days) {
+  const weekdayWeight = [0.82, 0.96, 1.08, 1.2, 1.34, 1.52, 1.16][index % 7];
+  const progress = days > 1 ? index / (days - 1) : 0;
+  const trend = 1 + progress * 0.22;
+  const wave = 1 + Math.sin(progress * Math.PI * 2) * 0.12;
+  return Math.round((1_850_000 * weekdayWeight * trend * wave) / 1000) * 1000;
+}
+
+function buildSimulatedRevenueSales(range) {
+  const params = reportRangeToApiParams(range);
+  const days = reportRangeDays(range);
+  const start = new Date(`${params.date_from}T00:00:00`);
+
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    const revenue = simulatedRevenueAmount(index, days);
+    const orders = Math.max(1, Math.round(revenue / 115_000));
+
+    return {
+      date: toDateInputValue(date),
+      revenue,
+      orders_count: orders,
+      avg_check: Math.round(revenue / orders),
+      isSimulated: true,
+    };
+  });
+}
+
+function buildRevenueChartSales(rows, range) {
+  const source = Array.isArray(rows) ? rows : [];
+  return source.some((item) => Number(item.revenue || 0) > 0)
+    ? source
+    : buildSimulatedRevenueSales(range);
 }
 
 function RevenueChart({ sales }) {
@@ -668,13 +905,16 @@ function RevenueChart({ sales }) {
     gradient.addColorStop(0, "rgba(29, 181, 181, 0.28)");
     gradient.addColorStop(0.55, "rgba(31, 202, 194, 0.10)");
     gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+    const revenueValues = sales.map((item) => Number(item.revenue || 0));
+    const maxRevenue = Math.max(0, ...revenueValues);
+    const hasRevenue = maxRevenue > 0;
 
     const chart = new Chart(canvasRef.current, {
       type: "line",
       data: {
         labels: sales.map((item) => new Intl.DateTimeFormat("ru-RU", { day: "2-digit", month: "2-digit" }).format(new Date(item.date))),
         datasets: [{
-          data: sales.map((item) => Number(item.revenue || 0)),
+          data: revenueValues,
           borderColor: "#1db5b5",
           backgroundColor: gradient,
           borderWidth: 4,
@@ -728,11 +968,14 @@ function RevenueChart({ sales }) {
           x: { grid: { display: false }, ticks: { color: "#667085", font: { size: 12, weight: "600", family: "'Golos Text', Manrope, sans-serif" } }, border: { display: false } },
           y: {
             beginAtZero: true,
+            suggestedMax: hasRevenue ? undefined : 1,
             grid: { color: "rgba(16, 24, 40, 0.08)", drawTicks: false },
             ticks: {
               color: "#667085",
               font: { size: 12, weight: "600", family: "'Golos Text', Manrope, sans-serif" },
-              callback: (value) => `${Number(value) / 1000000}M`,
+              maxTicksLimit: hasRevenue ? 6 : 2,
+              precision: 0,
+              callback: (value) => formatRevenueAxisTick(value, hasRevenue),
             },
             border: { display: false },
           },
@@ -1185,6 +1428,7 @@ function WarehouseReportDialog({ report, selectedDate, onClose }) {
 
 export default function OwnerDashboard() {
   const { selectedDate = todayInputValue() } = useOutletContext();
+  const navigate = useNavigate();
   const [revenueRange, setRevenueRange] = useState(() => reportRangeEndingAt(7, selectedDate));
   const [selectedKpi, setSelectedKpi] = useState(null);
   const [selectedWarehouseReport, setSelectedWarehouseReport] = useState(null);
@@ -1283,19 +1527,39 @@ export default function OwnerDashboard() {
   }, [revenueParams, selectedDate]);
 
   const displaySales = useMemo(() => sales, [sales]);
+  const revenueChartSales = useMemo(
+    () => buildRevenueChartSales(displaySales, normalizedRevenueRange),
+    [displaySales, normalizedRevenueRange]
+  );
+  const displayPlaceSettings = useMemo(
+    () => (hasRows(placeSettings) ? placeSettings : DEMO_PLACE_SETTINGS),
+    [placeSettings]
+  );
+  const displayFinanceTransactions = useMemo(
+    () => (hasPositiveAmount(financeTransactions, ["amount", "total", "value"]) ? financeTransactions : buildSimulatedFinanceTransactions(selectedDate)),
+    [financeTransactions, selectedDate]
+  );
+  const displayWarehouseReports = useMemo(
+    () => mergeWarehouseReportsWithSimulation(warehouseReports),
+    [warehouseReports]
+  );
   const displayDashboard = useMemo(() => (
-    dashboard && dashboard.today_revenue !== undefined ? dashboard : EMPTY_DASHBOARD
-  ), [dashboard]);
+    mergeDashboardWithSimulation(dashboard && dashboard.today_revenue !== undefined ? dashboard : EMPTY_DASHBOARD, revenueChartSales)
+  ), [dashboard, revenueChartSales]);
   const kpis = useMemo(() => {
-    return buildRealKpis(displayDashboard, displaySales, selectedDate, placeSettings, financeTransactions);
-  }, [displayDashboard, displaySales, selectedDate, placeSettings, financeTransactions]);
+    return buildRealKpis(displayDashboard, revenueChartSales, selectedDate, displayPlaceSettings, displayFinanceTransactions);
+  }, [displayDashboard, revenueChartSales, selectedDate, displayPlaceSettings, displayFinanceTransactions]);
+  const displayTopProducts = useMemo(
+    () => (hasPositiveAmount(topProducts, ["revenue"]) ? topProducts : DEMO_TOP_PRODUCTS),
+    [topProducts]
+  );
   const displayTopDishes = useMemo(() => {
-  if (topProducts.length > 0) {
-    const maxRevenue = Number(topProducts[0]?.revenue || 1);
-    return topProducts.map((item, index) => ({
+  if (displayTopProducts.length > 0) {
+    const maxRevenue = Math.max(1, ...displayTopProducts.map((item) => Number(item.revenue || 0)));
+    return displayTopProducts.map((item, index) => ({
       product_id: item.product_id || `p-${index}`,
       name: item.name,
-      quantity: item.quantity_sold,
+      quantity: Number(item.quantity_sold ?? item.quantity ?? item.count ?? 0),
       revenue: Number(item.revenue || 0),
       change: "",
       positive: true,
@@ -1303,14 +1567,18 @@ export default function OwnerDashboard() {
     }));
   }
   return [];
-}, [topProducts]);
+}, [displayTopProducts]);
   const warehouseSummary = useMemo(
-    () => buildWarehouseSummary(warehouseReports, financeTransactions, selectedDate),
-    [warehouseReports, financeTransactions, selectedDate]
+    () => buildWarehouseSummary(displayWarehouseReports, displayFinanceTransactions, selectedDate),
+    [displayWarehouseReports, displayFinanceTransactions, selectedDate]
+  );
+  const displayRecentOrders = useMemo(
+    () => (hasRows(recentOrders) ? recentOrders : buildSimulatedRecentOrders(selectedDate)),
+    [recentOrders, selectedDate]
   );
   const recentOrdersList = useMemo(() => {
-    if (recentOrders.length > 0) {
-      return recentOrders.map((order) => {
+    if (displayRecentOrders.length > 0) {
+      return displayRecentOrders.map((order) => {
         const created = order.created_at ? new Date(order.created_at) : new Date();
         const time = created.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
         const dateLabel = created.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
@@ -1326,16 +1594,25 @@ export default function OwnerDashboard() {
       });
     }
     return [];
-  }, [recentOrders]);
+  }, [displayRecentOrders]);
   const revenueStats = useMemo(() => {
-    const revenues = displaySales.map((item) => Number(item.revenue || 0));
+    const revenues = revenueChartSales.map((item) => Number(item.revenue || 0));
     const total = revenues.reduce((acc, value) => acc + value, 0);
     return {
       max: revenues.length ? Math.max(...revenues) : 0,
       min: revenues.length ? Math.min(...revenues) : 0,
       avg: revenues.length ? Math.round(total / revenues.length) : 0,
     };
-  }, [displaySales]);
+  }, [revenueChartSales]);
+  const handleWarehouseSummaryClick = (item) => {
+    if (item.to) {
+      navigate(item.to);
+      return;
+    }
+
+    setSelectedWarehouseReport(item);
+  };
+
   if (loading) return <PageLoader />;
   if (error) return <EmptyState title="Dashboard недоступен" text={error} />;
 
@@ -1391,7 +1668,7 @@ export default function OwnerDashboard() {
             <div><span>Минимум</span><strong>{formatMoney(revenueStats.min)}</strong></div>
             <div><span>Среднее</span><strong>{formatMoney(revenueStats.avg)}</strong></div>
           </div>
-          <div className="chart-wrap"><RevenueChart sales={displaySales} /></div>
+          <div className="chart-wrap"><RevenueChart sales={revenueChartSales} /></div>
         </div>
 
         <aside className="warehouse-summary-card">
@@ -1401,8 +1678,8 @@ export default function OwnerDashboard() {
                 className={`warehouse-summary-item warehouse-summary-item--${item.tone}`}
                 key={item.label}
                 type="button"
-                onClick={() => setSelectedWarehouseReport(item)}
-                aria-haspopup="dialog"
+                onClick={() => handleWarehouseSummaryClick(item)}
+                aria-haspopup={item.to ? undefined : "dialog"}
               >
                 <span className="warehouse-summary-item__icon"><Icon name={item.icon} size={18} /></span>
                 <div>

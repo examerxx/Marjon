@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 32" role="img" aria-label="UzCard">
+  <rect x="2" y="6" width="22" height="16" rx="3" fill="#1A56DB"/>
+  <rect x="5" y="10.5" width="7" height="5" rx="1" fill="#9FC0FF"/>
+  <text x="30" y="22" font-family="Segoe UI,Arial,sans-serif" font-size="17" font-weight="700" fill="#1A56DB" letter-spacing="-0.3">uz<tspan fill="#0B2E7A">card</tspan></text>
+</svg>

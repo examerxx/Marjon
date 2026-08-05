@@ -109,26 +109,7 @@ export default function ReceiptSettingsPage() {
 
   return (
     <section className="receipt-page">
-      <header className="receipt-page__header">
-        <div>
-          <span className="eyebrow">Настройки</span>
-          <h2>Шаблон чека</h2>
-          <p>Что печатается на чеке для клиента. Изменения применяются к реальной печати только после «Сохранить».</p>
-        </div>
-        <div className="receipt-page__actions">
-          <button type="button" className="btn" onClick={handleReset} disabled={saving}>
-            Сбросить
-          </button>
-          <button type="button" className="btn" onClick={handleTestPrint} disabled={printing}>
-            {printing ? "Печать..." : "Тестовая печать"}
-          </button>
-          <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? "Сохранение..." : "Сохранить"}
-          </button>
-        </div>
-      </header>
 
-      {message ? <div className="message message-success">{message}</div> : null}
       {error ? <div className="message message-error">{error}</div> : null}
 
       <div className="receipt-layout">
