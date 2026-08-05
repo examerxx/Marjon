@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 # Importing app.main registers every module's models on Base.metadata.
 from app.main import app
 from app.infrastructure.database.session import get_db
+from app.modules.rbac.permissions import seed_permissions
 from app.shared.base_model import Base
 
 
@@ -38,6 +39,15 @@ async def db_engine():
     )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # BE-05: production seeds the Permission catalog at app startup (see
+    # main.py's lifespan), but that runs against AsyncSessionLocal's own
+    # engine, not this per-test one — so tests need their own seed or every
+    # role's permission sync (owner/cashier/etc.) would attach zero rows.
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with session_factory() as session:
+        await seed_permissions(session)
+
     yield engine
     await engine.dispose()
 

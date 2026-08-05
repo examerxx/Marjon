@@ -16,7 +16,8 @@ from app.modules.auth.security import (
 )
 from app.modules.companies.models import Company
 from app.modules.rbac.models import Role, UserRole
-from app.modules.rbac.repository import RoleRepository
+from app.modules.rbac.permissions import sync_role_permissions
+from app.modules.rbac.service import RBACService
 from app.shared.exceptions import ConflictError, ForbiddenError, NotFoundError, UnauthorizedError, ValidationError
 
 
@@ -52,6 +53,7 @@ class AuthService:
         )
         self.db.add(owner_role)
         await self.db.flush()
+        await sync_role_permissions(self.db, owner_role)  # BE-05: owner gets every permission
 
         self.db.add(UserRole(user_id=user.id, role_id=owner_role.id))
         await self.db.commit()
@@ -139,17 +141,13 @@ class AuthService:
         if await self.user_repo.get_by_email(email):
             raise ConflictError("Email already registered")
 
-        role_repo = RoleRepository(self.db)
-        role = await role_repo.get_by_slug(role_slug, company_id)
-        if not role:
-            role = Role(
-                company_id=company_id,
-                slug=role_slug,
-                name=role_name or role_slug.replace("_", " ").title(),
-                is_system=False,
-            )
-            self.db.add(role)
-            await self.db.flush()
+        # BE-05: role_slug is validated against the canonical allowlist here
+        # (raises ValidationError otherwise) and the role's default
+        # permission set is attached the first time it's created for this
+        # company — see RBACService.get_or_create_company_role.
+        role = await RBACService(self.db).get_or_create_company_role(
+            company_id, role_slug, name=role_name
+        )
 
         user = User(
             company_id=company_id,
@@ -199,18 +197,7 @@ class AuthService:
 
         if role_slug is not None:
             from sqlalchemy import delete as sql_delete
-            from app.modules.rbac.repository import RoleRepository
-            role_repo = RoleRepository(self.db)
-            role = await role_repo.get_by_slug(role_slug, company_id)
-            if not role:
-                role = Role(
-                    company_id=company_id,
-                    slug=role_slug,
-                    name=role_slug.replace("_", " ").title(),
-                    is_system=False,
-                )
-                self.db.add(role)
-                await self.db.flush()
+            role = await RBACService(self.db).get_or_create_company_role(company_id, role_slug)
             await self.db.execute(
                 sql_delete(UserRole).where(UserRole.user_id == user_id)
             )

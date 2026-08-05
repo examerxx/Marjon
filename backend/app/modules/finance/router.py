@@ -11,6 +11,7 @@ from app.modules.auth.models import User
 from app.modules.finance import models, schemas
 from app.modules.finance.service import TransactionService
 from app.modules.organizations.dependencies import get_org_scope
+from app.modules.rbac.dependencies import require_permission
 from app.shared.admin_crud import CRUDService, OrgScope, crud_router
 from app.shared.pagination import Page, PageParams
 
@@ -27,6 +28,12 @@ router = APIRouter(prefix="/finance", tags=["finance"])
 # payment-types, finance-templates and counterparties are NOT part of this
 # conflict — kafe_compat never implemented those, so the admin frontend's
 # existing calls to them are untouched and still work as before.
+#
+# BE-05: any authenticated staff member can still LIST/GET these (e.g. a
+# cashier needs to see payment types to accept a payment), but write access
+# now requires the `finance:manage` permission — previously any staff role
+# (including cashier/waiter) could create/edit/delete payment types,
+# templates and counterparties.
 router.include_router(crud_router(
     prefix="/payment-types", tags=["finance"],
     model=models.PaymentType,
@@ -37,6 +44,7 @@ router.include_router(crud_router(
     filter_fields=("status", "type"),
     default_sort="sort",
     user_dep=get_current_user,
+    write_dep=require_permission("finance:manage"),
 ))
 
 hq_router = APIRouter(prefix="/hq/finance", tags=["hq-finance"])
@@ -61,6 +69,7 @@ router.include_router(crud_router(
     search_fields=("name",),
     default_sort="name",
     user_dep=get_current_user,
+    write_dep=require_permission("finance:manage"),
 ))
 
 
@@ -75,6 +84,7 @@ counterparties = crud_router(
     filter_fields=("type",),
     default_sort="full_name",
     user_dep=get_current_user,
+    write_dep=require_permission("finance:manage"),
 )
 
 

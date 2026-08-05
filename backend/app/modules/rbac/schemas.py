@@ -38,3 +38,7 @@ class UserRoleResponse(BaseResponseSchema):
     user_id: UUID
     role_id: UUID
     branch_id: UUID | None
+
+
+class RolePermissionAssign(BaseSchema):
+    permission_id: UUID

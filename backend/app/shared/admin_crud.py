@@ -193,6 +193,7 @@ def crud_router(
     org_field: str | None = None,
     scope_dep: Callable[..., Any] = unrestricted_scope,
     user_dep: Callable[..., Any] = require_hq_admin,
+    write_dep: Callable[..., Any] | None = None,
     router: APIRouter | None = None,
 ) -> APIRouter:
     """Build a standard CRUD router for one resource.
@@ -205,8 +206,15 @@ def crud_router(
     resources by default, not reachable by regular company accounts). Pass
     `user_dep=get_current_user` explicitly only for resources a non-HQ app is
     known to depend on (see finance/router.py — pending the BE-04 split).
+
+    `write_dep` (BE-05), if given, gates create/update/replace/delete instead
+    of `user_dep` — e.g. any authenticated staff can list/read payment types,
+    but only staff whose role carries the `finance:manage` permission can
+    write them. Defaults to `user_dep` (same guard on every endpoint) when
+    not passed, matching the previous behaviour.
     """
     r = router or APIRouter(prefix=prefix, tags=tags)
+    w_dep = write_dep or user_dep
     filter_desc = ", ".join(filter_fields) or "—"
 
     @r.get("", response_model=Page[response_schema], summary=f"List {model.__name__}",
@@ -248,7 +256,7 @@ def crud_router(
             summary=f"Create {model.__name__}")
     async def create_item(
         data: create_schema,  # type: ignore[valid-type]
-        user: User = Depends(user_dep),
+        user: User = Depends(w_dep),
         db: AsyncSession = Depends(get_db),
     ):
         return await CRUDService(model, db).create(data)
@@ -265,7 +273,7 @@ def crud_router(
     async def update_item(
         item_id: UUID,
         data: update_schema,  # type: ignore[valid-type]
-        user: User = Depends(user_dep),
+        user: User = Depends(w_dep),
         db: AsyncSession = Depends(get_db),
     ):
         return await CRUDService(model, db).update(item_id, data)
@@ -274,7 +282,7 @@ def crud_router(
     async def replace_item(
         item_id: UUID,
         data: update_schema,  # type: ignore[valid-type]
-        user: User = Depends(user_dep),
+        user: User = Depends(w_dep),
         db: AsyncSession = Depends(get_db),
     ):
         return await CRUDService(model, db).update(item_id, data)
@@ -283,7 +291,7 @@ def crud_router(
               summary=f"Delete {model.__name__}")
     async def delete_item(
         item_id: UUID,
-        user: User = Depends(user_dep),
+        user: User = Depends(w_dep),
         db: AsyncSession = Depends(get_db),
     ):
         await CRUDService(model, db).delete(item_id)

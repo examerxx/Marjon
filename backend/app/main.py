@@ -89,7 +89,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Seed RBAC permissions on startup
-    from app.modules.rbac.permissions import seed_permissions
+    from app.modules.rbac.permissions import seed_permissions, backfill_role_permissions
     async with AsyncSessionLocal() as db:
         try:
             count = await seed_permissions(db)
@@ -97,6 +97,15 @@ async def lifespan(app: FastAPI):
                 logger.info("Seeded %d new RBAC permissions", count)
         except Exception as e:
             logger.warning("Could not seed permissions (table may not exist yet): %s", e)
+        try:
+            # BE-05: attach default permissions to roles created before this
+            # feature existed (idempotent — only adds missing RolePermission
+            # links, safe to run on every boot).
+            synced = await backfill_role_permissions(db)
+            if synced:
+                logger.info("Backfilled %d RBAC role-permission links", synced)
+        except Exception as e:
+            logger.warning("Could not backfill role permissions: %s", e)
     yield
 
 
