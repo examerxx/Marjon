@@ -50,6 +50,22 @@ class RefreshRequest(BaseSchema):
     refresh_token: str
 
 
+class PinSetRequest(BaseSchema):
+    pin: str = Field(..., min_length=4, max_length=8)
+
+    @field_validator("pin")
+    @classmethod
+    def check_pin(cls, v: str) -> str:
+        if not re.fullmatch(r"\d{4,8}", v):
+            raise ValueError("PIN должен состоять из 4-8 цифр")
+        return v
+
+
+class PinLoginRequest(BaseSchema):
+    employee_id: UUID
+    pin: str = Field(..., min_length=4, max_length=8)
+
+
 class LogoutRequest(BaseSchema):
     # BE-06: when given, only THIS session's refresh token is revoked.
     # Omitted (or a client that sends no body at all) falls back to

@@ -14,6 +14,8 @@ from app.modules.auth.schemas import (
     CompanyUserUpdate,
     LoginRequest,
     LogoutRequest,
+    PinLoginRequest,
+    PinSetRequest,
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
@@ -228,10 +230,30 @@ async def upload_avatar(
     return UserResponse.model_validate(current_user).model_copy(update={"role_slugs": role_slugs})
 
 
+@router.patch("/users/{user_id}/pin", status_code=status.HTTP_204_NO_CONTENT)
+async def set_user_pin(
+    user_id: UUID,
+    data: PinSetRequest,
+    current_user: User = Depends(require_company_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """BE-08: (re)set a staff member's PIN — owner/admin/manager only.
+    This is also the "PIN reset" flow (an employee who forgot their PIN
+    has an admin set a new one)."""
+    await AuthService(db).set_pin(current_user.id, user_id, current_user.company_id, data.pin)
+
+
 @router.post("/pin-login", response_model=TokenResponse)
-async def pin_login(data: dict, db: AsyncSession = Depends(get_db)):
-    from app.shared.exceptions import UnauthorizedError
-    raise UnauthorizedError("PIN-логин не настроен")
+@limiter.limit("10/minute")
+async def pin_login(request: Request, data: PinLoginRequest, db: AsyncSession = Depends(get_db)):
+    """BE-08: kiosk/shared-device quick login. employee_id identifies WHO
+    (and therefore which company), the PIN just proves it — see
+    AuthService.pin_login for why this makes cross-company PIN lookup
+    impossible by construction, plus per-account lockout on repeated
+    failures."""
+    svc = AuthService(db)
+    _, access_token, refresh_token = await svc.pin_login(data.employee_id, data.pin)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
 @router.get("/staff-users", response_model=list[CompanyUserResponse])

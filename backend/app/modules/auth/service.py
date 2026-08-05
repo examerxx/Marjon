@@ -14,11 +14,19 @@ from app.modules.auth.security import (
     hash_refresh_token,
     verify_password,
 )
+from app.modules.audit.service import AuditService
 from app.modules.companies.models import Company
 from app.modules.rbac.models import Role, UserRole
 from app.modules.rbac.permissions import sync_role_permissions
 from app.modules.rbac.service import RBACService
 from app.shared.exceptions import ConflictError, ForbiddenError, NotFoundError, UnauthorizedError, ValidationError
+
+# BE-08: PIN brute-force throttling, independent of the global rate limiter
+# on POST /auth/pin-login — this locks the SPECIFIC account after repeated
+# wrong PINs, so an attacker can't just spread guesses across many accounts
+# to stay under the per-IP rate limit.
+PIN_MAX_ATTEMPTS = 5
+PIN_LOCKOUT_MINUTES = 15
 
 
 class AuthService:
@@ -270,6 +278,81 @@ class AuthService:
 
     async def logout_all(self, user_id: UUID) -> None:
         await self.token_repo.revoke_all_for_user(user_id)
+
+    async def set_pin(
+        self, actor_user_id: UUID, target_user_id: UUID, company_id: UUID | None, pin: str
+    ) -> None:
+        """BE-08: (re)set a staff member's PIN. company_id-scoped (can only
+        touch a staff member in the caller's own company), enforces PIN
+        uniqueness within that company, hashes before storing, clears any
+        lockout, and writes an audit entry — never the PIN value itself."""
+        if not company_id:
+            raise ValidationError("Current user is not assigned to a company")
+
+        target = await self.user_repo.get_by_id(target_user_id)
+        if not target or target.company_id != company_id:
+            raise NotFoundError("User not found")
+
+        # PIN uniqueness within the company. Pins are hashed (salted), so
+        # this can't be a plain equality lookup — verify against every
+        # peer's hash instead. Fine at restaurant-staff scale; this is not
+        # meant to scale to thousands of accounts per company.
+        peers = await self.user_repo.get_company_users(company_id)
+        for peer in peers:
+            if peer.id != target.id and peer.pin_hash and verify_password(pin, peer.pin_hash):
+                raise ConflictError("PIN уже используется другим сотрудником")
+
+        target.pin_hash = hash_password(pin)
+        target.pin_failed_attempts = 0
+        target.pin_locked_until = None
+        await self.db.commit()
+
+        await AuditService(self.db).log(
+            company_id=company_id, user_id=actor_user_id,
+            action="user.pin_reset", entity_type="user", entity_id=target.id,
+        )
+
+    async def pin_login(self, employee_id: UUID, pin: str) -> tuple[User, str, str]:
+        """BE-08: PIN identifies the SESSION (via employee_id), the PIN
+        value only proves it — this is what makes "нельзя найти сотрудника
+        другой организации по PIN" true by construction: there is no
+        cross-company PIN lookup, employee_id already pins down the
+        company. Failed attempts count toward a per-account lockout,
+        independent of the endpoint's own rate limit."""
+        user = await self.user_repo.get_by_id(employee_id)
+        if not user or not user.pin_hash:
+            raise UnauthorizedError("Invalid PIN")
+        if not user.is_active:
+            raise UnauthorizedError("Account is inactive")
+
+        locked_until = user.pin_locked_until
+        if locked_until is not None:
+            # SQLite (used in tests) hands back a naive datetime even for a
+            # DateTime(timezone=True) column, unlike Postgres/asyncpg —
+            # normalize before comparing so this doesn't blow up in one
+            # backend and not the other.
+            if locked_until.tzinfo is None:
+                locked_until = locked_until.replace(tzinfo=timezone.utc)
+            if locked_until > datetime.now(timezone.utc):
+                raise UnauthorizedError("PIN temporarily locked — too many failed attempts")
+
+        if not verify_password(pin, user.pin_hash):
+            user.pin_failed_attempts += 1
+            if user.pin_failed_attempts >= PIN_MAX_ATTEMPTS:
+                user.pin_locked_until = datetime.now(timezone.utc) + timedelta(minutes=PIN_LOCKOUT_MINUTES)
+                user.pin_failed_attempts = 0
+            await self.db.commit()
+            raise UnauthorizedError("Invalid PIN")
+
+        user.pin_failed_attempts = 0
+        user.pin_locked_until = None
+        await self.db.commit()
+
+        access_token = create_access_token(user.id, user.company_id)
+        refresh_token = create_refresh_token()
+        await self._save_refresh_token(user.id, refresh_token)
+
+        return user, access_token, refresh_token
 
     async def _save_refresh_token(self, user_id: UUID, token: str) -> None:
         expires_at = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)

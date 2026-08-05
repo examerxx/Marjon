@@ -2,7 +2,7 @@ from __future__ import annotations
 from uuid import UUID
 from datetime import datetime
 from typing import TYPE_CHECKING
-from sqlalchemy import String, Boolean, DateTime, ForeignKey
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
 from app.shared.base_model import TimeStampedModel
@@ -22,8 +22,13 @@ class User(TimeStampedModel):
     username: Mapped[str | None] = mapped_column(String(150), unique=True, index=True)
     name: Mapped[str | None] = mapped_column(String(255))
     phone: Mapped[str | None] = mapped_column(String(20))
-    # 4–8 значный PIN для быстрого входа сотрудников (ТЗ §3.2 экран официанта/кассира)
-    pin_code: Mapped[str | None] = mapped_column(String(8))
+    # BE-08: was pin_code String(8) — sized for a plaintext PIN and never
+    # actually written by any endpoint. Renamed + widened to hold a bcrypt
+    # hash (same hash_password()/verify_password() as the account
+    # password) so the PIN is never stored in the clear.
+    pin_hash: Mapped[str | None] = mapped_column(String(255))
+    pin_failed_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    pin_locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superadmin: Mapped[bool] = mapped_column(Boolean, default=False)
