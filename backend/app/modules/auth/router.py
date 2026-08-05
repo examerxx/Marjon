@@ -51,6 +51,21 @@ async def login(request: Request, data: LoginRequest, db: AsyncSession = Depends
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
+@router.post("/admin/login", response_model=TokenResponse)
+@limiter.limit("10/minute")
+async def admin_login(request: Request, data: LoginRequest, db: AsyncSession = Depends(get_db)):
+    """BE-01: dedicated HQ admin panel login — only superadmin accounts get a
+    hq_admin-scoped session here; owners/managers get 403 even with correct
+    credentials. Kafe/owner apps must keep using /auth/login."""
+    svc = AuthService(db)
+    identifier = data.phone or data.email
+    if not identifier:
+        from app.shared.exceptions import UnauthorizedError
+        raise UnauthorizedError("phone или email обязателен")
+    _, access_token, refresh_token = await svc.login_admin(identifier, data.password)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+
 @router.post("/users", response_model=CompanyUserResponse, status_code=status.HTTP_201_CREATED)
 async def create_company_user(
     data: CompanyUserCreate,
@@ -99,7 +114,10 @@ async def me(current_user: User = Depends(get_current_user), db: AsyncSession = 
         .where(UserRole.user_id == current_user.id)
     )
     role_slugs = list(result.scalars().all())
-    return UserResponse.model_validate(current_user).model_copy(update={"role_slugs": role_slugs})
+    return UserResponse.model_validate(current_user).model_copy(update={
+        "role_slugs": role_slugs,
+        "auth_scope": getattr(current_user, "auth_scope", "app"),
+    })
 
 
 @router.get("/users", response_model=list[CompanyUserResponse])

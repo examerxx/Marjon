@@ -65,6 +65,7 @@ class UserResponse(BaseResponseSchema):
     company_id: UUID | None
     role_slugs: list[str] = Field(default_factory=list)
     avatar_url: str | None = None
+    auth_scope: str = "app"  # "app" | "hq_admin" — BE-01, set per-session, not persisted
 
 
 class CompanyUserUpdate(BaseSchema):

@@ -38,6 +38,10 @@ async def get_current_user(
     user = await UserRepository(db).get_by_id(user_id)
     if not user or not user.is_active:
         raise UnauthorizedError("User not found or inactive")
+    # Transient, not persisted — records what THIS SESSION's token was scoped
+    # to (BE-01), so guards can tell an hq_admin session from a regular one
+    # even for the same superadmin user.
+    user.auth_scope = payload.get("auth_scope", "app")
     return user
 
 
@@ -78,3 +82,15 @@ async def require_superadmin(
     if current_user.is_superadmin:
         return current_user
     raise ForbiddenError("Superadmin role required")
+
+
+async def require_hq_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """BE-02: guard for HQ admin panel endpoints. Requires BOTH the static
+    is_superadmin flag AND a session that was actually issued by
+    /auth/admin/login — a superadmin token from the regular /auth/login
+    (e.g. logged into a company as its owner) does not pass this."""
+    if current_user.is_superadmin and getattr(current_user, "auth_scope", "app") == "hq_admin":
+        return current_user
+    raise ForbiddenError("HQ admin session required")

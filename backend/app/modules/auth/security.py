@@ -18,12 +18,19 @@ def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
-def create_access_token(user_id: UUID, company_id: UUID | None = None) -> str:
+def create_access_token(
+    user_id: UUID, company_id: UUID | None = None, auth_scope: str = "app"
+) -> str:
+    """auth_scope marks what this SESSION is authorized for, independent of the
+    user's static is_superadmin flag — a superadmin who logs in through the
+    regular /auth/login never gets an "hq_admin"-scoped token; only
+    /auth/admin/login issues one (BE-01)."""
     payload = {
         "sub": str(user_id),
         "company_id": str(company_id) if company_id else None,
         "jti": str(uuid4()),
         "type": "access",
+        "auth_scope": auth_scope,
         "exp": datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes),
     }
     return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)

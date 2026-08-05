@@ -17,7 +17,7 @@ from app.modules.auth.security import (
 from app.modules.companies.models import Company
 from app.modules.rbac.models import Role, UserRole
 from app.modules.rbac.repository import RoleRepository
-from app.shared.exceptions import ConflictError, NotFoundError, UnauthorizedError, ValidationError
+from app.shared.exceptions import ConflictError, ForbiddenError, NotFoundError, UnauthorizedError, ValidationError
 
 
 class AuthService:
@@ -94,6 +94,31 @@ class AuthService:
             raise UnauthorizedError("Account is inactive")
 
         access_token = create_access_token(user.id, user.company_id)
+        refresh_token = create_refresh_token()
+        await self._save_refresh_token(user.id, refresh_token)
+
+        return user, access_token, refresh_token
+
+    async def login_admin(self, email: str, password: str) -> tuple[User, str, str]:
+        """BE-01: HQ admin panel login. Same credential check as login(), plus
+        an explicit is_superadmin gate — correct credentials without HQ access
+        must fail with 403, not silently issue a normal-scoped session."""
+        import logging
+        log = logging.getLogger(__name__)
+
+        user = await self.user_repo.get_by_login(self._normalize_identifier(email))
+        if not user or not verify_password(password, user.password_hash):
+            log.warning("Admin login failed: bad credentials — login=%s", email)
+            raise UnauthorizedError("Invalid credentials")
+
+        if not user.is_active:
+            raise UnauthorizedError("Account is inactive")
+
+        if not user.is_superadmin:
+            log.warning("Admin login denied: not superadmin — user_id=%s", user.id)
+            raise ForbiddenError("HQ admin access required")
+
+        access_token = create_access_token(user.id, user.company_id, auth_scope="hq_admin")
         refresh_token = create_refresh_token()
         await self._save_refresh_token(user.id, refresh_token)
 
