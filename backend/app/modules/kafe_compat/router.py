@@ -22,8 +22,9 @@ from app.modules.auth.dependencies import get_current_user, require_company_admi
 from app.modules.auth.models import User
 from app.modules.companies.models import Branch, Company
 from app.modules.finance.models import Counterparty, FinTransaction, PaymentType, TransactionCategory
-from app.modules.kafe_compat.models import SupportTicket
+from app.modules.kafe_compat.models import ReceiptTemplateSettings, SupportTicket
 from app.modules.pos.models import Order, OrderItem
+from app.modules.subscriptions.models import Invoice, Plan, Subscription
 from app.shared.exceptions import NotFoundError
 
 router = APIRouter()
@@ -142,7 +143,7 @@ def _org_dict(c: Company) -> dict:
         "id": c.id, "name": c.name, "slug": c.slug,
         "currency": c.currency, "timezone": c.timezone,
         "country_code": c.country_code, "vat_rate": 12, "service_fee": 0,
-        "logo": None, "address": "", "phone": "",
+        "logo": c.logo_url, "address": c.address or "", "phone": c.phone or "",
     }
 
 
@@ -259,6 +260,52 @@ async def delete_payment_method(item_id: UUID, user: User = Depends(require_comp
         await db.commit()
 
 
+# ── Настройки: шаблоны чеков (customer + kitchen) ────────────────────────────
+async def _get_or_create_receipt_settings(db: AsyncSession, company_id: UUID) -> ReceiptTemplateSettings:
+    row = (
+        await db.execute(select(ReceiptTemplateSettings).where(ReceiptTemplateSettings.company_id == company_id))
+    ).scalar_one_or_none()
+    if row is None:
+        row = ReceiptTemplateSettings(company_id=company_id, customer_template={}, kitchen_template={})
+        db.add(row)
+        await db.flush()
+    return row
+
+
+@router.get("/settings/receipt-template", tags=["settings"])
+async def get_receipt_template(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    row = (
+        await db.execute(select(ReceiptTemplateSettings).where(ReceiptTemplateSettings.company_id == user.company_id))
+    ).scalar_one_or_none()
+    return row.customer_template if row else {}
+
+
+@router.patch("/settings/receipt-template", tags=["settings"])
+async def update_receipt_template(data: dict, user: User = Depends(require_company_admin), db: AsyncSession = Depends(get_db)):
+    row = await _get_or_create_receipt_settings(db, user.company_id)
+    row.customer_template = {**(row.customer_template or {}), **data}
+    await db.commit()
+    await db.refresh(row)
+    return row.customer_template
+
+
+@router.get("/settings/kitchen-receipt-template", tags=["settings"])
+async def get_kitchen_receipt_template(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    row = (
+        await db.execute(select(ReceiptTemplateSettings).where(ReceiptTemplateSettings.company_id == user.company_id))
+    ).scalar_one_or_none()
+    return row.kitchen_template if row else {}
+
+
+@router.patch("/settings/kitchen-receipt-template", tags=["settings"])
+async def update_kitchen_receipt_template(data: dict, user: User = Depends(require_company_admin), db: AsyncSession = Depends(get_db)):
+    row = await _get_or_create_receipt_settings(db, user.company_id)
+    row.kitchen_template = {**(row.kitchen_template or {}), **data}
+    await db.commit()
+    await db.refresh(row)
+    return row.kitchen_template
+
+
 # ── CRM: контрагенты (клиенты/поставщики) ────────────────────────────────────
 def _cp_dict(c: Counterparty) -> dict:
     return {"id": c.id, "name": c.full_name, "full_name": c.full_name, "phone": c.phone,
@@ -310,7 +357,40 @@ async def delete_counterparty(item_id: UUID, user: User = Depends(require_compan
 async def billing_balance(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     c = await db.get(Company, user.company_id) if user.company_id else None
     currency = c.currency if c else "UZS"
-    return {"balance": 0, "currency": currency, "plan": "Trial", "status": "trial", "days_left": 30}
+    row = (
+        await db.execute(
+            select(Subscription, Plan)
+            .join(Plan, Plan.id == Subscription.plan_id)
+            .where(Subscription.company_id == user.company_id)
+            .order_by(Subscription.created_at.desc())
+            .limit(1)
+        )
+    ).first()
+    if not row:
+        return {"balance": 0, "currency": currency, "plan": None, "status": "none", "days_left": 0}
+
+    subscription, plan = row
+    unpaid = (
+        await db.execute(
+            select(func.coalesce(func.sum(Invoice.amount), 0)).where(
+                Invoice.subscription_id == subscription.id,
+                Invoice.status.in_(("draft", "open")),
+            )
+        )
+    ).scalar_one()
+    period_end = subscription.current_period_end or subscription.trial_ends_at
+    days_left = 0
+    if period_end:
+        now = datetime.now(period_end.tzinfo) if period_end.tzinfo else datetime.utcnow()
+        days_left = max((period_end - now).days, 0)
+    return {
+        "balance": -float(unpaid or 0),
+        "currency": currency,
+        "plan": plan.name,
+        "status": subscription.status,
+        "days_left": days_left,
+        "subscription_id": subscription.id,
+    }
 
 
 # ── Поддержка: тикеты ────────────────────────────────────────────────────────

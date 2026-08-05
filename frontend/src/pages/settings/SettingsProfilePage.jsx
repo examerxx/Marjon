@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
 import logo from "../../assets/marjon-logo.svg";
 import Icon from "../../components/Icon";
+import { useOrg } from "../../context/OrgContext";
 
 const PROFILE_STORAGE_KEY = "marjon_profile_settings";
 
@@ -44,14 +45,57 @@ const emptyForm = {
 };
 
 export default function SettingsProfilePage() {
+  const { reload: reloadOrg } = useOrg();
   const storedProfile = useMemo(() => readStoredProfile(), []);
   const [form, setForm] = useState({ ...emptyForm, profileLogo: storedProfile.photo || "" });
   const [savedForm, setSavedForm] = useState({ ...emptyForm, profileLogo: storedProfile.photo || "" });
   const [activeSection, setActiveSection] = useState("basic");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  // Спец-пароль отмены заказа (самодостаточный блок, отдельно от основного сохранения профиля)
+  const [cancelPw, setCancelPw] = useState("");
+  const [cancelPwSet, setCancelPwSet] = useState(false);
+  const [cancelPwSaving, setCancelPwSaving] = useState(false);
+  const [waiterPct, setWaiterPct] = useState("");
+  const [waiterPctSaving, setWaiterPctSaving] = useState(false);
+
+  useEffect(() => {
+    api.get("/companies/me/cancel-password")
+      .then(({ data }) => setCancelPwSet(Boolean(data?.is_set)))
+      .catch(() => {});
+    api.get("/companies/me")
+      .then(({ data }) => setWaiterPct(data?.waiter_service_percent != null ? String(data.waiter_service_percent) : ""))
+      .catch(() => {});
+  }, []);
+
+  const saveWaiterPct = async () => {
+    setWaiterPctSaving(true);
+    try {
+      await api.patch("/companies/me", { waiter_service_percent: Math.max(0, Math.min(100, Number(waiterPct) || 0)) });
+      setSuccess("Доля обслуги официанту сохранена.");
+    } catch (err) {
+      setError(err.response?.data?.detail || "Не удалось сохранить долю обслуги");
+    } finally {
+      setWaiterPctSaving(false);
+    }
+  };
+
+  const saveCancelPw = async () => {
+    setCancelPwSaving(true);
+    try {
+      const { data } = await api.post("/companies/me/cancel-password", { password: cancelPw || null });
+      setCancelPwSet(Boolean(data?.is_set));
+      setCancelPw("");
+      setSuccess("Пароль отмены сохранён.");
+    } catch (err) {
+      setError(err.response?.data?.detail || "Не удалось сохранить пароль отмены");
+    } finally {
+      setCancelPwSaving(false);
+    }
+  };
 
   useEffect(() => {
     api.get("/companies/me")
@@ -62,7 +106,9 @@ export default function SettingsProfilePage() {
           address: data.address || "",
           inn: data.inn || "",
           currency: data.currency || "UZS",
-          companyLogo: storedProfile.companyLogo || "",
+          // Реальное лого с бэкенда — приоритет над локальным кешем (мог остаться
+          // от старой демо-версии, где загрузка лого нигде не сохранялась).
+          companyLogo: data.logo || storedProfile.companyLogo || "",
           profileLogo: storedProfile.photo || "",
         };
         setForm(next);
@@ -83,15 +129,44 @@ export default function SettingsProfilePage() {
 
   function handleImageChange(key, event) {
     const file = event.target.files?.[0];
+    event.target.value = ""; // позволяет выбрать тот же файл повторно
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       setError("Выберите файл изображения.");
       return;
     }
 
+    if (key === "companyLogo") {
+      uploadCompanyLogo(file);
+      return;
+    }
+
+    // Лого профиля (аватар пользователя) — пока без серверной загрузки,
+    // используется только для превью в этой сессии.
     const reader = new FileReader();
     reader.onload = () => set(key, String(reader.result || ""));
     reader.readAsDataURL(file);
+  }
+
+  async function uploadCompanyLogo(file) {
+    setUploadingLogo(true);
+    setError("");
+    setSuccess("");
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const { data } = await api.post("/companies/me/logo", body, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      set("companyLogo", data.logo || "");
+      setSavedForm((current) => ({ ...current, companyLogo: data.logo || "" }));
+      await reloadOrg(); // чтобы шаблон чека сразу подхватил новое лого
+      setSuccess("Лого компании загружено и будет напечатано на чеке.");
+    } catch (err) {
+      setError(err.response?.data?.detail || "Не удалось загрузить лого. Поддерживаются jpg, png, webp.");
+    } finally {
+      setUploadingLogo(false);
+    }
   }
 
   function resetForm() {
@@ -100,8 +175,23 @@ export default function SettingsProfilePage() {
     setSuccess("Изменения отменены.");
   }
 
-  function clearLogo(key) {
-    set(key, "");
+  async function clearLogo(key) {
+    if (key !== "companyLogo") {
+      set(key, "");
+      return;
+    }
+    setUploadingLogo(true);
+    setError("");
+    try {
+      await api.delete("/companies/me/logo");
+      set("companyLogo", "");
+      setSavedForm((current) => ({ ...current, companyLogo: "" }));
+      await reloadOrg();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Не удалось удалить лого.");
+    } finally {
+      setUploadingLogo(false);
+    }
   }
 
   async function handleSave(event) {
@@ -186,18 +276,23 @@ export default function SettingsProfilePage() {
             <section className="company-profile-logo-panel">
               <div className="company-profile-logo-copy">
                 <strong>Лого компании</strong>
-                <span>Используется в чеках, ссылках и элементах бренда.</span>
+                <span>Печатается на чеке (ESC/POS) и используется в UI/ссылках.</span>
               </div>
               <div className="company-profile-logo-actions">
-                <label className="company-profile-upload">
-                  <input type="file" accept="image/*" onChange={(event) => handleImageChange("companyLogo", event)} />
+                <label className="company-profile-upload" aria-disabled={uploadingLogo}>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={uploadingLogo}
+                    onChange={(event) => handleImageChange("companyLogo", event)}
+                  />
                   <span>
                     {form.companyLogo ? <img src={form.companyLogo} alt="Лого компании" /> : <Icon name="bi-image" size={22} />}
                   </span>
-                  <b>Загрузить</b>
+                  <b>{uploadingLogo ? "Загрузка..." : "Загрузить"}</b>
                 </label>
                 {form.companyLogo ? (
-                  <button type="button" onClick={() => clearLogo("companyLogo")}>Очистить</button>
+                  <button type="button" disabled={uploadingLogo} onClick={() => clearLogo("companyLogo")}>Очистить</button>
                 ) : null}
               </div>
             </section>
@@ -263,6 +358,43 @@ export default function SettingsProfilePage() {
                   <option value="UZS">UZS - Узбекский сум</option>
                   <option value="USD">USD - Доллар</option>
                 </select>
+              </label>
+
+              <label>
+                <span>
+                  <b>Пароль отмены заказа</b>
+                  <em>{cancelPwSet ? "Пароль задан — введите новый, чтобы изменить" : "Требуется в кассе для отмены заказа"}</em>
+                </span>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    type="text"
+                    value={cancelPw}
+                    onChange={(event) => setCancelPw(event.target.value)}
+                    placeholder={cancelPwSet ? "•••• (задан)" : "Например: 1234"}
+                    autoComplete="off"
+                  />
+                  <button type="button" className="company-profile-danger" style={{ whiteSpace: "nowrap" }} disabled={cancelPwSaving} onClick={saveCancelPw}>
+                    Сохранить
+                  </button>
+                </div>
+              </label>
+
+              <label>
+                <span>
+                  <b>Доля обслуги официанту, %</b>
+                  <em>Процент от суммы обслуги для отчёта по официантам</em>
+                </span>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    type="number" min="0" max="100"
+                    value={waiterPct}
+                    onChange={(event) => setWaiterPct(event.target.value)}
+                    placeholder="0"
+                  />
+                  <button type="button" className="company-profile-danger" style={{ whiteSpace: "nowrap" }} disabled={waiterPctSaving} onClick={saveWaiterPct}>
+                    Сохранить
+                  </button>
+                </div>
               </label>
             </div>
 

@@ -81,9 +81,24 @@ export default function ChefReceiptSettingsPage() {
 
   return (
     <section className="receipt-page">
+      <header className="receipt-page__header">
+        <div>
+          <span className="eyebrow">Настройки</span>
+          <h2>Кухонный чек</h2>
+          <p>Что печатается на кухонном тикете. Изменения применяются только после «Сохранить».</p>
+        </div>
+        <div className="receipt-page__actions">
+          <button type="button" className="btn" onClick={handleTestPrint} disabled={printing}>
+            {printing ? "Печать..." : "Тестовая печать"}
+          </button>
+          <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving}>
+            {saving ? "Сохранение..." : "Сохранить"}
+          </button>
+        </div>
+      </header>
 
-      {error ? <div className="message message-error">{error}</div> : null}
       {message ? <div className="message message-success">{message}</div> : null}
+      {error ? <div className="message message-error">{error}</div> : null}
 
       <div className="receipt-layout">
         <div className="receipt-settings card card-pad">

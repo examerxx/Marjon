@@ -16,6 +16,9 @@ class CompanyUpdate(BaseSchema):
     country_code: str | None = None
     timezone: str | None = None
     currency: str | None = None
+    address: str | None = None
+    phone: str | None = None
+    inn: str | None = None
 
 
 class CompanyResponse(BaseResponseSchema):
@@ -25,6 +28,10 @@ class CompanyResponse(BaseResponseSchema):
     timezone: str
     currency: str
     is_active: bool
+    address: str | None = None
+    phone: str | None = None
+    inn: str | None = None
+    logo: str | None = None
 
 
 class BranchCreate(BaseSchema):

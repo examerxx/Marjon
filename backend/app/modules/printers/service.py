@@ -1,22 +1,26 @@
 from __future__ import annotations
 import base64
+from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.companies.models import Branch
+from app.modules.companies.models import Branch, Company
+from app.modules.kafe_compat.models import ReceiptTemplateSettings
 from app.modules.printers.formatter import (
     EscPosFormatter, KitchenTicketData, ReceiptData, ReceiptLine,
 )
 from app.modules.printers.models import PrintJob, Printer
 from app.modules.printers.printer_client import PrinterError, print_raw
 from app.modules.printers.repository import PrintJobRepository, PrinterRepository
+from app.modules.printers.ws_manager import printer_ws_manager
 from app.modules.printers.schemas import PrinterCreate, PrinterUpdate
 from app.modules.pos.models import Order, OrderItem
 from app.modules.payments.models import Payment
 from app.shared.exceptions import NotFoundError
+from app.shared.storage import storage
 
 
 class PrinterService:
@@ -52,17 +56,45 @@ class PrinterService:
 
     # ── Print actions ─────────────────────────────────────────────────────────
 
+    @staticmethod
+    def _printer_encoding(printer: Printer) -> str:
+        """Кодовая страница принтера (settings.encoding), по умолчанию cp866 —
+        см. EscPosFormatter._CODEPAGES для того, почему это дефолт."""
+        return (printer.settings or {}).get("encoding", "cp866")
+
+    async def _get_receipt_templates(self, company_id: UUID) -> tuple[dict, dict]:
+        """Шаблоны, сохранённые на фронте (ReceiptSettingsPage/ChefReceiptSettingsPage
+        через GET/PATCH /settings/receipt-template|kitchen-receipt-template).
+        Возвращает ({} , {}), если ещё не настроено — форматтер тогда печатает
+        все блоки (прежнее поведение)."""
+        row = (
+            await self.db.execute(
+                select(ReceiptTemplateSettings).where(ReceiptTemplateSettings.company_id == company_id)
+            )
+        ).scalar_one_or_none()
+        if not row:
+            return {}, {}
+        return row.customer_template or {}, row.kitchen_template or {}
+
+    async def _get_logo_bytes(self, company_id: UUID) -> bytes | None:
+        """Лого компании (Company.logo_key, загружается через POST /companies/me/logo).
+        None, если ещё не загружено — блок 'logo' в чеке тогда просто не печатается."""
+        company = await self.db.get(Company, company_id)
+        if not company or not company.logo_key:
+            return None
+        return await storage.download(company.logo_key)
+
     async def test_print(self, company_id: UUID, printer_id: UUID) -> PrintJob:
         """Print a test page."""
         printer = await self.get(company_id, printer_id)
-        fmt = EscPosFormatter(printer.paper_width)
+        fmt = EscPosFormatter(printer.paper_width, encoding=self._printer_encoding(printer))
         data = (
-            fmt.INIT + fmt.ALIGN_CENTER
+            fmt.INIT + fmt.codepage_cmd + fmt.ALIGN_CENTER
             + fmt.BOLD_ON
-            + b"=== TEST PAGE ===\n"
+            + fmt._line("=== TEST PAGE ===")
             + fmt.BOLD_OFF
-            + f"Printer: {printer.name}\n".encode()
-            + b"Connection: OK\n"
+            + fmt._line(f"Printer: {printer.name}")
+            + fmt._line("Connection: OK")
             + fmt.LF * 3
             + fmt.CUT
         )
@@ -74,10 +106,20 @@ class PrinterService:
         printer = await self.get(company_id, printer_id)
         order = await self._get_order(company_id, order_id)
         receipt_data = await self._build_receipt_data(company_id, order)
+        customer_tpl, _ = await self._get_receipt_templates(company_id)
+        logo_bytes = await self._get_logo_bytes(company_id)
 
-        fmt = EscPosFormatter(printer.paper_width)
-        raw = fmt.format_receipt(receipt_data)
-        return await self._enqueue_and_send(company_id, printer, "receipt", order_id, raw, copies)
+        fmt = EscPosFormatter(printer.paper_width, encoding=self._printer_encoding(printer))
+        raw = fmt.format_receipt(receipt_data, template=customer_tpl, logo_bytes=logo_bytes)
+        job = await self._enqueue_and_send(company_id, printer, "receipt", order_id, raw, copies)
+        # Отметка «чек напечатан» → стол «ожидает оплату» (сбросится при дозаказе)
+        try:
+            if order.status not in ("completed", "cancelled"):
+                order.receipt_printed_at = datetime.now(timezone.utc)
+                await self.db.commit()
+        except Exception:
+            pass
+        return job
 
     async def print_kitchen_ticket(
         self, company_id: UUID, order_id: UUID, printer_id: UUID, copies: int = 1
@@ -85,20 +127,23 @@ class PrinterService:
         printer = await self.get(company_id, printer_id)
         order = await self._get_order(company_id, order_id)
         ticket_data = await self._build_kitchen_data(order)
+        _, kitchen_tpl = await self._get_receipt_templates(company_id)
 
-        fmt = EscPosFormatter(printer.paper_width)
-        raw = fmt.format_kitchen_ticket(ticket_data)
+        fmt = EscPosFormatter(printer.paper_width, encoding=self._printer_encoding(printer))
+        raw = fmt.format_kitchen_ticket(ticket_data, template=kitchen_tpl)
         return await self._enqueue_and_send(company_id, printer, "kitchen", order_id, raw, copies)
 
     # Auto-print: find printers by type and print
     async def auto_print_receipt(self, company_id: UUID, branch_id: UUID, order_id: UUID) -> list[PrintJob]:
         printers = await self.repo.get_by_type(company_id, branch_id, "receipt")
         jobs = []
+        customer_tpl, _ = await self._get_receipt_templates(company_id)
+        logo_bytes = await self._get_logo_bytes(company_id)
         for printer in printers:
             order = await self._get_order(company_id, order_id)
             receipt_data = await self._build_receipt_data(company_id, order)
-            fmt = EscPosFormatter(printer.paper_width)
-            raw = fmt.format_receipt(receipt_data)
+            fmt = EscPosFormatter(printer.paper_width, encoding=self._printer_encoding(printer))
+            raw = fmt.format_receipt(receipt_data, template=customer_tpl, logo_bytes=logo_bytes)
             job = await self._enqueue_and_send(company_id, printer, "receipt", order_id, raw)
             jobs.append(job)
         return jobs
@@ -106,11 +151,12 @@ class PrinterService:
     async def auto_print_kitchen(self, company_id: UUID, branch_id: UUID, order_id: UUID) -> list[PrintJob]:
         printers = await self.repo.get_by_type(company_id, branch_id, "kitchen")
         jobs = []
+        _, kitchen_tpl = await self._get_receipt_templates(company_id)
         for printer in printers:
             order = await self._get_order(company_id, order_id)
             ticket_data = await self._build_kitchen_data(order)
-            fmt = EscPosFormatter(printer.paper_width)
-            raw = fmt.format_kitchen_ticket(ticket_data)
+            fmt = EscPosFormatter(printer.paper_width, encoding=self._printer_encoding(printer))
+            raw = fmt.format_kitchen_ticket(ticket_data, template=kitchen_tpl)
             job = await self._enqueue_and_send(company_id, printer, "kitchen", order_id, raw)
             jobs.append(job)
         return jobs
@@ -150,16 +196,40 @@ class PrinterService:
         )
         job = await self.job_repo.save(job)
 
-        # Try to print immediately via network
+        # Шаг 1. Пробуем напечатать сразу с сервера (принтер в одной сети с бэкендом).
+        printed = False
         if printer.connection_type == "network" and printer.ip_address:
             try:
                 for _ in range(copies):
                     await print_raw(printer, raw)
                 job.status = "done"
+                printed = True
             except PrinterError as e:
-                job.status = "failed"
+                # НЕ помечаем failed: принтер может быть недоступен с сервера
+                # (бэкенд в облаке), но доступен из сети заведения. Оставляем
+                # pending, чтобы задание подхватил терминал (по WS) или print_agent.
+                job.status = "pending"
                 job.error = str(e)
             await self.job_repo.save(job)
+
+        # Шаг 2. Не напечатали сами — отдаём задание терминалам филиала по WebSocket.
+        # Терминал печатает локально и закрывает задание через POST /printers/jobs/{id}/done.
+        if not printed:
+            try:
+                await printer_ws_manager.broadcast(
+                    company_id,
+                    printer.branch_id,
+                    {
+                        "event": "print_job",
+                        "job_id": str(job.id),
+                        "printer_id": str(printer.id),
+                        "payload": payload,
+                        "copies": copies,
+                        "job_type": job_type,
+                    },
+                )
+            except Exception:  # noqa: BLE001 — доставка по WS не должна ронять оплату/заказ
+                pass
 
         return job
 
@@ -206,12 +276,21 @@ class PrinterService:
             for item in order.items
         ]
 
+        # Названия компании/филиала/официанта для «подробного» чека
+        from app.modules.companies.models import Company, Branch
+        from app.modules.auth.models import User as _User
+        company = (await self.db.execute(select(Company).where(Company.id == company_id))).scalar_one_or_none()
+        branch = (await self.db.execute(select(Branch).where(Branch.id == order.branch_id))).scalar_one_or_none()
+        waiter = None
+        if order.waiter_id:
+            waiter = (await self.db.execute(select(_User).where(_User.id == order.waiter_id))).scalar_one_or_none()
+
         return ReceiptData(
-            company_name="Компания",
-            branch_name="Филиал",
+            company_name=(company.name if company else "—"),
+            branch_name=(branch.name if branch else "—"),
             order_number=order.order_number,
             order_type=order.order_type,
-            cashier_name="Кассир",
+            cashier_name=(waiter.name if waiter and waiter.name else "Кассир"),
             items=lines,
             subtotal=order.subtotal,
             discount=order.discount_amount,
@@ -221,6 +300,8 @@ class PrinterService:
             cash_received=payment.cash_received if payment else None,
             change_given=payment.change_given if payment else None,
             table_number=order.table_number,
+            service_fee=order.service_fee,
+            waiter_name=(waiter.name if waiter else None),
         )
 
     async def _build_kitchen_data(self, order: Order) -> KitchenTicketData:

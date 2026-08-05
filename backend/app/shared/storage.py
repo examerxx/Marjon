@@ -51,6 +51,22 @@ class StorageService:
         )
         return f"{settings.minio_public_url}/{settings.minio_bucket}/{key}"
 
+    async def download(self, key: str) -> bytes | None:
+        """Download object bytes by key. Returns None if missing (e.g. no
+        logo uploaded yet) instead of raising, so callers can degrade gracefully."""
+        client = self._client_instance()
+        loop = asyncio.get_event_loop()
+        try:
+            obj = await loop.run_in_executor(
+                None,
+                partial(client.get_object, Bucket=settings.minio_bucket, Key=key),
+            )
+            return obj["Body"].read()
+        except ClientError as e:
+            if e.response["Error"]["Code"] in ("NoSuchKey", "404"):
+                return None
+            raise
+
     async def delete(self, key: str) -> None:
         """Delete object by key. Ignores 404."""
         client = self._client_instance()
