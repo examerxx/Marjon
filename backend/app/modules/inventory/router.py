@@ -98,6 +98,15 @@ async def delete_product(product_id: UUID, user: User = Depends(require_company_
     await ProductService(db).delete(user.company_id, product_id)
 
 
+@router.post("/ingredients", response_model=IngredientResponse, status_code=status.HTTP_201_CREATED)
+async def create_ingredient(data: IngredientCreate, user: User = Depends(require_company_admin), db: AsyncSession = Depends(get_db)):
+    """BE-10 dependency: IngredientCreate existed as a schema but was never
+    wired to any endpoint — there was no way to create an Ingredient row
+    through the API at all, which also blocked semi-product composition
+    from being usable end-to-end."""
+    return await IngredientService(db).create(user.company_id, data)
+
+
 @router.get("/ingredients", response_model=list[IngredientResponse])
 async def list_ingredients(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     return await IngredientService(db).list(user.company_id)

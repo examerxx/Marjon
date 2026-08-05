@@ -32,6 +32,7 @@ import app.modules.subscriptions.models   # noqa: F401
 import app.modules.printers.models        # noqa: F401
 import app.modules.halls.models              # noqa: F401
 import app.modules.inventory.warehouse_models  # noqa: F401
+import app.modules.inventory.semi_product_models  # noqa: F401
 import app.modules.kafe_compat.models     # noqa: F401
 # Главная админка (HQ admin panel)
 import app.modules.handbook.models        # noqa: F401
@@ -68,6 +69,7 @@ from app.modules.subscriptions.router import router as subscriptions_router
 from app.modules.printers.router      import router as printers_router
 from app.modules.halls.router                  import router as halls_router
 from app.modules.inventory.warehouse_router    import router as warehouse_router
+from app.modules.inventory.semi_product_router import router as semi_product_router
 from app.modules.kafe_compat.router   import router as kafe_compat_router
 # Главная админка (HQ admin panel)
 from app.modules.handbook.router       import router as handbook_router
@@ -136,7 +138,7 @@ routers = [
     delivery_router, hr_router, analytics_router,
     notifications_router, audit_router,
     fiscal_router, subscriptions_router, printers_router,
-    halls_router, warehouse_router,
+    halls_router, warehouse_router, semi_product_router,
     # Главная админка
     handbook_router, organizations_router, departments_router,
     marketing_router, nomenclature_router, storage_router,

@@ -76,8 +76,17 @@ class IngredientService:
     def __init__(self, db: AsyncSession):
         self.repo = IngredientRepository(db)
 
+    async def create(self, company_id: UUID, data: IngredientCreate) -> Ingredient:
+        return await self.repo.save(Ingredient(company_id=company_id, **data.model_dump()))
+
     async def list(self, company_id: UUID) -> list[Ingredient]:
         return await self.repo.get_all(company_id)
+
+    async def get(self, company_id: UUID, ingredient_id: UUID) -> Ingredient:
+        ing = await self.repo.get_by_id(ingredient_id, company_id)
+        if not ing:
+            raise NotFoundError("Ingredient not found")
+        return ing
 
 
 class StockService:
@@ -127,4 +136,20 @@ class StockService:
             elif data.movement_type in ("sale", "writeoff", "transfer"):
                 stock.quantity -= data.quantity
             await self.stock_repo.save(stock)
+        elif data.movement_type in ("purchase", "adjustment"):
+            # BE-10 dependency fix: this branch never existed — a
+            # brand-new ingredient's very first purchase/adjustment
+            # movement was logged (StockMovement row written) but the
+            # corresponding StockItem row was never created, so the
+            # ingredient silently stayed at zero stock forever despite
+            # the movement history saying otherwise.
+            await self.stock_repo.save(StockItem(
+                company_id=company_id, warehouse_id=data.warehouse_id,
+                ingredient_id=data.ingredient_id, quantity=data.quantity,
+                unit=data.unit, cost_price=data.cost_price,
+            ))
+        # sale/writeoff/transfer against a nonexistent StockItem: left as a
+        # no-op, matching the prior behavior for the existing-row case with
+        # no clamp — out of scope here to also introduce negative-stock
+        # rejection across every movement type.
         return saved
