@@ -1,0 +1,380 @@
+/* ═══════════════════════════════════════════════════════════════════
+   MARJON Desktop — Рабочие экраны (профессиональный каркас)
+   Принципы: единый акцент teal, одна шкала радиусов, тени в тон navy,
+   математически ровные отступы, реальные SVG-иконки (lucide, stroke 2).
+   Каркас: navy шапка + navy сайдбар (один цвет) + белый скруглённый main.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Единая толщина штриха для всех иконок lucide в рабочих экранах */
+.ws svg,
+.floor svg { stroke-width: 2; }
+
+/* Обёртка рабочего экрана внутри общего App-каркаса:
+   navy подложка + сайдбар локаций слева + белый скруглённый main справа.
+   Топбар и статус-бар даёт внешний App. */
+.floor {
+  display: flex;
+  height: 100%;
+  background: var(--chrome-bg);
+  overflow: hidden;
+}
+.floor .ws-side { padding-top: 14px; }
+.floor .ws__main { border-top-left-radius: 24px; border-bottom-left-radius: 24px; }
+
+/* ── Каркас рабочего экрана ── */
+.ws {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--chrome-bg);
+  color: var(--chrome-text);
+  overflow: hidden;
+}
+.ws__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.ws__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border-top-left-radius: 22px;
+  overflow: hidden;
+}
+
+/* ═══ Верхняя панель ═══ */
+.ws-top {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 60px;
+  flex-shrink: 0;
+  padding: 0 18px;
+  background: var(--chrome-bg);
+  border-bottom: 1px solid var(--chrome-border);
+}
+.ws-brand { display: flex; align-items: center; gap: 12px; }
+.ws-brand__mark {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--color-brand);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 19px;
+  box-shadow: 0 4px 14px var(--color-brand-glow);
+}
+.ws-brand__text { display: flex; flex-direction: column; line-height: 1.15; }
+.ws-brand__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+.ws-brand__sub { font-size: 12px; color: var(--chrome-text-muted); }
+
+.ws-top__center { flex: 1; display: flex; justify-content: center; }
+.ws-top__right { display: flex; align-items: center; gap: 10px; }
+.ws-clock {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--teal-300);
+  letter-spacing: 0.02em;
+}
+.ws-iconbtn {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+.ws-iconbtn:hover { background: var(--chrome-hover); color: #fff; }
+.ws-iconbtn:active { transform: scale(0.94); }
+
+/* Сегмент типов заказа (На стол / Собой / Доставка) */
+.seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--chrome-border);
+}
+.seg__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--chrome-text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.seg__btn:hover { color: #fff; }
+.seg__btn--active { background: var(--color-brand); color: #fff; box-shadow: 0 4px 12px var(--color-brand-glow); }
+.seg__badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.22);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ═══ Сайдбар локаций (navy, один цвет с шапкой) ═══ */
+.ws-side {
+  width: 248px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px;
+  background: var(--chrome-bg);
+  border-right: 1px solid var(--chrome-border);
+}
+.ws-side__label {
+  padding: 6px 12px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+}
+.ws-side__nav { display: flex; flex-direction: column; gap: 4px; }
+.zone {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  height: 50px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--chrome-text-muted);
+  font-size: 14.5px;
+  font-weight: 500;
+  text-align: left;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.zone > svg { color: rgba(255, 255, 255, 0.6); transition: color var(--transition-fast); }
+.zone__name { flex: 1; }
+.zone__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 600;
+}
+.zone:hover { background: var(--chrome-hover); color: #fff; }
+.zone:hover > svg { color: #fff; }
+.zone--active {
+  background: var(--chrome-active);
+  color: #fff;
+}
+.zone--active > svg { color: var(--teal-300); }
+.zone--active .zone__count { background: rgba(29, 181, 181, 0.35); color: #fff; }
+
+.ws-side__spacer { flex: 1; }
+.ws-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--chrome-border);
+}
+.ws-user__avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--color-brand);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+}
+.ws-user__meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.ws-user__name { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ws-user__role { font-size: 12px; color: var(--chrome-text-muted); }
+
+/* ═══ Доска столов (белая) ═══ */
+.board__head {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 26px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.board__title { display: flex; flex-direction: column; gap: 3px; }
+.board__title h2 { font-size: 22px; font-weight: 700; color: var(--color-text-primary); }
+.board__subtitle { font-size: 13px; color: var(--color-text-muted); }
+.board__head-right { margin-left: auto; display: flex; align-items: center; gap: 18px; }
+
+.legend { display: flex; align-items: center; gap: 16px; }
+.legend__item { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--color-text-secondary); }
+.legend__swatch { width: 12px; height: 12px; border-radius: 4px; }
+.legend__swatch--free { background: var(--neutral-0); border: 1.5px solid var(--neutral-300); }
+.legend__swatch--busy { background: var(--amber-500); }
+.legend__swatch--check { background: var(--color-brand); }
+
+.board__scroll { flex: 1; overflow-y: auto; padding: 22px 26px 28px; }
+.tgroup { margin-bottom: 28px; }
+.tgroup:last-child { margin-bottom: 0; }
+.tgroup__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.tgroup__title span { font-size: 13px; font-weight: 500; color: var(--color-text-muted); }
+.tgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  gap: 16px;
+}
+
+/* Карточка стола */
+.tcard {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 140px;
+  padding: 15px 15px 15px 20px;
+  border-radius: 16px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  text-align: left;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+/* Цветная полоса статуса слева */
+.tcard::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 6px;
+  background: var(--neutral-300);
+}
+.tcard:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.tcard:active { transform: translateY(0) scale(0.985); }
+
+.tcard__top { display: flex; align-items: flex-start; justify-content: space-between; width: 100%; gap: 12px; }
+.tcard__num { font-family: var(--font-display); font-size: 26px; font-weight: 800; color: var(--color-text-primary); line-height: 1; }
+.tcard__seats { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--color-text-muted); }
+.tcard__seats > svg { width: 15px; height: 15px; }
+
+.tcard__spacer { flex: 1; }
+.tcard__client { font-size: 14px; font-weight: 600; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tcard__meta { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--color-text-muted); }
+.tcard__meta > svg { width: 14px; height: 14px; }
+.tcard__amount { margin-left: auto; font-weight: 700; color: var(--color-brand); }
+
+.tcard__status {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* Статусы столов — насыщенные, строго по палитре (teal / amber) */
+.tcard--free::before { background: var(--neutral-300); }
+.tcard--free .tcard__status { background: var(--neutral-100); color: var(--neutral-600); }
+
+.tcard--busy { background: var(--blue-50); border-color: var(--blue-200); }
+.tcard--busy::before { background: var(--blue-600); }
+.tcard--busy .tcard__status { background: var(--blue-600); color: #fff; }
+
+.tcard--check { background: var(--teal-50); border-color: var(--teal-200); }
+.tcard--check::before { background: var(--color-brand); }
+.tcard--check .tcard__status { background: var(--color-brand); color: #fff; }
+/* Ожидает оплату (чек напечатан) — зелёный */
+.tcard--pay { background: var(--green-100); border-color: var(--green-300); }
+.tcard--pay::before { background: var(--color-success); }
+.tcard--pay .tcard__status { background: var(--color-success); color: #fff; }
+
+/* ═══ Нижний статус-бар ═══ */
+.ws-bottom {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 36px;
+  flex-shrink: 0;
+  padding: 0 18px;
+  background: var(--chrome-bg);
+  border-top: 1px solid var(--chrome-border);
+  font-size: 12px;
+  color: var(--chrome-text-muted);
+}
+.wstat { display: inline-flex; align-items: center; gap: 6px; }
+.wstat__dot { width: 7px; height: 7px; border-radius: 50%; }
+.wstat__dot--ok { background: var(--green-500); box-shadow: 0 0 6px rgba(22, 163, 74, 0.7); }
+.wstat__dot--off { background: var(--red-500); }
+.ws-bottom__spacer { flex: 1; }
+.ws-bottom__ver { color: rgba(255, 255, 255, 0.35); font-family: var(--font-mono); }
+
+/* ── Кухня в общем каркасе: сетка без двойных отступов/скролла ── */
+.board__scroll .kitchen-grid {
+  padding: 0;
+  overflow: visible;
+}
+.btn.is-muted { opacity: 0.6; }
+
+/* ── Касса в общем каркасе: продукты + корзина ── */
+.cashier-work {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  height: 100%;
+  overflow: hidden;
+}
+.cashier-work .cashier-products { border-right: 1px solid var(--color-border-light); }
+.cashier-work .cashier-cart { background: var(--color-card); }
+
+/* ── Дашборд менеджера ── */
+.mgr-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+.mgr-tile { display: flex; flex-direction: column; gap: 6px; padding: 20px; border-radius: 16px; background: var(--color-card); border: 1px solid var(--color-border); box-shadow: var(--shadow-xs); }
+.mgr-tile__icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; margin-bottom: 4px; }
+.mgr-tile__icon--a { background: var(--color-brand-bg); color: var(--color-brand); }
+.mgr-tile__icon--b { background: var(--color-success-bg); color: var(--green-600); }
+.mgr-tile__icon--c { background: var(--color-info-bg); color: var(--color-info); }
+.mgr-tile__val { font-family: var(--font-display); font-size: 26px; font-weight: 800; color: var(--color-text-primary); }
+.mgr-tile__lbl { font-size: var(--text-sm); color: var(--color-text-muted); }
+.mgr-recent { background: var(--color-card); border: 1px solid var(--color-border); border-radius: 16px; padding: 20px 22px; box-shadow: var(--shadow-xs); }
+.mgr-recent__title { font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--color-text-primary); }
+.mgr-recent .hist-table th { background: transparent; }

@@ -7,7 +7,29 @@ const https = require('https')
 const crypto = require('crypto')
 const { WebSocketServer } = require('ws')
 
-const isDev = process.env.NODE_ENV === 'development'
+const isDev = process.env.NODE_ENV === 'development' || !!process.env['ELECTRON_RENDERER_URL']
+
+// ── Single-instance lock ──────────────────────────────────────────────────────
+// В dev не завершаем процесс при отсутствии лока (electron-vite может перезапускать),
+// чтобы окно не закрывалось внезапно. В проде — стандартный single-instance.
+
+const gotLock = app.requestSingleInstanceLock()
+if (!gotLock && !isDev) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+  })
+}
+
+// ── PIN-protected close flag ──────────────────────────────────────────────────
+
+// In dev we default to unlocked so the window can be closed normally.
+let allowClose = true   // becomes false when renderer calls window:setLocked(true)
+let allowCloseOnce = false
 
 // ── Local network server (HTTP proxy + WebSocket) ─────────────────────────────
 // Mobile devices point their base URL at http://192.168.x.x:8765/api/v1 and
@@ -164,6 +186,21 @@ function createWindow() {
 
   mainWindow.on('ready-to-show', () => mainWindow.show())
 
+  // PIN-protected close: intercept 'close' when locked
+  mainWindow.on('close', (e) => {
+    if (allowCloseOnce) {
+      allowCloseOnce = false  // consume the one-shot flag
+      return                  // allow close
+    }
+    if (!allowClose) {
+      e.preventDefault()
+      try {
+        mainWindow.webContents.send('request-exit-pin')
+      } catch (_) {}
+    }
+    // if allowClose === true, fall through → normal close
+  })
+
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
     return { action: 'deny' }
@@ -183,11 +220,111 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+
+  // ── Auto-update (production only) ────────────────────────────────────────
+  if (!isDev) {
+    try {
+      const { autoUpdater } = require('electron-updater')
+      Promise.resolve(autoUpdater.checkForUpdatesAndNotify()).catch(() => {})
+    } catch (_) {
+      // electron-updater not available — silently skip
+    }
+  }
 })
 
 app.on('window-all-closed', () => {
   stopLocalWsServer()
   if (process.platform !== 'darwin') app.quit()
+})
+
+// ── IPC: Window controls ──────────────────────────────────────────────────────
+
+ipcMain.handle('window:minimize', () => {
+  if (mainWindow) mainWindow.minimize()
+})
+
+ipcMain.handle('window:toggleFullscreen', () => {
+  if (!mainWindow) return
+  mainWindow.setFullScreen(!mainWindow.isFullScreen())
+})
+
+ipcMain.handle('window:setKiosk', (_event, enabled) => {
+  if (!mainWindow) return
+  mainWindow.setKiosk(enabled)
+})
+
+ipcMain.handle('window:isFullscreen', () => {
+  return mainWindow ? mainWindow.isFullScreen() : false
+})
+
+// New: set fullscreen explicitly
+ipcMain.handle('window:setFullScreen', (_event, enabled) => {
+  try {
+    if (mainWindow) mainWindow.setFullScreen(!!enabled)
+  } catch (e) {}
+})
+
+// ── IPC: PIN-protected exit ───────────────────────────────────────────────────
+
+ipcMain.handle('window:setLocked', (_event, locked) => {
+  try {
+    allowClose = !locked
+  } catch (e) {}
+})
+
+ipcMain.handle('window:allowCloseOnce', () => {
+  try {
+    allowCloseOnce = true
+    if (mainWindow) mainWindow.close()
+  } catch (e) {}
+})
+
+// ── IPC: Zoom ─────────────────────────────────────────────────────────────────
+
+const ZOOM_MIN = 0.75
+const ZOOM_MAX = 1.5
+
+ipcMain.handle('window:zoomIn', () => {
+  try {
+    if (!mainWindow) return
+    const current = mainWindow.webContents.getZoomFactor()
+    const next = Math.min(ZOOM_MAX, Math.round((current + 0.1) * 100) / 100)
+    mainWindow.webContents.setZoomFactor(next)
+    return next
+  } catch (e) {}
+})
+
+ipcMain.handle('window:zoomOut', () => {
+  try {
+    if (!mainWindow) return
+    const current = mainWindow.webContents.getZoomFactor()
+    const next = Math.max(ZOOM_MIN, Math.round((current - 0.1) * 100) / 100)
+    mainWindow.webContents.setZoomFactor(next)
+    return next
+  } catch (e) {}
+})
+
+ipcMain.handle('window:setZoom', (_event, factor) => {
+  try {
+    if (!mainWindow) return
+    const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, factor))
+    mainWindow.webContents.setZoomFactor(clamped)
+    return clamped
+  } catch (e) {}
+})
+
+ipcMain.handle('window:getZoom', () => {
+  try {
+    return mainWindow ? mainWindow.webContents.getZoomFactor() : 1
+  } catch (e) { return 1 }
+})
+
+// ── IPC: Auto-launch ──────────────────────────────────────────────────────────
+
+ipcMain.handle('app:setAutoLaunch', (_event, enabled) => {
+  try {
+    app.setLoginItemSettings({ openAtLogin: !!enabled })
+  } catch (e) {}
 })
 
 // ── IPC: Printing ─────────────────────────────────────────────────────────────

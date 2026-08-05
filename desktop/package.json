@@ -6,12 +6,14 @@
   "type": "commonjs",
   "scripts": {
     "dev": "node scripts/dev.js",
+    "check:css": "node scripts/check-css-classes.mjs",
     "build": "electron-vite build",
     "package": "electron-vite build && electron-builder",
     "package:dir": "electron-vite build && electron-builder --dir"
   },
   "dependencies": {
     "axios": "^1.7.0",
+    "electron-updater": "^6.3.9",
     "lucide-react": "^1.17.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
@@ -30,10 +32,21 @@
     "appId": "uz.marjon.desktop",
     "productName": "Marjon",
     "copyright": "Copyright © 2025 Marjon",
+    "publish": {
+      "provider": "github",
+      "owner": "Zafarovpolat",
+      "repo": "Marjon"
+    },
     "win": {
       "target": [
         {
           "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
           "arch": [
             "x64"
           ]

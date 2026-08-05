@@ -1,0 +1,242 @@
+/* ═══════════════════════════════════════════════════════════════════
+   MARJON Desktop — Дизайн-токены (СВЕТЛАЯ тема)
+   Палитра фронтенда: White · Teal (голубой) · Blue (синий) · Navy
+   Источник истины: frontend/src/styles/marjon-tokens.css
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Teal — бренд (голубой) ── */
+  --teal-50:  #ecfeff;
+  --teal-100: #cffafe;
+  --teal-200: #a5f3fc;
+  --teal-300: #67e8f9;
+  --teal-400: #22d3ee;
+  --teal-500: #1db5b5;
+  --teal-600: #0fa3a3;
+  --teal-700: #0e8080;
+  --teal-800: #0d6262;
+  --teal-900: #0a4a4a;
+
+  /* ── Blue — интерактивный (синий) ── */
+  --blue-50:  #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+  --blue-900: #1e3a8a;
+
+  /* ── Neutral — navy → white (шкала фронтенда) ── */
+  --neutral-0:   #ffffff;
+  --neutral-50:  #f4f7fc;
+  --neutral-100: #e8edf6;
+  --neutral-200: #d0d9e8;
+  --neutral-300: #a8b9d0;
+  --neutral-400: #7a94b4;
+  --neutral-500: #536d8e;
+  --neutral-600: #374f6e;
+  --neutral-700: #243a56;
+  --neutral-800: #162840;
+  --neutral-900: #0b1f3f;
+  --neutral-950: #071428;
+
+  /* ── Семантические примитивы ── */
+  --green-100: #dcfce7;
+  --green-300: #86efac;
+  --green-500: #16a34a;
+  --green-600: #15803d;
+  --amber-100: #fef3c7;
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
+  --red-100:   #fee2e2;
+  --red-500:   #ef4444;
+  --red-600:   #dc2626;
+
+  /* ═══ СЕМАНТИЧЕСКИЕ АЛИАСЫ (СВЕТЛАЯ ТЕМА) ═══ */
+
+  /* Бренд */
+  --color-brand:        var(--teal-500);
+  --color-brand-hover:  var(--teal-400);
+  --color-brand-dark:   var(--teal-600);
+  --color-brand-subtle: var(--teal-50);
+  --color-brand-bg:     rgba(29, 181, 181, 0.12);
+  --color-brand-glow:   rgba(29, 181, 181, 0.22);
+
+  /* Интерактив (ТОЛЬКО ссылки) */
+  --color-interactive:       var(--blue-600);
+  --color-interactive-hover: var(--blue-700);
+
+  /* Текст (тёмный на светлом) */
+  --color-text-primary:     var(--neutral-900);
+  --color-text-secondary:   var(--neutral-600);
+  --color-text-muted:       var(--neutral-500);
+  --color-text-placeholder: var(--neutral-400);
+  --color-text-inverse:     #ffffff;
+
+  /* Поверхности (светлые) */
+  --color-bg:            var(--neutral-50);
+  --color-card:          var(--neutral-0);
+  --color-surface:       var(--neutral-0);
+  --color-surface-hover: var(--neutral-100);
+  --color-subtle:        var(--neutral-100);
+
+  /* Границы */
+  --color-border:        var(--neutral-200);
+  --color-border-light:  var(--neutral-100);
+  --color-border-strong: var(--neutral-300);
+  --color-border-focus:  var(--teal-500);
+
+  /* ── ХРОМ (тёмно-синие хедер / сайдбар / боттомбар) — осветлённые ── */
+  --chrome-bg:         #1b3358;   /* светлее прежнего #0b1f3f */
+  --chrome-bg-2:       #16294a;   /* сайдбар — чуть глубже хедера */
+  --chrome-text:       #ffffff;
+  --chrome-text-muted: rgba(255, 255, 255, 0.62);
+  --chrome-hover:      rgba(255, 255, 255, 0.09);
+  --chrome-active:     rgba(29, 181, 181, 0.30);
+  --chrome-border:     rgba(255, 255, 255, 0.08);
+
+  /* ── Статусы ── */
+  --color-success:    var(--green-500);
+  --color-success-bg: var(--green-100);
+  --color-warning:    var(--amber-500);
+  --color-warning-bg: var(--amber-100);
+  --color-danger:     var(--red-500);
+  --color-danger-bg:  var(--red-100);
+  --color-info:       var(--blue-500);
+  --color-info-bg:    var(--blue-50);
+
+  /* ── Статусы столов (по ZimZim) ── */
+  --status-free-bg:      var(--neutral-0);
+  --status-free-border:  var(--neutral-200);
+  --status-busy-bg:      #fff8e1;           /* жёлтый — занят / в ожидании */
+  --status-busy-border:  var(--amber-400);
+  --status-check-bg:     #e9f9ef;           /* зелёный — чек выдан */
+  --status-check-border: var(--green-500);
+  --status-pay-bg:       var(--color-brand-bg);
+  --status-pay-border:   var(--color-brand);
+
+  /* ── Тёмные поверхности (KDS дальнего обзора / оверлеи) ── */
+  --color-dark-bg:   var(--neutral-950);
+  --color-dark-card: var(--neutral-900);
+  --color-dark-text: #e7edf6;
+  --overlay-bg:      rgba(7, 20, 40, 0.55);
+
+  /* ── Типографика ── */
+  --font-display: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: 'Golos Text', 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 28px;
+  --text-4xl: 32px;
+  --text-timer: 36px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* ── Радиусы ── */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* ── Тени (navy-тонированные, для светлого фона) ── */
+  --shadow-xs: 0 1px 3px rgba(11, 31, 63, .05);
+  --shadow-sm: 0 2px 8px rgba(11, 31, 63, .07);
+  --shadow-md: 0 8px 24px rgba(11, 31, 63, .09);
+  --shadow-lg: 0 16px 48px rgba(11, 31, 63, .12);
+  --shadow-xl: 0 24px 64px rgba(11, 31, 63, .14);
+  --shadow-glow: 0 8px 32px var(--color-brand-glow);
+
+  /* ── Отступы (база 4px) ── */
+  --spacing-2xs: 2px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+  --spacing-4xl: 64px;
+
+  /* ── Анимации ── */
+  --transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Touch-размеры ── */
+  --touch-min: 60px;
+  --touch-target: 64px;
+  --touch-comfortable: 72px;
+  --topbar-height: 64px;
+  --bottombar-height: 40px;
+  --sidebar-width: 84px;
+  --sidebar-width-expanded: 240px;
+  --header-height: 64px;
+  --footer-height: 40px;
+
+  /* ── Z-index ── */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-modal: 200;
+  --z-toast: 300;
+  --z-overlay: 400;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ТЁМНАЯ ТЕМА — переопределяем только семантические алиасы.
+   Хром (навигация/сайдбар) и так тёмно-синий, поэтому меняем поверхности,
+   текст, границы и фоны статусов (делаем полупрозрачными на тёмном).
+   Применяется через <html data-theme="dark">.
+   ═══════════════════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+  --color-text-primary:     #e7edf6;
+  --color-text-secondary:   var(--neutral-300);
+  --color-text-muted:       var(--neutral-400);
+  --color-text-placeholder: var(--neutral-500);
+
+  --color-bg:            var(--neutral-950);
+  --color-card:          var(--neutral-900);
+  --color-surface:       var(--neutral-900);
+  --color-surface-hover: var(--neutral-800);
+  --color-subtle:        var(--neutral-800);
+
+  --color-border:        rgba(255, 255, 255, 0.12);
+  --color-border-light:  rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.20);
+
+  --color-brand-subtle:  rgba(29, 181, 181, 0.14);
+  --color-brand-bg:      rgba(29, 181, 181, 0.18);
+
+  --color-success-bg: rgba(22, 163, 74, 0.22);
+  --color-warning-bg: rgba(245, 158, 11, 0.22);
+  --color-danger-bg:  rgba(239, 68, 68, 0.22);
+  --color-info-bg:    rgba(59, 130, 246, 0.22);
+
+  /* Статусы столов на тёмном */
+  --status-free-bg:      var(--neutral-900);
+  --status-free-border:  rgba(255, 255, 255, 0.14);
+  --status-busy-bg:      rgba(245, 158, 11, 0.16);
+  --status-check-bg:     rgba(22, 163, 74, 0.16);
+
+  /* Тени глубже на тёмном фоне */
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, .35);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, .40);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, .45);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, .50);
+  --shadow-xl: 0 24px 64px rgba(0, 0, 0, .55);
+}
