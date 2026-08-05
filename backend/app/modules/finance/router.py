@@ -16,6 +16,12 @@ from app.shared.pagination import Page, PageParams
 
 router = APIRouter(prefix="/finance", tags=["finance"])
 
+# NOTE (BE-02/BE-04): these four resources are reached by both the HQ admin
+# panel AND the owner/kafe app under the same /finance/* path with different
+# expected semantics (owner_finance vs hq_finance — see BE-04). Explicitly
+# keeping user_dep=get_current_user here — do NOT let this pick up
+# crud_router's require_hq_admin default, that would 403 the owner app.
+# Splitting these into separate hq/kafe namespaces is BE-04's job, not BE-02's.
 router.include_router(crud_router(
     prefix="/payment-types", tags=["finance"],
     model=models.PaymentType,
@@ -25,6 +31,7 @@ router.include_router(crud_router(
     search_fields=("name",),
     filter_fields=("status", "type"),
     default_sort="sort",
+    user_dep=get_current_user,
 ))
 
 router.include_router(crud_router(
@@ -36,6 +43,7 @@ router.include_router(crud_router(
     search_fields=("name",),
     filter_fields=("status", "kind", "parent_id"),
     default_sort="name",
+    user_dep=get_current_user,
 ))
 
 router.include_router(crud_router(
@@ -46,6 +54,7 @@ router.include_router(crud_router(
     response_schema=schemas.FinanceTemplateResponse,
     search_fields=("name",),
     default_sort="name",
+    user_dep=get_current_user,
 ))
 
 
@@ -59,6 +68,7 @@ counterparties = crud_router(
     search_fields=("full_name", "phone"),
     filter_fields=("type",),
     default_sort="full_name",
+    user_dep=get_current_user,
 )
 
 

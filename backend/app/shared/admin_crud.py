@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.types import Uuid
 
 from app.infrastructure.database.session import get_db
-from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.dependencies import get_current_user, require_hq_admin
 from app.modules.auth.models import User
 from app.shared.base_model import TimeStampedModel
 from app.shared.exceptions import NotFoundError, ValidationError
@@ -192,6 +192,7 @@ def crud_router(
     date_field: str = "created_at",
     org_field: str | None = None,
     scope_dep: Callable[..., Any] = unrestricted_scope,
+    user_dep: Callable[..., Any] = require_hq_admin,
     router: APIRouter | None = None,
 ) -> APIRouter:
     """Build a standard CRUD router for one resource.
@@ -199,6 +200,11 @@ def crud_router(
     `filter_fields` are read from the query string and matched by equality
     (values are coerced to the column type). Extra non-CRUD endpoints can be
     attached by passing an existing `router` or by adding routes afterwards.
+
+    `user_dep` gates every generated endpoint (BE-02: these are HQ admin-panel
+    resources by default, not reachable by regular company accounts). Pass
+    `user_dep=get_current_user` explicitly only for resources a non-HQ app is
+    known to depend on (see finance/router.py — pending the BE-04 split).
     """
     r = router or APIRouter(prefix=prefix, tags=tags)
     filter_desc = ", ".join(filter_fields) or "—"
@@ -213,7 +219,7 @@ def crud_router(
         sort: str | None = Query(None, description="Пример: name,-created_at"),
         date_from: date | None = Query(None),
         date_to: date | None = Query(None),
-        user: User = Depends(get_current_user),
+        user: User = Depends(user_dep),
         org_scope: OrgScope = Depends(scope_dep),
         db: AsyncSession = Depends(get_db),
     ):
@@ -242,7 +248,7 @@ def crud_router(
             summary=f"Create {model.__name__}")
     async def create_item(
         data: create_schema,  # type: ignore[valid-type]
-        user: User = Depends(get_current_user),
+        user: User = Depends(user_dep),
         db: AsyncSession = Depends(get_db),
     ):
         return await CRUDService(model, db).create(data)
@@ -250,7 +256,7 @@ def crud_router(
     @r.get("/{item_id}", response_model=response_schema, summary=f"Get {model.__name__}")
     async def get_item(
         item_id: UUID,
-        user: User = Depends(get_current_user),
+        user: User = Depends(user_dep),
         db: AsyncSession = Depends(get_db),
     ):
         return await CRUDService(model, db).get(item_id)
@@ -259,7 +265,7 @@ def crud_router(
     async def update_item(
         item_id: UUID,
         data: update_schema,  # type: ignore[valid-type]
-        user: User = Depends(get_current_user),
+        user: User = Depends(user_dep),
         db: AsyncSession = Depends(get_db),
     ):
         return await CRUDService(model, db).update(item_id, data)
@@ -268,7 +274,7 @@ def crud_router(
     async def replace_item(
         item_id: UUID,
         data: update_schema,  # type: ignore[valid-type]
-        user: User = Depends(get_current_user),
+        user: User = Depends(user_dep),
         db: AsyncSession = Depends(get_db),
     ):
         return await CRUDService(model, db).update(item_id, data)
@@ -277,7 +283,7 @@ def crud_router(
               summary=f"Delete {model.__name__}")
     async def delete_item(
         item_id: UUID,
-        user: User = Depends(get_current_user),
+        user: User = Depends(user_dep),
         db: AsyncSession = Depends(get_db),
     ):
         await CRUDService(model, db).delete(item_id)

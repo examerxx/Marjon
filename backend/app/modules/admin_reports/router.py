@@ -11,7 +11,7 @@ from app.modules.admin_reports.schemas import (
     LoginHistoryRow, OrderReportRow, TableReportRow, WaiterReportRow,
 )
 from app.modules.admin_reports.service import AdminReportService, xlsx_response
-from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.dependencies import get_current_user, require_hq_admin
 from app.modules.auth.models import User
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -123,7 +123,12 @@ async def cancelled_report(
 
 
 @admin_reports_router.get("/dashboard-kpis")
-async def dashboard_kpis(db: AsyncSession = Depends(get_db)):
+async def dashboard_kpis(
+    _: User = Depends(require_hq_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """BE-02: was completely unauthenticated — leaked platform-wide revenue/
+    org/branch/employee counts across every tenant to anyone with the URL."""
     from sqlalchemy import func, select
     from app.modules.companies.models import Company, Branch
     from app.modules.hr.models import Employee
