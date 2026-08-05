@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, File, Query, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.session import get_db
-from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.dependencies import require_hq_admin
 from app.modules.auth.models import User
 from app.modules.marketing import models, schemas
 from app.modules.marketing.service import LeadService
@@ -48,7 +48,7 @@ async def list_leads(
     sort: str | None = Query(None),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     org_scope: OrgScope = Depends(get_org_scope),
     db: AsyncSession = Depends(get_db),
 ):
@@ -70,7 +70,7 @@ async def list_leads(
 
 @leads.get("/statistics", response_model=schemas.LeadStatisticsResponse)
 async def lead_statistics(
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     org_scope: OrgScope = Depends(get_org_scope),
     db: AsyncSession = Depends(get_db),
 ):
@@ -80,7 +80,7 @@ async def lead_statistics(
 @leads.post("/import", response_model=schemas.LeadImportResult)
 async def import_leads(
     file: UploadFile = File(...),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     db: AsyncSession = Depends(get_db),
 ):
     content = await file.read()
@@ -88,27 +88,27 @@ async def import_leads(
 
 
 @leads.post("", response_model=schemas.LeadResponse, status_code=status.HTTP_201_CREATED)
-async def create_lead(data: schemas.LeadCreate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def create_lead(data: schemas.LeadCreate, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     return await LeadService(db).create_lead(data, user.id)
 
 
 @leads.get("/{lead_id}", response_model=schemas.LeadResponse)
-async def get_lead(lead_id: UUID, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def get_lead(lead_id: UUID, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     return await LeadService(db).get(lead_id)
 
 
 @leads.patch("/{lead_id}", response_model=schemas.LeadResponse)
-async def update_lead(lead_id: UUID, data: schemas.LeadUpdate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def update_lead(lead_id: UUID, data: schemas.LeadUpdate, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     return await LeadService(db).update_lead(lead_id, data)
 
 
 @leads.delete("/{lead_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_lead(lead_id: UUID, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def delete_lead(lead_id: UUID, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     await LeadService(db).delete(lead_id)
 
 
 @leads.post("/{lead_id}/tags", response_model=schemas.LeadResponse)
-async def assign_lead_tags(lead_id: UUID, data: schemas.LeadTagsAssign, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def assign_lead_tags(lead_id: UUID, data: schemas.LeadTagsAssign, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     return await LeadService(db).assign_tags(lead_id, data.tag_ids)
 
 

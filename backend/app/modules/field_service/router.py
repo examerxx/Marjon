@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.session import get_db
-from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.dependencies import require_hq_admin
 from app.modules.auth.models import User
 from app.modules.field_service import models, schemas
 from app.modules.field_service.service import FieldServiceService
@@ -18,14 +18,14 @@ employees = APIRouter(prefix="/employees", tags=["services"])
 
 @employees.post("/sync", response_model=schemas.SyncResult,
                 summary="Обновить список сотрудников (devent)")
-async def sync_employees(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def sync_employees(user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     return await FieldServiceService(db).sync_employees()
 
 
 @employees.get("/on-map", response_model=list[schemas.EmployeeOnMap],
                summary="Сотрудники на карте")
 async def employees_on_map(
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     org_scope: OrgScope = Depends(get_org_scope),
     db: AsyncSession = Depends(get_db),
 ):
@@ -53,13 +53,13 @@ services = APIRouter(prefix="/services", tags=["services"])
 
 @services.post("/sync", response_model=schemas.SyncResult,
                summary="Обновить список услуг (devent)")
-async def sync_services(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def sync_services(user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     return await FieldServiceService(db).sync_services()
 
 
 @services.get("/statistics", response_model=list[schemas.ServiceStatisticsRow],
               summary="Статистика по услугам")
-async def services_statistics(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def services_statistics(user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     return await FieldServiceService(db).services_statistics()
 
 

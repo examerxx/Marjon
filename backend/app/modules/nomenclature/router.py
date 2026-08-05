@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.session import get_db
-from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.dependencies import require_hq_admin
 from app.modules.auth.models import User
 from app.modules.nomenclature import models, schemas
 from app.modules.organizations.dependencies import get_org_scope
@@ -47,7 +47,7 @@ async def archived_products(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=200),
     search: str | None = Query(None),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     db: AsyncSession = Depends(get_db),
 ):
     params = PageParams(page=page, size=size)
@@ -62,7 +62,7 @@ async def archived_products(
                summary="Архивировать продукт")
 async def archive_product(
     product_id: UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     db: AsyncSession = Depends(get_db),
 ):
     return await CRUDService(models.NomProduct, db).update(product_id, {"is_archived": True})
@@ -72,7 +72,7 @@ async def archive_product(
                summary="Вернуть продукт из архива")
 async def unarchive_product(
     product_id: UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     db: AsyncSession = Depends(get_db),
 ):
     return await CRUDService(models.NomProduct, db).update(product_id, {"is_archived": False})

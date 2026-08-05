@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.session import get_db
 from app.modules.admin_settings import models, schemas
-from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.dependencies import require_hq_admin
 from app.modules.auth.models import User
 from app.modules.organizations.dependencies import get_org_scope
 from app.shared.admin_crud import CRUDService, OrgScope, crud_router
@@ -54,7 +54,7 @@ translations = APIRouter(prefix="/translations", tags=["settings"])
 @translations.get("/export", summary="Экспорт словаря переводов",
                   response_model=dict[str, dict[str, str]])
 async def export_translations(
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     db: AsyncSession = Depends(get_db),
 ):
     items = (await db.execute(select(models.Translation))).scalars().all()
@@ -65,7 +65,7 @@ async def export_translations(
                    summary="Импорт словаря переводов (key -> {lang: value})")
 async def import_translations(
     data: dict[str, dict[str, str]],
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     db: AsyncSession = Depends(get_db),
 ):
     created = updated = 0
@@ -112,7 +112,7 @@ async def list_user_logs(
     search: str | None = Query(None),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     org_scope: OrgScope = Depends(get_org_scope),
     db: AsyncSession = Depends(get_db),
 ):
@@ -132,7 +132,7 @@ async def list_user_logs(
 async def create_user_log(
     data: schemas.UserLogCreate,
     request: Request,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     db: AsyncSession = Depends(get_db),
 ):
     client_ip = request.client.host if request.client else None
