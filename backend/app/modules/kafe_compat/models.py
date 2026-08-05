@@ -1,6 +1,6 @@
 from __future__ import annotations
 from uuid import UUID
-from sqlalchemy import JSON, ForeignKey, String, Text
+from sqlalchemy import JSON, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import Uuid
 from app.shared.base_model import TimeStampedModel
@@ -33,3 +33,11 @@ class ReceiptTemplateSettings(TimeStampedModel):
     )
     customer_template: Mapped[dict] = mapped_column(JSON, default=dict)
     kitchen_template: Mapped[dict] = mapped_column(JSON, default=dict)
+    # BE-11: optimistic concurrency, one counter per template (not shared —
+    # the two are edited independently on separate settings pages, so a
+    # single counter would make editing one falsely conflict with a stale
+    # read of the other). Bumped on every successful PATCH to that
+    # template; a caller that sends the version it last read gets a 409
+    # instead of silently clobbering a concurrent edit.
+    customer_version: Mapped[int] = mapped_column(Integer, default=1)
+    kitchen_version: Mapped[int] = mapped_column(Integer, default=1)

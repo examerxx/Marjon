@@ -23,6 +23,8 @@ from app.modules.auth.models import User
 from app.modules.companies.models import Branch, Company
 from app.modules.finance.models import Counterparty, FinTransaction, PaymentType, TransactionCategory
 from app.modules.kafe_compat.models import ReceiptTemplateSettings, SupportTicket
+from app.modules.kafe_compat.schemas import ReceiptTemplateUpdate
+from app.shared.exceptions import ConflictError
 from app.modules.pos.models import Order, OrderItem
 from app.modules.subscriptions.models import Invoice, Plan, Subscription
 from app.shared.exceptions import NotFoundError
@@ -283,16 +285,28 @@ async def get_receipt_template(user: User = Depends(get_current_user), db: Async
     row = (
         await db.execute(select(ReceiptTemplateSettings).where(ReceiptTemplateSettings.company_id == user.company_id))
     ).scalar_one_or_none()
-    return row.customer_template if row else {}
+    if not row:
+        return {}
+    return {**(row.customer_template or {}), "version": row.customer_version}
 
 
 @router.patch("/settings/receipt-template", tags=["settings"])
-async def update_receipt_template(data: dict, user: User = Depends(require_company_admin), db: AsyncSession = Depends(get_db)):
+async def update_receipt_template(
+    data: ReceiptTemplateUpdate, user: User = Depends(require_company_admin), db: AsyncSession = Depends(get_db)
+):
+    """BE-11: `version`, if sent, must match the stored version or this
+    409s — the caller read a template that's since been changed by
+    someone else. Omitting version keeps the old last-write-wins
+    behavior (see ReceiptTemplateUpdate's docstring)."""
     row = await _get_or_create_receipt_settings(db, user.company_id)
-    row.customer_template = {**(row.customer_template or {}), **data}
+    if data.version is not None and data.version != row.customer_version:
+        raise ConflictError("Шаблон был изменён другим пользователем — обновите страницу и повторите")
+    payload = data.model_dump(exclude={"version"}, exclude_unset=True)
+    row.customer_template = {**(row.customer_template or {}), **payload}
+    row.customer_version += 1
     await db.commit()
     await db.refresh(row)
-    return row.customer_template
+    return {**(row.customer_template or {}), "version": row.customer_version}
 
 
 @router.get("/settings/kitchen-receipt-template", tags=["settings"])
@@ -300,16 +314,24 @@ async def get_kitchen_receipt_template(user: User = Depends(get_current_user), d
     row = (
         await db.execute(select(ReceiptTemplateSettings).where(ReceiptTemplateSettings.company_id == user.company_id))
     ).scalar_one_or_none()
-    return row.kitchen_template if row else {}
+    if not row:
+        return {}
+    return {**(row.kitchen_template or {}), "version": row.kitchen_version}
 
 
 @router.patch("/settings/kitchen-receipt-template", tags=["settings"])
-async def update_kitchen_receipt_template(data: dict, user: User = Depends(require_company_admin), db: AsyncSession = Depends(get_db)):
+async def update_kitchen_receipt_template(
+    data: ReceiptTemplateUpdate, user: User = Depends(require_company_admin), db: AsyncSession = Depends(get_db)
+):
     row = await _get_or_create_receipt_settings(db, user.company_id)
-    row.kitchen_template = {**(row.kitchen_template or {}), **data}
+    if data.version is not None and data.version != row.kitchen_version:
+        raise ConflictError("Шаблон был изменён другим пользователем — обновите страницу и повторите")
+    payload = data.model_dump(exclude={"version"}, exclude_unset=True)
+    row.kitchen_template = {**(row.kitchen_template or {}), **payload}
+    row.kitchen_version += 1
     await db.commit()
     await db.refresh(row)
-    return row.kitchen_template
+    return {**(row.kitchen_template or {}), "version": row.kitchen_version}
 
 
 # ── CRM: контрагенты (клиенты/поставщики) ────────────────────────────────────
