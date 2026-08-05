@@ -217,23 +217,47 @@ class AuthService:
         token_hash = hash_refresh_token(refresh_token)
         stored = await self.token_repo.get_by_hash(token_hash)
         if not stored:
+            # Covers "not found", "already revoked" and "expired" alike —
+            # get_by_hash() filters on all three, so a reused/revoked
+            # refresh token is rejected the same way an unknown one is.
             raise UnauthorizedError("Invalid or expired refresh token")
 
         user = await self.user_repo.get_by_id(stored.user_id)
         if not user or not user.is_active:
             raise UnauthorizedError("User not found or inactive")
 
-        # Rotation: revoke old token and issue new pair
-        stored.revoked_at = datetime.now(timezone.utc)
-        await self.db.commit()
-
+        # BE-06: atomic rotation — revoke the old token and persist the new
+        # one in a single commit. Previously these were two separate
+        # commits; a crash between them would revoke the old token without
+        # ever persisting its replacement, silently locking the user out.
         new_access = create_access_token(user.id, user.company_id)
         new_refresh = create_refresh_token()
-        await self._save_refresh_token(user.id, new_refresh)
+        expires_at = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
+
+        stored.revoked_at = datetime.now(timezone.utc)
+        self.db.add(RefreshToken(
+            user_id=user.id,
+            token_hash=hash_refresh_token(new_refresh),
+            expires_at=expires_at,
+        ))
+        await self.db.commit()
 
         return new_access, new_refresh
 
-    async def logout(self, user_id: UUID) -> None:
+    async def logout(self, user_id: UUID, refresh_token: str | None = None) -> None:
+        """BE-06: scoped by default — pass the session's own refresh_token
+        and only that session is revoked, leaving the user's other logged-in
+        devices untouched. Falls back to revoking every session when no
+        refresh_token is given (backward compatible with callers that
+        predate scoped logout — see logout_all() for an explicit,
+        intentional "sign out everywhere")."""
+        if refresh_token:
+            token_hash = hash_refresh_token(refresh_token)
+            await self.token_repo.revoke_by_hash(token_hash, user_id)
+        else:
+            await self.token_repo.revoke_all_for_user(user_id)
+
+    async def logout_all(self, user_id: UUID) -> None:
         await self.token_repo.revoke_all_for_user(user_id)
 
     async def _save_refresh_token(self, user_id: UUID, token: str) -> None:

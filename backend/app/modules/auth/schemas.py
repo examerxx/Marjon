@@ -50,6 +50,14 @@ class RefreshRequest(BaseSchema):
     refresh_token: str
 
 
+class LogoutRequest(BaseSchema):
+    # BE-06: when given, only THIS session's refresh token is revoked.
+    # Omitted (or a client that sends no body at all) falls back to
+    # revoking every session for the user — kept for backward
+    # compatibility with any caller that predates scoped logout.
+    refresh_token: str | None = None
+
+
 class TokenResponse(BaseSchema):
     access_token: str
     refresh_token: str

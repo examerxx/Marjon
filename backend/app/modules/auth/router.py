@@ -13,6 +13,7 @@ from app.modules.auth.schemas import (
     CompanyUserResponse,
     CompanyUserUpdate,
     LoginRequest,
+    LogoutRequest,
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
@@ -100,10 +101,25 @@ async def refresh(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
+    data: LogoutRequest | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await AuthService(db).logout(current_user.id)
+    """BE-06: pass {"refresh_token": "..."} to revoke only this session.
+    Called with no body (or an empty one), every session for the user is
+    revoked — see /auth/logout-all for the same behaviour requested
+    explicitly."""
+    await AuthService(db).logout(current_user.id, data.refresh_token if data else None)
+
+
+@router.post("/logout-all", status_code=status.HTTP_204_NO_CONTENT)
+async def logout_all(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """BE-06: explicit "sign out everywhere" — revokes every refresh token
+    for the current user, regardless of which session is calling it."""
+    await AuthService(db).logout_all(current_user.id)
 
 
 @router.get("/me", response_model=UserResponse)

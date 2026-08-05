@@ -56,3 +56,21 @@ class RefreshTokenRepository(BaseRepository[RefreshToken]):
             .values(revoked_at=datetime.now(timezone.utc))
         )
         await self.db.commit()
+
+    async def revoke_by_hash(self, token_hash: str, user_id: UUID) -> bool:
+        """BE-06: revoke exactly one session's refresh token. Scoped to
+        `user_id` so a token can never be used to revoke someone else's
+        session even if a hash collision were somehow guessed. Returns
+        whether an active token was found and revoked."""
+        from sqlalchemy import update
+        result = await self.db.execute(
+            update(RefreshToken)
+            .where(
+                RefreshToken.token_hash == token_hash,
+                RefreshToken.user_id == user_id,
+                RefreshToken.revoked_at == None,
+            )
+            .values(revoked_at=datetime.now(timezone.utc))
+        )
+        await self.db.commit()
+        return result.rowcount > 0
