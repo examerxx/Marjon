@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.session import get_db
-from app.modules.auth.dependencies import get_current_user, require_superadmin
+from app.modules.auth.dependencies import get_current_user, require_hq_admin, require_superadmin
 from app.modules.auth.models import User
 from app.modules.organizations import models, schemas
 from app.modules.organizations.dependencies import get_org_scope
@@ -93,7 +93,11 @@ async def submit_offline_job(data: schemas.OfflineJobCreate, user: User = Depend
 
 
 @offline.post("/{job_id}/retry", response_model=schemas.OfflineJobResponse)
-async def retry_offline_job(job_id: UUID, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def retry_offline_job(job_id: UUID, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
+    """BE-03: manual re-trigger of a failed offline job — an HQ admin action,
+    not something a syncing client app needs. Was get_current_user with zero
+    ownership check in the service layer, so any authenticated user of any
+    company could retry any organization's offline job by id."""
     return await OfflineJobService(db).retry(job_id)
 
 

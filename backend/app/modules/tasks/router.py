@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.session import get_db
-from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.dependencies import require_hq_admin
 from app.modules.auth.models import User
 from app.modules.organizations.dependencies import get_org_scope
 from app.modules.tasks import models, schemas
@@ -31,7 +31,7 @@ async def list_tasks(
     sort: str | None = Query(None),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     org_scope: OrgScope = Depends(get_org_scope),
     db: AsyncSession = Depends(get_db),
 ):
@@ -47,7 +47,7 @@ async def list_tasks(
 
 @tasks.get("/board", response_model=list[schemas.TaskBoardColumn], summary="Доска задач")
 async def task_board(
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     org_scope: OrgScope = Depends(get_org_scope),
     db: AsyncSession = Depends(get_db),
 ):
@@ -55,22 +55,22 @@ async def task_board(
 
 
 @tasks.post("", response_model=schemas.TaskResponse, status_code=status.HTTP_201_CREATED)
-async def create_task(data: schemas.TaskCreate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def create_task(data: schemas.TaskCreate, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     return await TaskService(db).create_task(data, user.id)
 
 
 @tasks.get("/{task_id}", response_model=schemas.TaskResponse)
-async def get_task(task_id: UUID, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def get_task(task_id: UUID, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     return await TaskService(db).get(task_id)
 
 
 @tasks.patch("/{task_id}", response_model=schemas.TaskResponse)
-async def update_task(task_id: UUID, data: schemas.TaskUpdate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def update_task(task_id: UUID, data: schemas.TaskUpdate, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     return await TaskService(db).update_task(task_id, data)
 
 
 @tasks.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_task(task_id: UUID, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def delete_task(task_id: UUID, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     await TaskService(db).delete(task_id)
 
 
@@ -86,7 +86,7 @@ async def list_approvals(
     size: int = Query(20, ge=1, le=200),
     approval_status: str | None = Query(None, alias="status"),
     task_id: UUID | None = Query(None),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_hq_admin),
     db: AsyncSession = Depends(get_db),
 ):
     params = PageParams(page=page, size=size)
@@ -100,17 +100,17 @@ async def list_approvals(
 
 
 @approvals.post("", response_model=schemas.TaskApprovalResponse, status_code=status.HTTP_201_CREATED)
-async def create_approval(data: schemas.TaskApprovalCreate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def create_approval(data: schemas.TaskApprovalCreate, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     return await TaskApprovalService(db).create(data.task_id, data.change, user.id)
 
 
 @approvals.post("/{approval_id}/approve", response_model=schemas.TaskApprovalResponse)
-async def approve(approval_id: UUID, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def approve(approval_id: UUID, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     return await TaskApprovalService(db).approve(approval_id, user.id)
 
 
 @approvals.post("/{approval_id}/reject", response_model=schemas.TaskApprovalResponse)
-async def reject(approval_id: UUID, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def reject(approval_id: UUID, user: User = Depends(require_hq_admin), db: AsyncSession = Depends(get_db)):
     return await TaskApprovalService(db).reject(approval_id, user.id)
 
 

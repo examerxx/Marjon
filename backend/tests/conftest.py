@@ -16,6 +16,19 @@ from app.infrastructure.database.session import get_db
 from app.shared.base_model import Base
 
 
+@pytest_asyncio.fixture(autouse=True)
+def _reset_rate_limiter():
+    """app.state.limiter is a module-level singleton shared across the whole
+    pytest session (the app is imported once at collection time), so its
+    in-memory hit counters carry over between tests. Without this, any test
+    file with more than the per-endpoint limit's worth of total calls (e.g.
+    5/minute on /auth/register, used by several tests to set up fixtures)
+    starts failing with 429s partway through the suite — not a real bug,
+    just uninitialized test isolation for the rate limiter's own state."""
+    app.state.limiter.reset()
+    yield
+
+
 @pytest_asyncio.fixture
 async def db_engine():
     """A fresh in-memory SQLite database per test, with the full schema created."""
