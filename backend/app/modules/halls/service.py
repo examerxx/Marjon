@@ -3,6 +3,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.modules.companies.models import Branch
 from app.modules.halls.models import Hall, Table
 from app.modules.halls.schemas import HallCreate, HallUpdate, TableCreate, TableUpdate
 from app.shared.exceptions import NotFoundError
@@ -29,9 +30,27 @@ class HallService:
             raise NotFoundError("Hall not found")
         return hall
 
+    async def _resolve_default_branch(self, company_id: UUID) -> UUID:
+        """BE-14: same reasoning as PrinterService — the live places form
+        never sends branch_id, so it's optional and resolved here instead
+        of 422ing on every place the frontend creates."""
+        result = await self.db.execute(
+            select(Branch).where(Branch.company_id == company_id)
+            .order_by(Branch.created_at.asc()).limit(1)
+        )
+        branch = result.scalars().first()
+        if not branch:
+            raise NotFoundError("Company has no branch to attach this place to — create one first")
+        return branch.id
+
     async def create(self, company_id: UUID, data: HallCreate) -> Hall:
-        hall = Hall(company_id=company_id, branch_id=data.branch_id,
-                    name=data.name, description=data.description)
+        branch_id = data.branch_id or await self._resolve_default_branch(company_id)
+        hall = Hall(
+            company_id=company_id, branch_id=branch_id,
+            name=data.name, description=data.description,
+            condition=data.condition, percent=data.percent,
+            pricing_type=data.pricing_type, payment_type_id=data.payment_type_id,
+        )
         self.db.add(hall)
         await self.db.commit()
         await self.db.refresh(hall)
