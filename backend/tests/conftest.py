@@ -8,6 +8,7 @@ os.environ.setdefault("DEBUG", "true")
 import pytest_asyncio
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 # Importing app.main registers every module's models on Base.metadata.
@@ -37,6 +38,16 @@ async def db_engine():
         "sqlite+aiosqlite:///:memory:",
         connect_args={"check_same_thread": False},
     )
+
+    # pos/service.py uses SELECT pg_advisory_xact_lock(:k) to serialize
+    # order-number generation under real (Postgres) concurrency — SQLite
+    # has no such function and doesn't need one (tests run single-
+    # connection), so register a no-op stand-in rather than let every
+    # test that creates a POS order fail with "no such function".
+    @event.listens_for(engine.sync_engine, "connect")
+    def _stub_pg_advisory_xact_lock(dbapi_connection, _record):
+        dbapi_connection.create_function("pg_advisory_xact_lock", 1, lambda _key: None)
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 

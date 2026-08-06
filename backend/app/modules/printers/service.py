@@ -133,6 +133,13 @@ class PrinterService:
         raw = fmt.format_kitchen_ticket(ticket_data, template=kitchen_tpl)
         return await self._enqueue_and_send(company_id, printer, "kitchen", order_id, raw, copies)
 
+    async def get_order_for_print(self, company_id: UUID, order_id: UUID) -> Order:
+        """Public wrapper around _get_order — lets the compat print-by-order
+        endpoints (BE-12) validate order ownership up front, before
+        auto-selecting a printer, so an unknown/foreign order_id 404s
+        instead of silently returning an empty job list."""
+        return await self._get_order(company_id, order_id)
+
     # Auto-print: find printers by type and print
     async def auto_print_receipt(self, company_id: UUID, branch_id: UUID, order_id: UUID) -> list[PrintJob]:
         printers = await self.repo.get_by_type(company_id, branch_id, "receipt")

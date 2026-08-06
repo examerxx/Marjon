@@ -16,6 +16,7 @@ from app.modules.printers.schemas import (
 from app.modules.printers.service import PrinterService
 from app.modules.printers.printer_client import send_to_network_printer, PrinterError
 from app.modules.printers.ws_manager import printer_ws_manager
+from app.shared.exceptions import NotFoundError
 
 router = APIRouter(prefix="/printers", tags=["printers"])
 
@@ -125,6 +126,44 @@ async def print_kitchen(
     return await PrinterService(db).print_kitchen_ticket(
         user.company_id, data.order_id, data.printer_id, data.copies
     )
+
+
+# ── BE-12 compat shims ───────────────────────────────────────────────────────
+# The two canonical endpoints above (POST /print/receipt, POST /print/kitchen)
+# are the contract this ticket asked for — explicit printer_id, one API for
+# every client. frontend/src/api/receipt.js, however, has always called
+# POST /print/orders/{order_id}/receipt|kitchen with an EMPTY body (no
+# printer_id at all), which 404s against the canonical routes — meaning
+# receipt/kitchen printing from the web app has never actually reached this
+# backend. Per the ТЗ's "не трогать frontend" boundary, this is a backend-
+# only compat route rather than a frontend fix: it auto-selects the branch's
+# active printer(s) of the right type instead of requiring an explicit one.
+@router.post("/print/orders/{order_id}/receipt", response_model=list[PrintJobResponse])
+async def print_order_receipt_compat(
+    order_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    svc = PrinterService(db)
+    order = await svc.get_order_for_print(user.company_id, order_id)
+    jobs = await svc.auto_print_receipt(user.company_id, order.branch_id, order_id)
+    if not jobs:
+        raise NotFoundError("Для этого филиала не настроен принтер чеков")
+    return jobs
+
+
+@router.post("/print/orders/{order_id}/kitchen", response_model=list[PrintJobResponse])
+async def print_order_kitchen_compat(
+    order_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    svc = PrinterService(db)
+    order = await svc.get_order_for_print(user.company_id, order_id)
+    jobs = await svc.auto_print_kitchen(user.company_id, order.branch_id, order_id)
+    if not jobs:
+        raise NotFoundError("Для этого филиала не настроен кухонный принтер")
+    return jobs
 
 
 # ── Job queue (for local POS terminals) ───────────────────────────────────────
