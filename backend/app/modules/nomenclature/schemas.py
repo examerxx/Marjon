@@ -1,8 +1,23 @@
 from __future__ import annotations
 from decimal import Decimal
 from uuid import UUID
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from app.shared.base_schema import BaseResponseSchema
+
+
+def _normalize_sort_status(values: dict) -> dict:
+    """BE-19: Unit uses the HQ-module naming convention (sort/status), but
+    SettingsUnitsPage.jsx (an OWNER-app screen, GET/POST/PATCH /units)
+    was built against the owner-app convention (sort_order/is_active) —
+    same mismatch, same fix as PaymentType (finance/schemas.py)."""
+    if not isinstance(values, dict):
+        return values
+    values = dict(values)
+    if "sort" not in values and "sort_order" in values:
+        values["sort"] = values.pop("sort_order")
+    if "status" not in values and "is_active" in values:
+        values["status"] = values.pop("is_active")
+    return values
 
 
 class NomCategoryCreate(BaseModel):
@@ -29,6 +44,11 @@ class UnitCreate(BaseModel):
     sort: int = 0
     status: bool = True
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize(cls, values):
+        return _normalize_sort_status(values)
+
 
 class UnitUpdate(BaseModel):
     name: str | None = None
@@ -36,12 +56,25 @@ class UnitUpdate(BaseModel):
     sort: int | None = None
     status: bool | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize(cls, values):
+        return _normalize_sort_status(values)
+
 
 class UnitResponse(BaseResponseSchema):
     name: str
     short_name: str | None
     sort: int
     status: bool
+    sort_order: int = 0
+    is_active: bool = True
+
+    @model_validator(mode="after")
+    def mirror_owner_app_fields(self):
+        self.sort_order = self.sort
+        self.is_active = self.status
+        return self
 
 
 class NomProductCreate(BaseModel):

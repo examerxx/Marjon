@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.session import get_db
-from app.modules.auth.dependencies import require_hq_admin
+from app.modules.auth.dependencies import get_current_user, require_hq_admin
 from app.modules.auth.models import User
 from app.modules.nomenclature import models, schemas
 from app.modules.organizations.dependencies import get_org_scope
@@ -35,6 +35,16 @@ router.include_router(crud_router(
     search_fields=("name", "short_name"),
     filter_fields=("status",),
     default_sort="sort",
+    # BE-19: Unit has no company_id — it's a genuinely global, shared
+    # picklist, so require_hq_admin on writes is correct (a careless edit
+    # would affect every company at once). But that also blocked reads,
+    # and SettingsUnitsPage.jsx is an OWNER-app screen — a regular owner
+    # could never even list units, so that page has always silently shown
+    # its hardcoded demo rows in production, with every edit failing
+    # (caught by its own .catch, never surfaced). Open reads to any
+    # authenticated staff; keep writes HQ-only.
+    user_dep=get_current_user,
+    write_dep=require_hq_admin,
 ))
 
 

@@ -2,8 +2,26 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from app.shared.base_schema import BaseResponseSchema
+
+
+def _normalize_sort_status(values: dict) -> dict:
+    """BE-19: PaymentType uses the HQ-module naming convention (sort/
+    status), but SettingsPaymentMethodsPage.jsx (an OWNER-app screen) was
+    built against the owner-app convention (sort_order/is_active) used
+    everywhere else it calls — sending sort_order (silently dropped, so
+    reordering never saved) and reading item.is_active (which never
+    existed in the response, so `undefined !== false` made the status
+    column always show "Active" regardless of the real value)."""
+    if not isinstance(values, dict):
+        return values
+    values = dict(values)
+    if "sort" not in values and "sort_order" in values:
+        values["sort"] = values.pop("sort_order")
+    if "status" not in values and "is_active" in values:
+        values["status"] = values.pop("is_active")
+    return values
 
 
 class CounterpartyCreate(BaseModel):
@@ -32,6 +50,11 @@ class PaymentTypeCreate(BaseModel):
     sort: int = 0
     status: bool = True
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize(cls, values):
+        return _normalize_sort_status(values)
+
 
 class PaymentTypeUpdate(BaseModel):
     name: str | None = None
@@ -39,12 +62,29 @@ class PaymentTypeUpdate(BaseModel):
     sort: int | None = None
     status: bool | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize(cls, values):
+        return _normalize_sort_status(values)
+
 
 class PaymentTypeResponse(BaseResponseSchema):
     name: str
     type: str | None
     sort: int
     status: bool
+    # Mirrors of sort/status under the owner-app's naming convention — see
+    # _normalize_sort_status. Keeping both names live (not renaming sort/
+    # status outright) avoids a breaking change for any HQ-side caller
+    # still using the original fields.
+    sort_order: int = 0
+    is_active: bool = True
+
+    @model_validator(mode="after")
+    def mirror_owner_app_fields(self):
+        self.sort_order = self.sort
+        self.is_active = self.status
+        return self
 
 
 class TransactionCategoryCreate(BaseModel):
