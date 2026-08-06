@@ -11,6 +11,7 @@ from slowapi import _rate_limit_exceeded_handler
 from app.config import settings
 from app.middleware.tenant_middleware import TenantMiddleware
 from app.infrastructure.database.session import AsyncSessionLocal
+from app.shared.error_handlers import register_error_handlers
 from app.shared.rate_limit import limiter
 
 # ── Register all models with SQLAlchemy metadata ────────────────────────────
@@ -120,6 +121,7 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+register_error_handlers(app)  # BE-21: unified error envelope
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(
     CORSMiddleware,
