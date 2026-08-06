@@ -32,6 +32,8 @@ class Organization(TimeStampedModel, SoftDeleteMixin):
     __tablename__ = "organizations"
 
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    # BE-15: was entirely absent — the admin org-directory table expects it.
+    type: Mapped[str] = mapped_column(String(50), default="restaurant")
     tariff_price: Mapped[float] = mapped_column(Numeric(14, 2), default=0)
     working_days: Mapped[int] = mapped_column(default=0)
     is_main: Mapped[bool] = mapped_column(Boolean, default=False)

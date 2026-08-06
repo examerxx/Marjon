@@ -27,6 +27,7 @@ class OrganizationStatusResponse(BaseResponseSchema):
 
 class OrganizationBase(BaseModel):
     name: str
+    type: str = "restaurant"
     tariff_price: Decimal = Decimal(0)
     working_days: int = 0
     is_main: bool = False
@@ -53,6 +54,7 @@ class OrganizationCreate(OrganizationBase):
 
 class OrganizationUpdate(BaseModel):
     name: str | None = None
+    type: str | None = None
     tariff_price: Decimal | None = None
     working_days: int | None = None
     is_main: bool | None = None
@@ -75,6 +77,29 @@ class OrganizationUpdate(BaseModel):
 
 class OrganizationResponse(OrganizationBase, BaseResponseSchema):
     cash_balance: Decimal
+
+
+class OrganizationDirectoryResponse(OrganizationResponse):
+    """BE-15: GET /organizations' list view — adds aggregate fields the
+    admin org-directory table (AdminApp.jsx's "org-list"/org-directory
+    views) expects on top of the plain OrganizationResponse fields.
+
+    owner_name/admin_name are real: derived from user_organizations linking
+    an HQ account (Role.company_id IS NULL, slug owner/admin) to this org —
+    null if none is linked, never a placeholder string.
+
+    branches_count is always null. Organization (the HQ admin-panel's
+    tenant concept) has no relationship to Branch anywhere in the schema —
+    Branch only links to Company (the owner/kafe app's tenant concept),
+    and nothing bridges the two. Returning a fabricated 0 here would be
+    exactly the "fictional number instead of unknown data" BE-17 warns
+    against; the admin frontend already falls back to 0 when this is
+    absent/null (`r.branches_count || r.branch_count || 0`), so this is
+    the correct behavior until/unless that architectural gap is closed.
+    """
+    owner_name: str | None = None
+    admin_name: str | None = None
+    branches_count: int | None = None
 
 
 class AccountCreate(BaseModel):

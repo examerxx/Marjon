@@ -1,15 +1,18 @@
 from __future__ import annotations
+from collections import defaultdict
 from uuid import UUID
 
-from sqlalchemy import delete, insert, select
+from sqlalchemy import delete, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.auth.models import User
 from app.modules.auth.security import hash_password
-from app.modules.organizations.models import OfflineJob, user_organizations
+from app.modules.organizations.models import Organization, OfflineJob, user_organizations
 from app.modules.organizations.schemas import AccountCreate, AccountResponse, AccountUpdate
 from app.modules.rbac.models import Role, UserRole
-from app.shared.exceptions import ConflictError, NotFoundError
+from app.shared.admin_crud import OrgScope, _coerce
+from app.shared.exceptions import ConflictError, NotFoundError, ValidationError
+from app.shared.pagination import PageParams
 
 
 class AccountService:
@@ -143,6 +146,88 @@ class AccountService:
             await self.db.execute(
                 insert(user_organizations).values(user_id=user_id, organization_id=org_id)
             )
+
+
+class OrganizationService:
+    """BE-15: aggregate list view for the admin org-directory table."""
+
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def list_directory(
+        self, params: PageParams, *, search: str | None, org_scope: OrgScope,
+        raw_filters: dict[str, str] | None = None,
+    ) -> tuple[list[dict], int]:
+        query = select(Organization).where(Organization.deleted_at.is_(None))
+        if org_scope is not None:
+            query = query.where(Organization.id.in_(org_scope))
+        if search:
+            query = query.where(Organization.name.ilike(f"%{search}%"))
+        for name, raw in (raw_filters or {}).items():
+            column = getattr(Organization, name, None)
+            if column is None or raw in (None, ""):
+                continue
+            try:
+                query = query.where(column == _coerce(column, raw))
+            except (ValueError, TypeError):
+                raise ValidationError(f"Invalid value for filter '{name}'")
+
+        count_q = select(func.count()).select_from(query.subquery())
+        total = (await self.db.execute(count_q)).scalar_one()
+
+        query = query.order_by(Organization.name).offset(params.offset).limit(params.size)
+        orgs = list((await self.db.execute(query)).scalars().all())
+
+        # One extra query for the whole page (not per-row): map each
+        # organization_id to whichever owner/admin HQ account is linked to
+        # it via user_organizations. Platform-level roles only
+        # (Role.company_id IS NULL) — these are HQ accounts (see
+        # AccountService), not company staff.
+        names_by_org: dict[UUID, dict[str, str]] = defaultdict(dict)
+        org_ids = [o.id for o in orgs]
+        if org_ids:
+            rows = (
+                await self.db.execute(
+                    select(
+                        user_organizations.c.organization_id, Role.slug, User.name, User.username
+                    )
+                    .select_from(user_organizations)
+                    .join(User, User.id == user_organizations.c.user_id)
+                    .join(UserRole, UserRole.user_id == User.id)
+                    .join(Role, Role.id == UserRole.role_id)
+                    .where(
+                        user_organizations.c.organization_id.in_(org_ids),
+                        Role.company_id.is_(None),
+                        Role.slug.in_(("owner", "admin")),
+                    )
+                )
+            ).all()
+            for org_id, slug, name, username in rows:
+                names_by_org[org_id].setdefault(slug, name or username)
+
+        items = [
+            {
+                "id": o.id, "created_at": o.created_at, "updated_at": o.updated_at,
+                "name": o.name, "type": o.type, "tariff_price": o.tariff_price,
+                "working_days": o.working_days, "is_main": o.is_main,
+                "virtual_cash_register_number": o.virtual_cash_register_number,
+                "virtual_cash_register_ip_address": o.virtual_cash_register_ip_address,
+                "country_id": o.country_id, "region_id": o.region_id, "district_id": o.district_id,
+                "installation_date": o.installation_date, "tin": o.tin,
+                "is_solvent": o.is_solvent,
+                "enabled_storage_integration": o.enabled_storage_integration,
+                "online_menu": o.online_menu, "status": o.status, "taplink": o.taplink,
+                "is_billing_autoblock": o.is_billing_autoblock,
+                "is_face_detection_required": o.is_face_detection_required,
+                "organization_status_id": o.organization_status_id,
+                "cash_balance": o.cash_balance,
+                "owner_name": names_by_org.get(o.id, {}).get("owner"),
+                "admin_name": names_by_org.get(o.id, {}).get("admin"),
+                "branches_count": None,
+            }
+            for o in orgs
+        ]
+        return items, total
 
 
 class OfflineJobService:
