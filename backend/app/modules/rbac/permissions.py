@@ -139,7 +139,22 @@ DEFAULT_ROLE_PERMISSIONS: dict[str, list[str]] = {
 
 
 async def seed_permissions(db: AsyncSession) -> int:
-    """Insert default permissions if they don't exist. Returns count of new rows."""
+    """Insert default permissions if they don't exist. Returns count of new
+    rows.
+
+    BE-25: runs from every backend instance's own startup (main.py's
+    lifespan) — with more than one instance booting at once (a rolling
+    deploy), two instances can both SELECT "not found" for the same
+    permission before either COMMITs, then both try to INSERT it. Each
+    row is added and flushed inside its own SAVEPOINT (begin_nested)
+    specifically so that race only costs the LOSING instance that one
+    row — caught as an IntegrityError on the unique (module, action,
+    scope) constraint and skipped — instead of aborting the whole batch's
+    single outer transaction and silently dropping every other
+    permission that boot would have seeded. Portable across Postgres
+    (prod) and SQLite (tests) — no dialect-specific ON CONFLICT clause."""
+    from sqlalchemy.exc import IntegrityError
+
     created = 0
     for module, action, scope in DEFAULT_PERMISSIONS:
         exists = await db.execute(
@@ -149,9 +164,15 @@ async def seed_permissions(db: AsyncSession) -> int:
                 Permission.scope == scope,
             )
         )
-        if not exists.scalar_one_or_none():
-            db.add(Permission(module=module, action=action, scope=scope))
-            created += 1
+        if exists.scalar_one_or_none():
+            continue
+        try:
+            async with db.begin_nested():
+                db.add(Permission(module=module, action=action, scope=scope))
+                await db.flush()
+        except IntegrityError:
+            continue  # another instance won the race for this one row
+        created += 1
     if created:
         await db.commit()
     return created
