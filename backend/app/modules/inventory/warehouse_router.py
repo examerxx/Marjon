@@ -13,7 +13,7 @@ from app.infrastructure.database.session import get_db
 from app.modules.auth.dependencies import get_current_user
 from app.modules.auth.models import User
 from app.modules.rbac.dependencies import require_permission
-from app.modules.inventory.models import Warehouse
+from app.modules.inventory.models import StockItem, StockMovement, Warehouse
 from app.modules.inventory.warehouse_models import (
     PurchaseDocument, PurchaseDocumentItem,
     TransferDocument, InventoryCheck, WriteOffDocument,
@@ -182,7 +182,9 @@ async def update_purchase(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(PurchaseDocument).where(
+        select(PurchaseDocument)
+        .options(selectinload(PurchaseDocument.items))
+        .where(
             PurchaseDocument.id == doc_id,
             PurchaseDocument.company_id == user.company_id,
         )
@@ -195,6 +197,41 @@ async def update_purchase(
         setattr(doc, field, value)
 
     if data.status == "accepted" and not doc.accepted_at:
+        # BE-18: accepting a purchase previously had ZERO effect on stock —
+        # this just stamped a timestamp. The entire "purchases" document
+        # trail was disconnected from real inventory levels; StockItem
+        # never moved no matter how many purchase documents got accepted.
+        # Guarded by `not doc.accepted_at` (already true above) so
+        # re-accepting an already-accepted document is a no-op instead of
+        # double-adding stock — this is the idempotency the spec asks for
+        # on operations that affect остатки.
+        if doc.warehouse_id:
+            for item in doc.items:
+                if not item.ingredient_id:
+                    continue
+                stock_result = await db.execute(
+                    select(StockItem).where(
+                        StockItem.company_id == user.company_id,
+                        StockItem.warehouse_id == doc.warehouse_id,
+                        StockItem.ingredient_id == item.ingredient_id,
+                    )
+                )
+                stock = stock_result.scalar_one_or_none()
+                if stock:
+                    stock.quantity += item.quantity
+                else:
+                    db.add(StockItem(
+                        company_id=user.company_id, warehouse_id=doc.warehouse_id,
+                        ingredient_id=item.ingredient_id, quantity=item.quantity,
+                        unit=item.unit, cost_price=item.cost_price,
+                    ))
+                db.add(StockMovement(
+                    company_id=user.company_id, warehouse_id=doc.warehouse_id,
+                    ingredient_id=item.ingredient_id, movement_type="purchase",
+                    quantity=item.quantity, unit=item.unit, cost_price=item.cost_price,
+                    total_cost=item.total, ref_id=doc.id, created_by=user.id,
+                    note=f"Приход №{doc.number}" + (f" от {doc.supplier}" if doc.supplier else ""),
+                ))
         doc.accepted_at = _now()
 
     await db.commit()
