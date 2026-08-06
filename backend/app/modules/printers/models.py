@@ -28,6 +28,11 @@ class Printer(TimeStampedModel):
     # paper_width: 58 or 80 mm
     paper_width: Mapped[int] = mapped_column(Integer, default=80)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # BE-13: free-text print zone/station label (e.g. "Касса", "Бар") — the
+    # frontend's settings page has its own "Зона печати" field, distinct
+    # from printer_type (which drives auto_print_receipt/kitchen routing
+    # and stays the receipt|kitchen|bar|label enum).
+    zone: Mapped[str | None] = mapped_column(String(100))
     # extra ESC/POS settings (char_code, encoding, etc.)
     settings: Mapped[dict] = mapped_column(JSON, default=dict)
 

@@ -32,8 +32,29 @@ class PrinterService:
     # ── Printer CRUD ─────────────────────────────────────────────────────────
 
     async def create(self, company_id: UUID, data: PrinterCreate) -> Printer:
-        await self._get_branch(company_id, data.branch_id)
-        return await self.repo.save(Printer(company_id=company_id, **data.model_dump()))
+        payload = data.model_dump()
+        branch_id = payload.pop("branch_id", None) or await self._resolve_default_branch(company_id)
+        await self._get_branch(company_id, branch_id)
+        return await self.repo.save(Printer(company_id=company_id, branch_id=branch_id, **payload))
+
+    async def _resolve_default_branch(self, company_id: UUID) -> UUID:
+        """BE-13: the live printer-settings form never sends branch_id, so
+        PrinterCreate.branch_id is optional — resolve it here instead of
+        422ing on every printer the frontend creates. Branch has no
+        is_main flag, so this picks the earliest-created one (the branch
+        created at registration for a typical single-branch company);
+        raises a clear error if the company has no branch at all rather
+        than guessing further."""
+        result = await self.db.execute(
+            select(Branch)
+            .where(Branch.company_id == company_id)
+            .order_by(Branch.created_at.asc())
+            .limit(1)
+        )
+        branch = result.scalars().first()
+        if not branch:
+            raise NotFoundError("Company has no branch to attach this printer to — create one first")
+        return branch.id
 
     async def list(self, company_id: UUID) -> list[Printer]:
         return await self.repo.get_all(company_id)
