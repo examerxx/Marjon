@@ -27,7 +27,7 @@ from app.shared.base_model import Base
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 VERSIONS_DIR = BACKEND_ROOT / "migrations" / "versions"
-EXPECTED_HEAD = "bi06tnu03"
+EXPECTED_HEAD = "bi06hso04"
 EXPECTED_NULLABLE_COLUMN_COUNT = 262
 EXPECTED_PARITY_OPERATIONS = {"remove_index", "remove_table_comment"}
 FIXTURES_DIR = BACKEND_ROOT / "tests" / "fixtures"
@@ -136,7 +136,7 @@ def test_revision_graph_is_linear_complete_and_has_one_head() -> None:
         visited.add(cursor)
         cursor = revisions[cursor][0]
     assert visited == set(revisions)
-    assert len(revisions) == 46
+    assert len(revisions) == 47
 
     nullable_columns = _bi02_nullable_columns()
     assert len(nullable_columns) == EXPECTED_NULLABLE_COLUMN_COUNT
@@ -189,6 +189,40 @@ def test_phase5c3_table_unique_migration_is_partial_and_chains_from_bi06hpa02() 
     assert "price_amount" not in source
     assert "include_inactive" not in source
     assert "location" not in source
+
+
+def test_phase5c6a_hall_sort_order_migration_is_additive_and_chains_from_bi06tnu03() -> None:
+    path = VERSIONS_DIR / "20260829_bi06hso04_hall_sort_order.py"
+    revision, down_revision = _revision_metadata(path)
+    assert revision == "bi06hso04"
+    assert down_revision == "bi06tnu03"
+
+    source = path.read_text(encoding="utf-8")
+    # Adds halls.sort_order (Integer) + a composite branch index; downgrade
+    # drops both.
+    assert 'op.add_column' in source
+    assert '_COLUMN = "sort_order"' in source
+    assert '_TABLE = "halls"' in source
+    assert '_INDEX = "ix_halls_branch_sort_order"' in source
+    assert 'op.create_index' in source
+    assert 'op.drop_index' in source
+    assert 'op.drop_column' in source
+    # Backfill is deterministic PER BRANCH by the stable chronological key,
+    # never by physical row order — and it is a NOT NULL column afterwards.
+    assert "PARTITION BY branch_id" in source
+    assert "ORDER BY created_at, id" in source
+    assert "nullable=False" in source
+    # Ordering is a plain (non-unique) index — no strict/deferrable uniqueness.
+    assert "unique=True" not in source
+    assert "create_unique_constraint" not in source
+    assert "DEFERRABLE" not in source.upper()
+    # The backfill writes ONLY sort_order and is non-destructive — it never
+    # mutates ownership/lifecycle/pricing and deletes nothing.
+    assert "SET sort_order = ordered.position" in source
+    assert "DELETE FROM" not in source
+    assert "SET is_active" not in source
+    assert "SET branch_id" not in source
+    assert "SET company_id" not in source
 
 
 def test_historical_migrations_do_not_use_mutable_application_metadata() -> None:
@@ -965,11 +999,30 @@ def test_postgresql_fresh_upgrade_timing_downgrade_and_second_fresh() -> None:
         assert asyncio.run(
             _index_exists(first_url, "uq_tables_hall_number_active")
         )
+        assert asyncio.run(
+            _column_exists(first_url, "halls", "sort_order")
+        )
+        assert asyncio.run(
+            _index_exists(first_url, "ix_halls_branch_sort_order")
+        )
 
-        # Phase 5C-3 head peels off first: the partial table-number unique index
-        # goes, while halls.price_amount and orders.table_id below stay intact.
+        # Phase 5C-6A head peels off first: halls.sort_order + its branch index
+        # go, while the Phase 5C-3 table-number index below stays intact.
         _run_alembic(first_url, "downgrade", "-1")
         assert asyncio.run(_current_revision(first_url)) != EXPECTED_HEAD
+        assert not asyncio.run(
+            _column_exists(first_url, "halls", "sort_order")
+        )
+        assert not asyncio.run(
+            _index_exists(first_url, "ix_halls_branch_sort_order")
+        )
+        assert asyncio.run(
+            _index_exists(first_url, "uq_tables_hall_number_active")
+        )
+
+        # Phase 5C-3 layer next: the partial table-number unique index goes,
+        # while halls.price_amount and orders.table_id below stay intact.
+        _run_alembic(first_url, "downgrade", "-1")
         assert not asyncio.run(
             _index_exists(first_url, "uq_tables_hall_number_active")
         )

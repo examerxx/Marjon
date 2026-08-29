@@ -7,7 +7,7 @@ from app.infrastructure.database.session import get_db
 from app.modules.auth.dependencies import require_company_admin, require_company_app_user
 from app.modules.auth.models import User
 from app.modules.halls.schemas import (
-    HallCreate, HallResponse, HallUpdate,
+    HallCreate, HallReorderRequest, HallResponse, HallUpdate,
     TableCreate, TableResponse, TableUpdate,
 )
 from app.modules.halls.service import HallService
@@ -51,6 +51,22 @@ async def create_hall(
     db: AsyncSession = Depends(get_db),
 ):
     return await HallService(db).create(scope.tenant_id, data)
+
+
+# Phase 5C-6A: branch-scoped bulk reorder. Declared BEFORE the "/{hall_id}"
+# routes so the literal path is matched first and "reorder" is never parsed as
+# a hall UUID. Admin-only, like the other write endpoints.
+@router.patch("/reorder", response_model=list[HallResponse])
+async def reorder_halls(
+    data: HallReorderRequest,
+    user: User = Depends(require_company_admin),
+    scope: FinanceScope = Depends(get_company_finance_scope),
+    db: AsyncSession = Depends(get_db),
+):
+    """Persist a COMPLETE branch-scoped order. `hall_ids` must be every hall of
+    `branch_id` (active + inactive) exactly once; returns the branch's halls in
+    the new canonical order. Never changes branch/active/pricing state."""
+    return await HallService(db).reorder(scope.tenant_id, data.branch_id, data.hall_ids)
 
 
 @router.get("/{hall_id}", response_model=HallResponse)

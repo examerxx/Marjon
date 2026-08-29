@@ -139,7 +139,7 @@ def test_k_n_route_table_has_one_canonical_contract_per_method_path() -> None:
             rows.append((method, route.path_format, route))
 
     counts = Counter((method, path) for method, path, _ in rows)
-    assert len(rows) == len(counts) == 453
+    assert len(rows) == len(counts) == 454
     assert not [key for key, count in counts.items() if count > 1]
 
     expected = {
@@ -164,7 +164,7 @@ def test_k_n_route_table_has_one_canonical_contract_per_method_path() -> None:
         assert by_path[path] == [handler]
 
     schema = app.openapi()
-    assert len(schema["paths"]) == 247
+    assert len(schema["paths"]) == 248
     for path, handler in expected.items():
         route = next(
             route

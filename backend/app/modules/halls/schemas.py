@@ -107,4 +107,16 @@ class HallResponse(BaseResponseSchema):
     price_amount: Decimal | None = None
     pricing_type: str | None = None
     payment_type_id: UUID | None = None
+    # Phase 5C-6A: branch-scoped display position (0-based within a branch).
+    sort_order: int = 0
     tables: list[TableResponse] = []
+
+
+class HallReorderRequest(BaseSchema):
+    # Phase 5C-6A: COMPLETE branch-scoped ordering. `hall_ids` must list every
+    # hall of `branch_id` visible in Settings (active AND inactive) exactly once
+    # — a complete permutation. The service rejects a partial/duplicate/foreign
+    # list rather than applying an ambiguous partial reorder, and never mutates
+    # branch_id/is_active/pricing.
+    branch_id: UUID
+    hall_ids: list[UUID] = Field(..., min_length=1)
