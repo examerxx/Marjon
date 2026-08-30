@@ -500,6 +500,42 @@ describe("SettingsPlacesPage — place drawer (free-text name)", () => {
     await waitFor(() => expect(settingsService.listPlaces).toHaveBeenCalledTimes(2));
   });
 
+  // Payload safety (relocated from RequestFormSafety.test.jsx, TEST-SAFETY-01):
+  // Places migrated off the shared pure `apiMapFormToPayload` mapper to the
+  // page-local `hallPayload()` submit path, so the boundary is now the actual
+  // createPlace call. Invalid percent must reject WITHOUT a POST; a valid create
+  // sends only canonical backend fields (name/percent/pricing_type/price_amount),
+  // never is_active on create, never the legacy free-text condition-as-money.
+  it("rejects invalid percent without POST and sends only canonical fields on valid create", async () => {
+    renderPage();
+    await screen.findByText("Зал");
+    fireEvent.click(screen.getByRole("button", { name: "Добавить место" }));
+    const form = document.querySelector(".settings-form");
+    fireEvent.change(within(form).getByPlaceholderText("Введите название места"), { target: { value: "Терраса" } });
+
+    // percent > 100 → no create, truthful validation error, modal stays open
+    fireEvent.change(within(form).getByPlaceholderText("Введите %"), { target: { value: "101" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Добавить" }));
+    expect(await within(form).findByText(/корректный процент/i)).toBeInTheDocument();
+    expect(settingsService.createPlace).not.toHaveBeenCalled();
+
+    // non-numeric percent → still no create
+    fireEvent.change(within(form).getByPlaceholderText("Введите %"), { target: { value: "10abc" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Добавить" }));
+    expect(settingsService.createPlace).not.toHaveBeenCalled();
+
+    // valid → canonical fields only, on their exact backend keys
+    fireEvent.change(within(form).getByPlaceholderText("Введите %"), { target: { value: "10" } });
+    selectPricing("fixed");
+    fireEvent.change(within(form).getByPlaceholderText("Введите цену"), { target: { value: "300000" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Добавить" }));
+    await waitFor(() => expect(settingsService.createPlace).toHaveBeenCalledTimes(1));
+    const payload = settingsService.createPlace.mock.calls[0][0];
+    expect(payload).toMatchObject({ name: "Терраса", percent: 10, pricing_type: "fixed", price_amount: "300000" });
+    expect(payload).not.toHaveProperty("is_active");
+    expect(payload).not.toHaveProperty("condition");
+  });
+
   it("create with status OFF: POST then PATCH the returned Hall.id inactive", async () => {
     settingsService.createPlace.mockResolvedValueOnce({ data: { id: "h-created", name: "Терраса", is_active: true } });
     renderPage();

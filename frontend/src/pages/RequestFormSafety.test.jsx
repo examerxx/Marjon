@@ -9,7 +9,12 @@ import {
   apiMapFormToPayload as mapClientPayload,
   apiMapRow as mapClientRow,
 } from "./settings/SettingsClientsPage";
-import { apiMapFormToPayload as mapPlacePayload } from "./settings/SettingsPlacesPage";
+// NOTE (TEST-SAFETY-01): SettingsPlacesPage no longer exports a pure
+// `apiMapFormToPayload` — the Place feature migrated off the shared mapper to a
+// page-local submit path (`hallPayload()`). Its payload-safety coverage (invalid
+// percent rejected without POST + canonical-fields-only, never condition-as-money)
+// now lives at the real boundary in SettingsPlacesPage.test.jsx, so it is not
+// imported here.
 import { apiMapFormToPayload as mapPaymentPayload } from "./settings/SettingsPaymentMethodsPage";
 import {
   apiMapFormToPayload as mapPrinterPayload,
@@ -158,7 +163,10 @@ describe("FE-06 request and form safety", () => {
     });
     render(<ZReportPage />);
     await waitFor(() => expect(calls).toBe(1));
-    fireEvent.change(screen.getByLabelText("Дата Z-отчёта"), { target: { value: "2026-08-12" } });
+    fireEvent.click(screen.getByRole("button", { name: "Период Z-отчёта" }));
+    fireEvent.change(screen.getByLabelText("Начало периода"), { target: { value: "12.08.2026" } });
+    fireEvent.change(screen.getByLabelText("Конец периода"), { target: { value: "12.08.2026" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "ОК" })[0]);
     await waitFor(() => expect(calls).toBe(2));
     expect(signals[0].aborted).toBe(true);
     await act(async () => second.resolve({ data: { date: "2026-08-12", is_closed: false, gross_sales: 222, discounts_total: 0, service_fee_total: 0, tax_total: 0, refunds_total: 0, net_sales: 222, orders_count: 1, avg_check: 222, payment_methods: [{ method: "Newest payment", count: 1, amount: 222 }] } }));
@@ -166,6 +174,55 @@ describe("FE-06 request and form safety", () => {
     await act(async () => first.resolve({ data: { date: "2026-08-13", is_closed: false, gross_sales: 111, discounts_total: 0, service_fee_total: 0, tax_total: 0, refunds_total: 0, net_sales: 111, orders_count: 1, avg_check: 111, payment_methods: [{ method: "Obsolete payment", count: 1, amount: 111 }] } }));
     expect(screen.queryByText("Obsolete payment")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("keeps the Z period first level compact, restores time controls, and applies the full current month", async () => {
+    api.get.mockImplementation((path) => Promise.resolve(path === "/analytics/z-report"
+      ? { data: { date: "2026-08-24", is_closed: false, payment_methods: [] } }
+      : { data: [] }));
+    render(<ZReportPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Период Z-отчёта" }));
+    expect(screen.queryByRole("button", { name: "Предыдущий месяц" })).not.toBeInTheDocument();
+    expect(screen.getByText("Время").closest(".report-date-calendar-shell")).toHaveAttribute("aria-hidden", "true");
+
+    fireEvent.click(screen.getByLabelText("Начало периода"));
+    expect(screen.getByRole("button", { name: "Предыдущий месяц" })).toBeInTheDocument();
+    expect(screen.getByText("Время")).toBeInTheDocument();
+    expect(screen.getByText("Часы")).toBeInTheDocument();
+    expect(screen.getByText("Минуты")).toBeInTheDocument();
+    expect(screen.getByLabelText("Начало периода").closest("label")).toHaveClass("is-active");
+    expect(screen.queryByRole("combobox", { name: "Год" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Месяц" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Год" }));
+    expect(screen.getByRole("listbox", { name: "Выбор года" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "2026" })).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByRole("option", { name: "2027" }));
+    expect(screen.getByRole("button", { name: "Год" })).toHaveTextContent("2027");
+
+    fireEvent.click(screen.getByRole("button", { name: "Месяц" }));
+    expect(screen.getByRole("listbox", { name: "Выбор месяца" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("option", { name: "Январь" }));
+    fireEvent.click(screen.getByRole("button", { name: "Предыдущий месяц" }));
+    expect(screen.getByRole("button", { name: "Год" })).toHaveTextContent("2026");
+    expect(screen.getByRole("button", { name: "Месяц" })).toHaveTextContent("Декабрь");
+
+    fireEvent.click(screen.getByLabelText("Конец периода"));
+    expect(screen.getByLabelText("Начало периода").closest("label")).not.toHaveClass("is-active");
+    expect(screen.getByLabelText("Конец периода").closest("label")).toHaveClass("is-active");
+    fireEvent.click(screen.getAllByRole("button", { name: "ОК" })[1]);
+    expect(screen.queryByRole("button", { name: "Предыдущий месяц" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Этот месяц" }));
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const year = now.getFullYear();
+    const lastDay = String(new Date(year, now.getMonth() + 1, 0).getDate()).padStart(2, "0");
+    expect(screen.getByLabelText("Начало периода")).toHaveValue(`01.${month}.${year}`);
+    expect(screen.getByLabelText("Конец периода")).toHaveValue(`${lastDay}.${month}.${year}`);
+    fireEvent.click(screen.getByRole("button", { name: "ОК" }));
+    expect(screen.getByRole("button", { name: "Период Z-отчёта" })).toHaveTextContent(`01.${month}.${year} – ${lastDay}.${month}.${year}`);
   });
 
   it("does not show support success before confirmation and allows a retry after failure", async () => {
@@ -204,8 +261,9 @@ describe("FE-06 request and form safety", () => {
       phone: "",
       status: "—",
     });
-    expect(mapPlacePayload({ name: "Hall", condition: "", percent: "101", pricingType: "percent", status: "#активно" }, { editing: false })).toBeNull();
-    expect(mapPlacePayload({ name: "Hall", condition: "", percent: "10abc", pricingType: "percent", status: "#активно" }, { editing: false })).toBeNull();
+    // Place payload safety (invalid percent rejected, canonical fields only,
+    // condition never sent) is asserted at its real boundary in
+    // SettingsPlacesPage.test.jsx — see TEST-SAFETY-01.
     expect(mapPaymentPayload({ name: "Cash", sort: "x", typeLabel: "cash", status: "#активно" })).toBeNull();
     expect(mapPaymentPayload({ name: "Cash", sort: "10abc", typeLabel: "cash", status: "#активно" })).toBeNull();
     expect(mapPrinterPayload({ name: "Kitchen", printerType: "kitchen", connectionType: "network", ip: "10.0.0.2", port: "70000", zone: "Kitchen", status: "Активно" }, { editing: false })).toBeNull();
