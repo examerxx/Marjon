@@ -796,7 +796,17 @@
       color: var(--neutral-800, #1e293b);
       font-size: 13px;
       font-weight: 600;
+      /* Geometry stability: «Активен» and «Неактивен» are different widths, and
+         the switch sits in a space-between row, so a plain label would shove the
+         track sideways on every toggle. Reserving the wider word's inline size
+         keeps the whole control fixed. */
+      min-width: 74px;
+      text-align: left;
   }
+  /* Semantic status colour, identical contract to the main Places rows
+     (.settings-places-page .settings-status-badge.is-active / .is-inactive). */
+  .settings-owner-view .settings-switch__label.is-active { color: #00dc3b; }
+  .settings-owner-view .settings-switch__label.is-inactive { color: var(--color-danger, #ef4444); }
   @media (prefers-reduced-motion: reduce) {
       .settings-owner-view .settings-switch__track,
       .settings-owner-view .settings-switch__thumb {
@@ -819,6 +829,12 @@
       border-radius: 14px;
       background: #fff;
       transition: border-color 140ms ease, box-shadow 140ms ease;
+      /* Phase 5C-6D: row presentation text (name/count/pricing/percent/status)
+         is never selectable — a click or drag on a place must not paint a blue
+         text selection. Scoped to the row only; modal inputs/forms are
+         unaffected (they live in a portal outside .settings-place). */
+      user-select: none;
+      -webkit-user-select: none;
   }
   .settings-place:hover { border-color: rgba(22, 198, 200, .5); box-shadow: 0 6px 16px rgba(20, 44, 72, .06); }
   .settings-place__main {
@@ -859,7 +875,7 @@
   /* PLACES_CSS_MORE */
   .settings-place__meta {
       display: grid;
-      grid-template-columns: 86px auto 34px;
+      grid-template-columns: 24px 86px auto 34px;
       align-items: center;
       gap: 10px;
   }
@@ -890,7 +906,13 @@
       border-radius: 12px;
       background: #fff;
   }
-  .settings-tbl__head { border: 0; background: transparent; padding: 2px 14px; color: var(--neutral-500, #64748b); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+  .settings-tbl__head { border: 1px solid transparent; background: transparent; padding: 2px 14px; color: var(--neutral-500, #64748b); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+  /* The actions cell is right-aligned (flex-end) inside the last, elastic
+     column, so its header must be right-aligned too — otherwise «Действия»
+     floats at the far left of that column, nowhere near the buttons it labels.
+     The header keeps a TRANSPARENT 1px border (not border:0) so its grid tracks
+     sit on exactly the same x-offsets as the bordered data rows. */
+  .settings-tbl__head > span:last-child { text-align: right; }
   .settings-tbl__cell { min-width: 0; color: #0b1f3f; }
   .settings-tbl__label { display: none; }
   .settings-tbl__act { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
@@ -1107,6 +1129,133 @@
       .settings-tbl__row { grid-template-columns: 1fr; gap: 6px; }
       .settings-tbl__label { display: inline; margin-right: 6px; color: var(--neutral-500, #64748b); font-size: 12px; }
       .settings-tbl__act { justify-content: flex-start; }
+  }
+  /* ── Phase 5C-6B: branch-scoped drag-and-drop ordering ──────────────────
+     Each branch renders as its own isolated sortable group. dnd-kit writes the
+     inline transform/transition for the drag mechanics (the single allowed
+     inline-transform exception); every rule below is presentation only. */
+  .settings-places-groups { display: flex; flex-direction: column; gap: 22px; }
+  .settings-places-group { display: flex; flex-direction: column; gap: 10px; }
+  .settings-places-group__label {
+      margin: 0;
+      padding-left: 2px;
+      color: var(--neutral-500, #64748b);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .01em;
+  }
+  /* Subtle reorder affordance: a small grip, never a large permanent handle.
+     Quiet by default, clearer on hover/focus. It also carries keyboard drag. */
+  .settings-place__grip {
+      display: inline-grid;
+      place-items: center;
+      width: 24px;
+      height: 30px;
+      padding: 0;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--neutral-400, #94a3b8);
+      cursor: grab;
+      opacity: .45;
+      transition: opacity 140ms ease, color 140ms ease, background 140ms ease;
+      touch-action: none;
+  }
+  .settings-place:hover .settings-place__grip { opacity: .8; }
+  .settings-place__grip:hover { color: #0f99b8; background: rgba(22, 198, 200, .1); opacity: 1; }
+  .settings-place__grip:focus-visible {
+      opacity: 1;
+      color: #0f99b8;
+      outline: 2px solid rgba(29, 181, 181, .5);
+      outline-offset: 1px;
+  }
+  .settings-place__grip:active { cursor: grabbing; }
+  /* Lifted drag state: subtle elevation, stays white, keeps width, raised above
+     siblings. The micro-scale is composed into dnd-kit's inline transform in
+     JS (and skipped under reduced motion), so it is not set here. */
+  .settings-place.is-dragging {
+      z-index: 2;
+      background: #fff;
+      box-shadow: 0 10px 28px rgba(15, 35, 60, .16);
+      border-color: rgba(22, 198, 200, .55);
+      cursor: grabbing;
+  }
+  /* Suppress the blue text-selection that a pointer drag would otherwise paint
+     across the rows. Scoped to an active drag only (the list stops selecting
+     while one of its rows is lifted), so normal reading/selection is unaffected. */
+  .settings-place.is-dragging,
+  .settings-places-list:has(.settings-place.is-dragging) {
+      user-select: none;
+      -webkit-user-select: none;
+  }
+  .settings-place.is-dragging .settings-place__grip { cursor: grabbing; opacity: 1; color: #0f99b8; }
+  @media (prefers-reduced-motion: reduce) {
+      .settings-place__grip { transition: none; }
+  }
+  /* Phase 5C-6D — delete confirmation. Reuses the Add/Edit modal shell
+     (.settings-form.settings-modal → same portal, backdrop, open/close
+     keyframes, radius, shadow). Compact width; destructive CTA is danger-red,
+     Отмена keeps the neutral Marjon outline (footer button[type=button]). */
+  .settings-owner-view .settings-confirm {
+      max-width: 440px;
+      /* Vertically compact: a one-line question needs far less room than the
+         Add/Edit form this shell is shared with. Only spacing/scale is tuned —
+         the portal, backdrop, radius, shadow and open/close keyframes are the
+         same modal family. */
+      gap: 10px;
+      padding: 18px 20px;
+  }
+  .settings-owner-view .settings-confirm .settings-accent-bar {
+      height: 34px;
+  }
+  .settings-owner-view .settings-confirm .settings-form__header h2 {
+      font-size: 22px;
+  }
+  .settings-owner-view .settings-confirm .settings-form__header p {
+      margin: 0 0 2px;
+  }
+  .settings-owner-view .settings-confirm .settings-form__header button {
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
+  }
+  .settings-owner-view .settings-confirm .settings-form__body {
+      gap: 0;
+  }
+  .settings-owner-view .settings-confirm .settings-form__footer {
+      margin: 0;
+      padding: 12px 0 0;
+  }
+  .settings-confirm__text {
+      margin: 0;
+      color: var(--neutral-800, #1e293b);
+      font-size: 15px;
+      line-height: 1.45;
+  }
+  .settings-confirm__text strong { font-weight: 600; }
+  /* Danger CTA — same geometry as the teal submit, semantic red surface. */
+  .settings-owner-view .settings-confirm .settings-confirm__delete {
+      border: 1px solid var(--color-danger, #ef4444);
+      border-radius: 10px;
+      background: var(--color-danger, #ef4444);
+      color: #fff;
+      padding: 9px 18px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: none;
+  }
+  .settings-owner-view .settings-confirm .settings-confirm__delete:hover:not(:disabled) {
+      background: #dc2626;
+      border-color: #dc2626;
+  }
+  .settings-owner-view .settings-confirm .settings-confirm__delete:focus-visible {
+      outline: 2px solid rgba(239, 68, 68, .5);
+      outline-offset: 2px;
+  }
+  .settings-owner-view .settings-confirm .settings-confirm__delete:disabled {
+      opacity: .6;
+      cursor: not-allowed;
   }
 }
 

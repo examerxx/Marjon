@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { settingsService } from "../../api/settings";
-import SettingsPlacesPage from "./SettingsPlacesPage";
+import SettingsPlacesPage, { applyBranchOrder } from "./SettingsPlacesPage";
 
 vi.mock("../../api/settings", () => ({
   settingsService: {
@@ -11,6 +11,7 @@ vi.mock("../../api/settings", () => ({
     createPlace: vi.fn(() => Promise.resolve({ data: { id: "new" } })),
     updatePlace: vi.fn(() => Promise.resolve({ data: {} })),
     deactivatePlace: vi.fn(() => Promise.resolve({ data: {} })),
+    reorderPlaces: vi.fn(() => Promise.resolve({ data: [] })),
     createPlaceTable: vi.fn(() => Promise.resolve({ data: { id: "nt" } })),
     updatePlaceTable: vi.fn(() => Promise.resolve({ data: {} })),
     deactivatePlaceTable: vi.fn(() => Promise.resolve({ data: {} })),
@@ -170,13 +171,18 @@ describe("SettingsPlacesPage — places list", () => {
     expect(settingsService.listPlaces).toHaveBeenCalledTimes(2);
   });
 
-  it("deactivate hall calls the service and refreshes", async () => {
+  it("deletes a hall via the confirm modal and refreshes", async () => {
     renderPage();
     await screen.findByText("Зал");
-    const action = screen.getAllByRole("button", { name: "Деактивировать место" })[0];
+    const action = screen.getAllByRole("button", { name: "Удалить место" })[0];
     expect(action.querySelector(".lucide-trash-2")).toBeInTheDocument();
     expect(action.querySelector(".lucide-octagon-x")).toBeNull();
+    // Trash opens the confirmation modal — it does NOT delete on click.
     fireEvent.click(action);
+    await screen.findByRole("heading", { name: "Удалить место?" });
+    expect(settingsService.deactivatePlace).not.toHaveBeenCalled();
+    // Confirming sends exactly one delete and refetches.
+    fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
     await waitFor(() => expect(settingsService.deactivatePlace).toHaveBeenCalledWith("h-zal"));
     await waitFor(() => expect(settingsService.listPlaces).toHaveBeenCalledTimes(2));
   });
@@ -446,6 +452,40 @@ describe("SettingsPlacesPage — place drawer (free-text name)", () => {
     expect(within(field).getByText("Активен")).toBeInTheDocument();
   });
 
+  it("status label carries the semantic active/inactive class and a fixed width", async () => {
+    renderPage();
+    await screen.findByText("Зал");
+    fireEvent.click(screen.getByRole("button", { name: "Добавить место" }));
+    const field = document.querySelector(".settings-form .settings-toggle-field");
+    const label = field.querySelector(".settings-switch__label");
+    const toggle = field.querySelector("input[type=checkbox]");
+
+    // Same is-active / is-inactive contract the main Places rows use, so the
+    // colour comes from one place rather than a second hardcoded pair.
+    expect(label).toHaveClass("is-active");
+    fireEvent.click(toggle);
+    expect(label).toHaveClass("is-inactive");
+    expect(label).not.toHaveClass("is-active");
+    fireEvent.click(toggle);
+    expect(label).toHaveClass("is-active");
+
+    // Geometry stability: the label reserves the wider word's width, so
+    // toggling cannot shift the switch inside the space-between row.
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync("src/styles/owner/settings.css", "utf8");
+    const rule = css.match(/\.settings-owner-view \.settings-switch__label \{[^}]*\}/s);
+    expect(rule).not.toBeNull();
+    expect(rule[0]).toMatch(/min-width:\s*\d+px/);
+    // And the colours match the main-screen badge contract exactly.
+    const badgeActive = css.match(/\.settings-places-page \.settings-status-badge\.is-active \{[^}]*\}/s)[0];
+    const badgeInactive = css.match(/\.settings-places-page \.settings-status-badge\.is-inactive \{[^}]*\}/s)[0];
+    const labelActive = css.match(/\.settings-switch__label\.is-active \{[^}]*\}/s)[0];
+    const labelInactive = css.match(/\.settings-switch__label\.is-inactive \{[^}]*\}/s)[0];
+    const color = (block) => block.match(/color:\s*([^;]+);/)[1].trim();
+    expect(color(labelActive)).toBe(color(badgeActive));
+    expect(color(labelInactive)).toBe(color(badgeInactive));
+  });
+
   it("create with status ON: POST only, and is_active is never sent", async () => {
     renderPage();
     await screen.findByText("Зал");
@@ -601,7 +641,7 @@ describe("SettingsPlacesPage — tables view", () => {
     expect(within(form).getByText("Добавить стол")).toBeInTheDocument();
     expect(within(form).getByText(/Место:/)).toBeInTheDocument();
     expect(within(form).queryByRole("combobox")).toBeNull(); // no hall dropdown (create mode)
-    expect(screen.getByPlaceholderText("Напр. 5")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Введите номер")).toBeInTheDocument();
   });
 
   it("edit table populates number & capacity", async () => {
@@ -610,6 +650,30 @@ describe("SettingsPlacesPage — tables view", () => {
     const form = document.querySelector(".settings-form");
     const number = within(form).getByText("Номер стола").parentElement.querySelector("input");
     expect(number).toHaveValue("1");
+  });
+
+  it("«Действия» is the last header cell and is right-aligned over the buttons", async () => {
+    await enterHall("Зал");
+    const head = document.querySelector(".settings-tbl__head");
+    const heads = [...head.querySelectorAll("span")].map((s) => s.textContent);
+    // Header order matches the row cell order, actions last.
+    expect(heads).toEqual(["№ стола", "Вместимость", "Статус", "Действия"]);
+    const row = document.querySelector(".settings-tbl__row:not(.settings-tbl__head)");
+    expect(row.lastElementChild).toHaveClass("settings-tbl__act");
+
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync("src/styles/owner/settings.css", "utf8");
+    // The actions cell is flex-end; its header must be right-aligned to sit
+    // above the buttons instead of at the far left of that elastic column.
+    expect(css).toMatch(/\.settings-tbl__act \{[^}]*justify-content:\s*flex-end/s);
+    expect(css).toMatch(/\.settings-tbl__head > span:last-child \{\s*text-align:\s*right/);
+    // Header and data rows must share the same track geometry: same inline
+    // padding, and a transparent (not removed) border so the columns line up.
+    const headRule = css.match(/\.settings-tbl__head \{[^}]*\}/s)[0];
+    const rowRule = css.match(/\.settings-tbl__row \{[^}]*\}/s)[0];
+    expect(headRule).toMatch(/padding:\s*2px 14px/);
+    expect(rowRule).toMatch(/padding:\s*12px 14px/);
+    expect(headRule).toMatch(/border:\s*1px solid transparent/);
   });
 
   it("deactivate table calls the service with hall + table ids", async () => {
@@ -621,7 +685,7 @@ describe("SettingsPlacesPage — tables view", () => {
   it("create table from the selected hall targets the correct hall id", async () => {
     await enterHall("Зал");
     fireEvent.click(screen.getByRole("button", { name: "Добавить стол" }));
-    fireEvent.change(screen.getByPlaceholderText("Напр. 5"), { target: { value: "9" } });
+    fireEvent.change(screen.getByPlaceholderText("Введите номер"), { target: { value: "9" } });
     fireEvent.click(screen.getByRole("button", { name: "Добавить" }));
     await waitFor(() => expect(settingsService.createPlaceTable).toHaveBeenCalledWith(
       "h-zal", expect.objectContaining({ number: 9 })));
@@ -813,7 +877,7 @@ describe("SettingsPlacesPage — inactive lifecycle", () => {
     // Phase 5C-5.5: archived rows use the same canonical trash action as every
     // other Hall row; reactivation remains available through the edit switch.
     expect(within(row).queryByRole("button", { name: "Активировать место" })).toBeNull();
-    const remove = within(row).getByRole("button", { name: "Деактивировать место" });
+    const remove = within(row).getByRole("button", { name: "Удалить место" });
     expect(remove.querySelector(".lucide-trash-2")).toBeInTheDocument();
   });
 
@@ -837,20 +901,24 @@ describe("SettingsPlacesPage — inactive lifecycle", () => {
     expect(screen.getByRole("button", { name: "Деактивировать стол" })).toBeInTheDocument();
   });
 
-  it("deactivates a hall through the canonical soft-delete and refetches", async () => {
+  it("deletes a hall via the confirm modal and refetches", async () => {
     renderPage();
     await screen.findByText("Зал");
     const row = screen.getByText("Зал").closest(".settings-place");
-    fireEvent.click(within(row).getByRole("button", { name: "Деактивировать место" }));
+    fireEvent.click(within(row).getByRole("button", { name: "Удалить место" }));
+    await screen.findByRole("heading", { name: "Удалить место?" });
+    fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
     await waitFor(() => expect(settingsService.deactivatePlace).toHaveBeenCalledWith("h-live"));
     await waitFor(() => expect(settingsService.listPlaces).toHaveBeenCalledTimes(2));
   });
 
-  it("inactive-row trash reuses the canonical Hall soft-delete", async () => {
+  it("inactive-row trash also uses the confirm modal + canonical delete", async () => {
     renderPage();
     await screen.findByText("Архив");
     const row = screen.getByText("Архив").closest(".settings-place");
-    fireEvent.click(within(row).getByRole("button", { name: "Деактивировать место" }));
+    fireEvent.click(within(row).getByRole("button", { name: "Удалить место" }));
+    await screen.findByRole("heading", { name: "Удалить место?" });
+    fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
     await waitFor(() => expect(settingsService.deactivatePlace).toHaveBeenCalledWith("h-arch"));
     await waitFor(() => expect(settingsService.listPlaces).toHaveBeenCalledTimes(2));
     expect(settingsService.updatePlace).not.toHaveBeenCalled();
@@ -928,7 +996,7 @@ describe("SettingsPlacesPage — 409 handling", () => {
       conflict("Стол с таким номером уже существует в этом месте"));
     await enterHall("Зал");
     fireEvent.click(screen.getByRole("button", { name: "Добавить стол" }));
-    fireEvent.change(screen.getByPlaceholderText("Напр. 5"), { target: { value: "7" } });
+    fireEvent.change(screen.getByPlaceholderText("Введите номер"), { target: { value: "7" } });
     fireEvent.click(document.querySelector(".settings-form__footer button[type=submit]"));
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Стол с таким номером уже существует в этом месте");
@@ -936,7 +1004,7 @@ describe("SettingsPlacesPage — 409 handling", () => {
     expect(document.body.textContent).not.toContain("AxiosError");
     expect(document.body.textContent).not.toContain("status code 409");
     // the modal stays open with the entered value intact
-    const number = screen.getByPlaceholderText("Напр. 5");
+    const number = screen.getByPlaceholderText("Введите номер");
     expect(number).toHaveValue("7");
     // the conflict is tied to the number field, and clears as soon as it changes
     expect(number).toHaveAttribute("aria-invalid", "true");
@@ -955,7 +1023,7 @@ describe("SettingsPlacesPage — 409 handling", () => {
     expect(alert).toHaveTextContent("Место неактивно — сначала активируйте место");
     expect(alert).not.toHaveTextContent("уже существует");
     // and it is NOT attributed to the number field
-    const number = document.querySelector(".settings-form input[placeholder='Напр. 5']")
+    const number = document.querySelector(".settings-form input[placeholder='Введите номер']")
       || screen.getByText("Номер стола").parentElement.querySelector("input");
     expect(number).not.toHaveAttribute("aria-invalid");
   });
@@ -1070,5 +1138,250 @@ describe("SettingsPlacesPage — branch UX", () => {
     fireEvent.click(within(form).getByRole("button", { name: "Сохранить" }));
     await waitFor(() => expect(settingsService.updatePlace).toHaveBeenCalledTimes(1));
     expect(settingsService.updatePlace.mock.calls[0][1]).not.toHaveProperty("branch_id");
+  });
+});
+
+// ── Phase 5C-6B: branch-scoped drag-and-drop ordering ──────────────────────
+// jsdom cannot perform a real pixel drag (dnd-kit needs layout rects the
+// happy-path browser oracle provides), so these cover the structure, the
+// branch isolation, the grip affordance, and that non-drag interactions never
+// touch the reorder endpoint. The actual drag→payload→optimistic→rollback flow
+// is exercised in tools/browser/settings-places.spec.js (contract replay).
+
+describe("applyBranchOrder (optimistic reorder merge)", () => {
+  const A = { id: "A", branch_id: "b1" };
+  const B = { id: "B", branch_id: "b1" };
+  const C = { id: "C", branch_id: "b1" };
+  const D = { id: "D", branch_id: "b1" };
+
+  it("reorders a branch block in place (A B C D → A D B C)", () => {
+    const out = applyBranchOrder([A, B, C, D], "b1", [A, D, B, C]);
+    expect(out.map((h) => h.id)).toEqual(["A", "D", "B", "C"]);
+  });
+
+  it("never moves halls of OTHER branches", () => {
+    const X = { id: "X", branch_id: "b2" };
+    const Y = { id: "Y", branch_id: "b2" };
+    // Interleaved input; b1 block is replaced contiguously, b2 kept intact.
+    const out = applyBranchOrder([A, X, B, Y], "b1", [B, A]);
+    const b2 = out.filter((h) => h.branch_id === "b2").map((h) => h.id);
+    expect(b2).toEqual(["X", "Y"]);
+    expect(out.filter((h) => h.branch_id === "b1").map((h) => h.id)).toEqual(["B", "A"]);
+  });
+});
+// DND_APPEND
+
+describe("SettingsPlacesPage — DnD structure & isolation", () => {
+  beforeEach(() => {
+    mockList(HALLS);
+    mockBranches(ONE_BRANCH);
+  });
+
+  it("renders halls in backend order with a reorder grip per row", async () => {
+    renderPage();
+    await screen.findByText("Зал");
+    const names = Array.from(document.querySelectorAll(".settings-place__name")).map((n) => n.textContent);
+    expect(names).toEqual(["Зал", "Бар", "Балкон"]);
+    // Each row exposes an accessible, keyboard-focusable reorder handle.
+    for (const name of ["Зал", "Бар", "Балкон"]) {
+      expect(screen.getByRole("button", { name: `Переместить место: ${name}` })).toBeInTheDocument();
+    }
+  });
+
+  it("single branch → one sortable group, no branch label", async () => {
+    renderPage();
+    await screen.findByText("Зал");
+    expect(document.querySelectorAll(".settings-places-group").length).toBe(1);
+    expect(document.querySelector(".settings-places-group__label")).toBeNull();
+  });
+
+  it("clicking a row still navigates to Tables and never reorders", async () => {
+    renderPage();
+    const probe = screen.getByTestId("location-search");
+    fireEvent.click(await screen.findByRole("button", { name: "Открыть столы: Бар" }));
+    await waitFor(() => expect(probe.textContent).toContain("hall_id=h-bar"));
+    expect(settingsService.reorderPlaces).not.toHaveBeenCalled();
+  });
+
+  it("Редактировать opens the editor and never reorders", async () => {
+    renderPage();
+    await screen.findByText("Зал");
+    fireEvent.click(screen.getAllByRole("button", { name: "Редактировать" })[0]);
+    await screen.findByRole("heading", { name: "Редактировать место" });
+    expect(settingsService.reorderPlaces).not.toHaveBeenCalled();
+  });
+
+  it("Trash opens the delete modal and never reorders", async () => {
+    renderPage();
+    await screen.findByText("Зал");
+    fireEvent.click(screen.getAllByRole("button", { name: "Удалить место" })[0]);
+    await screen.findByRole("heading", { name: "Удалить место?" });
+    expect(settingsService.reorderPlaces).not.toHaveBeenCalled();
+  });
+});
+
+describe("SettingsPlacesPage — DnD inactive + multi-branch", () => {
+  it("inactive hall row is still draggable and keeps its status (no restore control)", async () => {
+    mockList([
+      { id: "h-on", name: "Активный", is_active: true, branch_id: "b-main", percent: null, tables: [] },
+      { id: "h-off", name: "Архивный", is_active: false, branch_id: "b-main", percent: null, tables: [] },
+    ]);
+    mockBranches(ONE_BRANCH);
+    renderPage();
+    await screen.findByText("Архивный");
+    // Grip present on the archived row → it participates in ordering.
+    expect(screen.getByRole("button", { name: "Переместить место: Архивный" })).toBeInTheDocument();
+    const offRow = document.querySelector(".settings-place.is-inactive");
+    expect(offRow).not.toBeNull();
+    expect(within(offRow).getByText("Неактивен")).toBeInTheDocument();
+    // No restore/reactivate control returns to the main inactive row.
+    expect(within(offRow).queryByRole("button", { name: "Активировать место" })).toBeNull();
+  });
+
+  it("multiple branches → isolated groups with labels, halls never mixed", async () => {
+    mockList([
+      { id: "a1", name: "A1", is_active: true, branch_id: "b-main", percent: null, tables: [] },
+      { id: "a2", name: "A2", is_active: true, branch_id: "b-main", percent: null, tables: [] },
+      { id: "b1", name: "B1", is_active: true, branch_id: "b-second", percent: null, tables: [] },
+      { id: "b2", name: "B2", is_active: true, branch_id: "b-second", percent: null, tables: [] },
+    ]);
+    mockBranches(TWO_BRANCHES);
+    renderPage();
+    await screen.findByText("A1");
+    const groups = document.querySelectorAll(".settings-places-group");
+    expect(groups.length).toBe(2);
+    // Labels disambiguate the two branches.
+    const labels = Array.from(document.querySelectorAll(".settings-places-group__label")).map((l) => l.textContent);
+    expect(labels).toEqual(["Основной филиал", "Второй филиал"]);
+    // Each group contains only its own branch's halls (no cross-branch mixing).
+    const g0 = Array.from(groups[0].querySelectorAll(".settings-place__name")).map((n) => n.textContent);
+    const g1 = Array.from(groups[1].querySelectorAll(".settings-place__name")).map((n) => n.textContent);
+    expect(g0).toEqual(["A1", "A2"]);
+    expect(g1).toEqual(["B1", "B2"]);
+  });
+});
+
+// ── Phase 5C-6D: delete confirmation modal + user-select ───────────────────
+
+describe("SettingsPlacesPage — delete confirmation modal", () => {
+  beforeEach(() => {
+    mockList(HALLS);
+    mockBranches(ONE_BRANCH);
+  });
+
+  async function openDeleteModal(name = "Зал") {
+    renderPage();
+    await screen.findByText(name);
+    const row = screen.getByText(name).closest(".settings-place");
+    fireEvent.click(within(row).getByRole("button", { name: "Удалить место" }));
+    await screen.findByRole("heading", { name: "Удалить место?" });
+  }
+
+  it("Trash opens the modal without calling the API or navigating", async () => {
+    await openDeleteModal("Зал");
+    expect(settingsService.deactivatePlace).not.toHaveBeenCalled();
+    expect(screen.getByText(/Вы уверены, что хотите удалить/)).toBeInTheDocument();
+    expect(screen.getByTestId("location-search").textContent).not.toContain("hall_id");
+  });
+
+  it("Отмена closes the modal and changes nothing", async () => {
+    await openDeleteModal("Зал");
+    fireEvent.click(screen.getByRole("button", { name: "Отмена" }));
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Удалить место?" })).toBeNull());
+    expect(settingsService.deactivatePlace).not.toHaveBeenCalled();
+    expect(screen.getByText("Зал")).toBeInTheDocument();
+  });
+
+  it("Escape closes the modal without deleting", async () => {
+    await openDeleteModal("Зал");
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Удалить место?" })).toBeNull());
+    expect(settingsService.deactivatePlace).not.toHaveBeenCalled();
+  });
+
+  it("backdrop click closes the modal without deleting", async () => {
+    await openDeleteModal("Зал");
+    fireEvent.click(document.querySelector(".settings-drawer__backdrop"));
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Удалить место?" })).toBeNull());
+    expect(settingsService.deactivatePlace).not.toHaveBeenCalled();
+  });
+
+  it("confirm sends exactly one delete then refetches and removes the row", async () => {
+    settingsService.listPlaces
+      .mockResolvedValueOnce({ data: HALLS })
+      .mockResolvedValue({ data: HALLS.filter((h) => h.id !== "h-zal") });
+    await openDeleteModal("Зал");
+    fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
+    await waitFor(() => expect(settingsService.deactivatePlace).toHaveBeenCalledWith("h-zal"));
+    expect(settingsService.deactivatePlace).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.queryByText("Зал")).toBeNull());
+    expect(screen.getByText("Бар")).toBeInTheDocument();
+  });
+
+  it("failure keeps the modal open, shows a normalized error, preserves the hall", async () => {
+    settingsService.deactivatePlace.mockRejectedValueOnce(conflict("Место занято активным заказом"));
+    await openDeleteModal("Зал");
+    fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
+    await screen.findByText("Место занято активным заказом");
+    // Modal stays open, hall still present, no AxiosError leak.
+    expect(screen.getByRole("heading", { name: "Удалить место?" })).toBeInTheDocument();
+    expect(screen.getByText("Зал", { selector: ".settings-place__name" })).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain("AxiosError");
+    // Button usable again (not stuck disabled) after failure.
+    expect(screen.getByRole("button", { name: "Удалить", exact: true })).toBeEnabled();
+  });
+
+  it("prevents double-submit while the delete is in flight", async () => {
+    let release;
+    settingsService.deactivatePlace.mockImplementation(() => new Promise((r) => { release = r; }));
+    await openDeleteModal("Зал");
+    const button = screen.getByRole("button", { name: "Удалить", exact: true });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await waitFor(() => expect(settingsService.deactivatePlace).toHaveBeenCalledTimes(1));
+    release({ data: {} });
+  });
+
+  it("does not affect the Edit modal", async () => {
+    renderPage();
+    await screen.findByText("Зал");
+    fireEvent.click(screen.getAllByRole("button", { name: "Редактировать" })[0]);
+    await screen.findByRole("heading", { name: "Редактировать место" });
+    // The delete confirm is a separate dialog and is not shown.
+    expect(screen.queryByRole("heading", { name: "Удалить место?" })).toBeNull();
+  });
+
+  it("owns non-selectable row text in CSS (user-select: none on .settings-place)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync("src/styles/owner/settings.css", "utf8");
+    const rule = css.match(/\.settings-place\s*\{[^}]*\}/s);
+    expect(rule).not.toBeNull();
+    expect(rule[0]).toMatch(/user-select:\s*none/);
+  });
+
+  it("no longer shows the history reassurance line", async () => {
+    await openDeleteModal("Зал");
+    expect(screen.queryByText(/История заказов и данных будет сохранена/)).toBeNull();
+    expect(document.querySelector(".settings-confirm__hint")).toBeNull();
+    // The question itself and both CTAs stay.
+    expect(screen.getByText(/Вы уверены, что хотите удалить/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Отмена" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Удалить" })).toBeInTheDocument();
+  });
+
+  it("is vertically compact: tighter shell metrics than the Add/Edit modal", async () => {
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync("src/styles/owner/settings.css", "utf8");
+    const confirm = css.match(/\.settings-owner-view \.settings-confirm \{[^}]*\}/s);
+    expect(confirm).not.toBeNull();
+    // Own padding/gap, smaller than the shared .settings-modal (22px / 16px).
+    expect(confirm[0]).toMatch(/padding:\s*18px 20px/);
+    expect(confirm[0]).toMatch(/gap:\s*10px/);
+    // Header chrome is scaled down too, and the removed hint leaves no gap.
+    expect(css).toMatch(/\.settings-confirm \.settings-accent-bar \{\s*height:\s*34px/);
+    expect(css).toMatch(/\.settings-confirm \.settings-form__body \{\s*gap:\s*0/);
+    // The animation family is untouched.
+    expect(confirm[0]).not.toMatch(/animation/);
   });
 });

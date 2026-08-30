@@ -51,6 +51,16 @@ export const settingsService = Object.freeze({
   deactivatePlace(id) {
     return api.delete(`/halls/${id}`);
   },
+  // Phase 5C-6B: persist a COMPLETE branch-scoped hall order in ONE request.
+  // payload = { branch_id, hall_ids } — hall_ids MUST be the full ordered set
+  // of that branch's halls (active + inactive). Backend PATCH /halls/reorder is
+  // atomic and branch-scoped; the body is passed through unchanged (no per-hall
+  // requests, no transformation).
+  reorderPlaces(payload, config) {
+    return config
+      ? api.patch("/halls/reorder", payload, config)
+      : api.patch("/halls/reorder", payload);
+  },
   listPlaceTables(hallId, config) {
     return config ? api.get(`/halls/${hallId}/tables`, config) : api.get(`/halls/${hallId}/tables`);
   },

@@ -158,7 +158,10 @@ test.describe("Phase 5C-5 — Settings Места/Столы", () => {
   // Playwright's getByRole name matching is substring-based by default, and
   // "Активировать стол" is a substring of "Деактивировать стол" — so every
   // lifecycle control below is matched with exact: true.
-  const DEACTIVATE_HALL = { name: "Деактивировать место", exact: true };
+  // Phase 5C-6D renamed the Hall row's Trash action: status OFF (inactive) and
+  // Trash (delete/archive) are now distinct operations, so the button's
+  // accessible name is «Удалить место», not the old «Деактивировать место».
+  const DELETE_HALL = { name: "Удалить место", exact: true };
   const RESTORE_TABLE = { name: "Активировать стол", exact: true };
   const DEACTIVATE_TABLE = { name: "Деактивировать стол", exact: true };
 
@@ -227,8 +230,8 @@ test.describe("Phase 5C-5 — Settings Места/Столы", () => {
     await expect(archived.locator(".settings-place__price")).toHaveText("");
     await expect(archived).not.toContainText("900 000 UZS");
     await expect(archived.getByRole("button", { name: "Активировать место", exact: true })).toHaveCount(0);
-    await expect(archived.getByRole("button", DEACTIVATE_HALL)).toBeVisible();
-    await expect(archived.getByRole("button", DEACTIVATE_HALL).locator(".lucide-trash-2")).toBeVisible();
+    await expect(archived.getByRole("button", DELETE_HALL)).toBeVisible();
+    await expect(archived.getByRole("button", DELETE_HALL).locator(".lucide-trash-2")).toBeVisible();
 
     const live = billiard;
     const activeBadge = live.locator(".settings-status-badge");
@@ -242,9 +245,9 @@ test.describe("Phase 5C-5 — Settings Места/Столы", () => {
     await expect(activeDot).toBeVisible();
     expect((await activeDot.boundingBox()).width).toBe(8);
     expect(await activeDot.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(0, 220, 59)");
-    await expect(live.getByRole("button", DEACTIVATE_HALL)).toBeVisible();
-    await expect(live.getByRole("button", DEACTIVATE_HALL).locator(".lucide-trash-2")).toBeVisible();
-    await expect(live.getByRole("button", DEACTIVATE_HALL).locator(".lucide-octagon-x")).toHaveCount(0);
+    await expect(live.getByRole("button", DELETE_HALL)).toBeVisible();
+    await expect(live.getByRole("button", DELETE_HALL).locator(".lucide-trash-2")).toBeVisible();
+    await expect(live.getByRole("button", DELETE_HALL).locator(".lucide-octagon-x")).toHaveCount(0);
     await expect(live.getByRole("button", { name: "Активировать место", exact: true })).toHaveCount(0);
 
     const inactiveBadge = archived.locator(".settings-status-badge");
@@ -397,11 +400,11 @@ test.describe("Phase 5C-5 — Settings Места/Столы", () => {
   test("keyboard: Escape closes, and inactive-row delete remains reachable", async () => {
     await openPlaces();
     const remove = page.locator(".settings-place", { hasText: "Архив" })
-      .getByRole("button", DEACTIVATE_HALL);
+      .getByRole("button", DELETE_HALL);
     await remove.focus();
     await expect(remove).toBeFocused();
     // reachable and not colour-only: it carries an accessible name
-    expect(await remove.getAttribute("aria-label")).toBe("Деактивировать место");
+    expect(await remove.getAttribute("aria-label")).toBe("Удалить место");
 
     await page.locator(".settings-place", { hasText: "БРОН" })
       .getByRole("button", { name: "Редактировать" }).click();

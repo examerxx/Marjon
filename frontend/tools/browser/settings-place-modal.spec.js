@@ -10,6 +10,13 @@ import path from "node:path";
 //    have yet), so edit-restore and the dropdown can be proven at 1280.
 //  * "live" — NOTHING is intercepted. A real place is created against the real
 //    backend to verify the repaired branch, then cleaned up via soft-delete.
+//
+// LIVE opt-in: the live group authenticates with real OWNER credentials and
+// MUTATES canonical marjon_authoritative. It is SKIPPED by default and runs
+// ONLY when MARJON_LIVE_E2E=1 is explicitly set. Never enable it in normal or
+// CI runs — default invocation stays fully mocked and touches no database.
+const LIVE_E2E = process.env.MARJON_LIVE_E2E === "1";
+const liveDescribe = LIVE_E2E ? test.describe : test.describe.skip;
 
 const OWNER_PHONE = "907778778";
 const OWNER_PASSWORD = "102938";
@@ -220,7 +227,7 @@ test.describe("Phase 5C-5.2 — custom dropdown + create status (mocked read)", 
   });
 });
 
-test.describe("Phase 5C-5.2 — LIVE create against the real backend", () => {
+liveDescribe("Phase 5C-5.2 — LIVE create against the real backend", () => {
   let page;
   const seen = [];
 
@@ -279,9 +286,12 @@ test.describe("Phase 5C-5.2 — LIVE create against the real backend", () => {
     // weakened) — full price_amount E2E stays blocked until the backend deploys.
     console.log("LIVE price_amount echoed back:", Object.prototype.hasOwnProperty.call(createdBody, "price_amount"));
 
-    // cleanup: remove ONLY the temporary test hall through the supported action
+    // cleanup: remove ONLY the temporary test hall through the supported action.
+    // Phase 5C-6D: Trash opens a confirm modal; the DELETE fires only on
+    // confirming «Удалить» inside it.
     const row = page.locator(".settings-place", { hasText: TEST_HALL });
-    await row.getByRole("button", { name: "Деактивировать место", exact: true }).click();
+    await row.getByRole("button", { name: "Удалить место", exact: true }).click();
+    await page.getByRole("button", { name: "Удалить", exact: true }).click();
     const del = await page.waitForResponse(
       (r) => r.url().includes("/api/v1/halls/") && r.request().method() === "DELETE",
       { timeout: 15000 },

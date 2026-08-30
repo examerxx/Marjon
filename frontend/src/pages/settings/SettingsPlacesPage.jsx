@@ -1,6 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { normalizeApiError } from "../../api/errors";
 import { settingsService } from "../../api/settings";
 import Icon from "../../components/Icon";
@@ -108,6 +124,24 @@ function allTables(hall) {
 }
 function activeTables(hall) {
   return allTables(hall).filter((t) => t && t.is_active !== false);
+}
+
+// Replace the block of halls belonging to `branchId` with `branchHalls` (in the
+// given order), leaving every other branch's halls exactly where they are. The
+// backend groups a branch's halls contiguously, so this keeps the flat list
+// coherent for an optimistic update without a refetch. Exported for unit tests.
+export function applyBranchOrder(list, branchId, branchHalls) {
+  const result = [];
+  let inserted = false;
+  for (const hall of list) {
+    if (String(hall.branch_id) === String(branchId)) {
+      if (!inserted) { result.push(...branchHalls); inserted = true; }
+    } else {
+      result.push(hall);
+    }
+  }
+  if (!inserted) result.push(...branchHalls);
+  return result;
 }
 
 function StatusBadge({ active }) {
@@ -241,6 +275,127 @@ function MarjonSelect({
   );
 }
 
+// Live prefers-reduced-motion subscription for the sortable list (the modal
+// uses the one-shot prefersReducedMotion() above; drag needs to react to a
+// mid-session OS change without a reload).
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(prefersReducedMotion);
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return undefined;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const onChange = () => setReduced(mq.matches);
+    onChange();
+    mq.addEventListener?.("change", onChange);
+    return () => mq.removeEventListener?.("change", onChange);
+  }, []);
+  return reduced;
+}
+
+// One sortable Place row. Pointer-drag works by pressing on the row body (the
+// name/price area) via the sortable's onPointerDown; a plain click there still
+// opens Tables (the DndContext uses a small distance activation constraint, so
+// a click is not a drag). Keyboard reordering lives on the small grip handle
+// (Enter/Space to pick up, arrows to move) so the row body keeps its native
+// Enter=open semantics and there is no nested-button. The Edit/Trash controls
+// stop pointerdown so they can never start a drag. Reorder changes ONLY order —
+// pricing/percent/status markup is byte-for-byte the approved 5C-5 row.
+function SortablePlaceRow({
+  hall, active, priceMeta, percentText, reducedMotion, disabled,
+  onOpen, onEdit, onDelete,
+}) {
+  const {
+    attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging,
+  } = useSortable({ id: String(hall.id), disabled });
+  // dnd-kit owns the translate (the allowed inline-transform exception). The
+  // subtle lift scale is composed onto that same inline transform so it is not
+  // clobbered — and is dropped entirely under reduced motion.
+  const translate = CSS.Translate.toString(transform);
+  const style = {
+    transform: isDragging && !reducedMotion && translate
+      ? `${translate} scale(1.012)`
+      : translate || undefined,
+    transition: reducedMotion ? undefined : transition,
+  };
+  const className = `settings-place${active ? "" : " is-inactive"}`
+    + (isDragging ? " is-dragging" : "")
+    + (reducedMotion ? " is-reduced-motion" : "");
+  return (
+    <article ref={setNodeRef} style={style} className={className}>
+      <button
+        type="button"
+        className="settings-place__main"
+        onClick={() => onOpen(hall)}
+        onPointerDown={disabled ? undefined : listeners?.onPointerDown}
+        aria-label={`Открыть столы: ${hall.name}`}
+      >
+        <span className="settings-place__info">
+          <span className="settings-place__name">{hall.name}</span>
+          <span className="settings-place__count">{tablesLabel(activeTables(hall).length)}</span>
+        </span>
+        <span className="settings-place__price">
+          {priceMeta ? <><strong>{priceMeta.label}:</strong>{" "}{priceMeta.amount} UZS</> : null}
+        </span>
+        <span className="settings-place__percent">{percentText}</span>
+      </button>
+      <div className="settings-place__meta" onPointerDown={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          className="settings-place__grip"
+          ref={setActivatorNodeRef}
+          aria-label={`Переместить место: ${hall.name}`}
+          title="Перетащите, чтобы изменить порядок"
+          {...attributes}
+          {...listeners}
+        >
+          <Icon name="bi-grip-vertical" size={16} />
+        </button>
+        <StatusBadge active={active} />
+        <button type="button" className="settings-place__edit" onClick={() => onEdit(hall)}>Редактировать</button>
+        <button type="button" className="settings-action-delete" onClick={() => onDelete(hall)} aria-label="Удалить место"><Icon name="bi-trash3" size={15} /></button>
+      </div>
+    </article>
+  );
+}
+
+// One branch = one isolated sortable container. Separate DndContext per branch
+// makes cross-branch dragging physically impossible (an item can never leave
+// its branch's context), so branch_id is never mutated and a reorder payload
+// can never mix branches. Calls onReorder(branchId, orderedHallIds) once, on a
+// completed in-branch move.
+function PlaceBranchGroup({ branchId, halls, reducedMotion, disabled, onReorder, rowProps }) {
+  const sensors = useSensors(
+    // 6px threshold: a plain click opens Tables, only real movement drags.
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const ids = useMemo(() => halls.map((h) => String(h.id)), [halls]);
+  function onDragEnd(event) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const from = ids.indexOf(String(active.id));
+    const to = ids.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    onReorder(branchId, arrayMove(ids, from, to));
+  }
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+        <div className="settings-places-list">
+          {halls.map((hall) => (
+            <SortablePlaceRow
+              key={hall.id}
+              hall={hall}
+              reducedMotion={reducedMotion}
+              disabled={disabled}
+              {...rowProps(hall)}
+            />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
 // COMPONENT
 export default function SettingsPlacesPage() {
   const [halls, setHalls] = useState([]);
@@ -257,6 +412,20 @@ export default function SettingsPlacesPage() {
   // True only when the backend rejected the exact Phase 5C-3 duplicate-number
   // contract, so the message can be tied to the number input.
   const [numberConflict, setNumberConflict] = useState(false);
+  // Phase 5C-6B: true while a reorder PATCH is in flight, so a second drop can
+  // be blocked (sortable disabled) without freezing navigation/sidebar.
+  const [savingOrder, setSavingOrder] = useState(false);
+  // Reorder failures surface HERE (a non-destructive inline banner above the
+  // list) rather than in `error`, which replaces the whole list — a rejected
+  // drag must keep the user on the Places list with the rolled-back order.
+  const [orderError, setOrderError] = useState("");
+  const reducedMotion = useReducedMotion();
+  // Phase 5C-6D: delete-confirmation modal. `deleteTarget` is the hall pending
+  // deletion (null = closed); `deleting` guards double-submit; `deleteError`
+  // shows a normalized failure inside the modal without closing it.
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [modalClosing, setModalClosing] = useState(false);
   const closingRef = useRef(false);
   const closeTimer = useRef(null);
@@ -275,6 +444,7 @@ export default function SettingsPlacesPage() {
     closeTimer.current = setTimeout(() => {
       setHallDrawer(null);
       setTableDrawer(null);
+      setDeleteTarget(null);
       setModalClosing(false);
       closingRef.current = false;
     }, prefersReducedMotion() ? 0 : MODAL_EXIT_MS);
@@ -307,11 +477,31 @@ export default function SettingsPlacesPage() {
     if (!branchId || activeBranches.length < 2) return "";
     return branches.find((b) => String(b.id) === String(branchId))?.name || "";
   }
+  // Phase 5C-6B: split the flat, backend-ordered hall list into per-branch
+  // blocks (order preserved). Each block is an isolated sortable group so a
+  // hall can never be dragged across branches. A branch label is shown only
+  // when more than one group exists (disambiguation), never in the single-
+  // branch common case — no Settings redesign.
+  const placeGroups = useMemo(() => {
+    const order = [];
+    const byBranch = new Map();
+    for (const hall of halls) {
+      const key = String(hall.branch_id);
+      if (!byBranch.has(key)) { byBranch.set(key, []); order.push(key); }
+      byBranch.get(key).push(hall);
+    }
+    return order.map((key) => ({ branchId: key, halls: byBranch.get(key) }));
+  }, [halls]);
+  const isMultiBranch = placeGroups.length > 1;
+  function groupBranchLabel(branchId) {
+    return branches.find((b) => String(b.id) === String(branchId))?.name || "Филиал";
+  }
 
   function load() {
     const request = beginRequest();
     setLoading(true);
     setError("");
+    setOrderError("");
     // Phase 5C-4: Settings is an administrative directory, so it asks for the
     // archive explicitly (halls AND their nested tables). Operational surfaces
     // (POS waiter picker, reports) keep the active-only default.
@@ -347,14 +537,14 @@ export default function SettingsPlacesPage() {
   // Escape closes whichever centered modal is open (aria-modal dialog), unless
   // a save is in flight. Backdrop click / × already close via their handlers.
   useEffect(() => {
-    if (!hallDrawer && !tableDrawer) return undefined;
+    if (!hallDrawer && !tableDrawer && !deleteTarget) return undefined;
     function onKey(event) {
-      if (event.key !== "Escape" || saving) return;
+      if (event.key !== "Escape" || saving || deleting) return;
       requestClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [hallDrawer, tableDrawer, saving]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hallDrawer, tableDrawer, deleteTarget, saving, deleting]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function openHall(hall) {
     setSearchParams((prev) => { const p = new URLSearchParams(prev); p.set("hall_id", hall.id); return p; });
@@ -447,11 +637,60 @@ export default function SettingsPlacesPage() {
     } catch (err) { setDrawerError(apiErrorMessage(err, "Не удалось сохранить место.")); }
     finally { setSaving(false); locks.release("hall-save"); }
   }
-  async function deactivateHall(hall) {
-    if (!locks.acquire(`hall-del:${hall.id}`)) return;
-    try { await settingsService.deactivatePlace(hall.id); load(); }
-    catch (err) { setError(apiErrorMessage(err, "Не удалось деактивировать место.")); }
-    finally { locks.release(`hall-del:${hall.id}`); }
+  // Phase 5C-6D: the Trash action no longer mutates on click — it opens a
+  // confirmation modal. Deletion happens only on explicit confirm, and maps to
+  // the canonical DELETE /halls/{id} which now ARCHIVES the hall (deleted_at)
+  // so the row leaves the Settings directory entirely (never a lingering
+  // "Неактивен" row). A failure keeps the modal open with a normalized message
+  // and re-enables the button; the mutation lock prevents double-submit.
+  function openDeleteConfirm(hall) {
+    resetCloseState();
+    setDeleteError("");
+    setDeleteTarget(hall);
+  }
+  async function confirmDelete() {
+    if (!deleteTarget || !locks.acquire(`hall-del:${deleteTarget.id}`)) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await settingsService.deactivatePlace(deleteTarget.id);
+      requestClose();
+      load();
+    } catch (err) {
+      setDeleteError(apiErrorMessage(err, "Не удалось удалить место."));
+    } finally {
+      setDeleting(false);
+      locks.release(`hall-del:${deleteTarget.id}`);
+    }
+  }
+  // Phase 5C-6B: persist a completed in-branch drag. Optimistically applies the
+  // new order, then sends ONE PATCH /halls/reorder with the COMPLETE set of the
+  // branch's halls (active + inactive). On success it adopts the canonical
+  // returned order; on failure it rolls back to the pre-drag order and shows a
+  // normalized message. `orderedIds` is already the whole branch (each group
+  // contains all of that branch's halls), so archived halls are never omitted.
+  async function reorderBranch(branchId, orderedIds) {
+    if (!locks.acquire("reorder")) return;
+    const previous = halls;
+    const byId = new Map(halls.map((h) => [String(h.id), h]));
+    const orderedHalls = orderedIds.map((id) => byId.get(String(id))).filter(Boolean);
+    setOrderError("");
+    setSavingOrder(true);
+    setHalls((cur) => applyBranchOrder(cur, branchId, orderedHalls));
+    try {
+      const { data } = await settingsService.reorderPlaces({
+        branch_id: branchId,
+        hall_ids: orderedIds,
+      });
+      const canonical = Array.isArray(data) ? data : (data?.items || orderedHalls);
+      setHalls((cur) => applyBranchOrder(cur, branchId, canonical));
+    } catch (err) {
+      setHalls(previous); // rollback — never leave a rejected order on screen
+      setOrderError(apiErrorMessage(err, "Не удалось сохранить порядок мест."));
+    } finally {
+      setSavingOrder(false);
+      locks.release("reorder");
+    }
   }
   // TABLE_HANDLERS
   function openAddTable() { resetCloseState(); setTableForm(EMPTY_TABLE_FORM); setDrawerError(""); setNumberConflict(false); setTableDrawer({ mode: "create" }); }
@@ -546,31 +785,30 @@ export default function SettingsPlacesPage() {
             <span>Добавьте первое место, чтобы настроить зал и столы.</span>
           </div>
         ) : (
-          <div className="settings-places-list">
-            {halls.map((hall) => {
-              const active = hall.is_active !== false;
-              const priceMeta = placePriceMeta(hall);
-              const percentText = formatPercent(hall.percent);
-              return (
-              <article className={`settings-place${active ? "" : " is-inactive"}`} key={hall.id}>
-                <button type="button" className="settings-place__main" onClick={() => openHall(hall)} aria-label={`Открыть столы: ${hall.name}`}>
-                  <span className="settings-place__info">
-                    <span className="settings-place__name">{hall.name}</span>
-                    <span className="settings-place__count">{tablesLabel(activeTables(hall).length)}</span>
-                  </span>
-                  <span className="settings-place__price">
-                    {priceMeta ? <><strong>{priceMeta.label}:</strong>{" "}{priceMeta.amount} UZS</> : null}
-                  </span>
-                  <span className="settings-place__percent">{percentText}</span>
-                </button>
-                <div className="settings-place__meta">
-                  <StatusBadge active={active} />
-                  <button type="button" className="settings-place__edit" onClick={() => openEditHall(hall)}>Редактировать</button>
-                  <button type="button" className="settings-action-delete" onClick={() => deactivateHall(hall)} aria-label="Деактивировать место"><Icon name="bi-trash3" size={15} /></button>
-                </div>
-              </article>
-              );
-            })}
+          <div className="settings-places-groups">
+            {orderError ? <p className="settings-form__error settings-places-order-error" role="alert">{orderError}</p> : null}
+            {placeGroups.map((group) => (
+              <div className="settings-places-group" key={group.branchId}>
+                {isMultiBranch ? (
+                  <p className="settings-places-group__label">{groupBranchLabel(group.branchId)}</p>
+                ) : null}
+                <PlaceBranchGroup
+                  branchId={group.branchId}
+                  halls={group.halls}
+                  reducedMotion={reducedMotion}
+                  disabled={savingOrder}
+                  onReorder={reorderBranch}
+                  rowProps={(hall) => ({
+                    active: hall.is_active !== false,
+                    priceMeta: placePriceMeta(hall),
+                    percentText: formatPercent(hall.percent),
+                    onOpen: openHall,
+                    onEdit: openEditHall,
+                    onDelete: openDeleteConfirm,
+                  })}
+                />
+              </div>
+            ))}
           </div>
         )}
       </>
@@ -712,7 +950,7 @@ export default function SettingsPlacesPage() {
                 <label className="settings-switch">
                   <input type="checkbox" checked={hallForm.is_active} onChange={(e) => setHallForm((f) => ({ ...f, is_active: e.target.checked }))} />
                   <span className="settings-switch__track" aria-hidden="true"><span className="settings-switch__thumb" /></span>
-                  <span className="settings-switch__label">{hallForm.is_active ? "Активен" : "Неактивен"}</span>
+                  <span className={`settings-switch__label ${hallForm.is_active ? "is-active" : "is-inactive"}`}>{hallForm.is_active ? "Активен" : "Неактивен"}</span>
                 </label>
               </div>
             </div>
@@ -742,7 +980,7 @@ export default function SettingsPlacesPage() {
               {!hallIsActive ? (
                 <p className="settings-form__hint" role="status">Место неактивно — сначала активируйте место.</p>
               ) : null}
-              <label className="settings-form__wide"><span>Номер стола</span><input autoFocus value={tableForm.number} inputMode="numeric" placeholder="Напр. 5" aria-invalid={numberConflict || undefined} onChange={(e) => { setNumberConflict(false); setTableForm((f) => ({ ...f, number: e.target.value })); }} /></label>
+              <label className="settings-form__wide"><span>Номер стола</span><input autoFocus value={tableForm.number} inputMode="numeric" placeholder="Введите номер" aria-invalid={numberConflict || undefined} onChange={(e) => { setNumberConflict(false); setTableForm((f) => ({ ...f, number: e.target.value })); }} /></label>
               <label className="settings-form__wide"><span>Вместимость</span><input value={tableForm.capacity} inputMode="numeric" onChange={(e) => setTableForm((f) => ({ ...f, capacity: e.target.value }))} /></label>
               {tableDrawer.mode === "edit" ? (
                 <div className="settings-toggle-field settings-form__wide">
@@ -755,7 +993,7 @@ export default function SettingsPlacesPage() {
                       onChange={(e) => setTableForm((f) => ({ ...f, is_active: e.target.checked }))}
                     />
                     <span className="settings-switch__track" aria-hidden="true"><span className="settings-switch__thumb" /></span>
-                    <span className="settings-switch__label">{tableForm.is_active ? "Активен" : "Неактивен"}</span>
+                    <span className={`settings-switch__label ${tableForm.is_active ? "is-active" : "is-inactive"}`}>{tableForm.is_active ? "Активен" : "Неактивен"}</span>
                   </label>
                 </div>
               ) : null}
@@ -767,6 +1005,36 @@ export default function SettingsPlacesPage() {
               <button type="submit" disabled={saving}>{saving ? "Сохранение..." : tableDrawer.mode === "edit" ? "Сохранить" : "Добавить"}</button>
             </footer>
           </form>
+          </div>
+        </div>
+      ), document.body) : null}
+
+      {/* DELETE_CONFIRM — reuses the exact modal shell/animation as Add/Edit
+          (portal to body, .settings-modal-overlay backdrop + open/close
+          keyframes, radius, shadow, Escape/backdrop close). Compact confirm
+          content; the destructive CTA is danger-red, Отмена is the neutral
+          Marjon outline. Отмена is auto-focused so Enter never deletes. */}
+      {deleteTarget ? createPortal((
+        <div className="settings-owner-view settings-drawer-layer">
+          <div className={`settings-drawer settings-modal-overlay${modalClosing ? " is-closing" : ""}`} role="presentation">
+          <div className="settings-drawer__backdrop" onClick={deleting ? undefined : requestClose} />
+          <div className="settings-form settings-modal settings-confirm" role="dialog" aria-modal="true" aria-labelledby="settings-delete-modal-title" aria-describedby="settings-delete-modal-body">
+            <header className="settings-form__header">
+              <span className="settings-accent-bar" />
+              <div><p>Удаление</p><h2 id="settings-delete-modal-title">Удалить место?</h2></div>
+              <button type="button" disabled={deleting} onClick={requestClose} aria-label="Закрыть"><Icon name="bi-x-lg" size={20} /></button>
+            </header>
+            <div className="settings-form__body">
+              <p id="settings-delete-modal-body" className="settings-confirm__text">
+                Вы уверены, что хотите удалить «<strong>{deleteTarget.name}</strong>»?
+              </p>
+            </div>
+            {deleteError ? <p className="settings-form__error" role="alert">{deleteError}</p> : null}
+            <footer className="settings-form__footer">
+              <button type="button" autoFocus disabled={deleting} onClick={requestClose}>Отмена</button>
+              <button type="button" className="settings-confirm__delete" disabled={deleting} onClick={confirmDelete}>{deleting ? "Удаление..." : "Удалить"}</button>
+            </footer>
+          </div>
           </div>
         </div>
       ), document.body) : null}
