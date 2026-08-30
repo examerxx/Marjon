@@ -51,8 +51,13 @@ test.describe("OWNER Z-report generator workspace", () => {
     await openZReport(1280);
     await expect(page.locator(".owner-reports__title")).toHaveText("Z-отчёт");
 
+    // Date control is the canonical ReportDateRangePicker trigger (the old
+    // native `.owner-reports__date` input was removed). Assert it by its
+    // accessible name, and that the title sits to its left.
+    const periodButton = page.getByRole("button", { name: "Период Z-отчёта" });
+    await expect(periodButton).toBeVisible();
     const titleBox = await page.locator(".owner-reports__title").boundingBox();
-    const dateBox = await page.locator(".owner-reports__date").boundingBox();
+    const dateBox = await periodButton.boundingBox();
     expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(dateBox.x);
 
     await expect(page.locator(".owner-report-row")).toHaveCount(5);
@@ -77,11 +82,20 @@ test.describe("OWNER Z-report generator workspace", () => {
     // no fake "Выберите…" anywhere on the page
     await expect(page.getByText("Выберите", { exact: false })).toHaveCount(0);
 
-    // per-entity print deferred
+    // per-entity print deferred — proven by the truthful disabled state, not by
+    // a decorative "Скоро" badge (the old `.owner-report-row__deferred` span was
+    // removed). Each per-entity print is non-actionable AND carries an honest
+    // "not yet connected" message; there is no fake-success path.
     const perEntityPrint = page.locator(".owner-report-row__print");
     await expect(perEntityPrint).toHaveCount(5);
-    for (let i = 0; i < 5; i += 1) await expect(perEntityPrint.nth(i)).toBeDisabled();
-    await expect(page.locator(".owner-report-row__deferred")).toHaveCount(5);
+    await expect(page.locator(".owner-report-row__deferred")).toHaveCount(0);
+    for (let i = 0; i < 5; i += 1) {
+      const btn = perEntityPrint.nth(i);
+      await expect(btn).toBeDisabled();
+      await expect(btn).toHaveAttribute("aria-disabled", "true");
+      await expect(btn).toHaveAttribute("title", "Отчёт ещё не подключён");
+      await expect(btn).toHaveAccessibleName("Печать недоступна: отчёт ещё не подключён");
+    }
 
     // whole-shift print remains the real, distinct action
     await expect(page.locator(".owner-reports__shift-print")).toBeVisible();
@@ -98,6 +112,16 @@ test.describe("OWNER Z-report generator workspace", () => {
   });
 
   test("empty-first: employee multi-selects + single selects truthfully empty", async () => {
+    // Hermetic empty-first: force the three directory sources empty so the
+    // truthful empty-state contract is asserted regardless of what the live
+    // canonical dev DB happens to contain (it now holds real places/categories).
+    // Route-mocked, non-destructive — same approach as the cashier fixture test.
+    const EMPTY_DIRS = [/\/auth\/staff-users(\?|$)/, /\/settings\/places(\?|$)/, /\/inventory\/categories(\?|$)/];
+    for (const pattern of EMPTY_DIRS) {
+      await page.route(pattern, (route) => route.fulfill({
+        status: 200, contentType: "application/json", body: "[]",
+      }));
+    }
     await openZReport(1280);
     const msel = await page.locator(".owner-msel__button").evaluateAll(
       (els) => els.map((el) => ({ disabled: el.disabled, text: el.textContent.trim() }))
@@ -115,9 +139,14 @@ test.describe("OWNER Z-report generator workspace", () => {
       { disabled: true, text: "Нет категорий" },
     ]);
 
-    const date = page.locator(".owner-reports__date");
-    await date.focus();
-    expect(await date.evaluate((el) => el === document.activeElement)).toBe(true);
+    // The canonical period picker trigger is present and focusable (replaces
+    // the removed native `.owner-reports__date` input).
+    const periodButton = page.getByRole("button", { name: "Период Z-отчёта" });
+    await expect(periodButton).toBeEnabled();
+    await periodButton.focus();
+    expect(await periodButton.evaluate((el) => el === document.activeElement)).toBe(true);
+
+    for (const pattern of EMPTY_DIRS) await page.unroute(pattern);
   });
 
   test("cashier multi-select: select multiple, no Выберите, deselect (test-only fixture)", async () => {
