@@ -27,7 +27,7 @@ from app.shared.base_model import Base
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 VERSIONS_DIR = BACKEND_ROOT / "migrations" / "versions"
-EXPECTED_HEAD = "bi06hso04"
+EXPECTED_HEAD = "bi06hde05"
 EXPECTED_NULLABLE_COLUMN_COUNT = 262
 EXPECTED_PARITY_OPERATIONS = {"remove_index", "remove_table_comment"}
 FIXTURES_DIR = BACKEND_ROOT / "tests" / "fixtures"
@@ -136,7 +136,7 @@ def test_revision_graph_is_linear_complete_and_has_one_head() -> None:
         visited.add(cursor)
         cursor = revisions[cursor][0]
     assert visited == set(revisions)
-    assert len(revisions) == 47
+    assert len(revisions) == 48
 
     nullable_columns = _bi02_nullable_columns()
     assert len(nullable_columns) == EXPECTED_NULLABLE_COLUMN_COUNT
@@ -223,6 +223,28 @@ def test_phase5c6a_hall_sort_order_migration_is_additive_and_chains_from_bi06tnu
     assert "SET is_active" not in source
     assert "SET branch_id" not in source
     assert "SET company_id" not in source
+
+
+def test_phase5c6d_hall_deleted_at_migration_is_additive_and_chains_from_bi06hso04() -> None:
+    path = VERSIONS_DIR / "20260829_bi06hde05_hall_deleted_at.py"
+    revision, down_revision = _revision_metadata(path)
+    assert revision == "bi06hde05"
+    assert down_revision == "bi06hso04"
+
+    source = path.read_text(encoding="utf-8")
+    # Adds ONLY halls.deleted_at (nullable timestamptz); downgrade drops it.
+    assert 'op.add_column' in source
+    assert '_TABLE = "halls"' in source
+    assert '_COLUMN = "deleted_at"' in source
+    assert "DateTime(timezone=True)" in source
+    assert "nullable=True" in source
+    assert 'op.drop_column' in source
+    # Purely additive: no backfill, no destructive/lifecycle mutation, no index.
+    assert "op.execute" not in source
+    assert "UPDATE" not in source
+    assert "DELETE FROM" not in source
+    assert "create_index" not in source
+    assert "is_active" not in source
 
 
 def test_historical_migrations_do_not_use_mutable_application_metadata() -> None:
@@ -1005,11 +1027,27 @@ def test_postgresql_fresh_upgrade_timing_downgrade_and_second_fresh() -> None:
         assert asyncio.run(
             _index_exists(first_url, "ix_halls_branch_sort_order")
         )
+        assert asyncio.run(
+            _column_exists(first_url, "halls", "deleted_at")
+        )
 
-        # Phase 5C-6A head peels off first: halls.sort_order + its branch index
-        # go, while the Phase 5C-3 table-number index below stays intact.
+        # Phase 5C-6D head peels off first: halls.deleted_at goes, while
+        # halls.sort_order + its branch index below stay intact.
         _run_alembic(first_url, "downgrade", "-1")
         assert asyncio.run(_current_revision(first_url)) != EXPECTED_HEAD
+        assert not asyncio.run(
+            _column_exists(first_url, "halls", "deleted_at")
+        )
+        assert asyncio.run(
+            _column_exists(first_url, "halls", "sort_order")
+        )
+        assert asyncio.run(
+            _index_exists(first_url, "ix_halls_branch_sort_order")
+        )
+
+        # Phase 5C-6A layer next: halls.sort_order + its branch index go, while
+        # the Phase 5C-3 table-number index below stays intact.
+        _run_alembic(first_url, "downgrade", "-1")
         assert not asyncio.run(
             _column_exists(first_url, "halls", "sort_order")
         )

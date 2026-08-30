@@ -397,6 +397,8 @@ class OrderService:
                 Hall.company_id == company_id,
                 Hall.branch_id == branch_id,
                 Hall.is_active.is_(True),
+                # Phase 5C-6D: no new orders against a DELETED (archived) hall.
+                Hall.deleted_at.is_(None),
             )
         )
         table = result.scalar_one_or_none()

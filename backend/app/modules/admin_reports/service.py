@@ -453,6 +453,15 @@ class AdminReportService:
             # a direct company_id, so the shared resolver applies. Filtering on the
             # canonical Table.hall_id (never table_number) also excludes legacy
             # NULL-table_id orders, which cannot truthfully belong to any hall.
+            #
+            # Phase 5C-6D, DELIBERATE: this resolver is deleted-agnostic — a
+            # DELETED hall (deleted_at set) stays explicitly queryable here by
+            # its canonical id. Marjon is POS/accounting software, so archiving
+            # a place must not make its completed business history unreachable.
+            # The hall is still hidden everywhere it could be PICKED (Settings,
+            # POS, and the /reports/tables/filters place directory), so this is
+            # an explicit by-id historical read, never a resurrection and never
+            # a cross-tenant hole.
             await require_company_resource(
                 self.db, Hall, hall_id, company_id, detail="Hall not found"
             )
@@ -569,7 +578,15 @@ class AdminReportService:
         # soft-deleted hall never does. Tenant-scoped by company_id.
         place_rows = (await self.db.execute(
             select(Hall.id, Hall.name)
-            .where(Hall.company_id == company_id, Hall.is_active.is_(True))
+            .where(
+                Hall.company_id == company_id,
+                Hall.is_active.is_(True),
+                # Phase 5C-6D: a DELETED hall is never offered as a SELECTABLE
+                # filter option. Its historical rows remain queryable by explicit
+                # hall_id (see tables_report) — hidden from the picker, not from
+                # the books.
+                Hall.deleted_at.is_(None),
+            )
             .order_by(Hall.name, Hall.id)
         )).all()
         places = [

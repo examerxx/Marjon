@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import datetime, timezone
 from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -52,6 +53,10 @@ class HallService:
             select(Hall)
             .options(self._tables_loader(include_inactive))
             .where(Hall.company_id == company_id)
+            # Phase 5C-6D: DELETED (deleted_at set) halls never appear in the
+            # Settings directory. include_inactive toggles is_active ONLY; it
+            # never resurrects a deleted hall.
+            .where(Hall.deleted_at.is_(None))
         )
         if not include_inactive:
             q = q.where(Hall.is_active.is_(True))
@@ -73,12 +78,25 @@ class HallService:
         include_inactive_tables: bool = False,
         refresh_tables: bool = False,
     ) -> Hall:
-        # An archived hall is still addressable by id (unchanged pre-5C-4
-        # behaviour) — `include_inactive_tables` only widens the NESTED tables
-        # collection.
+        # Two distinct states, two distinct answers here:
+        #  * INACTIVE (is_active=false) — still addressable by id, unchanged
+        #    pre-5C-4 behaviour. `include_inactive_tables` only widens the
+        #    NESTED tables collection, it does not gate the hall itself.
+        #  * DELETED (deleted_at set, Phase 5C-6D) — NOT addressable. This is
+        #    the management/operational resolver, so every path routed through
+        #    it 404s: the hall cannot be read, edited, given tables, or
+        #    reordered.
+        # Scope note: this resolver does NOT govern historical reporting. The
+        # Tables report resolves hall_id via require_company_resource, which is
+        # deliberately deleted-agnostic, so past business data stays queryable
+        # by id. See admin_reports.AdminReportService.tables_report.
         query = (
             select(Hall).options(self._tables_loader(include_inactive_tables))
-            .where(Hall.id == hall_id, Hall.company_id == company_id)
+            .where(
+                Hall.id == hall_id,
+                Hall.company_id == company_id,
+                Hall.deleted_at.is_(None),
+            )
         )
         if refresh_tables:
             # SQLAlchemy leaves an already-loaded relationship untouched on a
@@ -183,9 +201,14 @@ class HallService:
         if len(hall_ids) != len(set(hall_ids)):
             raise ConflictError(self._REORDER_DUPLICATE_DETAIL)
         # Load the branch's COMPLETE hall set (active + inactive), tenant-scoped.
+        # Phase 5C-6D: "complete" means all NON-DELETED halls — deleted halls are
+        # invisible in Settings, so the frontend must NOT (and cannot) include
+        # their ids, and they never participate in ordering.
         result = await self.db.execute(
             select(Hall).where(
-                Hall.company_id == company_id, Hall.branch_id == branch_id
+                Hall.company_id == company_id,
+                Hall.branch_id == branch_id,
+                Hall.deleted_at.is_(None),
             )
         )
         halls = list(result.scalars().all())
@@ -269,15 +292,42 @@ class HallService:
             table.is_active = False
 
     async def delete(self, company_id: UUID, hall_id: UUID) -> None:
-        # Soft-delete: historical Orders may reference tables in this hall via
-        # Order.table_id, so we never physically drop the hall (which would
-        # CASCADE-delete its tables and strand that history). Deactivate the hall
-        # and its still-active tables instead; the DB FK ON DELETE SET NULL remains
-        # only as a safety net for exceptional physical deletion.
+        # Phase 5C-6D: the user-facing Trash action ARCHIVES the hall — a state
+        # distinct from is_active. Setting deleted_at removes it from the
+        # Settings directory and all operational selection, while its Tables and
+        # any historical Order.table_id references are preserved (never hard
+        # deleted). Child tables are deactivated so nothing under a deleted hall
+        # stays operationally selectable. is_active is left as-is: deleted_at is
+        # the authority, and the status switch (is_active) never deletes.
+        # Historical reporting stays intentionally reachable by explicit hall_id
+        # (see AdminReportService.tables_report) — this archives the place, it
+        # does not close its books.
         hall = await self.get(company_id, hall_id)
-        hall.is_active = False
+        hall.deleted_at = datetime.now(timezone.utc)
         self._deactivate_child_tables(hall)
+        await self._compact_branch_order(company_id, hall.branch_id, exclude_id=hall.id)
         await self.db.commit()
+
+    async def _compact_branch_order(
+        self, company_id: UUID, branch_id: UUID, *, exclude_id: UUID
+    ) -> None:
+        """Canonically renumber the branch's remaining NON-DELETED halls to a
+        contiguous 0..n-1 in their current order, so removing a hall never
+        leaves an ordering gap. `exclude_id` is the just-archived hall (its
+        deleted_at is set in the same uncommitted transaction, so it is skipped
+        both by this query's filter and defensively by id)."""
+        result = await self.db.execute(
+            select(Hall)
+            .where(
+                Hall.company_id == company_id,
+                Hall.branch_id == branch_id,
+                Hall.deleted_at.is_(None),
+                Hall.id != exclude_id,
+            )
+            .order_by(Hall.sort_order, Hall.id)
+        )
+        for position, remaining in enumerate(result.scalars().all()):
+            remaining.sort_order = position
 
     async def list_tables(
         self, company_id: UUID, hall_id: UUID, *, include_inactive: bool = False
@@ -390,11 +440,14 @@ class HallService:
         await self.db.commit()
 
     async def branch_tables(self, company_id: UUID, branch_id: UUID) -> list[Table]:
-        """Get all active tables across all halls in a branch."""
+        """Get all active tables across all halls in a branch. Phase 5C-6D:
+        deleted halls are excluded, so a deleted hall's seating is never offered
+        to the POS/waiter picker."""
         result = await self.db.execute(
             select(Table)
             .join(Hall, Hall.id == Table.hall_id)
             .where(Hall.company_id == company_id, Hall.branch_id == branch_id,
+                   Hall.deleted_at.is_(None),
                    Hall.is_active == True, Table.is_active == True)
             .order_by(Table.number)
         )

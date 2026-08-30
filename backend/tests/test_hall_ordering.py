@@ -217,7 +217,7 @@ async def test_inactive_hall_participates_and_stays_inactive(client):
     b = await _create_hall(client, headers, "B")
     # Archive A (soft-delete), then reorder the COMPLETE set incl. the archived
     # hall. Settings must be able to reposition archived halls.
-    assert (await client.delete(f"/halls/{a['id']}", headers=headers)).status_code == 204
+    assert (await client.patch(f"/halls/{a['id']}", headers=headers, json={"is_active": False})).status_code == 200
     resp = await _reorder(client, headers, branch_id, [b["id"], a["id"]])
     assert resp.status_code == 200, resp.text
     rows = {r["name"]: r for r in await _list(client, headers, branch_id=branch_id, include_inactive=True)}
@@ -239,7 +239,7 @@ async def test_include_inactive_keeps_stored_position(client):
     b = await _create_hall(client, headers, "B")  # sort_order 1
     c = await _create_hall(client, headers, "C")  # sort_order 2
     # Archive the MIDDLE hall; it must remain in position 1, not sorted apart.
-    assert (await client.delete(f"/halls/{b['id']}", headers=headers)).status_code == 204
+    assert (await client.patch(f"/halls/{b['id']}", headers=headers, json={"is_active": False})).status_code == 200
     rows = await _list(client, headers, branch_id=branch_id, include_inactive=True)
     assert [r["name"] for r in rows] == ["A", "B", "C"]
     assert [r["sort_order"] for r in rows] == [0, 1, 2]

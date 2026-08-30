@@ -101,7 +101,7 @@ async def test_default_hall_list_hides_inactive_hall(client):
     headers = await _owner(client)
     live = await _hall(client, headers, "Зал")
     archived = await _hall(client, headers, "Архив")
-    assert (await client.delete(f"/halls/{archived}", headers=headers)).status_code == 204
+    assert (await _patch_hall(client, headers, archived, {"is_active": False})).status_code == 200
 
     ids = [row["id"] for row in await _list_halls(client, headers)]
     assert ids == [live]
@@ -116,7 +116,7 @@ async def test_include_inactive_true_lists_inactive_hall(client):
     headers = await _owner(client)
     live = await _hall(client, headers, "Зал")
     archived = await _hall(client, headers, "Архив")
-    await client.delete(f"/halls/{archived}", headers=headers)
+    await _patch_hall(client, headers, archived, {"is_active": False})
 
     rows = await _list_halls(client, headers, include_inactive="true")
     assert {row["id"] for row in rows} == {live, archived}
@@ -130,7 +130,7 @@ async def test_hall_list_tenant_isolation_holds_with_include_inactive(client):
     b_headers = await _owner(client, slug="beta")
     a_live = await _hall(client, a_headers, "Зал A")
     a_archived = await _hall(client, a_headers, "Архив A")
-    await client.delete(f"/halls/{a_archived}", headers=a_headers)
+    await _patch_hall(client, a_headers, a_archived, {"is_active": False})
     b_live = await _hall(client, b_headers, "Зал B")
 
     b_rows = await _list_halls(client, b_headers, include_inactive="true")
@@ -156,7 +156,7 @@ async def test_hall_list_branch_filter_still_applies_with_include_inactive(clien
     )
     assert resp.status_code == 201, resp.text
     vip = resp.json()["id"]
-    await client.delete(f"/halls/{vip}", headers=headers)
+    await _patch_hall(client, headers, vip, {"is_active": False})
 
     rows = await _list_halls(client, headers, include_inactive="true")
     assert {row["id"] for row in rows} == {vip}
@@ -250,7 +250,7 @@ async def test_hall_delete_cascades_to_active_tables_only(client):
     await _table(client, headers, hall, 3)
     await client.delete(f"/halls/{hall}/tables/{two}", headers=headers)
 
-    assert (await client.delete(f"/halls/{hall}", headers=headers)).status_code == 204
+    assert (await _patch_hall(client, headers, hall, {"is_active": False})).status_code == 200
 
     rows = await _list_halls(client, headers, include_inactive="true")
     hall_row = _by_id(rows, hall)
@@ -282,7 +282,7 @@ async def test_hall_reactivation_never_resurrects_tables(client):
     await _table(client, headers, hall, 3)
     await client.delete(f"/halls/{hall}/tables/{two}", headers=headers)
 
-    await client.delete(f"/halls/{hall}", headers=headers)
+    await _patch_hall(client, headers, hall, {"is_active": False})
     after_deactivate = _by_id(
         await _list_halls(client, headers, include_inactive="true"), hall
     )
@@ -312,7 +312,7 @@ async def test_hall_reactivation_never_resurrects_tables(client):
 async def test_hall_reactivation_under_inactive_branch_conflicts(client, db_engine):
     headers = await _owner(client)
     hall = await _hall(client, headers)
-    await client.delete(f"/halls/{hall}", headers=headers)
+    await _patch_hall(client, headers, hall, {"is_active": False})
     await _deactivate_all_branches(db_engine)
 
     resp = await _patch_hall(client, headers, hall, {"is_active": True})
@@ -352,7 +352,7 @@ async def test_active_hall_patch_is_active_true_is_noop_not_branch_gated(client,
 async def test_inactive_hall_remains_editable(client):
     headers = await _owner(client)
     hall = await _hall(client, headers)
-    await client.delete(f"/halls/{hall}", headers=headers)
+    await _patch_hall(client, headers, hall, {"is_active": False})
 
     resp = await _patch_hall(
         client, headers, hall,
@@ -371,7 +371,7 @@ async def test_inactive_hall_remains_editable(client):
 async def test_create_table_under_inactive_hall_conflicts(client):
     headers = await _owner(client)
     hall = await _hall(client, headers)
-    await client.delete(f"/halls/{hall}", headers=headers)
+    await _patch_hall(client, headers, hall, {"is_active": False})
 
     resp = await client.post(
         f"/halls/{hall}/tables", headers=headers, json={"number": 1, "capacity": 4}
@@ -391,7 +391,7 @@ async def test_reactivate_table_under_inactive_hall_conflicts(client):
     headers = await _owner(client)
     hall = await _hall(client, headers)
     table = await _table(client, headers, hall, 1)
-    await client.delete(f"/halls/{hall}", headers=headers)
+    await _patch_hall(client, headers, hall, {"is_active": False})
 
     resp = await _patch_table(client, headers, hall, table, {"is_active": True})
     assert resp.status_code == 409, resp.text
@@ -435,7 +435,7 @@ async def test_inactive_table_metadata_edit_allowed_while_hall_inactive(client):
     headers = await _owner(client)
     hall = await _hall(client, headers)
     table = await _table(client, headers, hall, 1, capacity=4)
-    await client.delete(f"/halls/{hall}", headers=headers)
+    await _patch_hall(client, headers, hall, {"is_active": False})
 
     resp = await _patch_table(client, headers, hall, table, {"capacity": 8})
     assert resp.status_code == 200, resp.text
@@ -484,7 +484,6 @@ async def test_hall_inactive_with_active_table_is_unreachable(client):
     table = await _table(client, headers, hall, 1)
 
     for deactivate in (
-        lambda: client.delete(f"/halls/{hall}", headers=headers),
         lambda: _patch_hall(client, headers, hall, {"is_active": False}),
     ):
         # reactivate the hall (tables stay archived) then deactivate again
@@ -589,7 +588,7 @@ async def test_hall_deactivate_reactivate_preserves_order_table_link(client):
     order_id = created.json()["id"]
     assert created.json()["table_number"] == "7"
 
-    await client.delete(f"/halls/{hall}", headers=headers)
+    await _patch_hall(client, headers, hall, {"is_active": False})
     reactivated = await _patch_hall(client, headers, hall, {"is_active": True})
     assert reactivated.status_code == 200, reactivated.text
 

@@ -4,14 +4,25 @@ from uuid import UUID
 from sqlalchemy import Numeric, String, Boolean, Integer, ForeignKey, Text, Index, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
-from app.shared.base_model import TimeStampedModel
+from app.shared.base_model import SoftDeleteMixin, TimeStampedModel
 
 
-class Hall(TimeStampedModel):
+class Hall(TimeStampedModel, SoftDeleteMixin):
     """BE-14: doubles as the "places" screen's backing model
     (SettingsPlacesPage.jsx posts to this exact /halls endpoint) — the
     pricing fields below were added for that; a hall/place with no
-    pricing configured just leaves them null."""
+    pricing configured just leaves them null.
+
+    Phase 5C-6D: `deleted_at` (from SoftDeleteMixin) is the canonical
+    user-facing DELETE state — distinct from `is_active`. `is_active=false`
+    is administratively "Неактивен" and stays visible in Settings; a non-null
+    `deleted_at` archives the hall out of the Settings directory and all
+    operational selection while preserving its Tables/Orders history. Every
+    hall query that backs Settings/POS — and the report FILTER metadata —
+    filters `deleted_at IS NULL`. Historical report DATA is deliberately
+    exempt: Marjon is accounting software, so a tenant may still query a
+    deleted hall's past rows by explicit hall_id (see
+    AdminReportService.tables_report). That never resurrects the hall."""
     __tablename__ = "halls"
     # Phase 5C-6A: composite index backing branch-scoped ordered reads
     # (ORDER BY sort_order within a branch). Position uniqueness inside a

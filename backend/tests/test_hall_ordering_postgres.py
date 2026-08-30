@@ -168,7 +168,10 @@ def test_backfill_is_deterministic_per_branch(migration_database_factory) -> Non
 )
 def test_downgrade_then_reupgrade_restores_column_and_index(migration_database_factory) -> None:
     database_url = migration_database_factory("hall_sort_order_downgrade")
-    _run_alembic(database_url, "upgrade", "head")
+    # Upgrade to the sort_order revision specifically (NOT head) so `downgrade
+    # -1` peels off exactly this layer regardless of later migrations stacked on
+    # top (e.g. Phase 5C-6D deleted_at).
+    _run_alembic(database_url, "upgrade", "bi06hso04")
     assert asyncio.run(_column_exists(database_url, "halls", COLUMN))
 
     _run_alembic(database_url, "downgrade", "-1")
@@ -178,8 +181,8 @@ def test_downgrade_then_reupgrade_restores_column_and_index(migration_database_f
     # The Phase 5C-3 layer underneath is untouched by our downgrade.
     assert asyncio.run(_index_exists(database_url, "uq_tables_hall_number_active"))
 
-    _run_alembic(database_url, "upgrade", "head")
-    assert asyncio.run(_current_revision(database_url)) == EXPECTED_HEAD
+    _run_alembic(database_url, "upgrade", "bi06hso04")
+    assert asyncio.run(_current_revision(database_url)) == "bi06hso04"
     assert asyncio.run(_column_exists(database_url, "halls", COLUMN))
     assert asyncio.run(_index_exists(database_url, INDEX))
     assert asyncio.run(_column_not_null(database_url, "halls", COLUMN))
