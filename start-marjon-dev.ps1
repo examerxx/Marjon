@@ -16,6 +16,10 @@ $ErrorActionPreference = "Stop"
 
 $FrontendWorktree = $PSScriptRoot
 $FrontendRoot = Join-Path $FrontendWorktree "frontend"
+$HqWorktree = [System.IO.Path]::GetFullPath(
+    (Join-Path $FrontendWorktree "..\Marjon-hq-admin")
+)
+$HqFrontendRoot = Join-Path $HqWorktree "frontend"
 $CanonicalBackendRoot = [System.IO.Path]::GetFullPath(
     (Join-Path $FrontendWorktree "..\Marjon-backend-integration")
 )
@@ -25,6 +29,9 @@ $StateRoot = Join-Path $FrontendWorktree ".marjon-dev"
 $FrontendPidFile = Join-Path $StateRoot "frontend.pid"
 $FrontendStdout = Join-Path $StateRoot "frontend.stdout.log"
 $FrontendStderr = Join-Path $StateRoot "frontend.stderr.log"
+$HqPidFile = Join-Path $StateRoot "hq-frontend.pid"
+$HqStdout = Join-Path $StateRoot "hq-frontend.stdout.log"
+$HqStderr = Join-Path $StateRoot "hq-frontend.stderr.log"
 
 $BackendContainer = "marjon-canonical-backend-dev"
 $DatabaseContainer = "marjon-db-1"
@@ -34,9 +41,11 @@ $NetworkName = "marjon_default"
 $DatabaseName = "marjon_authoritative"
 $DatabaseUser = "marjon"
 $FrontendPort = 5173
+$HqPort = 5174
 $BackendPort = 8000
 $FrontendUrl = "http://localhost:5173"
-$HqUrl = "http://localhost:5173/admin.html"
+$HqOrigin = "http://localhost:5174"
+$HqUrl = "$HqOrigin/admin.html"
 $BackendUrl = "http://localhost:8000"
 
 function Write-Step {
@@ -51,8 +60,15 @@ function Stop-WithDiagnostic {
 
 function Invoke-Docker {
     param([Parameter(Mandatory)][string[]]$Arguments)
-    $output = @(& docker @Arguments 2>&1)
-    if ($LASTEXITCODE -ne 0) {
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $output = @(& docker @Arguments 2>&1)
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+    if ($exitCode -ne 0) {
         Stop-WithDiagnostic "docker $($Arguments -join ' ') failed: $($output -join ' ')"
     }
     return $output
@@ -94,7 +110,7 @@ function Assert-Tooling {
     }
     [void](Invoke-Docker -Arguments @("version", "--format", "{{.Server.Version}}"))
 
-    foreach ($path in @($CanonicalBackendRoot, $BackendContext, $FrontendRoot)) {
+    foreach ($path in @($CanonicalBackendRoot, $BackendContext, $FrontendRoot, $HqFrontendRoot)) {
         if (-not (Test-Path -LiteralPath $path -PathType Container)) {
             Stop-WithDiagnostic "Required directory is missing: $path"
         }
@@ -163,11 +179,8 @@ function Assert-LocalEnv {
     }
 
     try {
-        $origins = @(
-            $Values.ALLOWED_ORIGINS |
-                ConvertFrom-Json -ErrorAction Stop |
-                ForEach-Object { [string]$_ }
-        )
+        $parsedOrigins = ConvertFrom-Json -InputObject $Values.ALLOWED_ORIGINS -ErrorAction Stop
+        $origins = @($parsedOrigins | ForEach-Object { [string]$_ })
     } catch {
         Stop-WithDiagnostic "ALLOWED_ORIGINS must be a JSON array, for example [\"http://localhost:5173\"]."
     }
@@ -179,6 +192,9 @@ function Assert-LocalEnv {
     }
     if ($origins -notcontains $FrontendUrl) {
         Stop-WithDiagnostic "ALLOWED_ORIGINS must include $FrontendUrl."
+    }
+    if ($origins -notcontains $HqOrigin) {
+        Stop-WithDiagnostic "ALLOWED_ORIGINS must include $HqOrigin."
     }
 
     Write-Step "Local config valid: DB host=db, database=$DatabaseName, CORS=$($origins -join ',') (credentials redacted)."
@@ -660,7 +676,8 @@ function Ensure-CanonicalImage {
     $imageName = "marjon-canonical-backend:$shortHead"
     $image = Get-ImageInspect -Name $imageName
     $imageRevision = if ($image) {
-        Get-ObjectPropertyValue -Object $image.Config.Labels -Name "org.opencontainers.image.revision"
+        $imageLabels = Get-ObjectPropertyValue -Object $image.Config -Name "Labels"
+        Get-ObjectPropertyValue -Object $imageLabels -Name "org.opencontainers.image.revision"
     } else { $null }
 
     if ($ForceBuild -or -not $image -or $imageRevision -ne $GitHead) {
@@ -717,7 +734,7 @@ function Wait-ForHttp {
     param([string]$Url, [int]$Seconds = 30)
     for ($attempt = 1; $attempt -le $Seconds; $attempt++) {
         try {
-            $response = Invoke-WebRequest -Uri $Url -Method Get -TimeoutSec 3
+            $response = Invoke-WebRequest -UseBasicParsing -Uri $Url -Method Get -TimeoutSec 3
             if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 400) { return }
         } catch {
             # Service may still be starting.
@@ -745,6 +762,27 @@ function Test-OwnedFrontendProcess {
         $command.Contains("vite") -and
         $command.Contains("--host localhost") -and
         $command.Contains("--port 5173")
+    )
+}
+
+function Get-ManagedHqPid {
+    if (-not (Test-Path -LiteralPath $HqPidFile -PathType Leaf)) { return $null }
+    $raw = (Get-Content -LiteralPath $HqPidFile -Raw).Trim()
+    $pidValue = 0
+    if (-not [int]::TryParse($raw, [ref]$pidValue)) { return $null }
+    return $pidValue
+}
+
+function Test-OwnedHqProcess {
+    param([int]$ProcessId)
+    $process = Get-CimInstance Win32_Process -Filter "ProcessId=$ProcessId" -ErrorAction SilentlyContinue
+    if (-not $process -or -not $process.CommandLine) { return $false }
+    $command = $process.CommandLine.ToLowerInvariant()
+    return (
+        $command.Contains($HqFrontendRoot.ToLowerInvariant()) -and
+        $command.Contains("vite") -and
+        $command.Contains("--host localhost") -and
+        $command.Contains("--port 5174")
     )
 }
 
@@ -797,6 +835,55 @@ function Start-CanonicalFrontend {
     }
 }
 
+function Start-HqFrontend {
+    $managedPid = Get-ManagedHqPid
+    if ($managedPid -and (Test-OwnedHqProcess -ProcessId $managedPid)) {
+        $listeners = @(Get-HostPortListeners -Port $HqPort)
+        if (@($listeners.OwningProcess) -contains $managedPid) {
+            Write-Step "HQ frontend is already running as PID $managedPid."
+            return
+        }
+    }
+
+    if (Test-Path -LiteralPath $HqPidFile) {
+        Remove-Item -LiteralPath $HqPidFile -Force
+    }
+    $listeners = @(Get-HostPortListeners -Port $HqPort)
+    if ($listeners.Count -gt 0) {
+        $pids = @($listeners.OwningProcess | Sort-Object -Unique)
+        Stop-WithDiagnostic "Port $HqPort is occupied by an unmanaged process (PID: $($pids -join ', ')). Nothing was stopped."
+    }
+
+    $node = Get-Command node.exe -ErrorAction SilentlyContinue
+    if (-not $node) { Stop-WithDiagnostic "node.exe is not available." }
+    $viteScript = Join-Path $HqFrontendRoot "node_modules\vite\bin\vite.js"
+    if (-not (Test-Path -LiteralPath $viteScript -PathType Leaf)) {
+        Stop-WithDiagnostic "Vite is not installed at $viteScript. Run npm install explicitly first."
+    }
+
+    [void](New-Item -ItemType Directory -Path $StateRoot -Force)
+    Write-Step "Starting HQ Vite at $HqUrl from $HqFrontendRoot."
+    $startProcessArguments = @{
+        FilePath = $node.Source
+        ArgumentList = @($viteScript, "--host", "localhost", "--port", "5174", "--strictPort")
+        WorkingDirectory = $HqFrontendRoot
+        WindowStyle = "Hidden"
+        RedirectStandardOutput = $HqStdout
+        RedirectStandardError = $HqStderr
+        PassThru = $true
+    }
+    $process = Start-Process @startProcessArguments
+    Set-Content -LiteralPath $HqPidFile -Value $process.Id -Encoding ascii
+    try {
+        Wait-ForHttp -Url $HqUrl -Seconds 30
+    } catch {
+        if (Test-OwnedHqProcess -ProcessId $process.Id) {
+            Stop-Process -Id $process.Id -Force
+        }
+        throw
+    }
+}
+
 function Stop-CanonicalFrontend {
     $managedPid = Get-ManagedFrontendPid
     if (-not $managedPid) {
@@ -823,6 +910,35 @@ function Stop-CanonicalFrontend {
     }
     if (Test-Path -LiteralPath $FrontendPidFile) {
         Remove-Item -LiteralPath $FrontendPidFile -Force
+    }
+}
+
+function Stop-HqFrontend {
+    $managedPid = Get-ManagedHqPid
+    if (-not $managedPid) {
+        $listeners = @(Get-HostPortListeners -Port $HqPort)
+        if ($listeners.Count -gt 0) {
+            $pids = @($listeners.OwningProcess | Sort-Object -Unique)
+            Stop-WithDiagnostic "Cannot stop unmanaged port $HqPort listener (PID: $($pids -join ', '))."
+        }
+        Write-Step "HQ frontend is already stopped."
+        return
+    }
+
+    $process = Get-Process -Id $managedPid -ErrorAction SilentlyContinue
+    if ($process) {
+        if (-not (Test-OwnedHqProcess -ProcessId $managedPid)) {
+            Stop-WithDiagnostic "HQ PID file points to a process not owned by this Marjon runtime. Nothing was stopped."
+        }
+        Write-Step "Stopping managed HQ Vite process PID $managedPid."
+        Stop-Process -Id $managedPid -Force
+        for ($attempt = 1; $attempt -le 15; $attempt++) {
+            if (-not (Get-Process -Id $managedPid -ErrorAction SilentlyContinue)) { break }
+            Start-Sleep -Milliseconds 250
+        }
+    }
+    if (Test-Path -LiteralPath $HqPidFile) {
+        Remove-Item -LiteralPath $HqPidFile -Force
     }
 }
 
@@ -883,6 +999,15 @@ function Verify-Runtime {
         Stop-WithDiagnostic "Port $FrontendPort is not owned by managed Vite PID $frontendPid."
     }
 
+    $hqPid = Get-ManagedHqPid
+    if (-not $hqPid -or -not (Test-OwnedHqProcess -ProcessId $hqPid)) {
+        Stop-WithDiagnostic "Managed HQ frontend process is not running."
+    }
+    $hqListeners = @(Get-HostPortListeners -Port $HqPort)
+    if (@($hqListeners.OwningProcess) -notcontains $hqPid) {
+        Stop-WithDiagnostic "Port $HqPort is not owned by managed HQ Vite PID $hqPid."
+    }
+
     Wait-ForHttp -Url $FrontendUrl -Seconds 15
     Wait-ForHttp -Url $HqUrl -Seconds 15
 
@@ -902,11 +1027,13 @@ function Start-DevRuntime {
     Start-CanonicalBackend -GitHead $gitHead -EnvValues $envValues
     Wait-ForHttp -Url "$BackendUrl/health" -Seconds 30
     Start-CanonicalFrontend
+    Start-HqFrontend
     Verify-Runtime -GitHead $gitHead -EnvValues $envValues
 }
 
 function Stop-DevRuntime {
     Assert-Tooling
+    Stop-HqFrontend
     Stop-CanonicalFrontend
     Stop-CanonicalBackend
     Write-Step "Runtime stopped. Canonical DB and all volumes were left running/untouched."
