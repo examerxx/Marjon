@@ -43,6 +43,11 @@ class PaymentMethodSummary(BaseSchema):
 
 class ZReportResponse(BaseSchema):
     date: date
+    # Period mode: present (and equal to the requested bounds) only for a
+    # multi-day aggregation request; null for a single-date report. Lets the
+    # client prove exactly which period the figures cover.
+    date_from: date | None = None
+    date_to: date | None = None
     shift_opened_at: str | None = None
     shift_closed_at: str | None = None
     is_closed: bool = False

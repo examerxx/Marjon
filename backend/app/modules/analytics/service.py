@@ -148,9 +148,37 @@ class AnalyticsService:
             for row in result.all()
         ]
 
-    async def z_report(self, company_id: UUID, selected_date: date) -> ZReportResponse:
+    async def z_report(
+        self,
+        company_id: UUID,
+        selected_date: date | None = None,
+        *,
+        date_from: date | None = None,
+        date_to: date | None = None,
+    ) -> ZReportResponse:
+        # Two truthful modes over the SAME raw-fact aggregation window:
+        #  * single date  → [date 00:00, next-day 00:00)  (legacy, unchanged)
+        #  * period        → [date_from 00:00, (date_to+1) 00:00)
+        # A one-day period is byte-identical to the single-date report. All
+        # queries below run ONCE over [day_start, day_end) — no per-day loop.
+        #
+        # ZR-PERIOD-01C: the window is HALF-OPEN. _date_bounds already returns
+        # the NEXT local midnight as day_end, so every fact source must filter
+        # `created_at >= day_start AND created_at < day_end`. An inclusive
+        # `<= day_end` counted a fact stamped exactly at next-day local
+        # midnight in BOTH this report and the following day's/period's report
+        # (double counting, and a broken hand-off between adjacent periods).
+        # Keep all sources below on the identical `>= / <` contract.
         tz = await self._company_tz(company_id)
-        day_start, day_end = self._date_bounds(selected_date, tz)
+        if date_from is not None and date_to is not None:
+            day_start = self._date_bounds(date_from, tz)[0]
+            day_end = self._date_bounds(date_to, tz)[1]
+            response_date, response_from, response_to = date_to, date_from, date_to
+            single = False
+        else:
+            day_start, day_end = self._date_bounds(selected_date, tz)
+            response_date, response_from, response_to = selected_date, None, None
+            single = True
 
         completed_orders = await self.db.execute(
             select(
@@ -165,7 +193,7 @@ class AnalyticsService:
                 Order.company_id == company_id,
                 Order.status == "completed",
                 Order.created_at >= day_start,
-                Order.created_at <= day_end,
+                Order.created_at < day_end,
             )
         )
         orders_count, gross_sales, discounts_total, service_fee_total, tax_total, net_sales = completed_orders.one()
@@ -176,7 +204,7 @@ class AnalyticsService:
                 Order.company_id == company_id,
                 Order.status == "cancelled",
                 Order.created_at >= day_start,
-                Order.created_at <= day_end,
+                Order.created_at < day_end,
             )
         )
         cancelled_orders_count = cancelled_orders.scalar_one()
@@ -193,7 +221,7 @@ class AnalyticsService:
                 Payment.company_id == company_id,
                 Payment.status == "completed",
                 Payment.created_at >= day_start,
-                Payment.created_at <= day_end,
+                Payment.created_at < day_end,
             )
             .group_by(Payment.method)
         )
@@ -219,7 +247,7 @@ class AnalyticsService:
                 Payment.company_id == company_id,
                 Payment.status == "refunded",
                 Payment.created_at >= day_start,
-                Payment.created_at <= day_end,
+                Payment.created_at < day_end,
             )
         )
         refunds_total = Decimal(str(refunds.scalar_one() or 0))
@@ -230,15 +258,17 @@ class AnalyticsService:
                 FiscalReceipt.company_id == company_id,
                 FiscalReceipt.status == "sent",
                 FiscalReceipt.created_at >= day_start,
-                FiscalReceipt.created_at <= day_end,
+                FiscalReceipt.created_at < day_end,
             )
         )
         fiscal_receipts_count = fiscal.scalar_one()
 
         net_sales_decimal = Decimal(str(net_sales or 0))
         return ZReportResponse(
-            date=selected_date,
-            shift_opened_at="09:00",
+            date=response_date,
+            date_from=response_from,
+            date_to=response_to,
+            shift_opened_at="09:00" if single else None,
             shift_closed_at=None,
             is_closed=False,
             orders_count=orders_count,
