@@ -35,6 +35,16 @@ class AnalyticsService:
         return day_start, day_end
 
     async def dashboard(self, company_id: UUID, selected_date: date | None = None) -> DashboardResponse:
+        # ANALYTICS-DATE-BOUNDARY-01: the window is HALF-OPEN, [day_start,
+        # day_end), matching the canonical rule already enforced in z_report.
+        #  * explicit ?date=D → day_end is the NEXT local midnight, so an
+        #    inclusive `<= day_end` counted an order stamped exactly at
+        #    D+1 00:00 local in BOTH D's and D+1's dashboard (double count).
+        #  * default (no date) → day_end is overwritten with the current UTC
+        #    instant, computed at query time and therefore already at or after
+        #    every stored row; `<` only drops a row whose created_at equals that
+        #    instant to the microsecond, so the visible totals are unchanged.
+        # One predicate, one contract.
         tz = await self._company_tz(company_id)
         if selected_date:
             day_start, day_end = self._date_bounds(selected_date, tz)
@@ -50,7 +60,7 @@ class AnalyticsService:
                 Order.company_id == company_id,
                 Order.status.notin_(["cancelled"]),
                 Order.created_at >= day_start,
-                Order.created_at <= day_end,
+                Order.created_at < day_end,
             )
         )
         count, revenue = result.one()
