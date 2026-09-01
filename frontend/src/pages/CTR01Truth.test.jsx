@@ -9,7 +9,7 @@ import OrdersReportPage from "./OrdersReportPage";
 import OwnerDashboard from "./OwnerDashboard";
 import TablesReportPage from "./TablesReportPage";
 import WaitersReportPage from "./WaitersReportPage";
-import ZReportPage, { buildPrintDocument } from "./ZReportPage";
+import ZReportPage, { buildPrintDocument, formatZReportPeriodLabel, validateZReportPeriod } from "./ZReportPage";
 
 vi.mock("../api/client", () => ({
   api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
@@ -19,14 +19,18 @@ vi.mock("../api/client", () => ({
 
 vi.mock("../utils/excel", () => ({ exportToExcel: vi.fn() }));
 
-vi.mock("../components/ReportDateRangePicker", () => ({
-  default: ({ value, onChange }) => (
-    <div>
-      <input aria-label="Начало периода" value={value?.start || ""} onChange={(event) => onChange({ ...value, start: event.target.value })} />
-      <input aria-label="Конец периода" value={value?.end || ""} onChange={(event) => onChange({ ...value, end: event.target.value })} />
-    </div>
-  ),
-}));
+vi.mock("../components/ReportDateRangePicker", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    default: ({ value, onChange }) => (
+      <div>
+        <input aria-label="Начало периода" value={value?.start || ""} onChange={(event) => onChange({ ...value, start: event.target.value })} />
+        <input aria-label="Конец периода" value={value?.end || ""} onChange={(event) => onChange({ ...value, end: event.target.value })} />
+      </div>
+    ),
+  };
+});
 
 vi.mock("react-router-dom", () => ({
   Link: ({ children, to, ...props }) => <a href={to} {...props}>{children}</a>,
@@ -90,9 +94,52 @@ describe("CTR-01 critical financial truth", () => {
     // Print-document values are covered by the buildPrintDocument test below.
     const shiftPrint = await screen.findByRole("button", { name: /Печать общего Z-отчёта/ });
     await waitFor(() => expect(shiftPrint).toBeEnabled());
-    fireEvent.change(screen.getByLabelText("Дата Z-отчёта"), { target: { value: "2026-08-13" } });
+    // A single day (start == end) sends ?date=; the mock picker mirrors both fields.
+    fireEvent.change(screen.getByLabelText("Начало периода"), { target: { value: "13.08.2026" } });
+    fireEvent.change(screen.getByLabelText("Конец периода"), { target: { value: "13.08.2026" } });
     await waitFor(() => expect(api.get).toHaveBeenCalledWith("/analytics/z-report", expect.objectContaining({ params: { date: "2026-08-13" }, signal: expect.any(AbortSignal) })));
     expect(screen.queryByText(/Смена закрыта/)).not.toBeInTheDocument();
+  });
+
+  it("sends a period request (date_from/date_to, never just the end) for a multi-day Z-report", async () => {
+    api.get.mockResolvedValue({ data: zReport });
+    render(<ZReportPage />);
+    await screen.findByRole("button", { name: /Печать общего Z-отчёта/ });
+    fireEvent.change(screen.getByLabelText("Начало периода"), { target: { value: "01.08.2026" } });
+    fireEvent.change(screen.getByLabelText("Конец периода"), { target: { value: "31.08.2026" } });
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith(
+      "/analytics/z-report",
+      expect.objectContaining({ params: { date_from: "2026-08-01", date_to: "2026-08-31" }, signal: expect.any(AbortSignal) }),
+    ));
+    // the whole range is sent — never reduced to the end date alone
+    const zCalls = api.get.mock.calls.filter((c) => c[0] === "/analytics/z-report");
+    expect(zCalls.some((c) => c[1]?.params?.date === "2026-08-31")).toBe(false);
+  });
+
+  it("formats and validates the applied Z-report period", () => {
+    expect(formatZReportPeriodLabel({ start: "24.08.2026", end: "24.08.2026" })).toBe("24.08.2026");
+    expect(formatZReportPeriodLabel({ start: "01.08.2026", end: "24.08.2026" })).toBe("01.08.2026 – 24.08.2026");
+    expect(validateZReportPeriod({ start: "24.08.2026", end: "23.08.2026" })).toMatch(/начала/);
+    expect(validateZReportPeriod({ start: "01.08.2026", end: "24.08.2026" })).toBe("");
+  });
+
+  it("enables the waiter percentage only while a waiter is selected", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/analytics/z-report") return Promise.resolve({ data: zReport });
+      if (path === "/auth/staff-users") return Promise.resolve({ data: [{ id: "waiter-1", name: "Backend Waiter", role_slugs: ["waiter"] }] });
+      return Promise.resolve({ data: [] });
+    });
+    render(<ZReportPage />);
+
+    const percent = screen.getByRole("spinbutton", { name: "Процент официанта" });
+    expect(percent).toBeDisabled();
+    fireEvent.click(await screen.findByRole("button", { name: "Отчёт по официантам" }));
+    fireEvent.click(screen.getByRole("option", { name: "Backend Waiter" }));
+    expect(percent).toBeEnabled();
+    fireEvent.change(percent, { target: { value: "15" } });
+    expect(percent).toHaveValue(15);
+    fireEvent.click(screen.getByRole("option", { name: "Backend Waiter" }));
+    expect(percent).toBeDisabled();
   });
 
   it("keeps Z-report loading and error distinct and disables the whole-shift print after failure", async () => {

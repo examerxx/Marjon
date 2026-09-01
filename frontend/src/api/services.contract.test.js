@@ -78,9 +78,11 @@ describe("Web domain service contracts", () => {
   });
 
   describe("reports and analytics", () => {
-    it("keeps the authoritative Z-report endpoint", async () => {
-      await reportsService.getZReport("2026-08-13");
+    it("keeps the authoritative Z-report endpoint (single date and period modes)", async () => {
+      await reportsService.getZReport({ date: "2026-08-13" });
       expect(api.get).toHaveBeenCalledWith("/analytics/z-report", { params: { date: "2026-08-13" } });
+      await reportsService.getZReport({ date_from: "2026-08-01", date_to: "2026-08-31" });
+      expect(api.get).toHaveBeenCalledWith("/analytics/z-report", { params: { date_from: "2026-08-01", date_to: "2026-08-31" } });
     });
 
     it.each([

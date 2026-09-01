@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../api/client";
 import SupportWidget from "../components/SupportWidget";
@@ -165,7 +165,6 @@ describe("FE-06 request and form safety", () => {
     await waitFor(() => expect(calls).toBe(1));
     fireEvent.click(screen.getByRole("button", { name: "Период Z-отчёта" }));
     fireEvent.change(screen.getByLabelText("Начало периода"), { target: { value: "12.08.2026" } });
-    fireEvent.change(screen.getByLabelText("Конец периода"), { target: { value: "12.08.2026" } });
     fireEvent.click(screen.getAllByRole("button", { name: "ОК" })[0]);
     await waitFor(() => expect(calls).toBe(2));
     expect(signals[0].aborted).toBe(true);
@@ -176,53 +175,54 @@ describe("FE-06 request and form safety", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("keeps the Z period first level compact, restores time controls, and applies the full current month", async () => {
-    api.get.mockImplementation((path) => Promise.resolve(path === "/analytics/z-report"
-      ? { data: { date: "2026-08-24", is_closed: false, payment_methods: [] } }
-      : { data: [] }));
+  it("restores Z period presets and sends a truthful month-to-date period request", async () => {
+    const zParams = [];
+    api.get.mockImplementation((path, config) => {
+      if (path === "/analytics/z-report") zParams.push(config?.params || {});
+      return Promise.resolve(path === "/analytics/z-report"
+        ? { data: { date: "2026-09-15", is_closed: false, payment_methods: [] } }
+        : { data: [] });
+    });
     render(<ZReportPage />);
 
     fireEvent.click(screen.getByRole("button", { name: "Период Z-отчёта" }));
-    expect(screen.queryByRole("button", { name: "Предыдущий месяц" })).not.toBeInTheDocument();
-    expect(screen.getByText("Время").closest(".report-date-calendar-shell")).toHaveAttribute("aria-hidden", "true");
+    // ZR-PERIOD-01 restored the full preset set (range mode) + the end field.
+    const presets = () => within(document.querySelector(".report-date-presets"));
+    expect(screen.getByLabelText("Начало периода")).toBeInTheDocument();
+    expect(screen.getByLabelText("Конец периода")).toBeInTheDocument();
+    ["Сегодня", "Вчера", "Эта неделя", "Этот месяц", "Этот год"].forEach((preset) => {
+      expect(presets().getByRole("button", { name: preset })).toBeInTheDocument();
+    });
 
-    fireEvent.click(screen.getByLabelText("Начало периода"));
-    expect(screen.getByRole("button", { name: "Предыдущий месяц" })).toBeInTheDocument();
-    expect(screen.getByText("Время")).toBeInTheDocument();
-    expect(screen.getByText("Часы")).toBeInTheDocument();
-    expect(screen.getByText("Минуты")).toBeInTheDocument();
-    expect(screen.getByLabelText("Начало периода").closest("label")).toHaveClass("is-active");
-    expect(screen.queryByRole("combobox", { name: "Год" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("combobox", { name: "Месяц" })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Год" }));
-    expect(screen.getByRole("listbox", { name: "Выбор года" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "2026" })).toHaveAttribute("aria-selected", "true");
-    fireEvent.click(screen.getByRole("option", { name: "2027" }));
-    expect(screen.getByRole("button", { name: "Год" })).toHaveTextContent("2027");
-
-    fireEvent.click(screen.getByRole("button", { name: "Месяц" }));
-    expect(screen.getByRole("listbox", { name: "Выбор месяца" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("option", { name: "Январь" }));
-    fireEvent.click(screen.getByRole("button", { name: "Предыдущий месяц" }));
-    expect(screen.getByRole("button", { name: "Год" })).toHaveTextContent("2026");
-    expect(screen.getByRole("button", { name: "Месяц" })).toHaveTextContent("Декабрь");
-
-    fireEvent.click(screen.getByLabelText("Конец периода"));
-    expect(screen.getByLabelText("Начало периода").closest("label")).not.toHaveClass("is-active");
-    expect(screen.getByLabelText("Конец периода").closest("label")).toHaveClass("is-active");
-    fireEvent.click(screen.getAllByRole("button", { name: "ОК" })[1]);
-    expect(screen.queryByRole("button", { name: "Предыдущий месяц" })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Этот месяц" }));
+    // ZR-PERIOD-01B: "Этот месяц" is month-TO-DATE (01 → today), never the
+    // month's future end. Derived from the real clock so it holds every day;
+    // the frozen 1st / mid / last-day cases live in the picker's own test.
+    fireEvent.click(presets().getByRole("button", { name: "Этот месяц" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "ОК" })[0]);
     const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const year = now.getFullYear();
-    const lastDay = String(new Date(year, now.getMonth() + 1, 0).getDate()).padStart(2, "0");
-    expect(screen.getByLabelText("Начало периода")).toHaveValue(`01.${month}.${year}`);
-    expect(screen.getByLabelText("Конец периода")).toHaveValue(`${lastDay}.${month}.${year}`);
-    fireEvent.click(screen.getByRole("button", { name: "ОК" }));
-    expect(screen.getByRole("button", { name: "Период Z-отчёта" })).toHaveTextContent(`01.${month}.${year} – ${lastDay}.${month}.${year}`);
+    const pad = (n) => String(n).padStart(2, "0");
+    const dd = pad(now.getDate());
+    const mm = pad(now.getMonth() + 1);
+    const yyyy = now.getFullYear();
+    const lastDay = pad(new Date(yyyy, now.getMonth() + 1, 0).getDate());
+    const isSingleDay = dd === "01";
+
+    expect(screen.getByRole("button", { name: "Период Z-отчёта" }).textContent)
+      .toBe(isSingleDay ? `01.${mm}.${yyyy}` : `01.${mm}.${yyyy} – ${dd}.${mm}.${yyyy}`);
+    await waitFor(() => {
+      const last = zParams[zParams.length - 1];
+      if (isSingleDay) {
+        expect(last.date).toBe(`${yyyy}-${mm}-01`);
+        expect(last.date_from).toBeUndefined();
+      } else {
+        expect(last.date_from).toBe(`${yyyy}-${mm}-01`);
+        expect(last.date_to).toBe(`${yyyy}-${mm}-${dd}`);
+      }
+    });
+    // the month's future end is never requested (unless today IS the last day)
+    if (dd !== lastDay) {
+      expect(zParams.some((p) => p.date_to === `${yyyy}-${mm}-${lastDay}`)).toBe(false);
+    }
   });
 
   it("does not show support success before confirmation and allows a retry after failure", async () => {

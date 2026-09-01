@@ -134,25 +134,18 @@ function fromDateInputText(value) {
   };
 }
 
-function canonicalCurrentMonthRange() {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const year = now.getFullYear();
-  const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
-  return {
-    preset: "Этот месяц",
-    start: `01.${month}.${year}`,
-    end: `${String(lastDay).padStart(2, "0")}.${month}.${year}`,
-    startTime: "00:00",
-    endTime: "00:00",
-  };
-}
-
+// ZR-PERIOD-01B: current-period presets share ONE canonical rule —
+// start-of-period → TODAY, never a future calendar date. "Эта неделя" and
+// "Этот год" already resolved that way through presetRange(); the previous
+// canonicalCurrentMonthRange() override made only "Этот месяц" run to the
+// month's future end, which was inconsistent (and, for a report, implied a
+// wider period than the data covers). Month now falls through to the same
+// shared helper, matching each report page's own default (currentMonthRange).
 const canonicalDatePresets = [
   "Сегодня",
   "Вчера",
   "Эта неделя",
-  { label: "Этот месяц", getRange: canonicalCurrentMonthRange },
+  "Этот месяц",
   "Этот год",
 ];
 

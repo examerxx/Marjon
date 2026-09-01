@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import ReportDateRangePicker from "./ReportDateRangePicker";
 
 describe("ReportDateRangePicker canonical Reports variant", () => {
@@ -70,5 +70,65 @@ describe("ReportDateRangePicker canonical Reports variant", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(trigger).toHaveAttribute("aria-expanded", "false");
     await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  // ZR-PERIOD-01B: current-period presets all mean start-of-period → TODAY and
+  // must never reach into the future. Driven with a frozen clock so the
+  // first-day / mid-month / last-day cases are deterministic.
+  describe("current-period presets never include future dates", () => {
+    function applyPreset(label, onChange) {
+      render(
+        <ReportDateRangePicker
+          variant="canonical"
+          value={{ preset: "", start: "01.01.2020", end: "01.01.2020", startTime: "00:00", endTime: "00:00" }}
+          onChange={onChange}
+          buttonAriaLabel="Период"
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Период" }));
+      fireEvent.click(screen.getByRole("button", { name: label }));
+      fireEvent.click(screen.getAllByRole("button", { name: "ОК" })[0]);
+    }
+
+    afterEach(() => {
+      vi.useRealTimers();
+      cleanup();
+    });
+
+    it.each([
+      ["2026-09-01T10:00:00", "01.09.2026", "01.09.2026"],  // first day → single day
+      ["2026-09-15T10:00:00", "01.09.2026", "15.09.2026"],  // mid-month → to date
+      ["2026-09-30T10:00:00", "01.09.2026", "30.09.2026"],  // last day → full month
+    ])("Этот месяц at %s → %s – %s", (now, start, end) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(now));
+      const onChange = vi.fn();
+      applyPreset("Этот месяц", onChange);
+      expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ start, end }));
+    });
+
+    it("Эта неделя and Этот год stay start-of-period → today", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-15T10:00:00")); // Tuesday
+      const week = vi.fn();
+      applyPreset("Эта неделя", week);
+      expect(week).toHaveBeenCalledWith(expect.objectContaining({ start: "14.09.2026", end: "15.09.2026" }));
+      cleanup();
+      const year = vi.fn();
+      applyPreset("Этот год", year);
+      expect(year).toHaveBeenCalledWith(expect.objectContaining({ start: "01.01.2026", end: "15.09.2026" }));
+    });
+
+    it("Сегодня and Вчера remain single days", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-15T10:00:00"));
+      const today = vi.fn();
+      applyPreset("Сегодня", today);
+      expect(today).toHaveBeenCalledWith(expect.objectContaining({ start: "15.09.2026", end: "15.09.2026" }));
+      cleanup();
+      const yesterday = vi.fn();
+      applyPreset("Вчера", yesterday);
+      expect(yesterday).toHaveBeenCalledWith(expect.objectContaining({ start: "14.09.2026", end: "14.09.2026" }));
+    });
   });
 });

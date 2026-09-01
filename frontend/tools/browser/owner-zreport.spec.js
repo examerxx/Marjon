@@ -18,7 +18,6 @@ const CASHIER_FIXTURE = [
 const ROW_TITLES = [
   "Отчёт по кассирам",
   "Отчёт по официантам",
-  "Отчёт по поварам",
   "Отчёт по местам",
   "Отчёт по меню",
 ];
@@ -47,7 +46,7 @@ test.describe("OWNER Z-report generator workspace", () => {
     await page.locator(".owner-reports-page").waitFor({ state: "visible", timeout: 20000 });
   }
 
-  test("composition: title left, date right, five rows, deferred print", async () => {
+  test("composition: title left, date right, four rows, deferred print", async () => {
     await openZReport(1280);
     await expect(page.locator(".owner-reports__title")).toHaveText("Z-отчёт");
 
@@ -60,7 +59,7 @@ test.describe("OWNER Z-report generator workspace", () => {
     const dateBox = await periodButton.boundingBox();
     expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(dateBox.x);
 
-    await expect(page.locator(".owner-report-row")).toHaveCount(5);
+    await expect(page.locator(".owner-report-row")).toHaveCount(4);
     for (let i = 0; i < ROW_TITLES.length; i += 1) {
       await expect(page.locator(".owner-report-row__title").nth(i)).toHaveText(ROW_TITLES[i]);
     }
@@ -73,9 +72,10 @@ test.describe("OWNER Z-report generator workspace", () => {
     await expect(firstRow).toHaveCSS("box-shadow", "none");
     await expect(firstRow).toHaveCSS("border-radius", "0px");
 
-    // three employee multi-selects + two single selects; one percent field
+    // three multi-selects (cashier / waiter / place) + one single select (menu);
+    // one percent field
     await expect(page.locator(".owner-msel")).toHaveCount(3);
-    await expect(page.locator("select.owner-report-row__select")).toHaveCount(2);
+    await expect(page.locator("select.owner-report-row__select")).toHaveCount(1);
     await expect(page.locator(".owner-report-row__percent")).toHaveCount(1);
     await expect(page.locator(".owner-report-row__percent")).toBeDisabled();
 
@@ -87,9 +87,9 @@ test.describe("OWNER Z-report generator workspace", () => {
     // removed). Each per-entity print is non-actionable AND carries an honest
     // "not yet connected" message; there is no fake-success path.
     const perEntityPrint = page.locator(".owner-report-row__print");
-    await expect(perEntityPrint).toHaveCount(5);
+    await expect(perEntityPrint).toHaveCount(4);
     await expect(page.locator(".owner-report-row__deferred")).toHaveCount(0);
-    for (let i = 0; i < 5; i += 1) {
+    for (let i = 0; i < 4; i += 1) {
       const btn = perEntityPrint.nth(i);
       await expect(btn).toBeDisabled();
       await expect(btn).toHaveAttribute("aria-disabled", "true");
@@ -111,12 +111,14 @@ test.describe("OWNER Z-report generator workspace", () => {
     expect(["none", "normal", ""]).toContain(beforeContent);
   });
 
-  test("empty-first: employee multi-selects + single selects truthfully empty", async () => {
+  test("empty-first: multi-selects + single select truthfully empty", async () => {
     // Hermetic empty-first: force the three directory sources empty so the
     // truthful empty-state contract is asserted regardless of what the live
     // canonical dev DB happens to contain (it now holds real places/categories).
     // Route-mocked, non-destructive — same approach as the cashier fixture test.
-    const EMPTY_DIRS = [/\/auth\/staff-users(\?|$)/, /\/settings\/places(\?|$)/, /\/inventory\/categories(\?|$)/];
+    // NOTE: the places directory is the canonical Hall endpoint (GET /halls) —
+    // mocking "/settings/places" never intercepted anything.
+    const EMPTY_DIRS = [/\/auth\/staff-users(\?|$)/, /\/halls(\?|$)/, /\/inventory\/categories(\?|$)/];
     for (const pattern of EMPTY_DIRS) {
       await page.route(pattern, (route) => route.fulfill({
         status: 200, contentType: "application/json", body: "[]",
@@ -129,13 +131,12 @@ test.describe("OWNER Z-report generator workspace", () => {
     expect(msel).toEqual([
       { disabled: true, text: "Нет кассиров" },
       { disabled: true, text: "Нет официантов" },
-      { disabled: true, text: "Нет поваров" },
+      { disabled: true, text: "Нет мест" },
     ]);
     const sel = await page.locator("select.owner-report-row__select").evaluateAll(
       (els) => els.map((el) => ({ disabled: el.disabled, text: el.options[el.selectedIndex] ? el.options[el.selectedIndex].text : "" }))
     );
     expect(sel).toEqual([
-      { disabled: true, text: "Нет мест" },
       { disabled: true, text: "Нет категорий" },
     ]);
 
@@ -179,7 +180,9 @@ test.describe("OWNER Z-report generator workspace", () => {
     await expect(options.nth(0)).toHaveClass(/is-checked/);
     await expect(options.nth(1)).toHaveClass(/is-checked/);
     await expect(options.nth(1).locator(".owner-msel__tick")).toBeVisible();
-    await expect(control).toContainText("Выбрано: 2");
+    // multiple selection shows the real NAMES, never an opaque "Выбрано: N"
+    await expect(control).toContainText("Иван, Алексей");
+    await expect(control).not.toContainText("Выбрано:");
 
     await options.nth(0).click();                 // deselect Иван
     await expect(options.nth(0)).not.toHaveClass(/is-checked/);
@@ -193,7 +196,7 @@ test.describe("OWNER Z-report generator workspace", () => {
   for (const w of [390, 768, 1280, 1440]) {
     test(`no horizontal overflow @ ${w}`, async () => {
       await openZReport(w);
-      await expect(page.locator(".owner-report-row")).toHaveCount(5);
+      await expect(page.locator(".owner-report-row")).toHaveCount(4);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow).toBeLessThanOrEqual(1);
     });

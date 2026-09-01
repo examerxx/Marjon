@@ -5,8 +5,21 @@ import { settingsService } from "../api/settings";
 import { getCategories } from "../api/categories";
 import { isAbortError, useLatestRequest } from "../hooks/useAsyncSafety";
 import Icon from "../components/Icon";
-import { todayInputValue } from "../utils/date";
+import ReportDateRangePicker, {
+  formatCanonicalReportPeriodLabel,
+  validateCanonicalReportPeriod,
+} from "../components/ReportDateRangePicker";
+import { formatDateLabel, todayInputValue } from "../utils/date";
 import { formatMoney } from "./reports/reportMoney";
+import { toApiDate } from "./reports/reportPeriod";
+
+function currentZReportPeriod() {
+  const today = formatDateLabel(todayInputValue());
+  return { preset: "Сегодня", start: today, end: today, startTime: "00:00", endTime: "00:00" };
+}
+
+export const formatZReportPeriodLabel = formatCanonicalReportPeriodLabel;
+export const validateZReportPeriod = validateCanonicalReportPeriod;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -57,7 +70,23 @@ const countRows = [
   ["Фискальные чеки", "fiscal_receipts_count"],
 ];
 
+// Render the report's period as DD.MM.YYYY (single) or a range, from the
+// backend's own date / date_from / date_to — so the printout names exactly the
+// aggregation window it contains.
+function isoToDisplay(value) {
+  if (!value || typeof value !== "string") return "";
+  const [y, m, d] = value.split("-");
+  return y && m && d ? `${d}.${m}.${y}` : value;
+}
+export function formatZReportPrintPeriod(report) {
+  if (report.date_from && report.date_to) {
+    return `за период ${isoToDisplay(report.date_from)} – ${isoToDisplay(report.date_to)}`;
+  }
+  return `за ${isoToDisplay(report.date)}`;
+}
+
 export function buildPrintDocument(report) {
+  const periodLabel = formatZReportPrintPeriod(report);
   const paymentRows = report.payment_methods.map((item) => `
     <tr><td>${escapeHtml(item.method)}</td><td>${escapeHtml(item.count)}</td><td>${escapeHtml(formatMoney(item.amount))}</td></tr>
   `).join("");
@@ -69,24 +98,23 @@ export function buildPrintDocument(report) {
   `).join("");
 
   return `<!doctype html>
-<html lang="ru"><head><meta charset="UTF-8"><title>MARJON — Z-отчёт ${escapeHtml(report.date)}</title>
+<html lang="ru"><head><meta charset="UTF-8"><title>MARJON — Z-отчёт ${escapeHtml(periodLabel)}</title>
 <style>body{font-family:Arial,sans-serif;color:#111827;margin:24px}h1{text-align:center}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{border:1px solid #d1d5db;padding:8px;text-align:left}th{background:#f3f4f6}.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px}</style>
-</head><body><h1>Z-отчёт</h1><div class="meta"><span>Дата: ${escapeHtml(report.date)}</span><span>Смена закрыта: ${report.is_closed ? "Да" : "Нет"}</span><span>Открыта: ${escapeHtml(formatNullable(report.shift_opened_at))}</span><span>Закрыта: ${escapeHtml(formatNullable(report.shift_closed_at))}</span></div>
+</head><body><h1>Z-отчёт ${escapeHtml(periodLabel)}</h1><div class="meta"><span>Период: ${escapeHtml(periodLabel)}</span><span>Смена закрыта: ${report.is_closed ? "Да" : "Нет"}</span><span>Открыта: ${escapeHtml(formatNullable(report.shift_opened_at))}</span><span>Закрыта: ${escapeHtml(formatNullable(report.shift_closed_at))}</span></div>
 <h2>Показатели</h2><table><tbody>${metrics}${counts}</tbody></table>
-<h2>Способы оплаты</h2><table><thead><tr><th>Способ</th><th>Количество</th><th>Сумма</th></tr></thead><tbody>${paymentRows || '<tr><td colspan="3">Нет оплат за выбранную дату</td></tr>'}</tbody></table>
+<h2>Способы оплаты</h2><table><thead><tr><th>Способ</th><th>Количество</th><th>Сумма</th></tr></thead><tbody>${paymentRows || '<tr><td colspan="3">Нет оплат за выбранный период</td></tr>'}</tbody></table>
 </body></html>`;
 }
 
-// Five per-entity report generators. Their backend contracts (report by
-// cashier/cook, per-entity waiter/place/menu filtering, waiter %) do NOT exist
+// Four per-entity report generators. Their backend contracts (report by
+// cashier, per-entity waiter/place/menu filtering, waiter %) do NOT exist
 // yet on the authoritative backend, so every per-entity Print is a truthful
 // DEFERRED state ("Скоро" / "Отчёт ещё не подключён") — NOT an error, NOT fake
 // output. Selector options come from real (currently empty) backend lists.
 const REPORT_ROWS = [
   { key: "cashier", title: "Отчёт по кассирам", empty: "Нет кассиров", role: "cashier", multi: true },
   { key: "waiter", title: "Отчёт по официантам", empty: "Нет официантов", role: "waiter", multi: true, percent: true },
-  { key: "cook", title: "Отчёт по поварам", empty: "Нет поваров", role: "cook", multi: true },
-  { key: "place", title: "Отчёт по местам", empty: "Нет мест", source: "places" },
+  { key: "place", title: "Отчёт по местам", empty: "Нет мест", source: "places", multi: true },
   { key: "menu", title: "Отчёт по меню", empty: "Нет категорий", source: "categories" },
 ];
 
@@ -97,7 +125,21 @@ function optionValue(item) {
   return String(item.id ?? item.slug ?? item.name ?? "");
 }
 
-// Checkbox multi-select dropdown (cashier/waiter/cook). Marjon visual language,
+// Measure the pixel width of the percent digits in the input's own font, so the
+// "%" suffix can be placed exactly one pixel past them (module-scoped canvas).
+let _percentCanvas;
+function measurePercentDigits(text, fontShorthand) {
+  try {
+    _percentCanvas = _percentCanvas || document.createElement("canvas");
+    const ctx = _percentCanvas.getContext("2d");
+    ctx.font = fontShorthand;
+    return ctx.measureText(text).width;
+  } catch {
+    return text.length * 8;
+  }
+}
+
+// Checkbox multi-select dropdown (cashier/waiter/place). Marjon visual language,
 // not a native multi listbox. Multiple employees can be selected/deselected;
 // picking a second does not replace the first. Empty list → disabled.
 function EmployeeMultiSelect({ label, emptyLabel, options, selected, onToggle }) {
@@ -122,12 +164,16 @@ function EmployeeMultiSelect({ label, emptyLabel, options, selected, onToggle })
   }, [open]);
 
   let summary;
+  let selectedNames = "";
   if (disabled) summary = emptyLabel;
   else if (selected.length === 0) summary = "Не выбрано";
-  else if (selected.length === 1) {
-    const one = options.find((item) => optionValue(item) === selected[0]);
-    summary = one ? optionLabel(one) : "Выбрано: 1";
-  } else summary = `Выбрано: ${selected.length}`;
+  else {
+    selectedNames = selected
+      .map((value) => { const one = options.find((item) => optionValue(item) === value); return one ? optionLabel(one) : null; })
+      .filter(Boolean)
+      .join(", ");
+    summary = selectedNames || "Не выбрано";
+  }
 
   return (
     <div className={`owner-msel${open ? " is-open" : ""}`} ref={ref}>
@@ -136,11 +182,12 @@ function EmployeeMultiSelect({ label, emptyLabel, options, selected, onToggle })
         className="owner-msel__button owner-report-row__select"
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label={label}
+        aria-label={selectedNames ? `${label}: ${selectedNames}` : label}
+        title={selectedNames || undefined}
         disabled={disabled}
         onClick={() => setOpen((value) => !value)}
       >
-        <span className={selected.length ? "" : "owner-msel__placeholder"}>{summary}</span>
+        <span className={`owner-msel__value${selected.length ? "" : " owner-msel__placeholder"}`}>{summary}</span>
         {!disabled ? <Icon name="bi-chevron-down" size={14} /> : null}
       </button>
       {open && !disabled ? (
@@ -176,7 +223,13 @@ function EmployeeMultiSelect({ label, emptyLabel, options, selected, onToggle })
 }
 
 export default function ZReportPage() {
-  const [selectedDate, setSelectedDate] = useState(todayInputValue());
+  const [selectedPeriod, setSelectedPeriod] = useState(currentZReportPeriod);
+  // Single day → { date }; multi-day → { date_from, date_to }. The displayed
+  // range (picker label) therefore always equals the exact backend request.
+  const reportFrom = toApiDate(selectedPeriod.start);
+  const reportTo = toApiDate(selectedPeriod.end);
+  const isPeriod = Boolean(reportFrom && reportTo && reportFrom !== reportTo);
+  const reportParams = isPeriod ? { date_from: reportFrom, date_to: reportTo } : { date: reportTo || reportFrom };
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -184,7 +237,21 @@ export default function ZReportPage() {
   const [staff, setStaff] = useState([]);
   const [places, setPlaces] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selection, setSelection] = useState({ cashier: [], waiter: [], cook: [], place: "", menu: "" });
+  const [selection, setSelection] = useState({ cashier: [], waiter: [], waiterPercent: "", place: [], menu: "" });
+  // Position the presentational "%" exactly one pixel past the rendered digits
+  // (measured with the input's real font), so the number's left edge is fixed,
+  // the "%" hugs the digits, and the native number stepper stays at the right.
+  const percentInputRef = useRef(null);
+  const [percentSuffixLeft, setPercentSuffixLeft] = useState(19);
+  useEffect(() => {
+    const el = percentInputRef.current;
+    if (!el) return;
+    const cs = getComputedStyle(el);
+    const font = cs.font && cs.font.trim()
+      ? cs.font
+      : `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    setPercentSuffixLeft(12 + Math.round(measurePercentDigits(String(selection.waiterPercent || "") || "0", font)) + 1);
+  }, [selection.waiterPercent]);
 
   function toggleMulti(key, value) {
     setSelection((prev) => {
@@ -202,7 +269,7 @@ export default function ZReportPage() {
     setLoading(true);
     setError("");
     setReport(null);
-    reportsService.getZReport(selectedDate, { signal: request.signal })
+    reportsService.getZReport(reportParams, { signal: request.signal })
       .then(({ data }) => {
         if (!data || typeof data !== "object" || !Array.isArray(data.payment_methods)) {
           throw new Error("Invalid Z-report response");
@@ -218,16 +285,18 @@ export default function ZReportPage() {
       .finally(() => {
         if (request.isCurrent()) setLoading(false);
       });
-  }, [beginRequest, selectedDate]);
+  }, [beginRequest, reportParams.date, reportParams.date_from, reportParams.date_to]);
 
   // Real selector lists (empty on a new company). Failures leave the selector
-  // truthfully empty rather than fabricating names.
+  // truthfully empty rather than fabricating names. Places come from the
+  // canonical Hall directory (settingsService.listPlaces → GET /halls: active,
+  // non-deleted Halls; value = Hall.id, label = Hall.name) — NOT branches.
   useEffect(() => {
     const controller = new AbortController();
     let alive = true;
     Promise.allSettled([
       staffService.listStaffUsers({ signal: controller.signal }),
-      settingsService.listDashboardPlaces({ signal: controller.signal }),
+      settingsService.listPlaces({ signal: controller.signal }),
       getCategories({ signal: controller.signal }),
     ]).then(([staffRes, placesRes, categoriesRes]) => {
       if (!alive) return;
@@ -241,7 +310,6 @@ export default function ZReportPage() {
   const optionsByKey = useMemo(() => ({
     cashier: staff.filter((user) => hasRole(user, "cashier")),
     waiter: staff.filter((user) => hasRole(user, "waiter")),
-    cook: staff.filter((user) => hasRole(user, "cook")),
     place: places,
     menu: categories,
   }), [staff, places, categories]);
@@ -275,16 +343,15 @@ export default function ZReportPage() {
   const shiftPrintDisabled = !report || loading || Boolean(error);
 
   return (
-    <section className="owner-reports-page">
+    <section className="owner-reports-page owner-reports-page--generator">
       <header className="owner-reports__head">
         <h1 className="owner-reports__title">Z-отчёт</h1>
         <div className="owner-reports__head-actions">
-          <input
-            className="owner-reports__date"
-            type="date"
-            aria-label="Дата Z-отчёта"
-            value={selectedDate}
-            onChange={(event) => setSelectedDate(event.target.value)}
+          <ReportDateRangePicker
+            variant="canonical"
+            value={selectedPeriod}
+            onChange={setSelectedPeriod}
+            buttonAriaLabel="Период Z-отчёта"
           />
           <button
             className="owner-reports__shift-print"
@@ -337,16 +404,29 @@ export default function ZReportPage() {
                   </select>
                 )}
                 {row.percent ? (
-                  <input
-                    className="owner-report-row__percent"
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    max="100"
-                    placeholder="%"
-                    aria-label="Процент официанта"
-                    disabled
-                  />
+                  <span className="owner-report-row__percent-wrap">
+                    <input
+                      ref={percentInputRef}
+                      className="owner-report-row__percent"
+                      type="number"
+                      inputMode="numeric"
+                      min="0"
+                      max="100"
+                      placeholder="0"
+                      aria-label="Процент официанта"
+                      value={selection.waiterPercent}
+                      disabled={selection.waiter.length === 0}
+                      onChange={(event) => setSelection((prev) => ({ ...prev, waiterPercent: event.target.value }))}
+                    />
+                    {/* Presentation-only "%" one pixel past the digits (font-measured):
+                        number LEFT edge fixed, "%" hugs the digits, native stepper at
+                        the right. Value stays numeric. */}
+                    <span
+                      className="owner-report-row__percent-suffix"
+                      aria-hidden="true"
+                      style={{ left: `${percentSuffixLeft}px` }}
+                    >%</span>
+                  </span>
                 ) : null}
               </div>
               <div className="owner-report-row__action">
@@ -355,11 +435,11 @@ export default function ZReportPage() {
                   type="button"
                   disabled
                   aria-disabled="true"
+                  aria-label="Печать недоступна: отчёт ещё не подключён"
                   title="Отчёт ещё не подключён"
                 >
                   <Icon name="bi-printer" size={16} /> Печать
                 </button>
-                <span className="owner-report-row__deferred">Скоро</span>
               </div>
             </div>
           );

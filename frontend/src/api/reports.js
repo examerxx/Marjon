@@ -9,8 +9,10 @@ function compactParams(params) {
 }
 
 export const reportsService = {
-  getZReport(date, config = {}) {
-    return api.get("/analytics/z-report", { params: { date }, ...config });
+  // Single day: { date }. Period aggregation: { date_from, date_to }. The caller
+  // passes exactly one shape; the backend (ZR-PERIOD-01) validates the mode.
+  getZReport(params = {}, config = {}) {
+    return api.get("/analytics/z-report", { params, ...config });
   },
   listOrders(dateFrom, dateTo, config = {}) {
     return api.get("/reports/orders", { params: rangeParams(dateFrom, dateTo), ...config });
