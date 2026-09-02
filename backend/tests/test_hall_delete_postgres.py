@@ -64,7 +64,10 @@ def test_downgrade_then_reupgrade_restores_deleted_at(migration_database_factory
     _run_alembic(database_url, "upgrade", "head")
     assert asyncio.run(_column_exists(database_url, "halls", COLUMN))
 
-    _run_alembic(database_url, "downgrade", "-1")
+    # Downgrade to this migration's OWN predecessor by revision, not "-1":
+    # the graph head moves on (ZR-PRINT-01B added bi06zrd06 above bi06hde05),
+    # and this test is about peeling halls.deleted_at specifically.
+    _run_alembic(database_url, "downgrade", PREDECESSOR)
     assert asyncio.run(_current_revision(database_url)) == PREDECESSOR
     assert not asyncio.run(_column_exists(database_url, "halls", COLUMN))
     # The Phase 5C-6A ordering layer underneath is untouched by our downgrade.

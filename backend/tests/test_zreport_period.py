@@ -358,6 +358,41 @@ async def test_request_mode_validation(client, db_engine):
     assert (await _z(client, headers, date_from="2026-08-10", date_to="2026-08-10")).status_code == 200
 
 
+async def test_zreport_wire_contract_is_frozen(client, db_engine):
+    """ZR-PRINT-01B extracted ZReportFigures for the detail endpoint. The general
+    Z-report's JSON must be byte-identical: same keys, same ORDER, no nesting,
+    and no detail parameter accepted here."""
+    headers, cid = await _owner(client, "zwire")
+    await _seed(db_engine, cid, orders=[(_dt(2026, 8, 10), "completed", 100, "cash", 100)])
+    body = (await _z(client, headers, date="2026-08-10")).json()
+    assert list(body.keys()) == [
+        "date", "date_from", "date_to",
+        "shift_opened_at", "shift_closed_at", "is_closed",
+        "orders_count", "cancelled_orders_count", "payments_count",
+        "fiscal_receipts_count",
+        "gross_sales", "discounts_total", "service_fee_total", "tax_total",
+        "refunds_total", "net_sales",
+        "cash_total", "cash_received_total", "change_given_total",
+        "non_cash_total", "avg_check", "payment_methods",
+    ]
+    # flat, not nested under a figures block
+    assert "figures" not in body
+    assert isinstance(body["payment_methods"], list)
+    assert set(body["payment_methods"][0]) == {"method", "amount", "count"}
+    # the whole-company stubs are unchanged, and never null-typed away
+    assert body["shift_opened_at"] == "09:00" and body["is_closed"] is False
+    # counts/money that the detail endpoint may report as null stay concrete here
+    assert body["cancelled_orders_count"] == 0 and body["refunds_total"] == "0"
+    # the general endpoint must NOT accept per-entity params
+    ignored = await client.get(
+        "/analytics/z-report", headers=headers,
+        params=[("date", "2026-08-10"), ("dimension", "waiter"), ("ids", str(cid))],
+    )
+    assert ignored.status_code == 200, ignored.text
+    assert ignored.json() == body
+
+
+
 # ---------------------------------------------------------------------------
 # ZR-PERIOD-01C — the same boundary contract on REAL PostgreSQL.
 #

@@ -30,7 +30,12 @@ class Payment(TimeStampedModel):
     status: Mapped[str] = mapped_column(String(20), default="pending")
     provider_tx_id: Mapped[str | None] = mapped_column(String(255))
     provider_data: Mapped[dict] = mapped_column(JSON, default=dict)
-    cashier_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    # Indexed (bi06zrd06): the cashier dimension of /analytics/z-report/detail
+    # groups on this column. NULL for gateway/webhook payments, which belong
+    # to no cashier report.
+    cashier_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True
+    )
     cash_received: Mapped[Decimal | None] = mapped_column(Numeric(15, 2))
     change_given: Mapped[Decimal | None] = mapped_column(Numeric(15, 2))
     receipt_url: Mapped[str | None] = mapped_column(Text)

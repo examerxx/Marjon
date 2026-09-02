@@ -27,7 +27,7 @@ from app.shared.base_model import Base
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 VERSIONS_DIR = BACKEND_ROOT / "migrations" / "versions"
-EXPECTED_HEAD = "bi06hde05"
+EXPECTED_HEAD = "bi06zrd06"
 EXPECTED_NULLABLE_COLUMN_COUNT = 262
 EXPECTED_PARITY_OPERATIONS = {"remove_index", "remove_table_comment"}
 FIXTURES_DIR = BACKEND_ROOT / "tests" / "fixtures"
@@ -136,7 +136,7 @@ def test_revision_graph_is_linear_complete_and_has_one_head() -> None:
         visited.add(cursor)
         cursor = revisions[cursor][0]
     assert visited == set(revisions)
-    assert len(revisions) == 48
+    assert len(revisions) == 49
 
     nullable_columns = _bi02_nullable_columns()
     assert len(nullable_columns) == EXPECTED_NULLABLE_COLUMN_COUNT
@@ -245,6 +245,32 @@ def test_phase5c6d_hall_deleted_at_migration_is_additive_and_chains_from_bi06hso
     assert "DELETE FROM" not in source
     assert "create_index" not in source
     assert "is_active" not in source
+
+
+def test_zrprint01b_detail_index_migration_is_additive_and_chains_from_bi06hde05() -> None:
+    path = VERSIONS_DIR / "20260901_bi06zrd06_zreport_detail_indexes.py"
+    revision, down_revision = _revision_metadata(path)
+    assert revision == "bi06zrd06"
+    assert down_revision == "bi06hde05"
+
+    source = path.read_text(encoding="utf-8")
+    # Adds ONLY the two per-entity Z-report detail predicates; downgrade drops them.
+    assert '"ix_orders_waiter_id", "orders", "waiter_id"' in source
+    assert '"ix_payments_cashier_id", "payments", "cashier_id"' in source
+    assert "op.create_index" in source
+    assert "op.drop_index" in source
+    # Index-only and non-destructive: no column/table/constraint change, no
+    # backfill, and no speculative extra index.
+    assert "add_column" not in source
+    assert "drop_column" not in source
+    assert "create_table" not in source
+    assert "drop_table" not in source
+    assert "unique=True" not in source
+    assert "op.execute" not in source
+    assert "UPDATE" not in source
+    assert "DELETE FROM" not in source
+    assert source.count("op.create_index") == 1
+    assert len([line for line in source.splitlines() if "ix_" in line and '", "' in line]) == 2
 
 
 def test_historical_migrations_do_not_use_mutable_application_metadata() -> None:
@@ -1003,6 +1029,9 @@ def test_postgresql_fresh_upgrade_timing_downgrade_and_second_fresh() -> None:
 
         _run_alembic(first_url, "upgrade", "head")
         assert asyncio.run(_current_revision(first_url)) == EXPECTED_HEAD
+        # ZR-PRINT-01B head: the two per-entity Z-report detail predicates.
+        assert asyncio.run(_index_exists(first_url, "ix_orders_waiter_id"))
+        assert asyncio.run(_index_exists(first_url, "ix_payments_cashier_id"))
         assert asyncio.run(
             _index_exists(first_url, "ix_attendance_logs_shift_id")
         )
@@ -1031,10 +1060,15 @@ def test_postgresql_fresh_upgrade_timing_downgrade_and_second_fresh() -> None:
             _column_exists(first_url, "halls", "deleted_at")
         )
 
-        # Phase 5C-6D head peels off first: halls.deleted_at goes, while
-        # halls.sort_order + its branch index below stay intact.
+        # ZR-PRINT-01B head peels off first: the two detail indexes go, while
+        # every earlier column/index stays intact.
         _run_alembic(first_url, "downgrade", "-1")
         assert asyncio.run(_current_revision(first_url)) != EXPECTED_HEAD
+        assert not asyncio.run(_index_exists(first_url, "ix_orders_waiter_id"))
+        assert not asyncio.run(_index_exists(first_url, "ix_payments_cashier_id"))
+        # Phase 5C-6D peels next: halls.deleted_at goes, while halls.sort_order
+        # + its branch index below stay intact.
+        _run_alembic(first_url, "downgrade", "-1")
         assert not asyncio.run(
             _column_exists(first_url, "halls", "deleted_at")
         )

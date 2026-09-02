@@ -27,7 +27,11 @@ class Order(TimeStampedModel):
     branch_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("branches.id"), index=True)
     terminal_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("pos_terminals.id"), nullable=True)
     customer_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("customers.id"), nullable=True)
-    waiter_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    # Indexed (bi06zrd06): the waiter dimension of /analytics/z-report/detail
+    # filters and groups on this column.
+    waiter_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True
+    )
     order_number: Mapped[str] = mapped_column(String(20), nullable=False)
     # dine_in | takeaway | delivery | qr
     order_type: Mapped[str] = mapped_column(String(20), default="dine_in")
