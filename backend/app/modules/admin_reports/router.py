@@ -1,8 +1,10 @@
 from __future__ import annotations
 from datetime import date
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import StringConstraints
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.session import get_db
@@ -18,6 +20,17 @@ from app.modules.auth.models import User
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 admin_reports_router = APIRouter(prefix="/admin-reports", tags=["admin-reports"])
+
+# REPORT-04: the Orders report filters accept MULTIPLE values per dimension using
+# this project's existing repeated-query-param pattern — the same shape
+# /analytics/z-report/detail already uses for `ids`:
+#   ?waiter_id=<a>&waiter_id=<b>&order_type=dine_in&order_type=delivery
+# Names stay singular on purpose, so a client that still sends exactly one value
+# keeps working untouched (FastAPI parses it as a one-item list) — the deployed
+# OWNER frontend and the Tables/Dishes pages need no change. Comma-separated
+# strings are deliberately NOT used; the project has no such convention.
+# Values WITHIN one dimension are OR/IN, dimensions still combine with AND.
+OrderFilterValue = Annotated[str, StringConstraints(max_length=50)]
 
 
 @router.get(
@@ -103,12 +116,12 @@ async def orders_report(
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
     order_number: str | None = Query(None, max_length=100),
-    waiter_id: UUID | None = Query(None),
-    cashier_id: UUID | None = Query(None),
-    product_id: UUID | None = Query(None),
-    order_type: str | None = Query(None, max_length=50),
-    order_status: str | None = Query(None, max_length=50),
-    payment_method: str | None = Query(None, max_length=50),
+    waiter_id: list[UUID] | None = Query(None),
+    cashier_id: list[UUID] | None = Query(None),
+    product_id: list[UUID] | None = Query(None),
+    order_type: list[OrderFilterValue] | None = Query(None),
+    order_status: list[OrderFilterValue] | None = Query(None),
+    payment_method: list[OrderFilterValue] | None = Query(None),
     user: User = Depends(require_web_owner),
     db: AsyncSession = Depends(get_db),
 ):

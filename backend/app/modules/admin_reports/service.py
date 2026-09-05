@@ -307,12 +307,12 @@ class AdminReportService:
         date_to: date | None,
         *,
         order_number: str | None = None,
-        waiter_id: UUID | None = None,
-        cashier_id: UUID | None = None,
-        product_id: UUID | None = None,
-        order_type: str | None = None,
-        order_status: str | None = None,
-        payment_method: str | None = None,
+        waiter_id: Sequence[UUID] | None = None,
+        cashier_id: Sequence[UUID] | None = None,
+        product_id: Sequence[UUID] | None = None,
+        order_type: Sequence[str] | None = None,
+        order_status: Sequence[str] | None = None,
+        payment_method: Sequence[str] | None = None,
     ) -> list[OrderReportRow]:
         items_count = (
             select(func.count(OrderItem.id))
@@ -338,64 +338,77 @@ class AdminReportService:
         if order_number and (normalized_order_number := order_number.strip()):
             query = query.where(Order.order_number.ilike(f"%{normalized_order_number}%"))
         if waiter_id:
+            # REPORT-04 multi-value: the order's waiter must be one of the selected
+            # ones. The role guard is ROW-CORRELATED — it is evaluated against the
+            # order's OWN Order.waiter_id rather than against each selected id, so no
+            # selected id is silently dropped: an id that no longer holds this
+            # company's non-system `waiter` role simply matches no order.
             waiter_has_company_role = exists(
                 select(UserRole.id)
                 .join(Role, Role.id == UserRole.role_id)
                 .where(
-                    UserRole.user_id == waiter_id,
+                    UserRole.user_id == Order.waiter_id,
                     Role.company_id == company_id,
                     Role.slug == "waiter",
                     Role.is_system.is_(False),
                 )
             )
             query = query.where(
-                Order.waiter_id == waiter_id,
+                Order.waiter_id.in_(list(waiter_id)),
                 waiter_has_company_role,
             )
         if cashier_id:
-            cashier_has_company_role = exists(
+            # Accounting attribution is UNCHANGED: the order must carry a payment
+            # taken by one of the selected cashiers. The role guard is correlated to
+            # that payment's own Payment.cashier_id — the ACTUALLY attributed cashier
+            # — so the guard follows the attribution instead of the selection.
+            attributed_cashier_has_role = exists(
                 select(UserRole.id)
                 .join(Role, Role.id == UserRole.role_id)
                 .where(
-                    UserRole.user_id == cashier_id,
+                    UserRole.user_id == Payment.cashier_id,
                     Role.company_id == company_id,
                     Role.slug == "cashier",
                     Role.is_system.is_(False),
                 )
             )
             query = query.where(
-                cashier_has_company_role,
                 exists(
                     select(Payment.id).where(
                         Payment.company_id == company_id,
                         Payment.order_id == Order.id,
-                        Payment.cashier_id == cashier_id,
+                        Payment.cashier_id.in_(list(cashier_id)),
+                        attributed_cashier_has_role,
                     )
                 ),
             )
         if product_id:
+            # Unchanged semantic, widened: the order CONTAINS at least one of the
+            # selected dishes.
             query = query.where(
                 exists(
                     select(OrderItem.id)
                     .join(Product, Product.id == OrderItem.product_id)
                     .where(
                         OrderItem.order_id == Order.id,
-                        OrderItem.product_id == product_id,
+                        OrderItem.product_id.in_(list(product_id)),
                         Product.company_id == company_id,
                     )
                 )
             )
         if order_type:
-            query = query.where(Order.order_type == order_type)
+            query = query.where(Order.order_type.in_(list(order_type)))
         if order_status:
-            query = query.where(Order.status == order_status)
+            query = query.where(Order.status.in_(list(order_status)))
         if payment_method:
+            # Unchanged semantic, widened: the order has a payment whose method is one
+            # of the selected ones.
             query = query.where(
                 exists(
                     select(Payment.id).where(
                         Payment.company_id == company_id,
                         Payment.order_id == Order.id,
-                        Payment.method == payment_method,
+                        Payment.method.in_(list(payment_method)),
                     )
                 )
             )
