@@ -368,6 +368,9 @@ test.describe("OWNER Z-report generator workspace", () => {
     expect(url.searchParams.has("date_from")).toBe(false);
     expect(url.searchParams.has("date_to")).toBe(false);
     expect(url.searchParams.has("waiter_percent")).toBe(false);
+    // ZR-TIME-01: an untouched picker is date-only — no wall clock is sent
+    expect(url.searchParams.has("time_from")).toBe(false);
+    expect(url.searchParams.has("time_to")).toBe(false);
     expect(request.url()).not.toContain("ids%5B%5D");
 
     // ONE click produced ONE dedicated print tab, and the OWNER page is still there
@@ -412,15 +415,18 @@ test.describe("OWNER Z-report generator workspace", () => {
     expect(url.searchParams.get("date_from")).toMatch(/^\d{4}-\d{2}-01$/);
     expect(url.searchParams.get("date_to")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(url.searchParams.has("date")).toBe(false);
+    // a preset is a DATE range: no wall clock is sent (ZR-TIME-01)
+    expect(url.searchParams.has("time_from")).toBe(false);
+    expect(url.searchParams.has("time_to")).toBe(false);
 
     await printPage.waitForFunction(() => Boolean(document.querySelector(".zrd-doc")));
     const html = await printPage.content();
     const from = url.searchParams.get("date_from").split("-").reverse().join(".");
     const to = url.searchParams.get("date_to").split("-").reverse().join(".");
-    // ZR-PRINT-FINAL-UX-06: the head prints the SCREEN window — both endpoints
-    // with the picker's clock time (00:00 from the «Этот месяц» preset) joined by
-    // " - " — while the request above stays date-only.
-    expect(html).toContain(`Период: ${from} 00:00 - ${to} 00:00`);
+    // ZR-TIME-01: the head prints the window the REQUEST used — a bare date range
+    // here, never a fabricated «00:00 - 00:00» for a whole-day aggregation.
+    expect(html).toContain(`Период: ${from} - ${to}`);
+    expect(html).not.toContain("00:00");
     expect(html).not.toContain("за период");
     expect(html).not.toContain("Дата:");
     await clearPrintFrames();
@@ -630,11 +636,17 @@ test.describe("OWNER Z-report generator workspace", () => {
     // «Примечание» block is gone from the rendered document.
     expect(Math.abs(m.titleCentre - m.columnCentre)).toBeLessThanOrEqual(1.5);
     expect(Math.abs(m.periodCentre - m.columnCentre)).toBeLessThanOrEqual(1.5);
-    // ZR-PRINT-FINAL-UX-06: one «Период» line carrying BOTH endpoints with the
-    // clock time the picker committed — DD.MM.YYYY HH:MM - DD.MM.YYYY HH:MM, plain
-    // hyphen, no seconds, no en dash, no backend-derived «Дата» wording.
-    expect(m.periodText)
-      .toMatch(/^Период: \d{2}\.\d{2}\.\d{4} \d{2}:\d{2} - \d{2}\.\d{2}\.\d{4} \d{2}:\d{2}$/);
+    // ZR-TIME-01: the head states the window the REQUEST used, in exactly one of
+    // the three truthful shapes — a bare date, a bare date range, or a wall-clock
+    // window with clocks on BOTH endpoints. A date-only sheet is never labelled
+    // «00:00 - 00:00», and a clock never appears on one side only.
+    expect(m.periodText).toMatch(
+      /^(Дата: \d{2}\.\d{2}\.\d{4}|Период: \d{2}\.\d{2}\.\d{4}( \d{2}:\d{2})? - \d{2}\.\d{2}\.\d{4}( \d{2}:\d{2})?)$/,
+    );
+    if (m.periodText.includes(":")) {
+      const clocks = m.periodText.match(/\d{2}:\d{2}/g) || [];
+      expect(clocks.length === 0 || clocks.length === 2).toBe(true);
+    }
     expect(m.notes).toBe(0);
   }
 
@@ -1114,11 +1126,30 @@ test.describe("OWNER Z-report generator workspace", () => {
       coverage: [],
     });
     await pickOption(0);
-    const html = await printRow(0);
-
+    // ZR-TIME-01: the very request the click issues must carry the chosen wall
+    // clocks — this is the wire, not a re-render of screen state.
+    const [request] = await Promise.all([
+      page.waitForRequest((r) => r.url().includes("/analytics/z-report/detail?")),
+      page.locator(".owner-report-row").nth(0).locator(".owner-report-row__print").click(),
+    ]);
+    const params = new URL(request.url()).searchParams;
     const month = new Date();
-    const from = `01.${String(month.getMonth() + 1).padStart(2, "0")}.${month.getFullYear()}`;
-    const to = `${String(month.getDate()).padStart(2, "0")}.${String(month.getMonth() + 1).padStart(2, "0")}.${month.getFullYear()}`;
+    const isoMonth = String(month.getMonth() + 1).padStart(2, "0");
+    expect(params.get("date_from")).toBe(`${month.getFullYear()}-${isoMonth}-01`);
+    expect(params.get("date_to")).toBe(
+      `${month.getFullYear()}-${isoMonth}-${String(month.getDate()).padStart(2, "0")}`,
+    );
+    expect(params.get("time_from")).toBe("13:23");
+    expect(params.get("time_to")).toBe("22:06");
+
+    const printPage = await page.context().pages().at(-1);
+    await printPage.waitForFunction(() => Boolean(document.querySelector(".zrd-doc")));
+    const html = await printPage.content();
+    await clearPrintFrames();
+
+    const from = `01.${isoMonth}.${month.getFullYear()}`;
+    const to = `${String(month.getDate()).padStart(2, "0")}.${isoMonth}.${month.getFullYear()}`;
+    // the printed head states exactly the window the request above used
     expect(html).toContain(`Период: ${from} 13:23 - ${to} 22:06`);
     expectPrintHead(html, "Отчёт по кассирам");
     const m = await capturePrint(html, "11-print-period-with-time");
@@ -1324,7 +1355,8 @@ test.describe("OWNER Z-report generator workspace", () => {
     expect(call.styles).toBe(1);
     expect(call.bodyChildren).toBe(1);
     expect(call.columnWidth).toBeGreaterThan(300);
-    expect(call.period).toMatch(/^Период: \d{2}\.\d{2}\.\d{4} \d{2}:\d{2} - \d{2}\.\d{2}\.\d{4} \d{2}:\d{2}$/);
+    // an untouched picker prints the truthful date-only head (ZR-TIME-01)
+    expect(call.period).toMatch(/^Дата: \d{2}\.\d{2}\.\d{4}$/);
     // the print job's own title has no glyphs, so Chrome's header centre has
     // nothing to draw — and no host title to fall back to, because this document
     // is not inside the OWNER page at all

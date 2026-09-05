@@ -135,7 +135,106 @@ describe("ReportDateRangePicker canonical Reports variant", () => {
   });
 });
 
-// --- screen date/time contract (ZR-PRINT-FINAL-UX-05) ------------------------
+// --- explicit time activation (ZR-TIME-01) -----------------------------------
+// The picker's 00:00 defaults are a DISPLAY state. Only a clock the operator
+// actually changed may narrow a Z-report to a wall-clock window, so the committed
+// value carries `timeTouched` and nothing else about the approved UI changes.
+describe("canonical picker explicit time activation (ZR-TIME-01)", () => {
+  const RANGE = {
+    preset: "",
+    start: "01.09.2026",
+    end: "04.09.2026",
+    startTime: "00:00",
+    endTime: "00:00",
+  };
+
+  function open(overrides = {}) {
+    const onChange = vi.fn();
+    const { container } = render(
+      <ReportDateRangePicker
+        variant="canonical"
+        value={RANGE}
+        onChange={onChange}
+        buttonAriaLabel="Период отчёта"
+        {...overrides}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Период отчёта" }));
+    return { onChange, container, apply: () => fireEvent.click(container.querySelector(".report-date-ok")) };
+  }
+
+  function pickTime(fieldLabel, column, value) {
+    fireEvent.click(screen.getByLabelText(fieldLabel));
+    const list = document.querySelectorAll(".report-date-time-list")[column];
+    fireEvent.click([...list.querySelectorAll("button")].find((b) => b.textContent === value));
+  }
+
+  it("commits an untouched range as DATE-ONLY", () => {
+    const { onChange, apply } = open();
+    apply();
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange.mock.calls[0][0]).toMatchObject({
+      start: "01.09.2026", end: "04.09.2026", startTime: "00:00", endTime: "00:00", timeTouched: false,
+    });
+  });
+
+  it("activates explicit time when the START hour changes", () => {
+    const { onChange, apply } = open();
+    pickTime("Начало периода", 0, "13");
+    apply();
+
+    expect(onChange.mock.calls[0][0]).toMatchObject({ startTime: "13:00", timeTouched: true });
+  });
+
+  it("activates explicit time when the END minute changes", () => {
+    const { onChange, apply } = open();
+    pickTime("Конец периода", 1, "06");
+    apply();
+
+    expect(onChange.mock.calls[0][0]).toMatchObject({ endTime: "00:06", timeTouched: true });
+  });
+
+  it("does not activate when the already-selected clock is re-picked", () => {
+    const { onChange, apply } = open();
+    pickTime("Начало периода", 0, "00");
+    pickTime("Начало периода", 1, "00");
+    apply();
+
+    expect(onChange.mock.calls[0][0]).toMatchObject({ startTime: "00:00", timeTouched: false });
+  });
+
+  it("a preset is a DATE range, so it clears explicit time again", () => {
+    const { onChange, apply, container } = open();
+    pickTime("Начало периода", 0, "13");
+    // the PRESET row's Сегодня, not the calendar footer's jump-to-today button
+    const preset = [...container.querySelectorAll(".report-date-presets button")]
+      .find((button) => button.textContent === "Сегодня");
+    fireEvent.click(preset);
+    apply();
+
+    expect(onChange.mock.calls[0][0]).toMatchObject({ startTime: "00:00", timeTouched: false });
+  });
+
+  it("keeps a committed explicit window when the picker is reopened", () => {
+    const { onChange, apply } = open({
+      value: { ...RANGE, startTime: "13:23", endTime: "22:06", timeTouched: true },
+    });
+    apply();
+
+    expect(onChange.mock.calls[0][0]).toMatchObject({
+      startTime: "13:23", endTime: "22:06", timeTouched: true,
+    });
+  });
+
+  it("lets a page's own validateRange refuse the window instead of committing it", () => {
+    const { onChange, apply, container } = open({ validateRange: () => "Начало позже окончания" });
+    apply();
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(container.querySelector(".report-date-error")).toHaveTextContent("Начало позже окончания");
+  });
+});
 // The canonical picker DISPLAYS «DD.MM.YYYY | HH:MM», centres «Дата с» / «Дата
 // по» over their own fields and «Время» over the whole ЧАСЫ + МИНУТЫ block, and
 // paints the selected hour / minute / Сегодня in the exact OWNER accent. The

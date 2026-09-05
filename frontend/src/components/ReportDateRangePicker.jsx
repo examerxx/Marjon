@@ -55,6 +55,12 @@ function withDefaultTimes(range = {}) {
     end: range.end || formatDate(new Date()),
     startTime: range.startTime || "00:00",
     endTime: range.endTime || "00:00",
+    // ZR-TIME-01: the 00:00 defaults above are a DISPLAY state, not a chosen
+    // boundary. `timeTouched` records that the operator actually changed a clock,
+    // which is the only thing that may turn a whole-day report into an explicit
+    // time window downstream. Carried through every draft update and committed
+    // with the range, so reopening the picker does not forget it.
+    timeTouched: Boolean(range.timeTouched),
   };
 }
 
@@ -272,7 +278,7 @@ export default function ReportDateRangePicker({
   const effectiveTrailingIconName = canonical ? "bi-calendar3" : trailingIconName;
   const effectiveTrailingIconSize = canonical ? 16 : trailingIconSize;
   const effectiveDateFieldLabels = canonical ? { start: "Дата с", end: "Дата по" } : dateFieldLabels;
-  const effectiveValidateRange = canonical ? validateCanonicalReportPeriod : validateRange;
+  const effectiveValidateRange = validateRange || (canonical ? validateCanonicalReportPeriod : undefined);
   const effectiveEnableEscapeClose = canonical || enableEscapeClose;
   const effectiveRestoreFocusOnApply = canonical || restoreFocusOnApply;
   const effectiveContainTimeListScroll = canonical || containTimeListScroll;
@@ -432,6 +438,9 @@ export default function ReportDateRangePicker({
     const nextDraft = {
       ...withDefaultTimes(nextRange),
       preset: option.label,
+      // a preset is a DATE range: it resets both clocks to 00:00, so it also
+      // resets them to "not chosen" (ZR-TIME-01)
+      timeTouched: false,
     };
     setDraft(nextDraft);
     setValidationError("");
@@ -461,6 +470,9 @@ export default function ReportDateRangePicker({
       preset: "",
       [key]: parsed.date,
       [`${key}Time`]: parsed.time,
+      // typing a DIFFERENT clock into the field is an explicit time choice, the
+      // same as picking one from the hour/minute lists
+      timeTouched: Boolean(current?.timeTouched) || parsed.time !== (current?.[`${key}Time`] || "00:00"),
     }));
   }
 
@@ -543,6 +555,10 @@ export default function ReportDateRangePicker({
       ...withDefaultTimes(current),
       preset: "",
       [`${activePicker}Time`]: time,
+      // ZR-TIME-01: only a CHANGED clock activates explicit time filtering, so
+      // re-picking the value that is already selected cannot silently narrow a
+      // whole-day report to a zero-length window.
+      timeTouched: Boolean(current?.timeTouched) || time !== (current?.[`${activePicker}Time`] || "00:00"),
     }));
   }
 

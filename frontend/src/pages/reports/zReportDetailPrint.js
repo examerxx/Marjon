@@ -199,16 +199,16 @@ function entityName(entity) {
 // FINAL-UX-05 — the generic «Z-отчёт» word is not printed), then the period it
 // covers.
 //
-// ZR-PRINT-FINAL-UX-06: that period is the caller's own SCREEN selection —
-// «DD.MM.YYYY HH:MM - DD.MM.YYYY HH:MM», both endpoints, hyphen with spaces — so
-// it is always an interval and always labelled «Период». The word is fixed here
-// instead of being chosen from the backend's date / date_from / date_to echo,
-// because the printed window is now the operator's selection rather than the
-// backend's aggregation key.
-function documentHeader(title, period) {
+// ZR-TIME-01: the period text and its LABEL both come from the caller, because
+// they must describe the window the backend actually aggregated:
+//   * explicit time window → «Период: DD.MM.YYYY HH:MM - DD.MM.YYYY HH:MM»
+//   * whole single day      → «Дата: DD.MM.YYYY»
+//   * whole date range      → «Период: DD.MM.YYYY - DD.MM.YYYY»
+// A date-only report is never labelled with clocks, because it never sent any.
+function documentHeader(title, term, period) {
   return `<header class="zrd-doc-head">`
     + `<h1 class="zrd-title">${escapeHtml(title)}</h1>`
-    + `<p class="zrd-period">Период: ${escapeHtml(period)}</p>`
+    + `<p class="zrd-period">${escapeHtml(term)}: ${escapeHtml(period)}</p>`
     + `</header><hr class="zrd-rule">`;
 }
 
@@ -329,7 +329,12 @@ body{font:14px/1.28 Calibri,sans-serif;color:#000000}
 .zrd-section,.zrd-table{break-inside:avoid;page-break-inside:avoid}
 }`;
 
-export function buildZReportDetailPrintDocument({ detail, periodLabel = "", waiterPercent } = {}) {
+export function buildZReportDetailPrintDocument({
+  detail,
+  periodTerm = "Период",
+  periodLabel = "",
+  waiterPercent,
+} = {}) {
   const meta = DIMENSIONS[detail?.dimension];
   if (!meta) throw new TypeError(`Unsupported Z-report dimension: ${detail?.dimension}`);
   const entities = Array.isArray(detail.entities) ? detail.entities : [];
@@ -369,7 +374,7 @@ export function buildZReportDetailPrintDocument({ detail, periodLabel = "", wait
   // notes are NOT printed (ZR-PRINT-FINAL-UX-05): the response still carries
   // `coverage`, but this document renders no «Примечание» block at all.
   const body = `<div class="zrd-doc">`
-    + documentHeader(meta.title, period)
+    + documentHeader(meta.title, periodTerm, period)
     + blocks.map((inner) => `<section class="zrd-section">${inner}</section>`).join("")
     + `</div>`;
 

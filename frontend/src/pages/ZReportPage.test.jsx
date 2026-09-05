@@ -36,9 +36,21 @@ vi.mock("../components/ReportDateRangePicker", () => ({
         type="button"
         onClick={() => onChange({
           preset: "", start: "01.09.2026", end: "04.09.2026", startTime: "13:23", endTime: "22:06",
+          // ZR-TIME-01: the real picker sets this when a clock is CHANGED; the
+          // stand-in must too, or the page would stay in date-only mode.
+          timeTouched: true,
         })}
       >
         set-period-with-time
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange({
+          preset: "", start: "05.09.2026", end: "05.09.2026", startTime: "22:06", endTime: "13:23",
+          timeTouched: true,
+        })}
+      >
+        set-inverted-time
       </button>
     </>
   ),
@@ -435,11 +447,14 @@ describe("ZReportPage per-entity Print (ZR-PRINT-01C)", () => {
       date_from: "2026-08-01", date_to: "2026-08-31", dimension: "hall", ids: ["hall-1"],
     });
     expect(reportsService.getZReportDetail.mock.calls.at(-1)[0]).not.toHaveProperty("date");
-    // ZR-PRINT-FINAL-UX-06: the printed head names the SCREEN window — both
-    // endpoints with the selected clock time, joined by " - ". The request itself
-    // stays date-only, which is exactly why the time can only come from the picker.
-    expect(normalize(doc.body.textContent))
-      .toContain("Период: 01.08.2026 00:00 - 31.08.2026 00:00");
+    // ZR-TIME-01: an untouched picker is DATE-ONLY, so no clock is sent and the
+    // head prints no clock either — «00:00 - 00:00» would claim a zero-length
+    // window the backend never used.
+    const periodParams = reportsService.getZReportDetail.mock.calls.at(-1)[0];
+    expect(periodParams).not.toHaveProperty("time_from");
+    expect(periodParams).not.toHaveProperty("time_to");
+    expect(normalize(doc.body.textContent)).toContain("Период: 01.08.2026 - 31.08.2026");
+    expect(normalize(doc.body.textContent)).not.toContain("00:00");
     // never the general report's preposition phrasing, and never the en dash the
     // earlier backend-echo version used
     expect(normalize(doc.body.textContent)).not.toContain("за период");
@@ -447,11 +462,10 @@ describe("ZReportPage per-entity Print (ZR-PRINT-01C)", () => {
     expect(normalize(doc.body.textContent)).not.toContain("–");
   });
 
-  // ZR-PRINT-FINAL-UX-06 fix 3, end to end: the clock time the OWNER committed in
-  // the picker reaches the printed head, even though the request that produced
-  // the figures is date-only. Proven with two DIFFERENT times so a hardcoded
-  // 00:00 or a copied start time cannot pass.
-  it("prints the committed start and end TIME from the screen picker", async () => {
+  // ZR-TIME-01: an explicitly chosen clock window reaches the BACKEND REQUEST and
+  // the printed head, and both state the same thing. Proven with two DIFFERENT
+  // times so a hardcoded 00:00 or a copied start time cannot pass.
+  it("sends the committed start and end TIME to the backend and prints that window", async () => {
     await ready();
     fireEvent.click(screen.getByRole("button", { name: "set-period-with-time" }));
     reportsService.getZReportDetail.mockResolvedValue({
@@ -463,12 +477,36 @@ describe("ZReportPage per-entity Print (ZR-PRINT-01C)", () => {
     selectEntity("Отчёт по кассирам", "Мансур");
     const doc = await printDetail("Отчёт по кассирам");
 
+    // the request carries the wall clocks, in the canonical HH:MM contract
+    expect(reportsService.getZReportDetail.mock.calls.at(-1)[0]).toEqual({
+      date_from: "2026-09-01",
+      date_to: "2026-09-04",
+      time_from: "13:23",
+      time_to: "22:06",
+      dimension: "cashier",
+      ids: ["c1"],
+    });
+    // and the printed head names exactly that window
     expect(normalize(doc.querySelector(".zrd-period").textContent))
       .toBe("Период: 01.09.2026 13:23 - 04.09.2026 22:06");
-    // the API still receives the date-only window: no time ever leaves the browser
-    const params = reportsService.getZReportDetail.mock.calls.at(-1)[0];
-    expect(params).toEqual({ date_from: "2026-09-01", date_to: "2026-09-04", dimension: "cashier", ids: ["c1"] });
-    expect(JSON.stringify(params)).not.toContain("13:23");
+  });
+
+  // ZR-TIME-01 §5: an empty explicit window never becomes a request. The picker's
+  // OK already refuses it (see validateZReportPeriod / the picker suite); this is
+  // the page's own guard, and it must surface the reason instead of printing an
+  // empty sheet.
+  it("refuses to request or print an inverted explicit time window", async () => {
+    await ready();
+    fireEvent.click(screen.getByRole("button", { name: "set-inverted-time" }));
+    selectEntity("Отчёт по кассирам", "Мансур");
+    reportsService.getZReportDetail.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: "Печать: Отчёт по кассирам" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("начало периода должно быть раньше его окончания");
+    expect(reportsService.getZReportDetail).not.toHaveBeenCalled();
+    expect(window.open).not.toHaveBeenCalled();
   });
 
   it("waiter print applies the entered percent to СУММА ЗАКАЗОВ (net_sales), never to the service fee", async () => {
@@ -615,9 +653,10 @@ describe("ZReportPage per-entity Print (ZR-PRINT-01C)", () => {
     expect(text).toContain("Отчёт по кассирам");
     expect(text.match(/Отчёт по/g)).toHaveLength(1);
     expect(text).toContain("Имя: Мансур");
-    // ZR-PRINT-FINAL-UX-06: one label («Период»), both endpoints, selected time
-    expect(text).toContain(`Период: ${TODAY_DISPLAY} 00:00 - ${TODAY_DISPLAY} 00:00`);
-    expect(text).not.toContain("Дата:");
+    // ZR-TIME-01: an untouched whole-day report prints a truthful bare date
+    expect(text).toContain(`Дата: ${TODAY_DISPLAY}`);
+    expect(text).not.toContain("Период:");
+    expect(text).not.toContain("00:00");
   });
 
   it("keeps a cashier without payments truthfully empty instead of printing zeros", async () => {
@@ -923,7 +962,7 @@ describe("ZReportPage per-entity Print (ZR-PRINT-01C)", () => {
     expect(calls[0].readyState).toBe("complete");
     expect(calls[0].headings).toBe(1);
     expect(calls[0].tables).toBeGreaterThan(0);
-    expect(calls[0].period).toContain("Период: ");
+    expect(calls[0].period).toContain(`Дата: ${TODAY_DISPLAY}`);
     expect(calls[0].bodyChildren).toBe(1);
     // its own title carries no glyphs, and the OWNER page keeps its title — the
     // print job is a separate top-level document, so there is nothing to fall back

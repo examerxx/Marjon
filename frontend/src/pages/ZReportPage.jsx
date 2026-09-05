@@ -10,7 +10,11 @@ import ReportDateRangePicker, {
   validateCanonicalReportPeriod,
 } from "../components/ReportDateRangePicker";
 import { formatDateLabel, todayInputValue } from "../utils/date";
-import { toApiDate } from "./reports/reportPeriod";
+import {
+  isEmptyExplicitRange,
+  zReportPeriodParams,
+  zReportPrintPeriod,
+} from "./reports/reportPeriod";
 import {
   buildZReportDetailPrintDocument,
   closePrintSurface,
@@ -20,11 +24,25 @@ import {
 
 function currentZReportPeriod() {
   const today = formatDateLabel(todayInputValue());
+  // timeTouched stays false: the report opens as a whole-day, date-only window
+  // and only an explicit clock change (ZR-TIME-01) turns it into a time window.
   return { preset: "Сегодня", start: today, end: today, startTime: "00:00", endTime: "00:00" };
 }
 
 export const formatZReportPeriodLabel = formatCanonicalReportPeriodLabel;
-export const validateZReportPeriod = validateCanonicalReportPeriod;
+
+// The Z-report's own range rule: the shared canonical date rules, plus — once the
+// operator has chosen clocks — a strictly positive window. A zero-length or
+// inverted explicit window is refused at OK, so it never becomes page state and
+// never reaches the analytics API.
+export function validateZReportPeriod(range = {}) {
+  const dateError = validateCanonicalReportPeriod(range);
+  if (dateError) return dateError;
+  if (isEmptyExplicitRange(range)) {
+    return "Начало периода должно быть раньше его окончания.";
+  }
+  return "";
+}
 
 function apiList(data) {
   if (Array.isArray(data)) return data;
@@ -42,17 +60,14 @@ function hasRole(user, slug) {
   return slugs.includes(slug);
 }
 
-// ZR-PRINT-FINAL-UX-06: the printed period is the window the OWNER selected on
-// SCREEN — both endpoints, each as «DD.MM.YYYY HH:MM», joined by " - " — instead
-// of the backend's date echo, because the picker's clock time has to reach the
-// sheet. The canonical detail contract stays date-only: it accepts date /
-// date_from + date_to and ignores clock time, so the printed HH:MM states the
-// operator's SELECTION and not the boundary the aggregation actually used.
-// Frontend-only propagation, by explicit product decision for this phase.
-export function formatZReportPrintPeriod(period = {}) {
-  const stamp = (date, time) => `${date || ""} ${time || "00:00"}`.trim();
-  return `${stamp(period.start, period.startTime)} - ${stamp(period.end, period.endTime)}`;
-}
+// ZR-TIME-01: the printed period is the window the BACKEND aggregated, because
+// the same selection now produces both. In explicit-time mode the request carries
+// time_from/time_to and the head prints «DD.MM.YYYY HH:MM - DD.MM.YYYY HH:MM»; in
+// date-only mode no clock is sent and none is printed — a whole-day report must
+// never be labelled «00:00 - 00:00», which would claim a zero-length window.
+// The mapping itself lives in reports/reportPeriod so the request builder and the
+// printed head cannot disagree.
+export const formatZReportPrintPeriod = zReportPrintPeriod;
 
 // Four per-entity report generators. Three are backed by the real canonical
 // contract GET /analytics/z-report/detail (dimension = cashier | waiter | hall)
@@ -174,12 +189,12 @@ function EmployeeMultiSelect({ label, emptyLabel, options, selected, onToggle })
 
 export default function ZReportPage() {
   const [selectedPeriod, setSelectedPeriod] = useState(currentZReportPeriod);
-  // Single day → { date }; multi-day → { date_from, date_to }. The displayed
-  // range (picker label) therefore always equals the exact backend request.
-  const reportFrom = toApiDate(selectedPeriod.start);
-  const reportTo = toApiDate(selectedPeriod.end);
-  const isPeriod = Boolean(reportFrom && reportTo && reportFrom !== reportTo);
-  const reportParams = isPeriod ? { date_from: reportFrom, date_to: reportTo } : { date: reportTo || reportFrom };
+  // ONE builder for every Z-report request (ZR-TIME-01): single day → { date };
+  // multi-day → { date_from, date_to }; plus { time_from, time_to } once the
+  // operator has chosen clocks. The displayed range, the printed head and the
+  // backend window are therefore all derived from the same selection.
+  const reportParams = zReportPeriodParams(selectedPeriod);
+  const printPeriod = zReportPrintPeriod(selectedPeriod);
   const [staff, setStaff] = useState([]);
   const [places, setPlaces] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -247,6 +262,13 @@ export default function ZReportPage() {
   async function handleDetailPrint(row) {
     const ids = selection[row.key];
     if (!row.dimension || !Array.isArray(ids) || ids.length === 0 || printingRow) return;
+    // ZR-TIME-01 last line of defence: an empty explicit window is refused at the
+    // picker's OK, so it should never be page state — if it somehow is, no
+    // analytics request goes out and the operator is told why.
+    if (isEmptyExplicitRange(selectedPeriod)) {
+      setDetailError(`${row.title}: начало периода должно быть раньше его окончания.`);
+      return;
+    }
     setPrintingRow(row.key);
     setDetailError("");
     // Opened BEFORE the await, while the click's user activation is still live, so
@@ -266,7 +288,8 @@ export default function ZReportPage() {
       }
       renderPrintSurface(surface, buildZReportDetailPrintDocument({
         detail: data,
-        periodLabel: formatZReportPrintPeriod(selectedPeriod),
+        periodTerm: printPeriod.term,
+        periodLabel: printPeriod.label,
         waiterPercent: selection.waiterPercent,
       }));
     } catch (err) {
@@ -291,6 +314,7 @@ export default function ZReportPage() {
             variant="canonical"
             value={selectedPeriod}
             onChange={setSelectedPeriod}
+            validateRange={validateZReportPeriod}
             buttonAriaLabel="Период Z-отчёта"
           />
         </div>
