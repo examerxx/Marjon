@@ -128,8 +128,6 @@ describe("CTR-01 critical financial truth", () => {
     expect(percent).toBeDisabled();
   });
 
-
-
   it("preserves real dashboard finance amounts without fabricated finance deltas", async () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
       createLinearGradient: () => ({ addColorStop: vi.fn() }),
@@ -181,6 +179,24 @@ describe("CTR-01 critical financial truth", () => {
     expect(screen.queryByRole("columnheader", { name: "Сумма" })).not.toBeInTheDocument();
     ["Комментарий", "Тип", "Повар", "Автор"].forEach((label) => expect(screen.queryByRole("columnheader", { name: label })).not.toBeInTheDocument());
     expect(screen.queryByText("На стол")).not.toBeInTheDocument();
+  });
+
+  it("keeps the Cancelled Dishes period as draft until the existing Filter action", async () => {
+    api.get.mockResolvedValue({ data: [] });
+    render(<CancelledDishesReportPage />);
+    const filterButton = await screen.findByRole("button", { name: "Фильтровать" });
+    expect(api.get).toHaveBeenCalledTimes(1);
+
+    fireEvent.change(screen.getByLabelText("Начало периода"), { target: { value: "02.08.2026" } });
+    fireEvent.change(screen.getByLabelText("Конец периода"), { target: { value: "12.08.2026" } });
+    expect(api.get).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(filterButton);
+    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+    expect(api.get).toHaveBeenLastCalledWith("/reports/cancelled", expect.objectContaining({
+      params: { date_from: "2026-08-02", date_to: "2026-08-12" },
+      signal: expect.any(AbortSignal),
+    }));
   });
 
   it("uses date_from/date_to and counterparty_id for Debt/Credit without FX conversion", async () => {

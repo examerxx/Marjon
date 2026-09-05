@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import axios from "axios";
 import { api } from "./client";
 import { financeService } from "./finance";
 import { analyticsService, reportsService } from "./reports";
@@ -86,6 +87,38 @@ describe("Web domain service contracts", () => {
     });
 
     it.each([
+      ["cashier", { date: "2026-09-01" }, ["user-1", "user-2"]],
+      ["waiter", { date: "2026-09-01" }, ["user-3"]],
+      ["hall", { date_from: "2026-08-01", date_to: "2026-08-31" }, ["hall-1", "hall-2"]],
+    ])("requests the %s Z-report detail dimension with repeated ids", async (dimension, period, ids) => {
+      await reportsService.getZReportDetail({ ...period, dimension, ids });
+      expect(api.get).toHaveBeenLastCalledWith("/analytics/z-report/detail", {
+        params: { ...period, dimension, ids },
+        paramsSerializer: { indexes: null },
+      });
+      const [, config] = api.get.mock.calls.at(-1);
+      // one date mode only, no percentage, no menu dimension
+      expect(Object.keys(config.params).includes("date")).toBe(!period.date_from);
+      expect(config.params).not.toHaveProperty("waiter_percent");
+      expect(config.params.dimension).not.toBe("menu");
+    });
+
+    it("serializes detail ids as ids=A&ids=B, the form FastAPI's list[UUID] requires", () => {
+      // Axios' default array serializer emits ids[]=A&ids[]=B, which the
+      // canonical backend rejects with 422 "Field required" — so this asserts
+      // the real wire output of the exact config getZReportDetail passes.
+      const client = axios.create({ baseURL: "http://localhost:8000/api/v1" });
+      const uri = client.getUri({
+        url: "/analytics/z-report/detail",
+        params: { date: "2026-09-01", dimension: "waiter", ids: ["A", "B"] },
+        paramsSerializer: { indexes: null },
+      });
+      expect(uri).toContain("dimension=waiter&ids=A&ids=B");
+      expect(uri).not.toContain("ids%5B%5D");
+      expect(uri).not.toContain("ids=A%2CB");
+    });
+
+    it.each([
       ["orders", reportsService.listOrders, "/reports/orders"],
       ["tables", reportsService.listTables, "/reports/tables"],
       ["waiters", reportsService.listWaiters, "/reports/waiters"],
@@ -97,6 +130,26 @@ describe("Web domain service contracts", () => {
       expect(api.get).toHaveBeenLastCalledWith(endpoint, {
         params: { date_from: "2026-08-01", date_to: "2026-08-13" },
       });
+    });
+
+    it("maps the seven supported Orders report filters", async () => {
+      await reportsService.listOrders("2026-08-01", "2026-08-13", {
+        filters: {
+          orderNumber: "  A-42  ", waiterId: "waiter-1", cashierId: "cashier-1",
+          productId: "product-1", orderType: "dine_in", orderStatus: "completed",
+          paymentMethod: "cash",
+        },
+      });
+      expect(api.get).toHaveBeenLastCalledWith("/reports/orders", {
+        params: {
+          date_from: "2026-08-01", date_to: "2026-08-13", order_number: "A-42",
+          waiter_id: "waiter-1", cashier_id: "cashier-1", product_id: "product-1",
+          order_type: "dine_in", order_status: "completed", payment_method: "cash",
+        },
+      });
+
+      await reportsService.getOrdersFilters();
+      expect(api.get).toHaveBeenLastCalledWith("/reports/orders/filters", {});
     });
 
     it("maps the four supported Tables filters and keeps Place UI-only", async () => {
@@ -115,6 +168,26 @@ describe("Web domain service contracts", () => {
 
       await reportsService.getTablesFilters();
       expect(api.get).toHaveBeenLastCalledWith("/reports/tables/filters", {});
+    });
+
+    it("maps supported Dishes report filters without sending UI-only fields", async () => {
+      await reportsService.listDishes("2026-08-01", "2026-08-13", {
+        filters: {
+          query: "  Плов  ", authorId: "author-1", cookId: "cook-unsupported",
+          productId: "product-1", orderType: "dine_in", orderStatus: "completed",
+          categoryId: "category-1", paymentMethod: "cash",
+        },
+      });
+      expect(api.get).toHaveBeenLastCalledWith("/reports/dishes", {
+        params: {
+          date_from: "2026-08-01", date_to: "2026-08-13", query: "Плов",
+          author_id: "author-1", product_id: "product-1", order_type: "dine_in",
+          order_status: "completed", category_id: "category-1", payment_method: "cash",
+        },
+      });
+
+      await reportsService.getDishesFilters();
+      expect(api.get).toHaveBeenLastCalledWith("/reports/dishes/filters", {});
     });
 
     it("maps dashboard analytics without fallback data", async () => {

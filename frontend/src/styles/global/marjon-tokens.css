@@ -96,6 +96,16 @@
     /* Resting fill of a disabled OWNER action button (calm, clearly not the
        accent, still readable). */
     --owner-control-disabled: #eff2f9;
+    /* OWNER Excel export green. A SEPARATE semantic from --owner-accent: on the
+       Отчёты pages "Скачать Excel" is an export, not a filter/apply action, and
+       the two must stay visually distinguishable. Excel = green,
+       filter/action = --owner-accent. Only the ordinary Reports export buttons
+       opt in; Z-report Print stays on --owner-accent. */
+    --owner-excel:            #00d26a;
+    --owner-excel-hover:      #00b95d;
+    --owner-excel-active:     #00a151;
+    --owner-excel-ring:       rgba(0, 210, 106, 0.28);
+
     /* Interactive */
     --color-interactive:        var(--blue-600);
     --color-interactive-hover:  var(--blue-700);

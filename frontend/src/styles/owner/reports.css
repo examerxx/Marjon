@@ -48,8 +48,8 @@
   height: 40px;
   padding: 0 16px;
   border-radius: 10px;
-  border: 1px solid var(--color-brand, #1db5b5);
-  background: var(--color-brand, #1db5b5);
+  border: 1px solid var(--owner-accent, #1fc9c9);
+  background: var(--owner-accent, #1fc9c9);
   color: #ffffff;
   font: inherit;
   font-size: 14px;
@@ -58,15 +58,15 @@
   transition: background 160ms ease, border-color 160ms ease, opacity 160ms ease;
 }
 .owner-reports__shift-print:hover:not(:disabled) {
-  background: var(--color-brand-dark, #0fa3a3);
-  border-color: var(--color-brand-dark, #0fa3a3);
+  background: var(--owner-accent-hover, #1bb1b1);
+  border-color: var(--owner-accent-hover, #1bb1b1);
 }
 .owner-reports__shift-print:focus-visible {
-  outline: 2px solid var(--color-brand, #1db5b5);
+  outline: 2px solid var(--owner-accent, #1fc9c9);
   outline-offset: 2px;
 }
 .owner-reports__shift-print:disabled {
-  background: var(--neutral-100, #eef2f8);
+  background: var(--owner-control-disabled, #eff2f9);
   border-color: rgba(15, 35, 60, 0.08);
   color: var(--neutral-500, #64748b);
   cursor: not-allowed;
@@ -911,6 +911,27 @@
   fill: none;
 }
 
+/* ---- Ordinary Reports person filter (Orders / Dishes / Tables) ----
+   <ReportPersonSelect> reuses the owner-msel panel + checkbox visuals above so
+   the ordinary reports and the Z-report read as one control family. Only the
+   positioning root and the keyboard-active row are added here; the field box
+   itself joins the shared .report-filters-grid field rule further down, so the
+   control matches the neighbouring inputs/selects exactly. */
+.report-person-select {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+/* Keyboard-highlighted row (ArrowUp/ArrowDown). The Z-report component never
+   sets .is-active, so this cannot repaint the frozen Z-report screen. */
+.owner-msel__option.is-active {
+  background: rgba(31, 201, 201, 0.12);
+}
+.owner-msel__option-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* ============================================================
    OWNER Reports — shared empty-state visual system.
@@ -1005,7 +1026,7 @@
   margin: 1px 0 0;
   border: 0;
   border-radius: 999px;
-  background: var(--color-brand, #1db5b5);
+  background: var(--owner-accent, #1fc9c9);
 }
 
 .owner-report-kicker,
@@ -1101,9 +1122,9 @@
 .owner-report-view .report-period-button:hover,
 .owner-report-view .report-period-button[aria-expanded="true"],
 .owner-report-view .report-period-button:focus-visible {
-  border-color: rgba(29, 181, 181, 0.7);
-  background: rgba(29, 181, 181, 0.035);
-  box-shadow: 0 0 0 3px rgba(29, 181, 181, 0.13);
+  border-color: rgba(31, 201, 201, 0.7);
+  background: rgba(31, 201, 201, 0.035);
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.13);
   outline: 0;
 }
 
@@ -1132,17 +1153,18 @@
 .owner-report-view .tables-filter-toggle[aria-expanded="true"],
 .owner-report-view .cancelled-filter-button:hover,
 .owner-report-view .cancelled-filter-button:focus-visible {
-  border-color: rgba(29, 181, 181, 0.68);
-  background: rgba(29, 181, 181, 0.045);
+  border-color: rgba(31, 201, 201, 0.68);
+  background: rgba(31, 201, 201, 0.045);
   outline: 0;
-  box-shadow: 0 0 0 3px rgba(29, 181, 181, 0.12);
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.12);
 }
 
 .orders-report-page .orders-filter-toggle,
 .dishes-report-page .dishes-filter-toggle,
-.tables-report-page .tables-filter-toggle {
-  border-color: var(--color-brand, #1db5b5);
-  background: var(--color-brand, #1db5b5);
+.tables-report-page .tables-filter-toggle,
+.cancelled-report-page .cancelled-filter-button {
+  border-color: var(--owner-accent, #1fc9c9);
+  background: var(--owner-accent, #1fc9c9);
   color: #ffffff;
 }
 
@@ -1154,12 +1176,20 @@
 .dishes-report-page .dishes-filter-toggle[aria-expanded="true"],
 .tables-report-page .tables-filter-toggle:hover,
 .tables-report-page .tables-filter-toggle:focus-visible,
-.tables-report-page .tables-filter-toggle[aria-expanded="true"] {
-  border-color: var(--color-brand-dark, #0fa3a3);
-  background: var(--color-brand-dark, #0fa3a3);
+.tables-report-page .tables-filter-toggle[aria-expanded="true"],
+.cancelled-report-page .cancelled-filter-button:hover,
+.cancelled-report-page .cancelled-filter-button:focus-visible {
+  border-color: var(--owner-accent-hover, #1bb1b1);
+  background: var(--owner-accent-hover, #1bb1b1);
   color: #ffffff;
 }
 
+/* "Скачать Excel" keeps its own GREEN semantic. It is an export, not a
+   filter/apply action, so it must stay distinguishable from Фильтровать: the
+   accent (--owner-accent) marks actions that change what the report shows, the
+   green marks the one control that takes data out of it. Loaded after
+   dishes.css / report-datepicker.css / react-overrides.css, so these equal
+   specificity rules win over the legacy per-page greens without !important. */
 .owner-report-view .owner-report-excel {
   display: inline-flex;
   align-items: center;
@@ -1167,26 +1197,31 @@
   gap: 8px;
   min-width: 142px;
   padding: 0 15px;
-  border: 1px solid rgba(18, 142, 103, 0.34);
-  background: rgba(18, 142, 103, 0.075);
-  color: #147a5c;
+  border: 1px solid var(--owner-excel, #00d26a);
+  background: var(--owner-excel, #00d26a);
+  color: #ffffff;
   box-shadow: none;
 }
 
 .owner-report-view .owner-report-excel:hover,
 .owner-report-view .owner-report-excel:focus-visible {
-  border-color: rgba(18, 142, 103, 0.58);
-  background: rgba(18, 142, 103, 0.12);
-  color: #0f684e;
+  border-color: var(--owner-excel-hover, #00b95d);
+  background: var(--owner-excel-hover, #00b95d);
+  color: #ffffff;
   outline: 0;
-  box-shadow: 0 0 0 3px rgba(18, 142, 103, 0.11);
+  box-shadow: 0 0 0 3px var(--owner-excel-ring, rgba(0, 210, 106, 0.28));
+}
+
+.owner-report-view .owner-report-excel:active {
+  border-color: var(--owner-excel-active, #00a151);
+  background: var(--owner-excel-active, #00a151);
 }
 
 .orders-report-page .owner-report-excel,
 .dishes-report-page .owner-report-excel,
 .tables-report-page .owner-report-excel {
-  border-color: #1fb141;
-  background: #1fb141;
+  border-color: var(--owner-excel, #00d26a);
+  background: var(--owner-excel, #00d26a);
   color: #ffffff;
 }
 
@@ -1196,8 +1231,8 @@
 .dishes-report-page .owner-report-excel:focus-visible,
 .tables-report-page .owner-report-excel:hover,
 .tables-report-page .owner-report-excel:focus-visible {
-  border-color: #30c146;
-  background: #30c146;
+  border-color: var(--owner-excel-hover, #00b95d);
+  background: var(--owner-excel-hover, #00b95d);
   color: #ffffff;
 }
 
@@ -1212,9 +1247,9 @@
 }
 
 .owner-report-view :is(input, select):focus-visible {
-  border-color: rgba(29, 181, 181, 0.76);
+  border-color: rgba(31, 201, 201, 0.76);
   outline: 0;
-  box-shadow: 0 0 0 3px rgba(29, 181, 181, 0.13);
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.13);
 }
 
 .owner-report-view .report-filter-panel,
@@ -1244,7 +1279,8 @@
 
 .owner-report-view .report-filter-panel :is(input, select),
 .owner-report-view .cancelled-filter-panel :is(input, select),
-.owner-report-view .report-filters-grid :is(input, select) {
+.owner-report-view .report-filters-grid :is(input, select),
+.owner-report-view .report-person-select__trigger {
   height: 43px;
   min-height: 43px;
   width: 100%;
@@ -1258,6 +1294,14 @@
   font-size: 13px;
 }
 
+/* Person filter: same disabled fill as every other disabled report control. */
+.owner-report-view .report-person-select__trigger:disabled {
+  cursor: not-allowed;
+  border-color: rgba(15, 35, 60, 0.11);
+  background: var(--owner-control-disabled, #eff2f9);
+  color: var(--neutral-500, #64748b);
+}
+
 .orders-report-page .report-filters-grid,
 .dishes-report-page .report-filters-grid,
 .tables-report-page .report-filters-grid {
@@ -1269,10 +1313,203 @@
   padding: 12px;
 }
 
+/* REPORT-02: the Orders rows are keyboard-activatable (role=button, tabindex)
+   so the details drawer is reachable without a mouse — give that focus a
+   clear, on-brand ring instead of relying on the default (which the table's
+   overflow clip can hide). Scoped to Orders only. */
+.orders-report-page .owner-report-table tbody tr.owner-report-row-click {
+  cursor: pointer;
+}
+.orders-report-page .owner-report-table tbody tr.owner-report-row-click:focus-visible {
+  outline: 2px solid var(--owner-accent, #1fc9c9);
+  outline-offset: -2px;
+}
+
+/* REPORT-02 user polish (Orders only) — do NOT globalise.
+   1) Header controls use a 22px pill radius. Radius ONLY: height/padding/
+      colour/border/spacing are inherited unchanged from the shared button base
+      (10px there stays for every other report page). */
+.orders-report-page .report-actions .report-period-button,
+.orders-report-page .report-actions .orders-filter-toggle,
+.orders-report-page .report-actions .report-excel-button {
+  border-radius: 22px;
+}
+
+/* 2) Title accent matches Settings → «Места» 1:1
+   (.settings-owner-view .settings-accent-bar: 8×44 pill, #16c6c8, soft shadow,
+   centred against the eyebrow/title block with a 14px gap). The shared report
+   accent is a 4×42 teal bar top-aligned with a 12px gap — overridden here for
+   Orders only, text untouched. */
+.orders-report-page .report-title-group.owner-report-heading {
+  align-items: center;
+  gap: 14px;
+}
+.orders-report-page .owner-report-heading .report-accent-bar {
+  width: 8px;
+  min-width: 8px;
+  height: 44px;
+  margin: 0;
+  border-radius: 999px;
+  background: #16c6c8;
+  box-shadow: 0 8px 17px rgba(37, 99, 235, 0.154);
+}
+
+/* REPORT-02 visual polish #2 (Orders only) ------------------------------- */
+/* Filter panel open/close disclosure: grid-rows 0fr→1fr + fade + slight lift,
+   ~200ms ease-out. The panel stays mounted so the CLOSE animation is visible;
+   `inert` (set in JSX when closed) keeps its controls out of the tab order.
+   Inner overflow is hidden during the height transition, then flipped visible
+   200ms in so an opened dropdown menu can escape the panel without clipping. */
+.orders-report-page .orders-filter-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-4px);
+  margin: 0;
+  transition: grid-template-rows 200ms ease, opacity 200ms ease, transform 200ms ease;
+}
+.orders-report-page .orders-filter-collapse.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: none;
+  margin: 0 0 16px;
+}
+.orders-report-page .orders-filter-collapse__inner {
+  min-height: 0;
+  overflow: hidden;
+}
+.orders-report-page .orders-filter-collapse.is-open .orders-filter-collapse__inner {
+  overflow: visible;
+  transition: overflow 0s 200ms;
+}
+/* The grid keeps its own inner margin off now that the collapse owns spacing. */
+.orders-report-page .orders-filter-collapse .report-filters-grid {
+  margin: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .orders-report-page .orders-filter-collapse,
+  .orders-report-page .orders-filter-collapse.is-open .orders-filter-collapse__inner {
+    transition: none;
+  }
+}
+
+/* Inner action buttons: 22px pill radius (radius only; colour/size unchanged). */
+.orders-report-page .report-filter-buttons .report-filter-apply,
+.orders-report-page .report-filter-buttons .report-filter-clear {
+  border-radius: 22px;
+}
+
+/* Custom filter dropdown — same visual language as the Settings → Место
+   `.settings-select` reference (white rounded panel, subtle border+shadow,
+   soft-cyan hover/active, dark text). Scoped to Orders; no native <select>. */
+.orders-report-page .orders-filter-select {
+  position: relative;
+  display: block;
+}
+.orders-report-page .orders-filter-select__trigger {
+  width: 100%;
+  min-height: 43px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid rgba(15, 35, 60, 0.14);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--neutral-950, #071428);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.orders-report-page .orders-filter-select__trigger.is-placeholder {
+  color: var(--neutral-500, #94a3b8);
+}
+.orders-report-page .orders-filter-select__trigger:hover:not(:disabled) {
+  border-color: rgba(31, 201, 201, 0.55);
+}
+.orders-report-page .orders-filter-select__trigger:focus-visible,
+.orders-report-page .orders-filter-select__trigger[aria-expanded="true"] {
+  border-color: var(--owner-accent, #1fc9c9);
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.18);
+  outline: none;
+}
+/* Disabled report control: the shared OWNER disabled fill, not a blunt opacity
+   fade (which dimmed the border and text unevenly against the white row). */
+.orders-report-page .orders-filter-select__trigger:disabled {
+  cursor: not-allowed;
+  border-color: rgba(15, 35, 60, 0.11);
+  background: var(--owner-control-disabled, #eff2f9);
+  color: var(--neutral-500, #64748b);
+}
+.orders-report-page .orders-filter-select__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.orders-report-page .orders-filter-select__chevron {
+  display: inline-grid;
+  place-items: center;
+  color: var(--neutral-500, #94a3b8);
+  flex: 0 0 auto;
+}
+.orders-report-page .orders-filter-select__menu {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--color-card, #fff);
+  border: 1px solid rgba(15, 35, 60, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 35, 60, 0.14);
+}
+.orders-report-page .orders-filter-select__option {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--neutral-900, #0b1f3f);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  text-align: left;
+  cursor: pointer;
+}
+.orders-report-page .orders-filter-select__option:hover,
+.orders-report-page .orders-filter-select__option.is-active {
+  background: rgba(31, 201, 201, 0.1);
+}
+.orders-report-page .orders-filter-select__option.is-selected {
+  color: var(--owner-accent-hover, #1bb1b1);
+}
+.orders-report-page .orders-filter-select__option:focus-visible {
+  outline: 2px solid rgba(31, 201, 201, 0.5);
+  outline-offset: -2px;
+}
+
 .orders-report-page .orders-filter-panel[hidden],
 .dishes-report-page .dishes-filter-panel[hidden],
 .tables-report-page .tables-filter-panel[hidden] {
   display: none;
+}
+
+.tables-report-page .report-filter-buttons {
+  grid-column: 4;
 }
 
 .owner-report-view .report-filter-input,
@@ -1316,7 +1553,7 @@
   cursor: not-allowed;
   opacity: 1;
   border-color: rgba(15, 35, 60, 0.11);
-  background: #f3f6f9;
+  background: var(--owner-control-disabled, #eff2f9);
   color: var(--neutral-500, #64748b);
   -webkit-text-fill-color: var(--neutral-500, #64748b);
 }
@@ -1350,15 +1587,15 @@
 }
 
 .owner-report-view .report-filter-apply {
-  border: 1px solid var(--color-brand, #1db5b5);
-  background: var(--color-brand, #1db5b5);
+  border: 1px solid var(--owner-accent, #1fc9c9);
+  background: var(--owner-accent, #1fc9c9);
   color: #ffffff;
 }
 
 .owner-report-view .report-filter-apply:hover,
 .owner-report-view .report-filter-apply:focus-visible {
-  border-color: var(--color-brand-dark, #0fa3a3);
-  background: var(--color-brand-dark, #0fa3a3);
+  border-color: var(--owner-accent-hover, #1bb1b1);
+  background: var(--owner-accent-hover, #1bb1b1);
 }
 
 .owner-report-view .report-filter-clear {
@@ -1376,7 +1613,57 @@
 
 .owner-report-view .report-filter-buttons button:focus-visible {
   outline: 0;
-  box-shadow: 0 0 0 3px rgba(29, 181, 181, 0.14);
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.14);
+}
+
+.dishes-report-page .report-active-filters {
+  min-height: 0;
+  margin: 0 0 12px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--neutral-500, #64748b);
+  font-size: 12px;
+}
+
+.dishes-report-page .report-active-filters span {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.cancelled-report-page .cancelled-filter-panel {
+  display: grid;
+  grid-template-columns: minmax(155px, 0.8fr) minmax(240px, 1.4fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.cancelled-report-page .cancelled-filter-button {
+  align-self: end;
+}
+
+.waiters-report-page .z-waiters-report__select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.waiters-report-page .z-waiters-report__select select {
+  width: 210px;
+  padding: 0 40px 0 12px;
+  border: 1px solid rgba(15, 35, 60, 0.14);
+  background: #ffffff;
+  color: var(--neutral-800, #1e293b);
+  appearance: none;
+}
+
+.waiters-report-page .z-waiters-report__select > svg {
+  position: absolute;
+  right: 13px;
+  color: var(--neutral-500, #64748b);
+  pointer-events: none;
 }
 
 .owner-report-table-scroll,
@@ -1435,12 +1722,17 @@
   text-transform: uppercase;
 }
 
+.cancelled-report-page .owner-report-table th,
+.cancelled-report-page .owner-report-table td {
+  width: auto;
+}
+
 .owner-report-view .owner-report-table tbody tr:last-child td {
   border-bottom: 0;
 }
 
 .owner-report-view .owner-report-table tbody tr:not(.report-empty-row):not(.cancelled-empty-row):hover td {
-  background: rgba(29, 181, 181, 0.035);
+  background: rgba(31, 201, 201, 0.035);
 }
 
 .owner-report-view .report-total-row td,
@@ -1476,7 +1768,7 @@
   height: 34px;
   flex: 0 0 34px;
   border-radius: 10px;
-  background: rgba(29, 181, 181, 0.09);
+  background: rgba(31, 201, 201, 0.09);
   color: #148e8e;
 }
 
@@ -1497,8 +1789,18 @@
   font-weight: 450;
 }
 
-.tables-report-page .report-filter-buttons {
-  grid-column: 4;
+.cancelled-report-page .cancelled-pagination {
+  margin-top: 14px;
+}
+
+@media (max-width: 1180px) {
+  .cancelled-report-page .cancelled-filter-panel {
+    grid-template-columns: repeat(3, minmax(145px, 1fr));
+  }
+
+  .cancelled-report-page .cancelled-filter-panel__search {
+    grid-column: span 2;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -1525,10 +1827,11 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .orders-report-page .report-filter-buttons,
+  .dishes-report-page .report-filter-buttons,
   .tables-report-page .report-filter-buttons {
     grid-column: 1 / -1;
   }
-
 }
 
 @media (max-width: 768px) {
@@ -1567,6 +1870,16 @@
     flex: 1 1 180px;
   }
 
+  .owner-report-view .owner-report-excel,
+  .owner-report-view .orders-filter-toggle,
+  .owner-report-view .dishes-filter-toggle,
+  .owner-report-view .tables-filter-toggle,
+  .owner-report-view .owner-reports__shift-print,
+  .owner-report-view .owner-reports__date,
+  .waiters-report-page .z-waiters-report__select,
+  .waiters-report-page .z-waiters-report__select select {
+    width: 100%;
+  }
 
   .orders-report-page .owner-report-actions,
   .dishes-report-page .owner-report-actions,
@@ -1590,14 +1903,35 @@
   .tables-report-page .owner-report-actions :is(.tables-filter-toggle, .owner-report-excel) {
     width: auto;
   }
+
+  .orders-report-page .report-filter-panel,
+  .cancelled-report-page .cancelled-filter-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .cancelled-report-page .cancelled-filter-panel__search {
+    grid-column: auto;
+  }
+
+  .dishes-report-page .report-filter-buttons > button {
+    flex: 1 1 0;
+  }
+
   .owner-report-empty {
     min-height: 108px;
     padding: 18px 14px;
   }
-  .tables-report-page .owner-report-table {
-    min-width: 680px;
+
+  .orders-report-page .owner-report-table,
+  .dishes-report-page .owner-report-table,
+  .cancelled-report-page .owner-report-table {
+    min-width: 920px;
   }
 
+  .tables-report-page .owner-report-table,
+  .waiters-report-page .owner-report-table {
+    min-width: 680px;
+  }
 }
 
 @media (max-width: 600px) {
@@ -1615,23 +1949,30 @@
 }
 
 @media (max-width: 480px) {
+
+  .orders-report-page .report-filters-grid,
+  .dishes-report-page .report-filters-grid,
+  .tables-report-page .report-filters-grid {
+    grid-template-columns: 1fr;
+  }
+
   .owner-report-actions > *,
   .z-waiters-report__controls.owner-report-actions > *,
   .owner-reports__head-actions.owner-report-actions > * {
     flex-basis: 100%;
   }
-  .tables-report-page .report-filters-grid {
-    grid-template-columns: 1fr;
-  }
 
+  .orders-report-page .report-filter-buttons,
+  .dishes-report-page .report-filter-buttons,
   .tables-report-page .report-filter-buttons {
     flex-direction: column;
   }
 
+  .orders-report-page .report-filter-buttons > button,
+  .dishes-report-page .report-filter-buttons > button,
   .tables-report-page .report-filter-buttons > button {
     width: 100%;
   }
-
 }
 
 @media (prefers-reduced-motion: reduce) {

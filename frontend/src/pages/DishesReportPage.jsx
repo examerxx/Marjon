@@ -8,16 +8,65 @@ import { toApiDate } from "./reports/reportPeriod";
 
 const initialFilters = {
   query: "",
-  status: "all",
+  authorId: "all",
+  cookId: "all",
+  productId: "all",
+  orderType: "all",
+  orderStatus: "all",
+  categoryId: "all",
+  paymentMethod: "all",
 };
 
 const filterNames = {
   query: "Поиск",
-  status: "Статус",
+  authorId: "Официант",
+  cookId: "Повар",
+  productId: "Продукт",
+  orderType: "Тип заказа",
+  orderStatus: "Статус заказа",
+  categoryId: "Категория",
+  paymentMethod: "Тип оплаты",
 };
 
-function optionLabel(value) {
-  return value === "all" ? "" : value;
+const emptyFilterOptions = {
+  authors: [],
+  cooks: [],
+  products: [],
+  categories: [],
+  order_types: [],
+  order_statuses: [],
+  payment_methods: [],
+  cook_filter_supported: false,
+};
+
+const filterOptionGroups = {
+  authorId: "authors",
+  cookId: "cooks",
+  productId: "products",
+  orderType: "order_types",
+  orderStatus: "order_statuses",
+  categoryId: "categories",
+  paymentMethod: "payment_methods",
+};
+
+function optionLabel(key, value, options) {
+  if (key === "query") return value;
+  const group = options[filterOptionGroups[key]] || [];
+  return group.find((option) => option.value === value)?.label || value;
+}
+
+function FilterSelect({ label, placeholder, value, options, onChange, disabled = false }) {
+  return (
+    <label className="report-filter-select">
+      <select aria-label={label} value={value} onChange={onChange} disabled={disabled}>
+        <option value="all">{placeholder}</option>
+        {options.map((option) => (
+          <option value={option.value} key={option.value}>{option.label}</option>
+        ))}
+      </select>
+      <Icon name="bi-chevron-down" size={16} />
+    </label>
+  );
 }
 
 function formatReportMoney(value) {
@@ -33,11 +82,30 @@ export default function DishesReportPage() {
   });
   const [filters, setFilters] = useState(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
+  const [filterOptions, setFilterOptions] = useState(emptyFilterOptions);
+  const [filterOptionsLoading, setFilterOptionsLoading] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [expandedRow, setExpandedRow] = useState("");
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const beginRequest = useLatestRequest();
+  const beginOptionsRequest = useLatestRequest();
+
+  useEffect(() => {
+    const request = beginOptionsRequest();
+    setFilterOptionsLoading(true);
+    reportsService.getDishesFilters({ signal: request.signal })
+      .then(({ data }) => {
+        if (!request.isCurrent()) return;
+        setFilterOptions({ ...emptyFilterOptions, ...(data || {}) });
+      })
+      .catch((err) => {
+        if (!request.isCurrent() || isAbortError(err)) return;
+        setFilterOptions(emptyFilterOptions);
+      })
+      .finally(() => { if (request.isCurrent()) setFilterOptionsLoading(false); });
+  }, [beginOptionsRequest]);
 
   useEffect(() => {
     const request = beginRequest();
@@ -51,7 +119,7 @@ export default function DishesReportPage() {
       setLoading(false);
       return;
     }
-    reportsService.listDishes(dateFrom, dateTo, { signal: request.signal })
+    reportsService.listDishes(dateFrom, dateTo, { filters: appliedFilters, signal: request.signal })
       .then(({ data }) => {
         if (!request.isCurrent()) return;
         const items = Array.isArray(data) ? data : data?.items || data?.dishes || [];
@@ -87,16 +155,20 @@ export default function DishesReportPage() {
         setError(err.response?.data?.detail || "Не удалось загрузить отчёт по блюдам.");
       })
       .finally(() => { if (request.isCurrent()) setLoading(false); });
-  }, [beginRequest, dateRange.start, dateRange.end]);
+  }, [
+    beginRequest,
+    dateRange.start,
+    dateRange.end,
+    appliedFilters.query,
+    appliedFilters.authorId,
+    appliedFilters.productId,
+    appliedFilters.orderType,
+    appliedFilters.orderStatus,
+    appliedFilters.categoryId,
+    appliedFilters.paymentMethod,
+  ]);
 
-  const filteredRows = useMemo(() => {
-    const query = appliedFilters.query.trim().toLowerCase();
-    return rows.filter((row) => {
-      const queryMatch = !query || row.name.toLowerCase().includes(query);
-      const statusMatch = appliedFilters.status === "all" || row.status === appliedFilters.status;
-      return queryMatch && statusMatch;
-    });
-  }, [rows, appliedFilters]);
+  const filteredRows = rows;
   const totalRow = useMemo(() => {
     const sum = (key) => filteredRows.reduce((total, row) => total + Number(row[key] || 0), 0);
 
@@ -111,6 +183,7 @@ export default function DishesReportPage() {
       status: "",
     };
   }, [filteredRows]);
+  const activeFilterEntries = Object.entries(appliedFilters).filter(([, value]) => value && value !== "all");
 
   function updateFilter(key, value) {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -143,39 +216,51 @@ export default function DishesReportPage() {
   if (error) return <section className="dishes-report-page"><div className="login-error" role="alert">{error}</div></section>;
 
   return (
-    <section className="dishes-report-page">
-      <article className="report-page-card">
-        <div className="report-page-header">
-          <div className="report-title-group">
+    <section className="dishes-report-page owner-report-view">
+      <article className="report-page-card owner-report-surface">
+        <div className="report-page-header owner-report-header">
+          <div className="report-title-group owner-report-heading">
             <span className="report-accent-bar" aria-hidden="true" />
             <div>
-              <span className="report-eyebrow">Marjon reports</span>
-              <h2>Отчёт по блюдам</h2>
+              <span className="report-eyebrow owner-report-kicker">Отчёты</span>
+              <h1>Отчёт по блюдам</h1>
             </div>
           </div>
-          <div className="report-actions">
-            <ReportDateRangePicker value={dateRange} onChange={setDateRange} showDropdownIcon />
-            <button className="report-excel-button" type="button" onClick={downloadExcel}>
-              <Icon name="bi-file-earmark-excel" size={18} />
+          <div className="report-actions owner-report-actions">
+            <ReportDateRangePicker variant="canonical" value={dateRange} onChange={setDateRange} buttonAriaLabel="Период отчёта по блюдам" />
+            <button
+              className="dishes-filter-toggle"
+              type="button"
+              aria-expanded={filtersOpen}
+              aria-controls="dishes-report-filters"
+              onClick={() => setFiltersOpen((current) => !current)}
+            >
+              <Icon name="bi-sliders" size={17} />
+              Фильтровать
+            </button>
+            <button className="report-excel-button owner-report-excel" type="button" onClick={downloadExcel}>
+              <Icon name="bi-filetype-xlsx" size={19} strokeWidth={1.9} className="owner-report-xlsx-icon" />
               Скачать Excel
             </button>
           </div>
         </div>
 
-        <div className="report-filters-grid">
+        <div
+          className="report-filters-grid dishes-filter-panel"
+          id="dishes-report-filters"
+          aria-label="Фильтры отчёта по блюдам"
+          hidden={!filtersOpen}
+        >
           <label className="report-filter-input">
             <Icon name="bi-search" size={17} />
-            <input value={filters.query} onChange={(event) => updateFilter("query", event.target.value)} placeholder="Поиск по названию" />
+            <input aria-label="Поиск по названию блюда" value={filters.query} onChange={(event) => updateFilter("query", event.target.value)} placeholder="Поиск" />
           </label>
-          <label className="report-filter-select">
-            <select value={filters.status} onChange={(event) => updateFilter("status", event.target.value)}>
-              <option value="all">Все статусы</option>
-              {Array.from(new Set(rows.map((r) => r.status).filter(Boolean))).map((s) => (
-                <option value={s} key={s}>{s}</option>
-              ))}
-            </select>
-            <Icon name="bi-chevron-down" size={16} />
-          </label>
+          <FilterSelect label="Официант" placeholder="Выберите официанта" value={filters.authorId} options={filterOptions.authors} onChange={(event) => updateFilter("authorId", event.target.value)} disabled={filterOptionsLoading || !filterOptions.authors.length} />
+          <FilterSelect label="Категория" placeholder="Выберите категорию" value={filters.categoryId} options={filterOptions.categories} onChange={(event) => updateFilter("categoryId", event.target.value)} disabled={filterOptionsLoading || !filterOptions.categories.length} />
+          <FilterSelect label="Продукт" placeholder="Выберите продукт" value={filters.productId} options={filterOptions.products} onChange={(event) => updateFilter("productId", event.target.value)} disabled={filterOptionsLoading || !filterOptions.products.length} />
+          <FilterSelect label="Тип заказа" placeholder="Выберите тип заказа" value={filters.orderType} options={filterOptions.order_types} onChange={(event) => updateFilter("orderType", event.target.value)} disabled={filterOptionsLoading || !filterOptions.order_types.length} />
+          <FilterSelect label="Статус заказа" placeholder="Выберите статус заказа" value={filters.orderStatus} options={filterOptions.order_statuses} onChange={(event) => updateFilter("orderStatus", event.target.value)} disabled={filterOptionsLoading || !filterOptions.order_statuses.length} />
+          <FilterSelect label="Тип оплаты" placeholder="Выберите тип оплаты" value={filters.paymentMethod} options={filterOptions.payment_methods} onChange={(event) => updateFilter("paymentMethod", event.target.value)} disabled={filterOptionsLoading || !filterOptions.payment_methods.length} />
           <div className="report-filter-buttons">
             <button type="button" className="report-filter-apply" onClick={applyFilters}>
               <Icon name="bi-sliders" size={17} />
@@ -188,18 +273,16 @@ export default function DishesReportPage() {
           </div>
         </div>
 
-        <div className="report-active-filters" aria-label="Активные фильтры">
-          {Object.entries(appliedFilters).some(([, value]) => value && value !== "all") ? (
-            Object.entries(appliedFilters).map(([key, value]) => (
-              value && value !== "all" ? <span key={key}>{filterNames[key]}: {optionLabel(value)}</span> : null
-            ))
-          ) : (
-            <span>Показаны все блюда за выбранный период</span>
-          )}
-        </div>
+        {activeFilterEntries.length ? (
+          <div className="report-active-filters" aria-label="Активные фильтры">
+            {activeFilterEntries.map(([key, value]) => (
+              <span key={key}>{filterNames[key]}: {optionLabel(key, value, filterOptions)}</span>
+            ))}
+          </div>
+        ) : null}
 
-        <div className="report-table-wrapper">
-          <table className="report-table">
+        <div className="report-table-wrapper owner-report-table-scroll">
+          <table className="report-table owner-report-table" aria-label="Отчёт по блюдам">
             <thead>
               <tr>
                 <th>Название</th>
@@ -264,7 +347,7 @@ export default function DishesReportPage() {
               })}
               {!filteredRows.length ? (
                 <tr className="report-empty-row">
-                  <td colSpan="8">По выбранным фильтрам блюд не найдено</td>
+                  <td colSpan="8"><div className="owner-report-empty" role="status"><span className="owner-report-empty__icon"><Icon name="bi-cup-hot" size={18} /></span><div><strong>Блюд не найдено</strong><span>Измените период, поиск или статус.</span></div></div></td>
                 </tr>
               ) : null}
             </tbody>

@@ -31,8 +31,20 @@ export const reportsService = {
       paramsSerializer: REPEATED_IDS_SERIALIZER,
     });
   },
-  listOrders(dateFrom, dateTo, config = {}) {
-    return api.get("/reports/orders", { params: rangeParams(dateFrom, dateTo), ...config });
+  listOrders(dateFrom, dateTo, { filters = {}, ...config } = {}) {
+    const filterParams = compactParams({
+      order_number: filters.orderNumber?.trim(),
+      waiter_id: filters.waiterId,
+      cashier_id: filters.cashierId,
+      product_id: filters.productId,
+      order_type: filters.orderType,
+      order_status: filters.orderStatus,
+      payment_method: filters.paymentMethod,
+    });
+    return api.get("/reports/orders", { params: rangeParams(dateFrom, dateTo, filterParams), ...config });
+  },
+  getOrdersFilters(config = {}) {
+    return api.get("/reports/orders/filters", config);
   },
   listTables(dateFrom, dateTo, { filters = {}, ...config } = {}) {
     const filterParams = compactParams({
@@ -50,8 +62,20 @@ export const reportsService = {
   listWaiters(dateFrom, dateTo, config = {}) {
     return api.get("/reports/waiters", { params: rangeParams(dateFrom, dateTo), ...config });
   },
-  listDishes(dateFrom, dateTo, config = {}) {
-    return api.get("/reports/dishes", { params: rangeParams(dateFrom, dateTo), ...config });
+  listDishes(dateFrom, dateTo, { filters = {}, ...config } = {}) {
+    const filterParams = compactParams({
+      query: filters.query?.trim(),
+      author_id: filters.authorId,
+      product_id: filters.productId,
+      order_type: filters.orderType,
+      order_status: filters.orderStatus,
+      category_id: filters.categoryId,
+      payment_method: filters.paymentMethod,
+    });
+    return api.get("/reports/dishes", { params: rangeParams(dateFrom, dateTo, filterParams), ...config });
+  },
+  getDishesFilters(config = {}) {
+    return api.get("/reports/dishes/filters", config);
   },
   listCancelledDishes(dateFrom, dateTo, config = {}) {
     return api.get("/reports/cancelled", { params: rangeParams(dateFrom, dateTo), ...config });

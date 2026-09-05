@@ -131,7 +131,7 @@ describe("truthful production data states", () => {
 
     render(<OrdersReportPage />);
 
-    expect(await screen.findByText("По выбранным фильтрам заказов не найдено")).toBeInTheDocument();
+    expect(await screen.findByText("Заказов не найдено")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 

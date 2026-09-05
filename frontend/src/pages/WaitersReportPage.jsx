@@ -70,24 +70,24 @@ export default function WaitersReportPage() {
   if (error) return <section className="z-waiters-report"><div className="login-error" role="alert">{error}</div></section>;
 
   return (
-    <section className="waiters-report-page">
-      <article className="waiters-report-card z-waiters-report">
-        <div className="z-waiters-report__head">
-          <div className="z-waiters-report__title"><span aria-hidden="true" /><strong>Отчёт по официантам</strong></div>
-          <div className="z-waiters-report__controls">
-            <div className="z-waiters-report__date-picker report-actions"><ReportDateRangePicker value={dateRange} onChange={setDateRange} buttonClassName="z-waiters-report__date" showDropdownIcon /></div>
-            <label className="z-waiters-report__select"><select value={selectedWaiter} onChange={(event) => setSelectedWaiter(event.target.value)}><option value="all">Все официанты</option>{waiters.map((waiter) => <option key={waiter.key} value={waiter.key}>{waiter.name}</option>)}</select><Icon name="bi-chevron-down" size={18} /></label>
-            <button className="z-waiters-report__excel" type="button" onClick={handleExport}><Icon name="bi-file-earmark-excel" size={18} /> Скачать на Excel</button>
+    <section className="waiters-report-page owner-report-view">
+      <article className="waiters-report-card z-waiters-report owner-report-surface">
+        <div className="z-waiters-report__head owner-report-header">
+          <div className="z-waiters-report__title owner-report-heading"><span aria-hidden="true" /><div><span className="owner-report-kicker">Отчёты</span><h1>Отчёт по официантам</h1></div></div>
+          <div className="z-waiters-report__controls owner-report-actions">
+            <ReportDateRangePicker variant="canonical" value={dateRange} onChange={setDateRange} buttonAriaLabel="Период отчёта по официантам" />
+            <label className="z-waiters-report__select"><select aria-label="Официант" value={selectedWaiter} onChange={(event) => setSelectedWaiter(event.target.value)}><option value="all">Все официанты</option>{waiters.map((waiter) => <option key={waiter.key} value={waiter.key}>{waiter.name}</option>)}</select><Icon name="bi-chevron-down" size={18} /></label>
+            <button className="z-waiters-report__excel owner-report-excel" type="button" onClick={handleExport}><Icon name="bi-file-earmark-excel" size={18} /> Скачать Excel</button>
           </div>
         </div>
 
-        <div className="report-table-wrapper">
-          <table className="report-table" aria-label="Отчёт по официантам">
+        <div className="report-table-wrapper owner-report-table-scroll">
+          <table className="report-table owner-report-table" aria-label="Отчёт по официантам">
             <thead><tr><th>Имя</th><th>Количество заказов</th><th>Сумма заказов</th><th>Количество блюд</th></tr></thead>
             <tbody>
               <tr className="z-waiters-report__row--total"><td><strong>Всего</strong></td><td>{totals.ordersCount}</td><td>{formatMoney(totals.ordersTotal)}</td><td>{totals.dishesCount}</td></tr>
               {visibleRows.map((waiter) => <tr key={waiter.key}><td><strong>{waiter.name}</strong></td><td>{waiter.ordersCount}</td><td>{formatMoney(waiter.ordersTotal)}</td><td>{waiter.dishesCount}</td></tr>)}
-              {!visibleRows.length ? <tr className="report-empty-row"><td colSpan={4}>Данных по официантам за выбранный период нет</td></tr> : null}
+              {!visibleRows.length ? <tr className="report-empty-row"><td colSpan={4}><div className="owner-report-empty" role="status"><span className="owner-report-empty__icon"><Icon name="bi-people" size={18} /></span><div><strong>Данных по официантам нет</strong><span>Выберите другой период или официанта.</span></div></div></td></tr> : null}
             </tbody>
           </table>
         </div>

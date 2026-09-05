@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { formatMoney } from "../api/client";
 import { reportsService } from "../api/reports";
 import Icon from "../components/Icon";
+import ReportDateRangePicker from "../components/ReportDateRangePicker";
 import { exportToExcel } from "../utils/excel";
 import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/useAsyncSafety";
 
@@ -12,7 +13,23 @@ function currentMonthRange() {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
-  return { from: `${year}-${month}-01`, to: `${year}-${month}-${day}` };
+  return {
+    from: `${year}-${month}-01`,
+    to: `${year}-${month}-${day}`,
+    periodPreset: "",
+    startTime: "00:00",
+    endTime: "00:00",
+  };
+}
+
+function toPickerDate(value) {
+  const [year, month, day] = String(value || "").split("-");
+  return year && month && day ? `${day}.${month}.${year}` : "";
+}
+
+function toApiDate(value) {
+  const [day, month, year] = String(value || "").split(".");
+  return year && month && day ? `${year}-${month}-${day}` : "";
 }
 
 function formatDateTime(date, time) {
@@ -72,6 +89,24 @@ export default function CancelledDishesReportPage() {
   }, [rows, appliedFilters]);
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage));
   const visibleRows = filteredRows.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+  const periodValue = {
+    preset: filters.periodPreset,
+    start: toPickerDate(filters.from),
+    end: toPickerDate(filters.to),
+    startTime: filters.startTime,
+    endTime: filters.endTime,
+  };
+
+  function updatePeriod(nextPeriod) {
+    setFilters((current) => ({
+      ...current,
+      from: toApiDate(nextPeriod.start),
+      to: toApiDate(nextPeriod.end),
+      periodPreset: nextPeriod.preset || "",
+      startTime: nextPeriod.startTime || "00:00",
+      endTime: nextPeriod.endTime || "00:00",
+    }));
+  }
 
   function applyFilters() {
     setAppliedFilters(filters);
@@ -96,27 +131,28 @@ export default function CancelledDishesReportPage() {
   if (error) return <section className="cancelled-report-page"><div className="login-error" role="alert">{error}</div></section>;
 
   return (
-    <section className="cancelled-report-page">
-      <article className="cancelled-report-card">
-        <div className="cancelled-report-head">
-          <div className="cancelled-report-title"><span className="cancelled-report-title__mark" aria-hidden="true" /><div><span className="cancelled-report-eyebrow">Marjon reports</span><h2>Отчёт по отменённым блюдам</h2></div></div>
-          <button className="cancelled-report-excel" type="button" onClick={downloadExcel}><Icon name="bi-file-earmark-excel" size={18} /> Скачать Excel</button>
+    <section className="cancelled-report-page owner-report-view">
+      <article className="cancelled-report-card owner-report-surface">
+        <div className="cancelled-report-head owner-report-header">
+          <div className="cancelled-report-title owner-report-heading"><span className="cancelled-report-title__mark" aria-hidden="true" /><div><span className="cancelled-report-eyebrow owner-report-kicker">Отчёты</span><h1>Отчёт по отменённым блюдам</h1></div></div>
+          <div className="cancelled-report-actions owner-report-actions">
+            <ReportDateRangePicker variant="canonical" value={periodValue} onChange={updatePeriod} buttonAriaLabel="Период отчёта по отменённым блюдам" />
+            <button className="cancelled-report-excel owner-report-excel" type="button" onClick={downloadExcel}><Icon name="bi-file-earmark-excel" size={18} /> Скачать Excel</button>
+          </div>
         </div>
 
         <div className="cancelled-filter-panel">
-          <label><span>Дата с</span><input type="date" value={filters.from} onChange={(event) => setFilters((current) => ({ ...current, from: event.target.value }))} /></label>
-          <label><span>Дата по</span><input type="date" value={filters.to} onChange={(event) => setFilters((current) => ({ ...current, to: event.target.value }))} /></label>
           <label><span>Официант</span><select value={filters.waiter} onChange={(event) => setFilters((current) => ({ ...current, waiter: event.target.value }))}><option value="all">Все официанты</option>{waiters.map((waiter) => <option key={waiter} value={waiter}>{waiter}</option>)}</select></label>
           <label className="cancelled-filter-panel__search"><span>Поиск</span><input value={filters.query} onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))} placeholder="Блюдо, заказ, стол, официант" /></label>
           <button className="cancelled-filter-button" type="button" onClick={applyFilters}><Icon name="bi-sliders" size={18} /> Фильтровать</button>
         </div>
 
-        <div className="cancelled-table-wrap">
-          <table className="cancelled-table">
+        <div className="cancelled-table-wrap owner-report-table-scroll">
+          <table className="cancelled-table owner-report-table" aria-label="Отчёт по отменённым блюдам">
             <thead><tr><th>Дата</th><th>Номер заказа</th><th>Номер стола</th><th>Название</th><th>Официант</th><th>Ед. изм.</th><th>Количество</th><th>Цена</th></tr></thead>
             <tbody>
               {visibleRows.map((row) => <tr key={row.key}><td>{formatDateTime(row.date, row.time)}</td><td>{row.orderNumber}</td><td>{row.tableNumber ?? "—"}</td><td><strong>{row.name}</strong></td><td>{row.waiterName ?? "—"}</td><td>{row.unit}</td><td>{row.quantity}</td><td>{formatMoney(row.price, "UZS")}</td></tr>)}
-              {!visibleRows.length ? <tr className="cancelled-empty-row"><td colSpan={8}>По выбранным фильтрам отменённых блюд нет</td></tr> : null}
+              {!visibleRows.length ? <tr className="cancelled-empty-row"><td colSpan={8}><div className="owner-report-empty" role="status"><span className="owner-report-empty__icon"><Icon name="bi-x-octagon" size={18} /></span><div><strong>Отменённых блюд нет</strong><span>За выбранный период и фильтры отмены не найдены.</span></div></div></td></tr> : null}
             </tbody>
           </table>
         </div>
