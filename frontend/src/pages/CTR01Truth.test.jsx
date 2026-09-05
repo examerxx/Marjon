@@ -9,7 +9,7 @@ import OrdersReportPage from "./OrdersReportPage";
 import OwnerDashboard from "./OwnerDashboard";
 import TablesReportPage from "./TablesReportPage";
 import WaitersReportPage from "./WaitersReportPage";
-import ZReportPage, { buildPrintDocument, formatZReportPeriodLabel, validateZReportPeriod } from "./ZReportPage";
+import ZReportPage, { formatZReportPeriodLabel, validateZReportPeriod } from "./ZReportPage";
 
 vi.mock("../api/client", () => ({
   api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
@@ -85,35 +85,21 @@ describe("CTR-01 critical financial truth", () => {
     api.patch.mockResolvedValue({ data: {} });
   });
 
-  it("loads the Z-report from the authoritative endpoint for the selected date and enables the whole-shift print", async () => {
+  // ALIGNMENT-03: the whole-shift "Печать общего Z-отчёта" action was removed, so
+  // this page no longer loads /analytics/z-report at all. Per-entity print is the
+  // only print here, and its request semantics (date vs date_from/date_to) are
+  // pinned in ZReportPage.test.jsx against /analytics/z-report/detail.
+  it("no longer loads the general Z-report or offers a whole-shift print", async () => {
     api.get.mockResolvedValue({ data: zReport });
     render(<ZReportPage />);
+    await screen.findByRole("button", { name: "Отчёт по официантам" });
 
-    // Generator page no longer renders the raw shift table; the real
-    // authoritative report drives the whole-shift print (enabled once loaded).
-    // Print-document values are covered by the buildPrintDocument test below.
-    const shiftPrint = await screen.findByRole("button", { name: /Печать общего Z-отчёта/ });
-    await waitFor(() => expect(shiftPrint).toBeEnabled());
-    // A single day (start == end) sends ?date=; the mock picker mirrors both fields.
-    fireEvent.change(screen.getByLabelText("Начало периода"), { target: { value: "13.08.2026" } });
-    fireEvent.change(screen.getByLabelText("Конец периода"), { target: { value: "13.08.2026" } });
-    await waitFor(() => expect(api.get).toHaveBeenCalledWith("/analytics/z-report", expect.objectContaining({ params: { date: "2026-08-13" }, signal: expect.any(AbortSignal) })));
-    expect(screen.queryByText(/Смена закрыта/)).not.toBeInTheDocument();
-  });
-
-  it("sends a period request (date_from/date_to, never just the end) for a multi-day Z-report", async () => {
-    api.get.mockResolvedValue({ data: zReport });
-    render(<ZReportPage />);
-    await screen.findByRole("button", { name: /Печать общего Z-отчёта/ });
+    expect(screen.queryByRole("button", { name: /Печать общего Z-отчёта/ })).toBeNull();
     fireEvent.change(screen.getByLabelText("Начало периода"), { target: { value: "01.08.2026" } });
     fireEvent.change(screen.getByLabelText("Конец периода"), { target: { value: "31.08.2026" } });
-    await waitFor(() => expect(api.get).toHaveBeenCalledWith(
-      "/analytics/z-report",
-      expect.objectContaining({ params: { date_from: "2026-08-01", date_to: "2026-08-31" }, signal: expect.any(AbortSignal) }),
-    ));
-    // the whole range is sent — never reduced to the end date alone
-    const zCalls = api.get.mock.calls.filter((c) => c[0] === "/analytics/z-report");
-    expect(zCalls.some((c) => c[1]?.params?.date === "2026-08-31")).toBe(false);
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith("/auth/staff-users", expect.anything()));
+    expect(api.get.mock.calls.some((call) => call[0] === "/analytics/z-report")).toBe(false);
+    expect(screen.queryByText(/Смена закрыта/)).not.toBeInTheDocument();
   });
 
   it("formats and validates the applied Z-report period", () => {
@@ -142,26 +128,7 @@ describe("CTR-01 critical financial truth", () => {
     expect(percent).toBeDisabled();
   });
 
-  it("keeps Z-report loading and error distinct and disables the whole-shift print after failure", async () => {
-    let rejectRequest;
-    api.get.mockReturnValue(new Promise((_, reject) => { rejectRequest = reject; }));
-    render(<ZReportPage />);
-    const shiftPrint = screen.getByRole("button", { name: /Печать общего Z-отчёта/ });
-    expect(shiftPrint).toBeDisabled();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    await act(async () => rejectRequest({ response: { status: 403 } }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Доступ к Z-отчёту запрещён");
-    expect(screen.getByRole("button", { name: /Печать общего Z-отчёта/ })).toBeDisabled();
-  });
 
-  it("builds Z-report print output only from the loaded authoritative response", () => {
-    const html = buildPrintDocument(zReport);
-    expect(html).toContain("Backend card");
-    expect(html).toContain("123");
-    expect(html).not.toContain("КАССА 2");
-    expect(html).not.toContain("Khusniddin");
-    expect(html).not.toContain("Administrator");
-  });
 
   it("preserves real dashboard finance amounts without fabricated finance deltas", async () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({

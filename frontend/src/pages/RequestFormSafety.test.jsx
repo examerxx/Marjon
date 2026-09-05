@@ -150,38 +150,27 @@ describe("FE-06 request and form safety", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
-  it("keeps the newest Z-report date and treats the aborted older request as intentional", async () => {
-    const first = deferred();
-    const second = deferred();
-    const signals = [];
-    let calls = 0;
-    api.get.mockImplementation((path, config) => {
-      if (path !== "/analytics/z-report") return Promise.resolve({ data: [] });
-      calls += 1;
-      signals.push(config.signal);
-      return calls === 1 ? first.promise : second.promise;
-    });
-    render(<ZReportPage />);
-    await waitFor(() => expect(calls).toBe(1));
-    fireEvent.click(screen.getByRole("button", { name: "Период Z-отчёта" }));
-    fireEvent.change(screen.getByLabelText("Начало периода"), { target: { value: "12.08.2026" } });
-    fireEvent.click(screen.getAllByRole("button", { name: "ОК" })[0]);
-    await waitFor(() => expect(calls).toBe(2));
-    expect(signals[0].aborted).toBe(true);
-    await act(async () => second.resolve({ data: { date: "2026-08-12", is_closed: false, gross_sales: 222, discounts_total: 0, service_fee_total: 0, tax_total: 0, refunds_total: 0, net_sales: 222, orders_count: 1, avg_check: 222, payment_methods: [{ method: "Newest payment", count: 1, amount: 222 }] } }));
-    await waitFor(() => expect(screen.getByRole("button", { name: /Печать общего Z-отчёта/ })).toBeEnabled());
-    await act(async () => first.resolve({ data: { date: "2026-08-13", is_closed: false, gross_sales: 111, discounts_total: 0, service_fee_total: 0, tax_total: 0, refunds_total: 0, net_sales: 111, orders_count: 1, avg_check: 111, payment_methods: [{ method: "Obsolete payment", count: 1, amount: 111 }] } }));
-    expect(screen.queryByText("Obsolete payment")).not.toBeInTheDocument();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-  });
-
+  // ALIGNMENT-03 removed the whole-shift Z-report fetch from ZReportPage, so the
+  // page-level "newest request wins, older one aborted" case that used to be
+  // driven through /analytics/z-report has no subject here any more. The hook
+  // itself stays covered by src/hooks/useAsyncSafety.test.jsx and by the other
+  // report pages that still use it.
   it("restores Z period presets and sends a truthful month-to-date period request", async () => {
-    const zParams = [];
+    const detailParams = [];
     api.get.mockImplementation((path, config) => {
-      if (path === "/analytics/z-report") zParams.push(config?.params || {});
-      return Promise.resolve(path === "/analytics/z-report"
-        ? { data: { date: "2026-09-15", is_closed: false, payment_methods: [] } }
-        : { data: [] });
+      if (path === "/analytics/z-report/detail") {
+        detailParams.push(config?.params || {});
+        return Promise.resolve({
+          data: {
+            dimension: "hall",
+            entities: [{ entity_id: "hall-1", entity_name: "Балкон", figures: {} }],
+            totals: {},
+            coverage: [],
+          },
+        });
+      }
+      if (path === "/halls") return Promise.resolve({ data: [{ id: "hall-1", name: "Балкон" }] });
+      return Promise.resolve({ data: [] });
     });
     render(<ZReportPage />);
 
@@ -209,8 +198,22 @@ describe("FE-06 request and form safety", () => {
 
     expect(screen.getByRole("button", { name: "Период Z-отчёта" }).textContent)
       .toBe(isSingleDay ? `01.${mm}.${yyyy}` : `01.${mm}.${yyyy} – ${dd}.${mm}.${yyyy}`);
+
+    // The per-entity print is the only request this page makes now, so the
+    // applied period is verified where it actually reaches the backend.
+    fireEvent.click(await screen.findByRole("button", { name: "Отчёт по местам" }));
+    fireEvent.click(screen.getByRole("option", { name: "Балкон" }));
+    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.click(screen.getByRole("button", { name: "Печать: Отчёт по местам" }));
+    const frame = document.querySelector("iframe[data-zrd-print]");
+    if (frame?.contentWindow) {
+      frame.contentWindow.print = vi.fn();
+      frame.contentWindow.focus = vi.fn();
+    }
+
     await waitFor(() => {
-      const last = zParams[zParams.length - 1];
+      const last = detailParams[detailParams.length - 1];
+      expect(last).toBeDefined();
       if (isSingleDay) {
         expect(last.date).toBe(`${yyyy}-${mm}-01`);
         expect(last.date_from).toBeUndefined();
@@ -221,8 +224,9 @@ describe("FE-06 request and form safety", () => {
     });
     // the month's future end is never requested (unless today IS the last day)
     if (dd !== lastDay) {
-      expect(zParams.some((p) => p.date_to === `${yyyy}-${mm}-${lastDay}`)).toBe(false);
+      expect(detailParams.some((p) => p.date_to === `${yyyy}-${mm}-${lastDay}`)).toBe(false);
     }
+    document.querySelectorAll("iframe").forEach((node) => node.remove());
   });
 
   it("does not show support success before confirmation and allows a retry after failure", async () => {
