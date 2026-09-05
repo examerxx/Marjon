@@ -137,6 +137,7 @@ export function createAppRouter() {
       { path: "nomenclature", element: <Navigate to="/nomenclature/dishes" replace /> },
       { path: "nomenclature/dishes", element: <NomenclaturePage type="dishes" /> },
       { path: "nomenclature/menu", element: <MenuPage /> },
+      { path: "nomenclature/stop-list", element: <PlaceholderPage eyebrow="Меню" title="Стоп-лист" text="Здесь будут отображаться блюда, временно недоступные для продажи." /> },
       { path: "nomenclature/raw-materials", element: <NomenclaturePage type="raw" /> },
       { path: "nomenclature/semi-finished", element: <NomenclaturePage type="semi" /> },
       { path: "nomenclature/dish-categories", element: <CategoriesPage type="dishes" /> },

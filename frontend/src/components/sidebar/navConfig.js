@@ -68,6 +68,7 @@ export const navItems = [
       { key: "dishes", label: "Блюда", to: "/nomenclature/dishes", icon: "bi-cup-hot" },
       { key: "dish-categories", label: "Категория блюд", to: "/nomenclature/dish-categories", icon: "bi-grid" },
       { key: "menu", label: "Продажа", to: "/nomenclature/menu", icon: "bi-journal-bookmark" },
+      { key: "stop-list", label: "Стоп-лист", to: "/nomenclature/stop-list", icon: "bi-x-octagon" },
     ],
   },
   {
