@@ -122,13 +122,13 @@
 .owner-reports__period.report-actions .owner-reports__period-button:hover,
 .owner-reports__period.report-actions .owner-reports__period-button[aria-expanded="true"] {
   outline: 0;
-  border-color: rgba(29, 181, 181, 0.72);
+  border-color: rgba(31, 201, 201, 0.72);
   background: #ffffff;
   box-shadow: none;
 }
 .owner-reports__period.report-actions .owner-reports__period-button:focus-visible {
   outline: 0;
-  border-color: rgba(29, 181, 181, 0.72);
+  border-color: rgba(31, 201, 201, 0.72);
   background: #ffffff;
   box-shadow: none;
 }
@@ -179,14 +179,21 @@
 }
 .owner-reports__period.report-actions .report-date-presets button:focus-visible {
   outline: 0;
-  border-color: rgba(29, 181, 181, 0.58);
+  border-color: rgba(31, 201, 201, 0.58);
   background: #ffffff;
 }
+/* Active period preset = a chosen filter → solid accent, like every other
+   engaged filter control on the Отчёты pages. */
 .owner-reports__period.report-actions .report-date-presets button.is-active {
   outline: 0;
-  border-color: rgba(29, 181, 181, 0.48);
-  background: rgba(29, 181, 181, 0.08);
-  color: #0b7777;
+  border-color: var(--owner-accent, #1fc9c9);
+  background: var(--owner-accent, #1fc9c9);
+  color: #ffffff;
+}
+.owner-reports__period.report-actions .report-date-presets button.is-active:hover {
+  border-color: var(--owner-accent-hover, #1bb1b1);
+  background: var(--owner-accent-hover, #1bb1b1);
+  color: #ffffff;
 }
 .owner-reports__period.report-actions .report-date-range--labeled {
   display: grid;
@@ -227,6 +234,8 @@
 }
 .owner-reports__period.report-actions .report-date-field > span {
   display: block;
+  /* ZR-PRINT-FINAL-UX-05: each field label sits centred over its own field. */
+  text-align: center;
   color: var(--neutral-500, #64748b);
   font-size: 11px;
   font-weight: 700;
@@ -250,12 +259,12 @@
 }
 .owner-reports__period.report-actions .report-date-input:focus {
   outline: 0;
-  border-color: rgba(29, 181, 181, 0.72);
+  border-color: rgba(31, 201, 201, 0.72);
   background: #ffffff;
   box-shadow: none;
 }
 .owner-reports__period.report-actions .report-date-field.is-active .report-date-input {
-  border-color: rgba(29, 181, 181, 0.72);
+  border-color: rgba(31, 201, 201, 0.72);
   background: #ffffff;
   box-shadow: none;
 }
@@ -266,7 +275,7 @@
   padding: 0 14px;
   border: 0;
   border-radius: 9px;
-  background: var(--color-brand, #1db5b5);
+  background: var(--owner-accent, #1fc9c9);
   color: #ffffff;
   box-shadow: none;
   font: inherit;
@@ -278,7 +287,7 @@
 .owner-reports__period.report-actions .report-date-calendar-ok:hover,
 .owner-reports__period.report-actions .report-date-calendar-ok:focus-visible {
   outline: 0;
-  background: var(--color-brand-dark, #0fa3a3);
+  background: var(--owner-accent-hover, #1bb1b1);
 }
 .owner-reports__period.report-actions .report-date-error {
   margin-top: 8px;
@@ -341,14 +350,14 @@
   transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 .owner-reports__period.report-actions .report-date-calendar-toolbar button:hover {
-  border-color: rgba(29, 181, 181, 0.46);
-  background: rgba(29, 181, 181, 0.07);
+  border-color: rgba(31, 201, 201, 0.46);
+  background: rgba(31, 201, 201, 0.07);
 }
 .owner-reports__period.report-actions .report-date-calendar-toolbar button:focus-visible,
 .owner-reports__period.report-actions .report-date-calendar-toolbar select:focus-visible,
 .owner-reports__period.report-actions .report-date-today-button:focus-visible {
   outline: 0;
-  border-color: rgba(29, 181, 181, 0.68);
+  border-color: rgba(31, 201, 201, 0.68);
   box-shadow: none;
 }
 .owner-reports__period.report-actions .report-date-calendar-select {
@@ -373,7 +382,7 @@
 .owner-reports__period.report-actions .report-date-calendar-select.is-open .report-date-calendar-select__trigger,
 .owner-reports__period.report-actions .report-date-calendar-select__trigger:focus-visible {
   outline: 0;
-  border-color: rgba(29, 181, 181, 0.68);
+  border-color: rgba(31, 201, 201, 0.68);
   background: #ffffff;
   box-shadow: none;
 }
@@ -420,11 +429,11 @@
 .owner-reports__period.report-actions .report-date-calendar-toolbar .report-date-calendar-select__option:focus-visible {
   outline: 0;
   border: 0;
-  background: rgba(29, 181, 181, 0.06);
+  background: rgba(31, 201, 201, 0.06);
   box-shadow: none;
 }
 .owner-reports__period.report-actions .report-date-calendar-toolbar .report-date-calendar-select__option.is-selected {
-  background: rgba(29, 181, 181, 0.1);
+  background: rgba(31, 201, 201, 0.1);
   color: #0b7777;
   font-weight: 700;
 }
@@ -440,7 +449,7 @@
 .owner-reports__period.report-actions .report-date-calendar-grid button.is-in-range {
   border-radius: 0;
   color: #0b7777;
-  background: rgba(29, 181, 181, 0.075);
+  background: rgba(31, 201, 201, 0.075);
   font-weight: 600;
 }
 .owner-reports__period.report-actions .report-date-calendar-grid button.is-in-range:nth-child(7n + 1) {
@@ -450,13 +459,13 @@
   border-radius: 0 5px 5px 0;
 }
 .owner-reports__period.report-actions .report-date-calendar-grid button.is-today:not(.is-selected):not(.is-in-range) {
-  box-shadow: inset 0 0 0 1px rgba(29, 181, 181, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(31, 201, 201, 0.72);
   color: #0b7777;
   font-weight: 700;
 }
 .owner-reports__period.report-actions .report-date-calendar-grid button.is-selected {
   color: #ffffff;
-  background: var(--color-brand, #1db5b5);
+  background: var(--owner-accent, #1fc9c9);
   box-shadow: none;
 }
 .owner-reports__period.report-actions .report-date-calendar-grid button.is-selected.is-range-start:not(.is-range-end) {
@@ -470,13 +479,16 @@
 }
 .owner-reports__period.report-actions .report-date-calendar-grid button:focus-visible:not(.is-selected) {
   outline: 0;
-  box-shadow: inset 0 0 0 1px rgba(29, 181, 181, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(31, 201, 201, 0.72);
 }
 .owner-reports__period.report-actions .report-date-time-panel { padding: 10px 7px 7px; }
 .owner-reports__period.report-actions .report-date-time-title {
   min-height: 32px;
   margin-bottom: 6px;
   font-size: 13px;
+  /* ZR-PRINT-FINAL-UX-05: «Время» is centred over the WHOLE time selector —
+     the ЧАСЫ + МИНУТЫ pair — not hung on the left edge of the panel. */
+  justify-content: center;
 }
 .owner-reports__period.report-actions .report-date-time-column-label {
   letter-spacing: 0.045em;
@@ -488,13 +500,15 @@
   font-size: 13px;
 }
 .owner-reports__period.report-actions .report-date-time-list button.is-selected {
-  color: #0b7777;
-  background: rgba(29, 181, 181, 0.11);
+  /* ZR-PRINT-FINAL-UX-05: the SELECTED hour/minute is the solid OWNER accent
+     (#1FC9C9) on #FFFFFF, not the old pale turquoise tint. */
+  color: #ffffff;
+  background: var(--owner-accent, #1fc9c9);
   font-weight: 700;
 }
 .owner-reports__period.report-actions .report-date-time-list button:focus-visible {
   outline: 0;
-  box-shadow: inset 0 0 0 1px rgba(29, 181, 181, 0.58);
+  box-shadow: inset 0 0 0 1px rgba(31, 201, 201, 0.58);
 }
 .owner-reports__period.report-actions .report-date-calendar-footer {
   grid-template-columns: 1fr auto;
@@ -508,6 +522,20 @@
   border-radius: 9px;
   box-shadow: none;
   font-size: 13px;
+  /* ZR-PRINT-FINAL-UX-05: solid accent — the OWNER accent (#1FC9C9) as the
+     background with #FFFFFF text; the pale turquoise tint was rejected. */
+  border: 1px solid var(--owner-accent, #1fc9c9);
+  background: var(--owner-accent, #1fc9c9);
+  color: #ffffff;
+}
+.owner-reports__period.report-actions .report-date-today-button:hover {
+  border-color: var(--owner-accent-hover, #1bb1b1);
+  background: var(--owner-accent-hover, #1bb1b1);
+  color: #ffffff;
+}
+.owner-reports__period.report-actions .report-date-today-button svg,
+.owner-reports__period.report-actions .report-date-today-button i {
+  color: #ffffff;
 }
 
 .owner-reports__note {
@@ -600,8 +628,8 @@
 .owner-report-row__select:focus-visible,
 .owner-report-row__percent:focus-visible {
   outline: 0;
-  border-color: var(--color-brand, #1db5b5);
-  box-shadow: 0 0 0 3px rgba(29, 181, 181, 0.16);
+  border-color: var(--owner-accent, #1fc9c9);
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.16);
 }
 .owner-report-row__select:disabled,
 .owner-report-row__percent:disabled {
@@ -637,8 +665,8 @@
   background: var(--color-card, #ffffff);
 }
 .owner-report-row__percent-wrap:focus-within {
-  border-color: var(--color-brand, #1db5b5);
-  box-shadow: 0 0 0 3px rgba(29, 181, 181, 0.16);
+  border-color: var(--owner-accent, #1fc9c9);
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.16);
 }
 .owner-report-row__percent-wrap .owner-report-row__percent {
   width: 100%;
@@ -693,6 +721,11 @@
     padding-right: 14px;
   }
 }
+/* Per-entity "Печать" (ZR-PRINT-01C is real for cashier/waiter/place).
+   ACTIONABLE (at least one entity selected) → solid OWNER accent, white glyph.
+   NON-ACTIONABLE (nothing selected, or a print already running, or the deferred
+   Menu row) → calm --owner-control-disabled fill, so "can print now" and
+   "cannot print yet" are unmistakable at a glance. */
 .owner-report-row__print {
   display: inline-flex;
   align-items: center;
@@ -700,15 +733,25 @@
   height: 40px;
   padding: 0 14px;
   border-radius: 10px;
-  border: 1px solid rgba(15, 35, 60, 0.12);
-  background: var(--color-card, #ffffff);
-  color: var(--neutral-500, #64748b);
+  border: 1px solid var(--owner-accent, #1fc9c9);
+  background: var(--owner-accent, #1fc9c9);
+  color: #ffffff;
   font: inherit;
   font-size: 14px;
   font-weight: 600;
 }
+.owner-report-row__print:hover:not(:disabled),
+.owner-report-row__print:focus-visible:not(:disabled) {
+  border-color: var(--owner-accent-hover, #1bb1b1);
+  background: var(--owner-accent-hover, #1bb1b1);
+  color: #ffffff;
+}
+.owner-report-row__print:active:not(:disabled) {
+  border-color: var(--owner-accent-active, #189d9d);
+  background: var(--owner-accent-active, #189d9d);
+}
 .owner-report-row__print:disabled {
-  background: var(--neutral-100, #eef2f8);
+  background: var(--owner-control-disabled, #eff2f9);
   border-color: rgba(15, 35, 60, 0.09);
   color: var(--neutral-500, #64748b);
   box-shadow: none;
@@ -795,8 +838,8 @@
   text-align: left;
 }
 .owner-msel__button[aria-expanded="true"] {
-  border-color: var(--color-brand, #1db5b5);
-  box-shadow: 0 0 0 3px rgba(29, 181, 181, 0.16);
+  border-color: var(--owner-accent, #1fc9c9);
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.16);
 }
 .owner-msel__placeholder {
   color: var(--neutral-500, #64748b);
@@ -834,14 +877,14 @@
   text-align: left;
 }
 .owner-msel__option:hover {
-  background: rgba(29, 181, 181, 0.08);
+  background: rgba(31, 201, 201, 0.08);
 }
 .owner-msel__option:focus-visible {
   outline: 0;
-  background: rgba(29, 181, 181, 0.12);
+  background: rgba(31, 201, 201, 0.12);
 }
 .owner-msel__option.is-checked {
-  background: rgba(29, 181, 181, 0.06);
+  background: rgba(31, 201, 201, 0.06);
 }
 .owner-msel__check {
   display: inline-flex;
@@ -856,8 +899,8 @@
   color: #ffffff;
 }
 .owner-msel__option.is-checked .owner-msel__check {
-  background: var(--color-brand, #1db5b5);
-  border-color: var(--color-brand, #1db5b5);
+  background: var(--owner-accent, #1fc9c9);
+  border-color: var(--owner-accent, #1fc9c9);
   color: #ffffff;
 }
 .owner-msel__tick {

@@ -84,6 +84,18 @@
     --color-brand-muted:   rgba(29, 181, 181, 0.12);
     --color-brand-glow:    rgba(29, 181, 181, 0.22);
 
+
+    /* OWNER active accent (REPORTS UI COLOR POLISH-01).
+       One brighter teal for OWNER *action* surfaces, deliberately separate from
+       --color-brand so POS, kitchen, auth and HQ keep the committed --teal-500
+       identity; only the surfaces that opt in use it. The Z-report period picker
+       and its per-entity Print actions are those surfaces. */
+    --owner-accent:           #1fc9c9;
+    --owner-accent-hover:     #1bb1b1;
+    --owner-accent-active:    #189d9d;
+    /* Resting fill of a disabled OWNER action button (calm, clearly not the
+       accent, still readable). */
+    --owner-control-disabled: #eff2f9;
     /* Interactive */
     --color-interactive:        var(--blue-600);
     --color-interactive-hover:  var(--blue-700);

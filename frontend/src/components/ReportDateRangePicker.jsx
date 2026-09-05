@@ -110,17 +110,21 @@ function presetRange(label) {
   };
 }
 
+// Screen-only display contract (ZR-PRINT-FINAL-UX-05): a time-bearing input
+// always reads «DD.MM.YYYY | HH:MM» — one visible separator with balanced
+// spacing. The selected HH:MM is shown even at 00:00, because it is the real
+// UI state; it never reaches the API (the canonical detail contract is
+// date-only), and it is never printed as an accounting interval.
 function toDateInputText(range, key, showTime = true) {
   const current = withDefaultTimes(range);
   if (!showTime) {
     return current[key];
   }
-  const time = current[`${key}Time`] || "00:00";
-  return time === "00:00" ? current[key] : `${current[key]} ${time}`;
+  return `${current[key]} | ${current[`${key}Time`] || "00:00"}`;
 }
 
 function fromDateInputText(value) {
-  const trimmed = value.trim();
+  const trimmed = value.trim().replace(/\s*\|\s*/, " ");
   const match = trimmed.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
 
   if (!match) {
