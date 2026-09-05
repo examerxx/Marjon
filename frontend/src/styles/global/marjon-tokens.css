@@ -84,12 +84,12 @@
     --color-brand-muted:   rgba(29, 181, 181, 0.12);
     --color-brand-glow:    rgba(29, 181, 181, 0.22);
 
-
     /* OWNER active accent (REPORTS UI COLOR POLISH-01).
-       One brighter teal for OWNER *action* surfaces, deliberately separate from
+       One brighter teal for OWNER *action* surfaces: the active sidebar item,
+       the topbar Баланс button, both Z-report print actions and the filter /
+       action buttons of the Отчёты pages. Deliberately separate from
        --color-brand so POS, kitchen, auth and HQ keep the committed --teal-500
-       identity; only the surfaces that opt in use it. The Z-report period picker
-       and its per-entity Print actions are those surfaces. */
+       identity; only the surfaces listed above opt in. */
     --owner-accent:           #1fc9c9;
     --owner-accent-hover:     #1bb1b1;
     --owner-accent-active:    #189d9d;
