@@ -19,6 +19,11 @@ from app.modules.analytics.schemas import (
     ZReportFigures,
     ZReportResponse,
 )
+from app.modules.analytics.zreport_period import (
+    ZReportPeriodRequest,
+    resolve_zreport_window,
+    validate_zreport_period,
+)
 from app.modules.auth.models import RefreshToken, User
 from app.modules.companies.models import Company
 from app.modules.fiscal.models import FiscalReceipt
@@ -245,30 +250,42 @@ class AnalyticsService:
         *,
         date_from: date | None = None,
         date_to: date | None = None,
+        period: ZReportPeriodRequest | None = None,
     ) -> ZReportResponse:
-        # Two truthful modes over the SAME raw-fact aggregation window:
+        # Two truthful date modes over the SAME raw-fact aggregation window:
         #  * single date  → [date 00:00, next-day 00:00)  (legacy, unchanged)
         #  * period        → [date_from 00:00, (date_to+1) 00:00)
         # A one-day period is byte-identical to the single-date report. All
         # queries below run ONCE over [day_start, day_end) — no per-day loop.
         #
-        # ZR-PERIOD-01C: the window is HALF-OPEN. _date_bounds already returns
-        # the NEXT local midnight as day_end, so every fact source must filter
+        # ZR-TIME-01: when the request carries time_from/time_to, the same window
+        # narrows to those company-local wall clocks instead of whole calendar
+        # days. The window itself is resolved in ONE place — zreport_period.py —
+        # shared with /z-report/detail, and the fact predicates below are
+        # unchanged: every source still filters its OWN created_at, so no
+        # accounting event timestamp is silently swapped for another column.
+        #
+        # ZR-PERIOD-01C: the window is HALF-OPEN in both modes. day_end is the
+        # NEXT local midnight (date mode) or the chosen end wall clock (time
+        # mode), so every fact source must filter
         # `created_at >= day_start AND created_at < day_end`. An inclusive
-        # `<= day_end` counted a fact stamped exactly at next-day local
-        # midnight in BOTH this report and the following day's/period's report
-        # (double counting, and a broken hand-off between adjacent periods).
-        # Keep all sources below on the identical `>= / <` contract.
+        # `<= day_end` counted a fact stamped exactly at the boundary in BOTH
+        # this report and the following one (double counting, and a broken
+        # hand-off between adjacent periods). Keep all sources below on the
+        # identical `>= / <` contract.
+        request = period or validate_zreport_period(selected_date, date_from, date_to)
         tz = await self._company_tz(company_id)
-        if date_from is not None and date_to is not None:
-            day_start = self._date_bounds(date_from, tz)[0]
-            day_end = self._date_bounds(date_to, tz)[1]
-            response_date, response_from, response_to = date_to, date_from, date_to
-            single = False
+        window = resolve_zreport_window(request, tz)
+        day_start, day_end = window.start, window.end
+        single = not request.period
+        if single:
+            response_date, response_from, response_to = request.date, None, None
         else:
-            day_start, day_end = self._date_bounds(selected_date, tz)
-            response_date, response_from, response_to = selected_date, None, None
-            single = True
+            response_date, response_from, response_to = (
+                request.date_to,
+                request.date_from,
+                request.date_to,
+            )
 
         completed_orders = await self.db.execute(
             select(
@@ -436,9 +453,13 @@ class AnalyticsService:
         *,
         date_from: date | None = None,
         date_to: date | None = None,
+        period: ZReportPeriodRequest | None = None,
     ) -> ZReportDetailResponse:
         """Per-entity Z-report sections for ONE dimension over the SAME window
-        contract as z_report: half-open [day_start, day_end), company timezone.
+        contract as z_report: half-open [day_start, day_end), company timezone,
+        resolved by the shared zreport_period resolver — including the optional
+        ZR-TIME-01 wall-clock narrowing, which changes only the window and never
+        which timestamp column a dimension is attributed by.
 
         Exactly five grouped aggregate queries plus one entity-metadata query,
         regardless of how many entities are selected — no per-entity and no
@@ -446,14 +467,18 @@ class AnalyticsService:
         facts (sums of sums are exact); only avg_check is recomputed as a ratio,
         never averaged from per-entity averages.
         """
+        request = period or validate_zreport_period(selected_date, date_from, date_to)
         tz = await self._company_tz(company_id)
-        if date_from is not None and date_to is not None:
-            day_start = self._date_bounds(date_from, tz)[0]
-            day_end = self._date_bounds(date_to, tz)[1]
-            response_date, response_from, response_to = date_to, date_from, date_to
+        window = resolve_zreport_window(request, tz)
+        day_start, day_end = window.start, window.end
+        if request.period:
+            response_date, response_from, response_to = (
+                request.date_to,
+                request.date_from,
+                request.date_to,
+            )
         else:
-            day_start, day_end = self._date_bounds(selected_date, tz)
-            response_date, response_from, response_to = selected_date, None, None
+            response_date, response_from, response_to = request.date, None, None
 
         # Dedupe preserving first-requested order: the print follows picker order.
         unique_ids: list[UUID] = []

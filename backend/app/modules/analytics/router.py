@@ -17,6 +17,10 @@ from app.modules.analytics.schemas import (
     ZReportResponse,
 )
 from app.modules.analytics.service import AnalyticsService
+from app.modules.analytics.zreport_period import (
+    TIME_QUERY_PATTERN,
+    validate_zreport_period,
+)
 from app.shared.exceptions import ValidationError
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -55,27 +59,13 @@ async def top_products(
 def _validate_zreport_period(
     date: date | None, date_from: date | None, date_to: date | None
 ) -> bool:
-    """Shared Z-report date-mode contract (ZR-PERIOD-01, unchanged).
+    """Deprecated shim kept for callers that only need the date mode flag.
 
-    Returns True for period mode, False for single-date mode; raises 422 for
-    every invalid combination. One implementation so /z-report and
-    /z-report/detail can never drift apart.
+    The canonical contract now lives in analytics/zreport_period.py so that the
+    date rules and the ZR-TIME-01 wall-clock rules cannot drift between the two
+    Z-report endpoints.
     """
-    has_single = date is not None
-    has_range = date_from is not None or date_to is not None
-    if has_single and has_range:
-        raise ValidationError("Передайте либо date, либо date_from и date_to, но не оба режима.")
-    if has_range:
-        if date_from is None or date_to is None:
-            raise ValidationError("Для периода требуются оба параметра: date_from и date_to.")
-        if date_from > date_to:
-            raise ValidationError("date_from не может быть позже date_to.")
-        if (date_to - date_from).days > 365:
-            raise ValidationError("Период не может превышать 366 дней.")
-        return True
-    if not has_single:
-        raise ValidationError("Укажите date или диапазон date_from и date_to.")
-    return False
+    return validate_zreport_period(date, date_from, date_to).period
 
 
 @router.get("/z-report", response_model=ZReportResponse)
@@ -83,14 +73,18 @@ async def z_report(
     date: date | None = Query(None),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
+    time_from: str | None = Query(None, pattern=TIME_QUERY_PATTERN),
+    time_to: str | None = Query(None, pattern=TIME_QUERY_PATTERN),
     user: User = Depends(require_web_owner),
     db: AsyncSession = Depends(get_db),
 ):
     # Backward-compatible: ?date= is a single-day report. ?date_from=&date_to=
     # is a truthful multi-day aggregation. The two modes are mutually exclusive.
-    if _validate_zreport_period(date, date_from, date_to):
-        return await AnalyticsService(db).z_report(user.company_id, date_from=date_from, date_to=date_to)
-    return await AnalyticsService(db).z_report(user.company_id, date)
+    # ZR-TIME-01: adding time_from/time_to narrows either mode to an explicit
+    # company-local wall-clock window; omitting them keeps the exact calendar-day
+    # semantics this endpoint has always had.
+    request = validate_zreport_period(date, date_from, date_to, time_from, time_to)
+    return await AnalyticsService(db).z_report(user.company_id, period=request)
 
 
 @router.get("/z-report/detail", response_model=ZReportDetailResponse)
@@ -100,25 +94,26 @@ async def z_report_detail(
     date: date | None = Query(None),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
+    time_from: str | None = Query(None, pattern=TIME_QUERY_PATTERN),
+    time_to: str | None = Query(None, pattern=TIME_QUERY_PATTERN),
     user: User = Depends(require_web_owner),
     db: AsyncSession = Depends(get_db),
 ):
     """Per-entity Z-report sections for ONE dimension.
 
-    Same two date modes and the same half-open company-timezone window as
-    /z-report. Exactly one dimension per request: the Print UI has one button
-    per row and cannot express an intersection, and intersecting two dimensions
-    would compound their separate partial coverages into a figure that
-    reconciles against nothing. Menu is deliberately absent (ZR-PRINT-01A:
-    category-level money cannot be expressed in the Z shape).
+    Same date modes, same optional ZR-TIME-01 wall-clock window and the same
+    half-open company-timezone boundaries as /z-report — both endpoints resolve
+    the window through analytics/zreport_period.py. Exactly one dimension per
+    request: the Print UI has one button per row and cannot express an
+    intersection, and intersecting two dimensions would compound their separate
+    partial coverages into a figure that reconciles against nothing. Menu is
+    deliberately absent (ZR-PRINT-01A: category-level money cannot be expressed
+    in the Z shape).
     """
-    period = _validate_zreport_period(date, date_from, date_to)
-    service = AnalyticsService(db)
-    if period:
-        return await service.z_report_detail(
-            user.company_id, dimension, ids, date_from=date_from, date_to=date_to
-        )
-    return await service.z_report_detail(user.company_id, dimension, ids, date)
+    request = validate_zreport_period(date, date_from, date_to, time_from, time_to)
+    return await AnalyticsService(db).z_report_detail(
+        user.company_id, dimension, ids, period=request
+    )
 
 
 @router.get("/z-report/detail/filters", response_model=ZReportDetailFiltersResponse)
@@ -126,6 +121,14 @@ async def z_report_detail_filters(
     user: User = Depends(require_web_owner),
     db: AsyncSession = Depends(get_db),
 ):
+    """Deliberately PERIOD-INDEPENDENT (ZR-TIME-01 audit).
+
+    These are the entities a picker may offer *now* — active staff holding the
+    cashier/waiter role and active non-deleted halls — not the entities that have
+    facts inside some window. It takes no date and no time parameters, so there
+    is nothing for a wall-clock window to narrow; adding one would hide an
+    employee who simply had no sales in the chosen hour.
+    """
     return await AnalyticsService(db).z_report_detail_filters(user.company_id)
 
 
