@@ -3,15 +3,20 @@ import { reportsService } from "../api/reports";
 import { staffService } from "../api/staff";
 import { settingsService } from "../api/settings";
 import { getCategories } from "../api/categories";
-import { isAbortError, useLatestRequest } from "../hooks/useAsyncSafety";
+import { isAbortError } from "../hooks/useAsyncSafety";
 import Icon from "../components/Icon";
 import ReportDateRangePicker, {
   formatCanonicalReportPeriodLabel,
   validateCanonicalReportPeriod,
 } from "../components/ReportDateRangePicker";
 import { formatDateLabel, todayInputValue } from "../utils/date";
-import { formatMoney } from "./reports/reportMoney";
 import { toApiDate } from "./reports/reportPeriod";
+import {
+  buildZReportDetailPrintDocument,
+  closePrintSurface,
+  openPrintSurface,
+  renderPrintSurface,
+} from "./reports/zReportDetailPrint";
 
 function currentZReportPeriod() {
   const today = formatDateLabel(todayInputValue());
@@ -20,18 +25,6 @@ function currentZReportPeriod() {
 
 export const formatZReportPeriodLabel = formatCanonicalReportPeriodLabel;
 export const validateZReportPeriod = validateCanonicalReportPeriod;
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function formatNullable(value) {
-  return value == null || value === "" ? "Недоступно" : String(value);
-}
 
 function apiList(data) {
   if (Array.isArray(data)) return data;
@@ -49,72 +42,29 @@ function hasRole(user, slug) {
   return slugs.includes(slug);
 }
 
-const financialRows = [
-  ["Валовые продажи", "gross_sales"],
-  ["Скидки", "discounts_total"],
-  ["Сервисный сбор", "service_fee_total"],
-  ["Налог", "tax_total"],
-  ["Возвраты", "refunds_total"],
-  ["Чистые продажи", "net_sales"],
-  ["Наличные", "cash_total"],
-  ["Получено наличными", "cash_received_total"],
-  ["Выдано сдачи", "change_given_total"],
-  ["Безналичные оплаты", "non_cash_total"],
-  ["Средний чек", "avg_check"],
-];
-
-const countRows = [
-  ["Заказы", "orders_count"],
-  ["Отменённые заказы", "cancelled_orders_count"],
-  ["Оплаты", "payments_count"],
-  ["Фискальные чеки", "fiscal_receipts_count"],
-];
-
-// Render the report's period as DD.MM.YYYY (single) or a range, from the
-// backend's own date / date_from / date_to — so the printout names exactly the
-// aggregation window it contains.
-function isoToDisplay(value) {
-  if (!value || typeof value !== "string") return "";
-  const [y, m, d] = value.split("-");
-  return y && m && d ? `${d}.${m}.${y}` : value;
-}
-export function formatZReportPrintPeriod(report) {
-  if (report.date_from && report.date_to) {
-    return `за период ${isoToDisplay(report.date_from)} – ${isoToDisplay(report.date_to)}`;
-  }
-  return `за ${isoToDisplay(report.date)}`;
+// ZR-PRINT-FINAL-UX-06: the printed period is the window the OWNER selected on
+// SCREEN — both endpoints, each as «DD.MM.YYYY HH:MM», joined by " - " — instead
+// of the backend's date echo, because the picker's clock time has to reach the
+// sheet. The canonical detail contract stays date-only: it accepts date /
+// date_from + date_to and ignores clock time, so the printed HH:MM states the
+// operator's SELECTION and not the boundary the aggregation actually used.
+// Frontend-only propagation, by explicit product decision for this phase.
+export function formatZReportPrintPeriod(period = {}) {
+  const stamp = (date, time) => `${date || ""} ${time || "00:00"}`.trim();
+  return `${stamp(period.start, period.startTime)} - ${stamp(period.end, period.endTime)}`;
 }
 
-export function buildPrintDocument(report) {
-  const periodLabel = formatZReportPrintPeriod(report);
-  const paymentRows = report.payment_methods.map((item) => `
-    <tr><td>${escapeHtml(item.method)}</td><td>${escapeHtml(item.count)}</td><td>${escapeHtml(formatMoney(item.amount))}</td></tr>
-  `).join("");
-  const metrics = financialRows.map(([label, key]) => `
-    <tr><td>${escapeHtml(label)}</td><td>${escapeHtml(formatMoney(report[key]))}</td></tr>
-  `).join("");
-  const counts = countRows.map(([label, key]) => `
-    <tr><td>${escapeHtml(label)}</td><td>${escapeHtml(report[key])}</td></tr>
-  `).join("");
-
-  return `<!doctype html>
-<html lang="ru"><head><meta charset="UTF-8"><title>MARJON — Z-отчёт ${escapeHtml(periodLabel)}</title>
-<style>body{font-family:Arial,sans-serif;color:#111827;margin:24px}h1{text-align:center}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{border:1px solid #d1d5db;padding:8px;text-align:left}th{background:#f3f4f6}.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px}</style>
-</head><body><h1>Z-отчёт ${escapeHtml(periodLabel)}</h1><div class="meta"><span>Период: ${escapeHtml(periodLabel)}</span><span>Смена закрыта: ${report.is_closed ? "Да" : "Нет"}</span><span>Открыта: ${escapeHtml(formatNullable(report.shift_opened_at))}</span><span>Закрыта: ${escapeHtml(formatNullable(report.shift_closed_at))}</span></div>
-<h2>Показатели</h2><table><tbody>${metrics}${counts}</tbody></table>
-<h2>Способы оплаты</h2><table><thead><tr><th>Способ</th><th>Количество</th><th>Сумма</th></tr></thead><tbody>${paymentRows || '<tr><td colspan="3">Нет оплат за выбранный период</td></tr>'}</tbody></table>
-</body></html>`;
-}
-
-// Four per-entity report generators. Their backend contracts (report by
-// cashier, per-entity waiter/place/menu filtering, waiter %) do NOT exist
-// yet on the authoritative backend, so every per-entity Print is a truthful
-// DEFERRED state ("Скоро" / "Отчёт ещё не подключён") — NOT an error, NOT fake
-// output. Selector options come from real (currently empty) backend lists.
+// Four per-entity report generators. Three are backed by the real canonical
+// contract GET /analytics/z-report/detail (dimension = cashier | waiter | hall)
+// and print for real once at least one entity is selected. Menu has NO detail
+// dimension — category-level money cannot be expressed in the Z shape — so its
+// Print stays truthfully DISABLED rather than faking a successful print.
+// Selector values are canonical backend ids: cashier/waiter = User.id (from
+// /auth/staff-users), place = Hall.id (from the canonical /halls directory).
 const REPORT_ROWS = [
-  { key: "cashier", title: "Отчёт по кассирам", empty: "Нет кассиров", role: "cashier", multi: true },
-  { key: "waiter", title: "Отчёт по официантам", empty: "Нет официантов", role: "waiter", multi: true, percent: true },
-  { key: "place", title: "Отчёт по местам", empty: "Нет мест", source: "places", multi: true },
+  { key: "cashier", title: "Отчёт по кассирам", empty: "Нет кассиров", role: "cashier", multi: true, dimension: "cashier" },
+  { key: "waiter", title: "Отчёт по официантам", empty: "Нет официантов", role: "waiter", multi: true, percent: true, dimension: "waiter" },
+  { key: "place", title: "Отчёт по местам", empty: "Нет мест", source: "places", multi: true, dimension: "hall" },
   { key: "menu", title: "Отчёт по меню", empty: "Нет категорий", source: "categories" },
 ];
 
@@ -230,14 +180,14 @@ export default function ZReportPage() {
   const reportTo = toApiDate(selectedPeriod.end);
   const isPeriod = Boolean(reportFrom && reportTo && reportFrom !== reportTo);
   const reportParams = isPeriod ? { date_from: reportFrom, date_to: reportTo } : { date: reportTo || reportFrom };
-  const [report, setReport] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const beginRequest = useLatestRequest();
   const [staff, setStaff] = useState([]);
   const [places, setPlaces] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selection, setSelection] = useState({ cashier: [], waiter: [], waiterPercent: "", place: [], menu: "" });
+  // Per-entity Print (ZR-PRINT-01C): which row is currently fetching its detail
+  // (one at a time — no duplicate Print jobs), and the last print failure.
+  const [printingRow, setPrintingRow] = useState("");
+  const [detailError, setDetailError] = useState("");
   // Position the presentational "%" exactly one pixel past the rendered digits
   // (measured with the input's real font), so the number's left edge is fixed,
   // the "%" hugs the digits, and the native number stepper stays at the right.
@@ -262,30 +212,6 @@ export default function ZReportPage() {
       return { ...prev, [key]: next };
     });
   }
-
-  // Whole-shift Z-report (the one real, backend-supported report) — for print.
-  useEffect(() => {
-    const request = beginRequest();
-    setLoading(true);
-    setError("");
-    setReport(null);
-    reportsService.getZReport(reportParams, { signal: request.signal })
-      .then(({ data }) => {
-        if (!data || typeof data !== "object" || !Array.isArray(data.payment_methods)) {
-          throw new Error("Invalid Z-report response");
-        }
-        if (request.isCurrent()) setReport(data);
-      })
-      .catch((err) => {
-        if (!request.isCurrent() || isAbortError(err)) return;
-        setError(err.response?.status === 403
-          ? "Доступ к Z-отчёту запрещён."
-          : err.response?.data?.detail || "Не удалось загрузить Z-отчёт.");
-      })
-      .finally(() => {
-        if (request.isCurrent()) setLoading(false);
-      });
-  }, [beginRequest, reportParams.date, reportParams.date_from, reportParams.date_to]);
 
   // Real selector lists (empty on a new company). Failures leave the selector
   // truthfully empty rather than fabricating names. Places come from the
@@ -314,33 +240,47 @@ export default function ZReportPage() {
     menu: categories,
   }), [staff, places, categories]);
 
-  function handleShiftPrint() {
-    if (!report || loading || error) return;
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-    iframe.setAttribute("aria-hidden", "true");
-    document.body.appendChild(iframe);
-    const printWindow = iframe.contentWindow;
-    const printDocument = printWindow?.document;
-    if (!printWindow || !printDocument) {
-      iframe.remove();
-      return;
+  // Real per-entity Print: ONE dimension per click, exactly the period the
+  // picker displays, ids = canonical backend ids in picker order. The backend
+  // returns per-entity blocks plus authoritative union totals — nothing here is
+  // summed, averaged or otherwise re-derived.
+  async function handleDetailPrint(row) {
+    const ids = selection[row.key];
+    if (!row.dimension || !Array.isArray(ids) || ids.length === 0 || printingRow) return;
+    setPrintingRow(row.key);
+    setDetailError("");
+    // Opened BEFORE the await, while the click's user activation is still live, so
+    // the dedicated print tab is never treated as a blocked popup and the user
+    // sees its waiting document immediately instead of a blank tab. It is closed
+    // again on failure, so a failed request never leaves a print surface that
+    // could look like a successful (empty) report.
+    const surface = openPrintSurface();
+    try {
+      const { data } = await reportsService.getZReportDetail({
+        ...reportParams,
+        dimension: row.dimension,
+        ids,
+      });
+      if (!data || typeof data !== "object" || !Array.isArray(data.entities) || data.entities.length === 0) {
+        throw new Error("Invalid Z-report detail response");
+      }
+      renderPrintSurface(surface, buildZReportDetailPrintDocument({
+        detail: data,
+        periodLabel: formatZReportPrintPeriod(selectedPeriod),
+        waiterPercent: selection.waiterPercent,
+      }));
+    } catch (err) {
+      closePrintSurface(surface);
+      if (!isAbortError(err)) {
+        const detail = err.response?.data?.detail;
+        setDetailError(err.response?.status === 403
+          ? `${row.title}: доступ запрещён.`
+          : `${row.title}: ${typeof detail === "string" && detail.trim() ? detail : "не удалось получить данные для печати."}`);
+      }
+    } finally {
+      setPrintingRow("");
     }
-    printDocument.open();
-    printDocument.write(buildPrintDocument(report));
-    printDocument.close();
-    printWindow.onafterprint = () => iframe.remove();
-    window.setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-      window.setTimeout(() => iframe.remove(), 60000);
-    }, 120);
   }
-
-  const shiftPrintDisabled = !report || loading || Boolean(error);
 
   return (
     <section className="owner-reports-page owner-reports-page--generator">
@@ -353,19 +293,11 @@ export default function ZReportPage() {
             onChange={setSelectedPeriod}
             buttonAriaLabel="Период Z-отчёта"
           />
-          <button
-            className="owner-reports__shift-print"
-            type="button"
-            onClick={handleShiftPrint}
-            disabled={shiftPrintDisabled}
-          >
-            <Icon name="bi-printer" size={16} /> Печать общего Z-отчёта
-          </button>
         </div>
       </header>
 
-      {error ? (
-        <div className="owner-reports__note owner-reports__note--error" role="alert">Общий Z-отчёт недоступен: {error}</div>
+      {detailError ? (
+        <div className="owner-reports__note owner-reports__note--error" role="alert">Печать не выполнена — {detailError}</div>
       ) : null}
 
       <section className="owner-reports__panel">
@@ -430,16 +362,31 @@ export default function ZReportPage() {
                 ) : null}
               </div>
               <div className="owner-report-row__action">
-                <button
-                  className="owner-report-row__print"
-                  type="button"
-                  disabled
-                  aria-disabled="true"
-                  aria-label="Печать недоступна: отчёт ещё не подключён"
-                  title="Отчёт ещё не подключён"
-                >
-                  <Icon name="bi-printer" size={16} /> Печать
-                </button>
+                {row.dimension ? (
+                  <button
+                    className="owner-report-row__print"
+                    type="button"
+                    onClick={() => handleDetailPrint(row)}
+                    disabled={selection[row.key].length === 0 || Boolean(printingRow)}
+                    aria-disabled={selection[row.key].length === 0 || Boolean(printingRow) ? "true" : undefined}
+                    aria-busy={printingRow === row.key ? "true" : undefined}
+                    aria-label={`Печать: ${row.title}`}
+                    title={selection[row.key].length === 0 ? "Выберите хотя бы одну позицию" : undefined}
+                  >
+                    <Icon name="bi-printer" size={16} /> Печать
+                  </button>
+                ) : (
+                  <button
+                    className="owner-report-row__print"
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    aria-label="Печать недоступна: отчёт ещё не подключён"
+                    title="Отчёт ещё не подключён"
+                  >
+                    <Icon name="bi-printer" size={16} /> Печать
+                  </button>
+                )}
               </div>
             </div>
           );
