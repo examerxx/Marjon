@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -31,10 +31,10 @@ const users = {
   },
 };
 
-function renderSidebar(user, initialPath = "/") {
+function renderSidebar(user, initialPath = "/", collapsed = false) {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
-      <Sidebar user={user} collapsed={false} onToggle={vi.fn()} />
+      <Sidebar user={user} collapsed={collapsed} onToggle={vi.fn()} />
     </MemoryRouter>,
   );
 }
@@ -71,6 +71,32 @@ describe("OWNER Sidebar", () => {
     expect(getLinkByHref("/finance/transactions")).toBeInTheDocument();
   });
 
+  it("keeps every visible top-level navigation icon in the collapsed rail", () => {
+    const { unmount } = renderSidebar(users.owner);
+    const expectedTopLevelCount = document.querySelectorAll(".sidebar-nav > .sidebar-nav-item").length;
+    unmount();
+
+    renderSidebar(users.owner, "/", true);
+    expect(document.querySelector(".sidebar-nav")?.parentElement).toHaveClass("sidebar-nav-scroll");
+    const collapsedItems = [...document.querySelectorAll(".sidebar-nav > .sidebar-nav-item")];
+    const collapsedIcons = collapsedItems.filter((item) => (
+      item.querySelector(":scope > .sidebar-link > .sidebar-icon")
+    ));
+    const collapsedInlineSubmenus = document.querySelectorAll(
+      ".sidebar-nav > .sidebar-nav-item.has-submenu > .sidebar-submenu",
+    );
+
+    expect(expectedTopLevelCount).toBeGreaterThan(1);
+    expect(collapsedItems).toHaveLength(expectedTopLevelCount);
+    expect(collapsedIcons).toHaveLength(expectedTopLevelCount);
+    collapsedItems.forEach((item) => {
+      const control = item.querySelector(":scope > .sidebar-link");
+      expect(control).toHaveAccessibleName();
+      expect(control).toHaveAttribute("title");
+    });
+    expect(collapsedInlineSubmenus).toHaveLength(0);
+  });
+
   it("keeps operational role links under OWNER staff management", () => {
     renderSidebar(users.owner);
 
@@ -93,6 +119,33 @@ describe("OWNER Sidebar", () => {
     expect(getLinkByHref("/settings/support")).toBeInTheDocument();
     expect(getLinkByHref("/store")).toBeInTheDocument();
     expect(getLinkByHref("/reviews")).toBeInTheDocument();
+  });
+
+  it("keeps profile and language panels mounted until their exit animations finish", async () => {
+    const user = userEvent.setup();
+    const finishAnimation = (element, animationName) => {
+      for (const eventName of ["animationend", "webkitAnimationEnd"]) {
+        const event = new Event(eventName, { bubbles: true });
+        Object.defineProperty(event, "animationName", { value: animationName });
+        fireEvent(element, event);
+      }
+    };
+    renderSidebar(users.owner);
+    await user.click(document.querySelector(".sidebar-user--button"));
+    await user.click(document.querySelector(".sidebar-account__lang-trigger"));
+
+    const languagePanel = document.querySelector(".sidebar-account__lang-panel");
+    expect(languagePanel).toBeInTheDocument();
+    await user.click(document.querySelector(".sidebar-account__lang-trigger"));
+    expect(languagePanel).toHaveClass("is-closing");
+    finishAnimation(languagePanel, "owner-lang-panel-out");
+    await waitFor(() => expect(document.querySelector(".sidebar-account__lang-panel")).not.toBeInTheDocument());
+
+    const profilePanel = document.querySelector(".sidebar-account__menu");
+    await user.click(document.querySelector(".sidebar-user--button"));
+    expect(profilePanel).toHaveClass("is-closing");
+    finishAnimation(profilePanel, "owner-account-menu-out");
+    await waitFor(() => expect(document.querySelector(".sidebar-account__menu")).not.toBeInTheDocument());
   });
 
   it.each([

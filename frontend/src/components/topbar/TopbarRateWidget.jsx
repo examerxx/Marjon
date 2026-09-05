@@ -103,7 +103,7 @@ export default function TopbarRateWidget() {
           <div className="usd-rate-popover__head">
             <div>
               <span>Официальный курс ЦБ Узбекистана</span>
-              <strong>Курсы валют к UZS</strong>
+              <strong>Курсы валют</strong>
             </div>
             <button type="button" aria-label="Закрыть" onClick={() => setRateOpen(false)}>
               <Icon name="bi-x-lg" size={18} />
@@ -149,7 +149,6 @@ export default function TopbarRateWidget() {
                 onChange={(event) => setUsdAmount(formatMoneyInput(event.target.value, converterDirection === "usd-to-uzs"))}
               />
               <span>{converterSource.label}</span>
-              <Icon name="bi-chevron-down" size={14} />
             </label>
             <label>
               <input value={convertedAmount} inputMode={converterTarget.inputMode} onChange={(event) => {
@@ -162,7 +161,6 @@ export default function TopbarRateWidget() {
                 setUsdAmount(formatMoneyInput(String((value / activeRate).toFixed(2)).replace(".", ","), true));
               }} />
               <span>{converterTarget.label}</span>
-              <Icon name="bi-chevron-down" size={14} />
             </label>
           </div>
         </div>

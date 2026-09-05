@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="55 370 430 290" fill="none">
+  <defs>
+    <linearGradient id="teal1" x1="92" y1="610" x2="302" y2="402" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#14B8A6"/>
+      <stop offset="1" stop-color="#11AAA4"/>
+    </linearGradient>
+    <linearGradient id="teal2" x1="246" y1="610" x2="453" y2="402" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#43CEC7"/>
+      <stop offset="1" stop-color="#67D8D2"/>
+    </linearGradient>
+    <linearGradient id="navy" x1="390" y1="630" x2="470" y2="525" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#061F40"/>
+      <stop offset="1" stop-color="#0A2A4F"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Left rounded slash -->
+  <rect x="39.71" y="472.12" width="316.08" height="86.27" rx="43.135"
+        transform="rotate(-45 197.75 515.25)" fill="url(#teal1)"/>
+
+  <!-- Middle rounded slash -->
+  <rect x="193.39" y="472.61" width="314.75" height="85.29" rx="42.645"
+        transform="rotate(-45.44 350.76 515.25)" fill="url(#teal2)"/>
+
+  <!-- Navy terminal mark -->
+  <path d="M461 525
+           C466 526 470 531 470 537
+           L470 599
+           C470 616 461 629 445 636
+           C434 641 420 641 408 635
+           C394 628 386 615 386 600
+           C386 589 390 580 398 571
+           L439 530
+           C445 524 453 522 461 525Z"
+        fill="url(#navy)"/>
+</svg>

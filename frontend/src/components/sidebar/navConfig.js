@@ -36,9 +36,9 @@ export const navItems = [
     children: [
       { key: "z-report", label: "Z - Отчёт", to: "/reports/z-report", icon: "bi-receipt-cutoff" },
       { key: "orders", label: "Отчёт по заказам", to: "/reports/orders", icon: "bi-receipt" },
-      { key: "tables", label: "Отчёт по столам", to: "/reports/tables", icon: "bi-grid-3x3-gap" },
       { key: "waiters", label: "Отчёт по официантам", to: "/reports/waiters", icon: "bi-person-lines-fill" },
       { key: "dishes", label: "Отчёт по блюдам", to: "/reports/dishes", icon: "bi-stars" },
+      { key: "tables", label: "Отчёт по столам", to: "/reports/tables", icon: "bi-grid-3x3-gap" },
       { key: "cancelled-dishes", label: "Отчёт по отмененным блюдам", to: "/reports/cancelled-dishes", icon: "bi-x-octagon" },
     ],
   },
@@ -88,10 +88,10 @@ export const navItems = [
     icon: "bi-file-earmark-bar-graph",
     to: "/stock-report",
     children: [
+      { key: "incoming-journal", label: "Журнал приходов", to: "/stock-report/incoming-journal", icon: "bi-clock-history" },
       { key: "incoming", label: "Приход товаров", to: "/stock-report/incoming", icon: "bi-box-arrow-in-down" },
       { key: "outgoing", label: "Расход товаров", to: "/stock-report/outgoing", icon: "bi-box-arrow-up" },
       { key: "stock", label: "Остаток", to: "/stock-report/stock", icon: "bi-boxes" },
-      { key: "incoming-journal", label: "Журнал приходов", to: "/stock-report/incoming-journal", icon: "bi-clock-history" },
       { key: "transfer", label: "Перемещение", to: "/stock-report/transfer", icon: "bi-arrow-left-right" },
       { key: "inventory", label: "Инвентаризация", to: "/stock-report/inventory", icon: "bi-clipboard-check" },
       { key: "write-off", label: "Списание", to: "/stock-report/write-off", icon: "bi-trash3" },

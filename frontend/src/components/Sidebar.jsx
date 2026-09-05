@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/marjon-logo.svg";
+import brandLogo from "../assets/brand/marjon-logo.svg";
 import { logout } from "../api/client";
 import { canAccessPath, filterNavItems, getRole } from "../utils/permissions";
 import { readStoredProfile } from "../utils/profileCache";
@@ -154,7 +155,7 @@ export default function Sidebar({ user, collapsed, onToggle }) {
             title={collapsed ? "Открыть меню" : "Свернуть меню"}
             aria-label={collapsed ? "Открыть меню" : "Свернуть меню"}
           >
-            <img src={logo} alt="MARJON" className="marjon-logo" decoding="async" />
+            <img src={brandLogo} alt="MARJON" className="marjon-logo" decoding="async" />
           </button>
           <div>
             <div className="brand-title">MARJON</div>

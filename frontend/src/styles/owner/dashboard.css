@@ -6503,7 +6503,7 @@ body.dashboard-body .dashboard-shell .sidebar-link:focus-visible {
 }
 /* ---- Active navigation (keep turquoise identity) ---- */
 body.dashboard-body .dashboard-shell .sidebar-link.is-active {
-  background: var(--color-brand, #1db5b5);
+  background: var(--owner-accent, #1fc9c9);
   color: #ffffff;
 }
 body.dashboard-body .dashboard-shell .sidebar-link.is-active .sidebar-icon,
@@ -6531,7 +6531,57 @@ body.dashboard-body .sidebar-collapsed-popover {
   background: #ffffff;
   color: var(--neutral-900, #0b1f3f);
   border: 1px solid rgba(15, 35, 60, 0.10);
-  box-shadow: 0 12px 32px rgba(15, 35, 60, 0.14);
+  box-shadow: 0 18px 30px -16px rgba(15, 35, 60, 0.24),
+    0 8px 18px -14px rgba(15, 35, 60, 0.14);
+}
+body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__link {
+  color: rgba(11, 31, 63, 0.82);
+  transition: transform 180ms ease, background-color 160ms ease,
+    color 160ms ease, border-color 160ms ease, box-shadow 180ms ease;
+}
+body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__link:not(.is-active):hover,
+body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__link:not(.is-active):focus-visible {
+  color: var(--neutral-900, #0b1f3f);
+  background: rgba(29, 181, 181, 0.08);
+  box-shadow: none;
+  transform: translateX(3px);
+}
+body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__link:not(.is-active):focus-visible {
+  outline: 2px solid var(--color-brand, #1db5b5);
+  outline-offset: -2px;
+}
+body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__link.is-active {
+  color: var(--neutral-900, #0b1f3f);
+  background: rgba(29, 181, 181, 0.12);
+  box-shadow: none;
+}
+body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__icon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 18px;
+  width: 18px;
+  min-width: 18px;
+  max-width: 18px;
+  height: 18px;
+  color: rgba(11, 31, 63, 0.60);
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  filter: none;
+  transition: color 160ms ease, stroke 160ms ease;
+}
+body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__icon svg,
+body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__icon svg * {
+  width: 17px;
+  height: 17px;
+  color: currentColor;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__link:hover .sidebar-collapsed-popover__icon,
+body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__link:focus-visible .sidebar-collapsed-popover__icon,
+body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__link.is-active .sidebar-collapsed-popover__icon {
+  color: var(--color-brand, #1db5b5);
 }
 /* ---- Account / profile block ---- */
 body.dashboard-body .dashboard-shell .sidebar-user,
@@ -6672,14 +6722,6 @@ body.dashboard-body .sidebar-account__menu .sidebar-account__lang-current,
 body.dashboard-body .sidebar-account__menu .sidebar-account__lang-chevron {
   color: var(--neutral-900, #0b1f3f);
 }
-body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__link {
-  color: rgba(11, 31, 63, 0.82);
-}
-body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__icon {
-  color: rgba(11, 31, 63, 0.72);
-  background: rgba(15, 35, 60, 0.05);
-}
-
 /* Account menu logout ("Выйти") + keyboard focus: the old rules used cyan /
    white foregrounds tuned for the navy menu; on the white menu recolor them to
    a readable danger red and a visible focus tint (no cyan-on-white / white-on-white). */
@@ -6704,9 +6746,15 @@ body.dashboard-body .dashboard-shell,
 body.dashboard-body .dashboard-shell .dashboard-main {
   background: #ffffff;
 }
-/* Expanded submenu parent must not read as a tinted/dark block on white. */
-body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu.is-open {
+/* The button and panel own their own surfaces. Keep the structural submenu host
+   completely neutral so the legacy open/active wrapper cannot add a second
+   border, radius or shadow around them. */
+body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu {
   background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  interpolate-size: allow-keywords;
 }
 /* Profile role/company sub-text was light-blue (tuned for navy) → readable slate. */
 body.dashboard-body .dashboard-shell .sidebar-user__meta span,
@@ -6758,7 +6806,7 @@ body.dashboard-body .dashboard-shell .topbar-balance-amount {
   background: rgba(246, 248, 252, 0.96);
   border: 1px solid rgba(15, 35, 60, 0.10);
   border-right: 0;
-  border-radius: 12px;
+  border-radius: 12px 0 0 12px;
   box-shadow: none;
   color: var(--neutral-900, #0b1f3f);
   cursor: default;
@@ -6771,7 +6819,7 @@ body.dashboard-body .dashboard-shell .topbar-balance-amount {
 body.dashboard-body .dashboard-shell .topbar-pay-button {
   position: relative;
   z-index: 2;
-  margin-left: -6px;
+  margin-left: -12px;
   border-radius: 12px;
   box-shadow: none;
 }
@@ -6780,6 +6828,18 @@ body.dashboard-body .dashboard-shell .topbar-pay-button {
 body.dashboard-body .dashboard-shell .topbar-pay-button:hover,
 body.dashboard-body .dashboard-shell .topbar-pay-button:focus-visible {
   box-shadow: 0 4px 12px rgba(29, 181, 181, 0.25);
+}
+/* 4. "0 UZS" right breathing room (desktop only). The committed base gives the
+   amount left 14 / right 12; with the Баланс button pulled 12px over the right
+   edge, the visible right gap collapsed to ~0 while the left kept ~15px. Bump
+   ONLY the right padding so the visible right space (padding-right − 12px
+   overlap) matches the left again — balanced [  0 UZS  ][ Баланс ]. Overlap,
+   button width, radii, colours and height are untouched; compact/mobile
+   (≤1024) keep their committed spacing. */
+@media (min-width: 1025px) {
+  body.dashboard-body .dashboard-shell .topbar-balance-amount {
+    padding-right: 26px;
+  }
 }
 /* 5. Brand/logo mark: no heavy shadow (not a floating card); subtle border only. */
 body.dashboard-body .dashboard-shell .brand-mark {
@@ -6952,55 +7012,48 @@ body.dashboard-body .dashboard-shell .premium-kpi--expense .premium-kpi__icon sv
    OWNER expanded subcategory panel (.sidebar-submenu, e.g. under "Отчёты").
    Panel-only polish INSIDE the existing 280px sidebar (sidebar width NOT
    changed). Goals: the panel fills a touch more of the rail (outer margin
-   ~10px), reads as a structured nav group (1px hairline, no floating shadow),
+   ~10px), reads as a structured nav group (1px hairline, soft external depth),
    compact rows, and a clear active-parent(strong turquoise) → active-child
    (light turquoise secondary) hierarchy. Unlayered OWNER rules; react-overrides
    untouched.
    ============================================================ */
-/* Panel: widen slightly via small negative side margin (outer ~10px, still
-   fully inside 280px), turquoise hairline border (#4FE1E5, matches reference),
-   disciplined radius. The panel's OWN box-shadow is removed — depth is provided
-   by a decorative ::after layer (below) that is fully decoupled from the child
-   cascade, so selecting a subcategory can never repaint panel depth.
-   ROOT CAUSE of the old "shadow changes on child click": react-overrides
-   declares box-shadow on `.sidebar-nav-item…is-active/.is-open/:hover/:focus-within
-   .sidebar-submenu` (many layered variants, e.g. L2109/2938/2989); those state
-   rules drove panel depth as the active child moved. Removing box-shadow from the
-   panel entirely (below) + a stateless ::after eliminates the coupling at the source. */
+/* Panel: turquoise hairline, disciplined radius, clean white surface. The
+   state-invariance rule below owns one normal non-inset box-shadow for every
+   parent/child state, so depth stays outside the surface and cannot repaint. */
 body.dashboard-body .dashboard-shell .sidebar-submenu {
   box-sizing: border-box;
+  display: grid;
   position: relative;
+  width: var(--owner-sidebar-content-w, 268px);
+  min-width: var(--owner-sidebar-content-w, 268px);
+  max-width: var(--owner-sidebar-content-w, 268px);
+  height: 0;
+  max-height: none;
   margin-left: 0;
   margin-right: 0;
-  padding: 4px;
+  padding: 0 4px;
   background: #ffffff;
-  border: 1px solid rgb(79, 225, 229);
+  border: solid rgb(79, 225, 229);
+  border-width: 0 1px;
   border-radius: 12px;
-  box-shadow: none;
-}
-/* Decorative, STATE-INDEPENDENT depth: a soft blurred radial ellipse under the
-   panel. It is an ::after (not box-shadow), so no box-shadow cascade/state can
-   touch it; its computed style is identical in every child/parent state. The
-   ellipse + blur dissolves toward the left/right edges (no sharp side walls, no
-   straight band, no glow). z-index:-1 keeps it behind the white panel; the open
-   panel has overflow:visible so the overhang shows, while the closed panel
-   (opacity:0 + max-height:0 + overflow:hidden) hides it. */
-body.dashboard-body .dashboard-shell .sidebar-submenu::after {
-  content: "";
-  position: absolute;
-  left: 18px;
-  right: 18px;
-  top: 100%;
-  margin-top: -6px;
-  height: 16px;
-  background: rgba(15, 35, 60, 0.20);
-  filter: blur(13px);
-  border-radius: 50%;
+  opacity: 0;
+  overflow: hidden;
   pointer-events: none;
-  z-index: -1;
+  transform: none;
+  interpolate-size: allow-keywords;
+  transition: height 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1), padding 180ms ease, border-width 180ms ease,
+    width 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    min-width 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    max-width 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-/* Authoritative state-invariance pin: force the SAME border + no-box-shadow in
-   every child/parent state, so selecting a subcategory can never repaint depth. */
+/* The old blurred pseudo-element started inside the panel's last row. Disable
+   that overlay; depth now comes from the panel's external, non-inset shadow. */
+body.dashboard-body .dashboard-shell .sidebar-submenu::after {
+  content: none;
+}
+/* Authoritative state-invariance pin: force the SAME border + external shadow
+   in every child/parent state, so selecting a subcategory cannot repaint depth. */
 body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu .sidebar-submenu,
 body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu.is-open .sidebar-submenu,
 body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu.is-active .sidebar-submenu,
@@ -7011,7 +7064,8 @@ body.dashboard-body .dashboard-shell .sidebar-submenu:hover,
 body.dashboard-body .dashboard-shell .sidebar-submenu:focus-within {
   border-color: rgb(79, 225, 229);
   background: #ffffff;
-  box-shadow: none;
+  box-shadow: 0 18px 30px -16px rgba(15, 35, 60, 0.24),
+    0 8px 18px -14px rgba(15, 35, 60, 0.14);
 }
 /* Motion parity: the active "Отчёты" parent (has-submenu) used a DIFFERENT
    resting box-shadow — `0 6px 17px rgba(20,199,197,.15)` — than a normal active
@@ -7052,15 +7106,54 @@ body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu.is-open > .si
 body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu.is-open > .sidebar-link .sidebar-link__chevron::after {
   content: none;
 }
-/* Soft open/close: closed slides up + fades (base sets max-height:0/opacity:0),
-   open settles to translateY(0). Transition owns transform + opacity + max-height. */
-body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu .sidebar-submenu {
-  transform: translateY(-6px);
-  transition: transform 200ms ease, opacity 190ms ease,
-    max-height 220ms cubic-bezier(0.22, 1, 0.36, 1), padding 190ms ease, margin 190ms ease;
-}
+/* One deliberate open/close motion: intrinsic height + opacity. The old
+   max-height:none -> 0 and translate combination could not interpolate and left
+   residual padding/borders behind, which made the panel and active parent jerk. */
 body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu.is-open .sidebar-submenu {
-  transform: none;
+  height: auto;
+  padding: 4px;
+  border-width: 1px;
+  opacity: 1;
+  pointer-events: auto;
+}
+/* Collapsed rail: the expanded inline submenu must not participate in flex
+   layout. Its fixed expanded width would otherwise push the 56px icon button
+   outside the rail; the dedicated collapsed popover remains the submenu UI.
+   Height is NOT pinned here: while an open category retracts, the item height is
+   driven by the panel closing on the same 220ms rhythm, so the rail collapses in
+   ONE motion instead of the panel snapping away. react-overrides pins
+   height/max-height 56px + row direction on this node, so both are released
+   explicitly (higher specificity) and the axis is forced back to column — the
+   retracting panel belongs UNDER the icon button, not beside it. Settles at
+   exactly 56px because the panel ends at height 0 and then unmounts. */
+body.dashboard-body .dashboard-shell .dashboard-sidebar.is-collapsed .sidebar-nav-item {
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
+  height: auto;
+  min-height: 56px;
+  max-height: none;
+  flex-direction: column;
+  margin: 0 auto;
+}
+/* The retracting panel narrows into the rail slightly ahead of it (180ms vs the
+   rail's own width motion), so it never flashes over the workspace. margin-top
+   is dropped as well: with it, a panel that has finished closing would still add
+   8px to the 56px icon row until React unmounts it. */
+body.dashboard-body .dashboard-shell .dashboard-sidebar.is-collapsed .sidebar-submenu {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 0;
+}
+body.dashboard-body .dashboard-shell .dashboard-sidebar.is-collapsed .sidebar-nav-item > .sidebar-link {
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
+  margin: 0;
 }
 /* Chevron on the parent rotates smoothly when its group opens. */
 body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu .sidebar-link__chevron {
@@ -7102,7 +7195,7 @@ body.dashboard-body .dashboard-shell .sidebar-submenu__link:not(.is-active):hove
 /* Active child: SECONDARY to the strong-turquoise parent — light turquoise
    tint, navy text (weight 600), turquoise icon/dot. Not another full block. */
 body.dashboard-body .dashboard-shell .sidebar-submenu__link.is-active {
-  background: rgba(29, 181, 181, 0.12);
+  background: rgba(31, 201, 201, 0.28);
   color: var(--neutral-900, #0b1f3f);
   font-weight: 600;
   border-radius: 8px;
@@ -7111,12 +7204,12 @@ body.dashboard-body .dashboard-shell .sidebar-submenu__link.is-active {
 body.dashboard-body .dashboard-shell .sidebar-submenu__link.is-active .sidebar-submenu__icon,
 body.dashboard-body .dashboard-shell .sidebar-submenu__link.is-active .sidebar-submenu__icon svg,
 body.dashboard-body .dashboard-shell .sidebar-submenu__link.is-active .sidebar-submenu__icon svg * {
-  color: var(--color-brand, #1db5b5);
-  stroke: var(--color-brand, #1db5b5);
+  color: var(--owner-accent, #1fc9c9);
+  stroke: var(--owner-accent, #1fc9c9);
 }
 /* Active child dot is a filled marker → turquoise fill. */
 body.dashboard-body .dashboard-shell .sidebar-submenu__link.is-active .sidebar-submenu__dot {
-  background: var(--color-brand, #1db5b5);
+  background: var(--owner-accent, #1fc9c9);
   stroke: none;
 }
 
@@ -7206,7 +7299,10 @@ body.dashboard-body .dashboard-shell .sidebar-submenu__link:not(.is-active):focu
   body.dashboard-body .dashboard-shell .sidebar-submenu__icon,
   body.dashboard-body .dashboard-shell .sidebar-submenu__icon svg,
   body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu .sidebar-submenu,
-  body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu .sidebar-link__chevron {
+  body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu .sidebar-link__chevron,
+  body.dashboard-body .sidebar-collapsed-popover,
+  body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__link,
+  body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__icon {
     transition-duration: 0.01ms;
   }
 }
@@ -7265,6 +7361,14 @@ body.dashboard-body .balance-payment-dialog__head h2 {
   from { opacity: 1; transform: translate(-50%, 0); }
   to   { opacity: 0; transform: translate(-50%, 6px); }
 }
+@keyframes owner-account-flyout-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes owner-account-flyout-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(6px); }
+}
 body.dashboard-body .dashboard-sidebar:not(.is-collapsed) .sidebar-account__menu {
   animation: owner-account-menu-in 180ms ease both;
   transform-origin: bottom center;
@@ -7273,6 +7377,29 @@ body.dashboard-body .dashboard-sidebar:not(.is-collapsed) .sidebar-account__menu
    unmounts on animationend (presence model) — no hard snap. */
 body.dashboard-body .dashboard-sidebar:not(.is-collapsed) .sidebar-account__menu.is-closing {
   animation: owner-account-menu-out 180ms ease both;
+  pointer-events: none;
+}
+/* The collapsed profile uses a different horizontal anchor, so its keyframes
+   preserve that geometry and animate only opacity + a small vertical offset. */
+body.dashboard-body .dashboard-sidebar.is-collapsed .sidebar-account__menu {
+  display: grid;
+  position: absolute;
+  left: calc(100% + 12px);
+  right: auto;
+  top: auto;
+  bottom: 0;
+  width: 292px;
+  max-width: calc(100vw - 120px);
+  max-height: min(520px, calc(100vh - 24px));
+  overflow-y: auto;
+  z-index: 90;
+  border-radius: 22px;
+  animation: owner-account-flyout-in 180ms ease both;
+  transform-origin: bottom left;
+}
+body.dashboard-body .dashboard-sidebar.is-collapsed .sidebar-account__menu.is-closing {
+  animation: owner-account-flyout-out 180ms ease both;
+  pointer-events: none;
 }
 body.dashboard-body .sidebar-account .sidebar-user__arrow {
   transition: transform 200ms ease;
@@ -7284,7 +7411,9 @@ body.dashboard-body .sidebar-account.is-open .sidebar-user__arrow {
 }
 @media (prefers-reduced-motion: reduce) {
   body.dashboard-body .dashboard-sidebar:not(.is-collapsed) .sidebar-account__menu,
-  body.dashboard-body .dashboard-sidebar:not(.is-collapsed) .sidebar-account__menu.is-closing {
+  body.dashboard-body .dashboard-sidebar:not(.is-collapsed) .sidebar-account__menu.is-closing,
+  body.dashboard-body .dashboard-sidebar.is-collapsed .sidebar-account__menu,
+  body.dashboard-body .dashboard-sidebar.is-collapsed .sidebar-account__menu.is-closing {
     animation-duration: 0.01ms;
   }
   body.dashboard-body .sidebar-account .sidebar-user__arrow {
@@ -7335,8 +7464,21 @@ body.dashboard-body .sidebar-account__menu .sidebar-account__item--danger:hover 
 
 /* ---- Language control: white-shell, integrated with the profile menu ---- */
 /* Trigger row: readable navy, compact selected flag + code. */
+body.dashboard-body .sidebar-account__lang.has-panel {
+  position: relative;
+  z-index: 3;
+}
 body.dashboard-body .sidebar-account__lang-trigger {
   color: var(--neutral-900, #0b1f3f);
+  background: transparent;
+  border-color: transparent;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+body.dashboard-body .sidebar-account__lang-trigger:hover,
+body.dashboard-body .sidebar-account__lang.is-open .sidebar-account__lang-trigger {
+  color: var(--neutral-900, #0b1f3f);
+  background: rgba(29, 181, 181, 0.08);
+  border-color: rgba(29, 181, 181, 0.16);
 }
 body.dashboard-body .sidebar-account__lang-label,
 body.dashboard-body .sidebar-account__lang-current,
@@ -7375,19 +7517,51 @@ body.dashboard-body .sidebar-account__lang-current-flag img {
 }
 /* Popup: light surface, subtle border, soft shadow, gentle entrance. */
 body.dashboard-body .sidebar-account__lang-panel {
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  width: auto;
+  gap: 4px;
+  padding: 6px;
   background: #ffffff;
   border: 1px solid rgba(15, 35, 60, 0.10);
+  border-radius: 12px;
   box-shadow: 0 10px 26px -8px rgba(15, 35, 60, 0.18);
   color: var(--neutral-900, #0b1f3f);
   animation: owner-lang-panel-in 160ms ease both;
+}
+body.dashboard-body .sidebar-account__lang::after,
+body.dashboard-body .sidebar-account__lang-panel::before {
+  content: none;
 }
 @keyframes owner-lang-panel-in {
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes owner-lang-panel-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-4px); }
+}
+body.dashboard-body .sidebar-account__lang-panel.is-closing {
+  animation: owner-lang-panel-out 160ms ease both;
+  pointer-events: none;
+}
 body.dashboard-body .sidebar-account__lang-panel button {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  justify-content: stretch;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 9px;
   background: transparent;
   color: var(--neutral-900, #0b1f3f);
+  text-align: left;
   transition: background-color 160ms ease, color 160ms ease;
 }
 body.dashboard-body .sidebar-account__lang-panel button:hover {
@@ -7395,18 +7569,24 @@ body.dashboard-body .sidebar-account__lang-panel button:hover {
 }
 body.dashboard-body .sidebar-account__lang-panel button.is-active {
   background: rgba(29, 181, 181, 0.12);
+  border-color: rgba(29, 181, 181, 0.28);
   color: var(--neutral-900, #0b1f3f);
 }
 body.dashboard-body .sidebar-account__lang-code {
   color: var(--neutral-900, #0b1f3f);
 }
 @media (prefers-reduced-motion: reduce) {
-  body.dashboard-body .sidebar-account__lang-panel { animation-duration: 0.01ms; }
+  body.dashboard-body .sidebar-account__lang-panel,
+  body.dashboard-body .sidebar-account__lang-panel.is-closing { animation-duration: 0.01ms; }
 }
 
 /* ---- Sidebar padding (exact requested value) ---- */
 body.dashboard-body .dashboard-shell .dashboard-sidebar {
-  padding: 10px 6px 15px;
+  --owner-sidebar-inline-pad: 6px;
+  --owner-sidebar-content-w: calc(
+    var(--owner-sidebar-open-w, 280px) - var(--owner-sidebar-inline-pad) - var(--owner-sidebar-inline-pad)
+  );
+  padding: 10px var(--owner-sidebar-inline-pad) 15px;
 }
 
 /* ============================================================
@@ -7417,46 +7597,102 @@ body.dashboard-body .dashboard-shell .dashboard-sidebar {
 body.dashboard-body .dashboard-shell .sidebar-search {
   position: relative;
   margin: 72px 4px 0;
+  max-height: 42px;
+  opacity: 1;
+  overflow: visible;
+  visibility: visible;
   z-index: 30;
+  transition: max-height 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    margin-top 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease,
+    visibility 0s linear;
 }
 body.dashboard-body .dashboard-shell .sidebar-search__field {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 0 12px;
-  height: 38px;
-  background: rgba(15, 35, 60, 0.055);
-  border: 1px solid rgba(15, 35, 60, 0.06);
-  border-radius: 12px;
+  height: 42px;
+  background: var(--neutral-50, #f4f7fc);
+  border: 1px solid rgba(15, 35, 60, 0.11);
+  border-radius: 24px;
   box-shadow: none;
   transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
+/* Hover: a very light border/background response only — no scale, translate or
+   shadow. Placed BEFORE :focus-within so the focus state always wins when both
+   apply (equal specificity, later rule wins). */
+body.dashboard-body .dashboard-shell .sidebar-search__field:hover {
+  background: #ffffff;
+  border-color: rgba(15, 35, 60, 0.16);
+}
 /* The base pins .sidebar-brand (position:fixed) and reserves clearance via
    .sidebar-nav margin-top:76px. With the search now occupying that clearance,
-   the nav follows the search with a small gap (non-collapsed only; the collapsed
-   rail hides the search and keeps the base clearance). */
+   the nav follows the search with a small gap. During shell collapse, search
+   flow-space and nav margin move on the same 220ms rhythm. */
 body.dashboard-body .dashboard-sidebar:not(.is-collapsed) .sidebar-nav {
   margin-top: 6px;
+}
+body.dashboard-body .dashboard-sidebar .sidebar-nav {
+  transition: margin-top 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* The nav itself owns visible decorative overflow so active pills and submenu
+   depth are not clipped at its edges. Vertical scrolling lives on the padded
+   viewport wrapper, preserving access to long/open navigation at short heights. */
+body.dashboard-body .dashboard-shell .sidebar-nav-scroll {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  width: calc(100% + 32px);
+  min-height: 0;
+  margin-inline: -16px;
+  padding-inline: 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+body.dashboard-body .dashboard-shell .sidebar-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+body.dashboard-body .dashboard-shell .sidebar-nav {
+  flex: none;
+  width: 100%;
+  min-height: max-content;
+  overflow: visible;
+}
+body.dashboard-body .dashboard-shell .dashboard-sidebar.is-collapsed .sidebar-nav-scroll {
+  overflow: visible;
 }
 body.dashboard-body .dashboard-shell .sidebar-search__field:focus-within {
   background: #ffffff;
   border-color: rgba(29, 181, 181, 0.55);
   box-shadow: 0 0 0 3px rgba(29, 181, 181, 0.08);
 }
-/* Collapsed rail has no room for a text field → hide the search cleanly. */
+/* Collapse the search's flow space on the shell rhythm. Keeping the wrapper
+   present during the transition avoids the old instantaneous nav jump; delayed
+   visibility removes it from keyboard navigation after the fade. */
 body.dashboard-body .dashboard-sidebar.is-collapsed .sidebar-search {
-  display: none;
+  display: block;
+  max-height: 0;
+  margin-top: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  visibility: hidden;
+  transition-delay: 0ms, 0ms, 0ms, 220ms;
 }
 /* Active sidebar buttons: pill radius 24px (active leaf + active/open parent).
    Inactive buttons keep their default radius. */
-body.dashboard-body .dashboard-shell .sidebar-link.is-active {
+body.dashboard-body .dashboard-shell .sidebar-link.is-active,
+body.dashboard-body .dashboard-shell .sidebar-link:not(.is-active):hover {
   border-radius: 24px;
 }
 @media (prefers-reduced-motion: reduce) {
+  body.dashboard-body .dashboard-shell .sidebar-search,
+  body.dashboard-body .dashboard-sidebar .sidebar-nav,
   body.dashboard-body .dashboard-shell .sidebar-search__field,
   body.dashboard-body .dashboard-shell .sidebar-search__clear,
   body.dashboard-body .dashboard-shell .sidebar-search__result {
     transition-duration: 0.01ms;
+    transition-delay: 0ms;
   }
 }
 
@@ -7470,8 +7706,12 @@ body.dashboard-body .dashboard-shell .sidebar-search__icon svg {
 body.dashboard-body .dashboard-shell .sidebar-search__input {
   flex: 1 1 auto;
   min-width: 0;
+  margin: 0;
+  padding: 0;
   border: 0;
   outline: 0;
+  -webkit-appearance: none;
+  appearance: none;
   background: transparent;
   color: var(--neutral-900, #0b1f3f);
   font-size: 14px;

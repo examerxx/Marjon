@@ -36,12 +36,27 @@ export default function SidebarAccount({
   // closing; `closing` drives the exit animation; animationend clears it.
   const [render, setRender] = useState(accountOpen);
   const [closing, setClosing] = useState(false);
+  const [langRender, setLangRender] = useState(langPanelOpen);
+  const [langClosing, setLangClosing] = useState(false);
   useEffect(() => {
     if (accountOpen) { setRender(true); setClosing(false); }
     else if (render) { setClosing(true); }
   }, [accountOpen]); // eslint-disable-line react-hooks/exhaustive-deps
-  const handleMenuAnimEnd = () => {
-    if (closing) { setClosing(false); setRender(false); }
+  useEffect(() => {
+    if (langPanelOpen) { setLangRender(true); setLangClosing(false); }
+    else if (langRender) { setLangClosing(true); }
+  }, [langPanelOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  const handleMenuAnimEnd = (event) => {
+    if (closing && ["owner-account-menu-out", "owner-account-flyout-out"].includes(event.animationName)) {
+      setClosing(false);
+      setRender(false);
+    }
+  };
+  const handleLangPanelAnimEnd = (event) => {
+    if (langClosing && event.animationName === "owner-lang-panel-out") {
+      setLangClosing(false);
+      setLangRender(false);
+    }
   };
   // Selected-language binding: the compact trigger reflects the actual `lang`.
   const activeLang = sidebarLanguages.find((l) => l.code === lang) || sidebarLanguages[1];
@@ -84,7 +99,7 @@ export default function SidebarAccount({
             </Link>
           ) : null}
 
-          <div className={`sidebar-account__lang ${langPanelOpen ? "is-open" : ""}`}>
+          <div className={`sidebar-account__lang ${langPanelOpen ? "is-open" : ""} ${langRender ? "has-panel" : ""}`}>
             <button
               type="button"
               className="sidebar-account__lang-trigger"
@@ -104,8 +119,13 @@ export default function SidebarAccount({
               </span>
               <Icon name="bi-chevron-down" size={14} className="sidebar-account__lang-chevron" aria-hidden="true" />
             </button>
-            {langPanelOpen ? (
-              <div className="sidebar-account__lang-panel" role="menu" aria-label="Выбор языка">
+            {langRender ? (
+              <div
+                className={`sidebar-account__lang-panel ${langClosing ? "is-closing" : ""}`}
+                role="menu"
+                aria-label="Выбор языка"
+                onAnimationEnd={handleLangPanelAnimEnd}
+              >
                 {sidebarLanguages.map((language) => (
                   <button
                     key={language.code}

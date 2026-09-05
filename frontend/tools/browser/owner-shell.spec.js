@@ -8,6 +8,11 @@ const OWNER_PHONE = "907778778";
 const OWNER_PASSWORD = "102938";
 const WHITE = "rgb(255, 255, 255)";
 const TURQUOISE = "rgb(29, 181, 181)";
+// REPORTS UI COLOR POLISH-01: OWNER *action* surfaces (active nav item, the
+// topbar Баланс button, Z-report prints, Отчёты filter/action buttons) moved to
+// a brighter accent. Everything else — hover tints, collapsed-flyout glyphs,
+// dashboard card tints — deliberately keeps --color-brand / TURQUOISE.
+const OWNER_ACCENT = "rgb(31, 201, 201)";
 
 test.describe.configure({ mode: "serial" });
 
@@ -38,7 +43,7 @@ test.describe("OWNER white shell", () => {
     expect(navColor).not.toBe(WHITE);
 
     // active nav keeps turquoise + white
-    await expect(page.locator(".sidebar-link.is-active").first()).toHaveCSS("background-color", TURQUOISE);
+    await expect(page.locator(".sidebar-link.is-active").first()).toHaveCSS("background-color", OWNER_ACCENT);
     await expect(page.locator(".sidebar-link.is-active").first()).toHaveCSS("color", WHITE);
 
     // brand + widgets readable (not white)
@@ -85,6 +90,9 @@ test.describe("OWNER white shell", () => {
       await expect(page.locator(".dashboard-content"), `workspace @${w}`).toHaveCSS("background-color", "rgb(233, 240, 250)");
       if (w >= 1025) {
         await expect(page.locator(".dashboard-sidebar"), `sidebar @${w}`).toHaveCSS("background-color", WHITE);
+      } else {
+        // <=1024 intentionally uses the mobile bottom-nav architecture.
+        await expect(page.locator(".dashboard-sidebar .sidebar-nav"), `desktop nav hidden @${w}`).toBeHidden();
       }
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow, `overflow @${w}`).toBeLessThanOrEqual(1);
@@ -168,18 +176,21 @@ test.describe("OWNER white shell", () => {
     await expect(page.locator(".topbar-balance-pill")).toHaveCSS("overflow-x", "visible");
     await expect(page.locator(".topbar-balance-pill")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     await expect(page.locator(".topbar-balance-pill")).toHaveCSS("border-top-width", "0px");
-    // "0 UZS": its own complete light control — full radius, own border, navy text.
-    // Right border removed so the seam vanishes under the overlapping Баланс button.
+    // "0 UZS": rounded on the LEFT only (right corners squared — the overlapping
+    // Баланс button covers that side); own border (right removed), navy text.
     await expect(page.locator(".topbar-balance-amount")).toHaveCSS("border-top-left-radius", "12px");
-    await expect(page.locator(".topbar-balance-amount")).toHaveCSS("border-bottom-right-radius", "12px");
+    await expect(page.locator(".topbar-balance-amount")).toHaveCSS("border-bottom-left-radius", "12px");
+    await expect(page.locator(".topbar-balance-amount")).toHaveCSS("border-top-right-radius", "0px");
+    await expect(page.locator(".topbar-balance-amount")).toHaveCSS("border-bottom-right-radius", "0px");
     await expect(page.locator(".topbar-balance-amount")).toHaveCSS("border-top-width", "1px");
     await expect(page.locator(".topbar-balance-amount")).toHaveCSS("border-left-width", "1px");
     await expect(page.locator(".topbar-balance-amount")).toHaveCSS("border-bottom-width", "1px");
     await expect(page.locator(".topbar-balance-amount")).toHaveCSS("border-right-width", "0px");
     await expect(page.locator(".topbar-balance-amount")).toHaveCSS("background-color", "rgba(246, 248, 252, 0.96)");
-    // OLD compact proportions restored: tight padding (committed 14/12 @1280),
-    // no inflated right padding.
-    await expect(page.locator(".topbar-balance-amount")).toHaveCSS("padding-right", "12px");
+    // Right breathing room restored: with the Баланс button overlapping the
+    // right edge by 12px, padding-right is 26px so the VISIBLE right gap
+    // (26 − 12) ≈ the left gap → balanced [ 0 UZS ][ Баланс ]. Left untouched.
+    await expect(page.locator(".topbar-balance-amount")).toHaveCSS("padding-right", "26px");
     const amtColor = await page.locator(".topbar-balance-amount").evaluate((el) => getComputedStyle(el).color);
     expect(amtColor).toContain("11, 31, 63");
     // "Баланс": FULL radius on ALL FOUR corners — left edge must curve, not be flat
@@ -187,7 +198,7 @@ test.describe("OWNER white shell", () => {
     await expect(page.locator(".topbar-pay-button")).toHaveCSS("border-bottom-left-radius", "12px");
     await expect(page.locator(".topbar-pay-button")).toHaveCSS("border-top-right-radius", "12px");
     await expect(page.locator(".topbar-pay-button")).toHaveCSS("border-bottom-right-radius", "12px");
-    await expect(page.locator(".topbar-pay-button")).toHaveCSS("background-color", "rgb(29, 181, 181)");
+    await expect(page.locator(".topbar-pay-button")).toHaveCSS("background-color", OWNER_ACCENT);
     // small controlled overlap; turquoise button stacked ABOVE the amount
     const stack = await page.evaluate(() => {
       const a = document.querySelector(".topbar-balance-amount");
@@ -195,8 +206,8 @@ test.describe("OWNER white shell", () => {
       const ar = a.getBoundingClientRect(), pr = p.getBoundingClientRect();
       return { overlap: Math.round(ar.right - pr.left), az: +getComputedStyle(a).zIndex, pz: +getComputedStyle(p).zIndex };
     });
-    expect(stack.overlap).toBeGreaterThanOrEqual(4);  // subtle join (old proportions)
-    expect(stack.overlap).toBeLessThanOrEqual(8);     // subtle, not deep
+    expect(stack.overlap).toBeGreaterThanOrEqual(10); // Баланс pulled further over the amount
+    expect(stack.overlap).toBeLessThanOrEqual(14);
     expect(stack.pz).toBeGreaterThan(stack.az);    // Баланс sits over the junction
     // no resting shadow on either control
     await expect(page.locator(".topbar-balance-amount")).toHaveCSS("box-shadow", "none");
@@ -324,12 +335,16 @@ test.describe("OWNER white shell", () => {
     expect(sbW).toBe(280);
 
     // panel is a structured group: 1px turquoise hairline, disciplined radius,
-    // depth provided by a decorative ::after layer (panel box-shadow is none)
+    // external non-inset depth with no overlay pseudo-element
     const sub = page.locator(".sidebar-submenu").first();
     await expect(sub).toHaveCSS("border-top-width", "1px");
-    await expect(sub).toHaveCSS("box-shadow", "none");
-    const afterFilter = await sub.evaluate((el) => getComputedStyle(el, "::after").filter);
-    expect(afterFilter).toContain("blur");
+    const panelDepth = await sub.evaluate((el) => ({
+      shadow: getComputedStyle(el).boxShadow,
+      after: getComputedStyle(el, "::after").content,
+    }));
+    expect(panelDepth.shadow).not.toBe("none");
+    expect(panelDepth.shadow).not.toContain("inset");
+    expect(panelDepth.after).toBe("none");
     await expect(sub).toHaveCSS("border-top-left-radius", "12px");
 
     // panel is a wide block fully inside the 280px sidebar, with a clean outer margin
@@ -344,9 +359,13 @@ test.describe("OWNER white shell", () => {
     expect(geo.outL).toBeLessThanOrEqual(16);
     expect(geo.outL).toBeGreaterThanOrEqual(4);
 
-    // active child is SECONDARY to the turquoise parent: light tint, navy text, weight 600
+    // active child is SECONDARY to the turquoise parent: light tint, navy text, weight 600.
+    // COLOR POLISH-01 owns the HUE (accent 31,201,201). The tint ALPHA is owned by
+    // the separate in-flight sidebar WIP — committed HEAD says .12, the working
+    // copy says .28 — so it is asserted as "an accent tint", not a fixed alpha.
     const active = page.locator(".sidebar-submenu__link.is-active").first();
-    await expect(active).toHaveCSS("background-color", "rgba(29, 181, 181, 0.12)");
+    const activeBg = await active.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(activeBg).toMatch(/^rgba\(31, 201, 201, 0?\.\d+\)$/);
     await expect(active).toHaveCSS("font-weight", "600");
     const aColor = await active.evaluate((el) => getComputedStyle(el).color);
     expect(aColor).toContain("11, 31, 63");
@@ -375,7 +394,7 @@ test.describe("OWNER white shell", () => {
 
     // main active: strong turquoise, no transform/layout movement
     const act = page.locator(".sidebar-link.is-active").first();
-    await expect(act).toHaveCSS("background-color", TURQUOISE);
+    await expect(act).toHaveCSS("background-color", OWNER_ACCENT);
     await expect(act).toHaveCSS("transform", "none");
 
     // C. submenu inactive icon: no box (transparent bg, no shadow), muted slate glyph
@@ -413,18 +432,24 @@ test.describe("OWNER white shell", () => {
     const chev = await page.locator(".sidebar-nav-item.has-submenu.is-open .sidebar-link__chevron").first().evaluate((el) => getComputedStyle(el).transform);
     expect(chev).toBe("matrix(0, 1, -1, 0, 0, 0)");
 
-    // F. panel: turquoise hairline border (#4FE1E5); depth via a decorative ::after
-    // blurred layer (panel's own box-shadow is none, so no cascade can touch it)
+    // F. panel: turquoise hairline + one external, non-inset shadow. No pseudo
+    // overlay may enter the white surface or darken the last child row.
     const panel = page.locator(".sidebar-submenu").first();
     await expect(panel).toHaveCSS("border-top-width", "1px");
     await expect(panel).toHaveCSS("border-top-color", "rgb(79, 225, 229)");
     await expect(panel).toHaveCSS("border-top-left-radius", "12px");
-    await expect(panel).toHaveCSS("box-shadow", "none");
-    const after = await panel.evaluate((el) => { const a = getComputedStyle(el, "::after"); return { content: a.content, bg: a.backgroundColor, filter: a.filter, z: a.zIndex, radius: a.borderTopLeftRadius }; });
-    expect(after.content).toBe('""');            // the shadow layer exists
-    expect(after.filter).toContain("blur");      // soft
-    expect(after.z).toBe("-1");                  // behind the panel
-    expect(after.bg).toBe("rgba(15, 35, 60, 0.2)");
+    const depth = await panel.evaluate((el) => {
+      const c = getComputedStyle(el);
+      const a = getComputedStyle(el, "::after");
+      const rect = el.getBoundingClientRect();
+      const last = el.querySelector(".sidebar-submenu__link:last-child").getBoundingClientRect();
+      return { shadow: c.boxShadow, inset: c.boxShadow.includes("inset"), after: a.content,
+        lastGap: rect.bottom - last.bottom };
+    });
+    expect(depth.shadow).not.toBe("none");
+    expect(depth.inset).toBe(false);
+    expect(depth.after).toBe("none");
+    expect(depth.lastGap).toBeGreaterThanOrEqual(4);
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(1);
@@ -438,18 +463,17 @@ test.describe("OWNER white shell", () => {
     const panel = () => page.locator(".sidebar-submenu").first().evaluate((el) => {
       const c = getComputedStyle(el);
       const a = getComputedStyle(el, "::after");
-      return { border: c.borderTopColor, w: c.borderTopWidth, radius: c.borderTopLeftRadius, shadow: c.boxShadow,
-        aBg: a.backgroundColor, aFilter: a.filter, aZ: a.zIndex, aBottom: a.bottom, aHeight: a.height, aLeft: a.left, aRight: a.right };
+      return { border: c.borderTopColor, w: c.borderTopWidth, radius: c.borderTopLeftRadius,
+        shadow: c.boxShadow, inset: c.boxShadow.includes("inset"), after: a.content };
     });
     const initial = await panel();
-    // exact expected values: panel has NO box-shadow; depth is the invariant ::after layer
+    // The same external shadow must survive hover and active-route changes.
     expect(initial.border).toBe("rgb(79, 225, 229)");
     expect(initial.w).toBe("1px");
     expect(initial.radius).toBe("12px");
-    expect(initial.shadow).toBe("none");
-    expect(initial.aBg).toBe("rgba(15, 35, 60, 0.2)");
-    expect(initial.aFilter).toContain("blur");
-    expect(initial.aZ).toBe("-1");
+    expect(initial.shadow).not.toBe("none");
+    expect(initial.inset).toBe(false);
+    expect(initial.after).toBe("none");
 
     // hover a child → panel + shadow layer unchanged
     await page.locator(".sidebar-submenu__link", { hasText: "заказам" }).first().hover();
@@ -472,36 +496,209 @@ test.describe("OWNER white shell", () => {
     expect(trans).not.toContain("box-shadow");
   });
 
-  test("submenu open/close animates (collapsed hidden, open visible, chevron turns)", async () => {
+  test("submenu open/close is single-phase and monotonic", async () => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    // dashboard: Отчёты closed → hidden (opacity 0, max-height 0), chevron not rotated
     await page.goto("/");
     await page.locator(".premium-kpi").first().waitFor({ state: "visible" });
-    const closed = await page.evaluate(() => {
-      const it = document.querySelector(".sidebar-nav-item.has-submenu:not(.is-open)");
-      const sm = it.querySelector(".sidebar-submenu"); const c = getComputedStyle(sm);
-      const chev = it.querySelector(".sidebar-link__chevron");
-      return { opacity: c.opacity, maxH: c.maxHeight, hasTransformTransition: c.transitionProperty.includes("transform"),
-        chev: chev ? getComputedStyle(chev).transform : "none" };
+    const reports = page.locator(".sidebar-nav-item.has-submenu").first();
+    const trigger = reports.locator(":scope > .sidebar-link--button");
+    const read = () => reports.evaluate((host) => {
+      const submenu = host.querySelector(".sidebar-submenu");
+      const c = getComputedStyle(submenu);
+      return {
+        panelH: submenu.getBoundingClientRect().height,
+        opacity: parseFloat(c.opacity),
+        transitions: c.transitionProperty,
+        chevron: getComputedStyle(host.querySelector(".sidebar-link__chevron")).transform,
+      };
     });
-    expect(closed.opacity).toBe("0");
-    expect(closed.maxH).toBe("0px");
-    expect(closed.hasTransformTransition).toBe(true);
-    expect(closed.chev).not.toBe("matrix(0, 1, -1, 0, 0, 0)"); // not rotated when closed
 
-    // open route: visible + settled translateY(0), chevron rotated 90
+    const closed = await read();
+    expect(closed.opacity).toBe(0);
+    expect(closed.panelH).toBe(0);
+    expect(closed.transitions).toContain("height");
+    expect(closed.transitions).not.toContain("transform");
+
+    await trigger.click();
+    const opening = [];
+    for (let index = 0; index < 6; index += 1) {
+      await page.waitForTimeout(28);
+      opening.push((await read()).panelH);
+    }
+    await page.waitForTimeout(180);
+    const open = await read();
+    expect(open.opacity).toBeGreaterThan(0.95);
+    expect(open.chevron).toBe("matrix(0, 1, -1, 0, 0, 0)");
+    expect(opening.some((height) => height > 0 && height < open.panelH - 1)).toBe(true);
+    expect(opening.every((height, index) => index === 0 || height >= opening[index - 1] - 1)).toBe(true);
+
+    await trigger.click();
+    const closing = [];
+    for (let index = 0; index < 6; index += 1) {
+      await page.waitForTimeout(28);
+      closing.push((await read()).panelH);
+    }
+    await page.waitForTimeout(180);
+    const shut = await read();
+    expect(shut.panelH).toBe(0);
+    expect(shut.opacity).toBe(0);
+    expect(closing.some((height) => height > 1 && height < open.panelH - 1)).toBe(true);
+    expect(closing.every((height, index) => index === 0 || height <= closing[index - 1] + 1)).toBe(true);
+  });
+
+  test("open submenu collapses with one host motion and reopens cleanly", async () => {
+    await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/reports/z-report");
-    await page.locator(".sidebar-submenu").first().waitFor({ state: "visible" });
-    await page.waitForTimeout(400);
-    const open = await page.evaluate(() => {
-      const it = document.querySelector(".sidebar-nav-item.has-submenu.is-open");
-      const sm = it.querySelector(".sidebar-submenu"); const c = getComputedStyle(sm);
-      const chev = it.querySelector(".sidebar-link__chevron");
-      return { opacity: c.opacity, transform: c.transform, chev: getComputedStyle(chev).transform };
+    const host = page.locator(".sidebar-nav-item.has-submenu.is-active").first();
+    const panel = host.locator(".sidebar-submenu");
+    await panel.waitFor({ state: "visible" });
+    await page.waitForTimeout(280);
+    const expandedHeight = await host.evaluate((el) => el.getBoundingClientRect().height);
+    const expandedPanelHeight = await panel.evaluate((el) => el.getBoundingClientRect().height);
+
+    // Harness: the retract window is only SUBMENU_RETRACT_MS (260ms) wide before
+    // SidebarNav unmounts the inline panel by design, so the intended 6x28ms=168ms
+    // sweep has to stay inside the browser. One Playwright round-trip per frame added
+    // 15-45ms each and pushed the nominal sweep to 277-350ms, i.e. past the unmount,
+    // so the last samples read a detached panel. Click + sampling therefore run in a
+    // single evaluate at the intended cadence. Product timing is untouched.
+    const collapseFrames = await host.evaluate(async (el, [frames, gap]) => {
+      const toggle = document.querySelector(".brand-mark--button");
+      if (toggle.getAttribute("aria-label") !== "Свернуть меню") {
+        throw new Error(`collapse toggle not in expanded state: ${toggle.getAttribute("aria-label")}`);
+      }
+      const wait = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
+      const samples = [];
+      toggle.click();
+      for (let index = 0; index < frames; index += 1) {
+        await wait(gap);
+        const submenu = el.querySelector(".sidebar-submenu");
+        samples.push({
+          hostH: el.getBoundingClientRect().height,
+          panelH: submenu ? submenu.getBoundingClientRect().height : null,
+          panelMounted: Boolean(submenu),
+        });
+      }
+      return samples;
+    }, [6, 28]);
+    await page.waitForTimeout(180);
+    const collapsed = await host.evaluate((el) => {
+      const c = getComputedStyle(el);
+      const search = document.querySelector(".sidebar-search");
+      return {
+        hostH: el.getBoundingClientRect().height,
+        borderW: c.borderTopWidth,
+        shadow: c.boxShadow,
+        searchH: search.getBoundingClientRect().height,
+        searchVisibility: getComputedStyle(search).visibility,
+        panelMounted: Boolean(el.querySelector(".sidebar-submenu")),
+      };
     });
-    expect(parseFloat(open.opacity)).toBeGreaterThan(0.95);
-    expect(open.transform).toBe("none"); // settled open: no transform (translateY resolved to none)
-    expect(open.chev).toBe("matrix(0, 1, -1, 0, 0, 0)");      // rotate(90deg)
+    // The sampling window must end before the retract deadline, so every frame has to
+    // see a live panel; a null here means the harness outran SUBMENU_RETRACT_MS again.
+    expect(collapseFrames.every(({ panelMounted }) => panelMounted),
+      JSON.stringify({ expandedHeight, expandedPanelHeight, collapseFrames })).toBe(true);
+    expect(collapseFrames.some(({ hostH }) => hostH > 57 && hostH < expandedHeight - 1),
+      JSON.stringify({ expandedHeight, expandedPanelHeight, collapseFrames })).toBe(true);
+    expect(collapseFrames.every(({ hostH }, index) => index === 0 || hostH <= collapseFrames[index - 1].hostH + 1)).toBe(true);
+    expect(collapseFrames.some(({ panelH }) => panelH > 1 && panelH < expandedPanelHeight - 1)).toBe(true);
+    expect(collapseFrames.every(({ panelH }, index) => index === 0 || panelH <= collapseFrames[index - 1].panelH + 1)).toBe(true);
+    expect(Math.abs(collapsed.hostH - 56)).toBeLessThanOrEqual(1);
+    expect(collapsed.borderW).toBe("0px");
+    expect(collapsed.shadow).toBe("none");
+    expect(collapsed.searchH).toBe(0);
+    expect(collapsed.searchVisibility).toBe("hidden");
+    // …and once the retract lifecycle is over the inline panel is gone from the rail.
+    expect(collapsed.panelMounted).toBe(false);
+
+    // Same reasoning as the collapse sweep: reopen is a 220ms height transition, so the
+    // 6x28ms cadence stays inside one evaluate instead of paying per-frame IPC.
+    const reopenFrames = await host.evaluate(async (el, [frames, gap]) => {
+      const toggle = document.querySelector(".brand-mark--button");
+      if (toggle.getAttribute("aria-label") !== "Открыть меню") {
+        throw new Error(`reopen toggle not in collapsed state: ${toggle.getAttribute("aria-label")}`);
+      }
+      const wait = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
+      const samples = [];
+      toggle.click();
+      for (let index = 0; index < frames; index += 1) {
+        await wait(gap);
+        const submenu = el.querySelector(".sidebar-submenu");
+        samples.push(submenu ? submenu.getBoundingClientRect().height : null);
+      }
+      return samples;
+    }, [6, 28]);
+    await page.waitForTimeout(180);
+    const reopenedHeight = await panel.evaluate((el) => el.getBoundingClientRect().height);
+    // The panel remounts with the expanded rail, so no reopen frame may be null either.
+    expect(reopenFrames.every((height) => typeof height === "number"),
+      JSON.stringify({ reopenedHeight, reopenFrames })).toBe(true);
+    // The rail re-expands by remounting the panel, so it appears at its final height
+    // rather than growing into it (CSS transitions do not run on initial style). Assert
+    // the settled contract: it comes back at exactly its pre-collapse height, and the
+    // monotonic check below still forbids any rebound or flicker on the way there.
+    expect(reopenedHeight).toBeCloseTo(expandedPanelHeight, 0);
+    expect(reopenFrames.at(-1)).toBeCloseTo(expandedPanelHeight, 0);
+    expect(reopenFrames.every((height, index) => index === 0 || height >= reopenFrames[index - 1] - 1),
+      JSON.stringify({ reopenedHeight, reopenFrames })).toBe(true);
+
+    for (let cycle = 0; cycle < 2; cycle += 1) {
+      await page.getByRole("button", { name: "Свернуть меню" }).click();
+      await page.waitForTimeout(260);
+      await page.getByRole("button", { name: "Открыть меню" }).click();
+      await page.waitForTimeout(260);
+    }
+    await expect(host).toHaveClass(/is-open/);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test("submenu shell stays clean at 1280, 1440 and 1280x720", async () => {
+    for (const viewport of [
+      { width: 1280, height: 900 },
+      { width: 1440, height: 900 },
+      { width: 1280, height: 720 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/reports/orders");
+      const host = page.locator(".sidebar-nav-item.has-submenu.is-open").first();
+      const panel = host.locator(".sidebar-submenu");
+      await panel.waitFor({ state: "visible" });
+      await page.waitForTimeout(240);
+      const open = await host.evaluate((el) => {
+        const panelEl = el.querySelector(".sidebar-submenu");
+        const last = panelEl.querySelector(".sidebar-submenu__link:last-child");
+        const hostStyle = getComputedStyle(el);
+        const panelStyle = getComputedStyle(panelEl);
+        const panelRect = panelEl.getBoundingClientRect();
+        const sidebarRect = el.closest(".dashboard-sidebar").getBoundingClientRect();
+        return {
+          hostBorder: hostStyle.borderTopWidth,
+          hostShadow: hostStyle.boxShadow,
+          panelShadow: panelStyle.boxShadow,
+          inset: panelStyle.boxShadow.includes("inset"),
+          after: getComputedStyle(panelEl, "::after").content,
+          insideSidebar: panelRect.left >= sidebarRect.left - 1 && panelRect.right <= sidebarRect.right + 1,
+          lastGap: panelRect.bottom - last.getBoundingClientRect().bottom,
+          activeChild: Boolean(panelEl.querySelector(".sidebar-submenu__link.is-active")),
+        };
+      });
+      expect(open.hostBorder, JSON.stringify(viewport)).toBe("0px");
+      expect(open.hostShadow, JSON.stringify(viewport)).toBe("none");
+      expect(open.panelShadow, JSON.stringify(viewport)).not.toBe("none");
+      expect(open.inset, JSON.stringify(viewport)).toBe(false);
+      expect(open.after, JSON.stringify(viewport)).toBe("none");
+      expect(open.insideSidebar, JSON.stringify(viewport)).toBe(true);
+      expect(open.lastGap, JSON.stringify(viewport)).toBeGreaterThanOrEqual(4);
+      expect(open.activeChild, JSON.stringify(viewport)).toBe(true);
+
+      await page.getByRole("button", { name: "Свернуть меню" }).click();
+      await page.waitForTimeout(240);
+      await page.getByRole("button", { name: "Открыть меню" }).click();
+      await panel.waitFor({ state: "visible" });
+      await page.waitForTimeout(240);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth),
+        JSON.stringify(viewport)).toBeLessThanOrEqual(1);
+    }
   });
 
   test("balance modal: full-shell dim, viewport-centered card, compact header", async () => {
@@ -596,7 +793,7 @@ test.describe("OWNER white shell", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     for (const route of ["/reports/z-report", "/settings/clients", "/users/cashier"]) {
       await page.goto(route);
-      await page.locator(".sidebar-submenu").first().waitFor({ state: "visible" });
+      await page.locator(".sidebar-nav-item.has-submenu.is-open .sidebar-submenu").first().waitFor({ state: "visible" });
       await page.waitForTimeout(250);
       const r = await page.evaluate(() => {
         const nav = document.querySelector(".sidebar-nav");
@@ -613,15 +810,16 @@ test.describe("OWNER white shell", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     const panelSig = () => page.locator(".sidebar-nav-item.has-submenu.is-open .sidebar-submenu").first().evaluate((el) => {
       const c = getComputedStyle(el); const a = getComputedStyle(el, "::after");
-      return JSON.stringify({ box: c.boxShadow, border: c.borderTopColor, aBg: a.backgroundColor, aFilter: a.filter, aZ: a.zIndex });
+      return JSON.stringify({ box: c.boxShadow, inset: c.boxShadow.includes("inset"),
+        border: c.borderTopColor, after: a.content });
     });
-    // Staff: shadow layer identical to Reports' and stateless; icons have no box
+    // Staff: external shadow is stateless; icons have no box
     await page.goto("/users/cashier");
-    await page.locator(".sidebar-submenu").first().waitFor({ state: "visible" });
+    await page.locator(".sidebar-nav-item.has-submenu.is-open .sidebar-submenu").first().waitFor({ state: "visible" });
     await page.waitForTimeout(250);
     const staffBase = await panelSig();
     await page.goto("/users/manager");
-    await page.locator(".sidebar-submenu").first().waitFor({ state: "visible" });
+    await page.locator(".sidebar-nav-item.has-submenu.is-open .sidebar-submenu").first().waitFor({ state: "visible" });
     await page.waitForTimeout(300);
     expect(await panelSig()).toBe(staffBase); // child change → panel depth unchanged
     // icons: no dark box on submenu icons
@@ -629,13 +827,11 @@ test.describe("OWNER white shell", () => {
     expect(iconBox.bg).toBe("rgba(0, 0, 0, 0)");
     expect(iconBox.shadow).toBe("none");
 
-    // Settings (long panel): same border color + panel box-shadow none
+    // Settings (long panel): same border + external shadow signature
     await page.goto("/settings/units");
-    await page.locator(".sidebar-submenu").first().waitFor({ state: "visible" });
+    await page.locator(".sidebar-nav-item.has-submenu.is-open .sidebar-submenu").first().waitFor({ state: "visible" });
     await page.waitForTimeout(250);
-    const settings = await page.locator(".sidebar-nav-item.has-submenu.is-open .sidebar-submenu").first().evaluate((el) => { const c = getComputedStyle(el); return { box: c.boxShadow, border: c.borderTopColor }; });
-    expect(settings.box).toBe("none");
-    expect(settings.border).toBe("rgb(79, 225, 229)");
+    expect(await panelSig()).toBe(staffBase);
   });
 
   test("motion parity: active Отчёты (has-submenu) matches a normal active item", async () => {
@@ -665,11 +861,14 @@ test.describe("OWNER white shell", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     for (const route of ["/reports/z-report", "/users/cashier", "/settings/clients"]) {
       await page.goto(route);
-      await page.locator(".sidebar-submenu").first().waitFor({ state: "visible" });
+      await page.locator(".sidebar-nav-item.has-submenu.is-open .sidebar-submenu").first().waitFor({ state: "visible" });
       await page.waitForTimeout(250);
       const parent = page.locator(".sidebar-nav-item.has-submenu.is-open > .sidebar-link").first();
+      const host = page.locator(".sidebar-nav-item.has-submenu.is-open").first();
       await expect(parent, `parent border @${route}`).toHaveCSS("border-top-color", "rgb(79, 225, 229)");
       await expect(parent, `parent border w @${route}`).toHaveCSS("border-top-width", "1px");
+      await expect(host, `legacy host border removed @${route}`).toHaveCSS("border-top-width", "0px");
+      await expect(host, `legacy host shadow removed @${route}`).toHaveCSS("box-shadow", "none");
       const panel = page.locator(".sidebar-nav-item.has-submenu.is-open .sidebar-submenu").first();
       await expect(panel, `panel border @${route}`).toHaveCSS("border-top-color", "rgb(79, 225, 229)");
       // no overlay/mask layer on the open parent near the chevron (clean right side)
@@ -748,14 +947,60 @@ test.describe("OWNER white shell", () => {
     await expect(page.locator(".sidebar-account__lang-panel")).toHaveCSS("background-color", "rgb(255, 255, 255)");
     const langItemColor = await page.locator(".sidebar-account__lang-panel button").first().evaluate((el) => getComputedStyle(el).color);
     expect(langItemColor).toContain("11, 31, 63");
+    // popup stays fully inside the profile panel: no intrinsic-width overflow,
+    // scrollbar, clipping or side-protrusion from the old legacy side-popover.
+    const languageGeometry = await page.evaluate(() => {
+      const menu = document.querySelector(".sidebar-account__menu");
+      const panel = document.querySelector(".sidebar-account__lang-panel");
+      const trigger = document.querySelector(".sidebar-account__lang-trigger");
+      const mr = menu.getBoundingClientRect();
+      const pr = panel.getBoundingClientRect();
+      const tr = trigger.getBoundingClientRect();
+      const horizontallyContained = (outer, node) => {
+        const rect = node.getBoundingClientRect();
+        return rect.left >= outer.left - 1 && rect.right <= outer.right + 1;
+      };
+      return {
+        menuOverflow: menu.scrollWidth - menu.clientWidth,
+        panelOverflow: panel.scrollWidth - panel.clientWidth,
+        leftInset: pr.left - mr.left,
+        rightInset: mr.right - pr.right,
+        overflowX: getComputedStyle(menu).overflowX,
+        hasHorizontalScroll: menu.scrollWidth > menu.clientWidth + 1,
+        triggerContentContained: [...trigger.querySelectorAll(".sidebar-account__lang-current, .sidebar-account__lang-current-flag, .sidebar-account__lang-chevron")]
+          .every((node) => horizontallyContained(tr, node)),
+        popupContentContained: [...panel.querySelectorAll(".sidebar-account__lang-flag, .sidebar-account__lang-code")]
+          .every((node) => horizontallyContained(pr, node)),
+      };
+    });
+    expect(languageGeometry.menuOverflow).toBeLessThanOrEqual(1);
+    expect(languageGeometry.panelOverflow).toBeLessThanOrEqual(1);
+    expect(languageGeometry.leftInset).toBeGreaterThanOrEqual(0);
+    expect(languageGeometry.rightInset).toBeGreaterThanOrEqual(0);
+    expect(languageGeometry.overflowX).toBe("visible");
+    expect(languageGeometry.hasHorizontalScroll).toBe(false);
+    expect(languageGeometry.triggerContentContained).toBe(true);
+    expect(languageGeometry.popupContentContained).toBe(true);
 
-    // select a different language → trigger flag + code update immediately
-    const target = startCode === "EN" ? "UZ" : "EN";
-    await page.locator(".sidebar-account__lang-panel button", { hasText: target }).first().click();
-    await page.waitForTimeout(200);
-    expect((await page.locator(".sidebar-account__lang-current").first().innerText()).trim()).toContain(target);
-    const newFlag = await page.locator(".sidebar-account__lang-current-flag img").first().getAttribute("src");
-    expect(newFlag).not.toBe(startFlag);
+    // Exercise every supported language. The logical language state remains the
+    // only selected-value source; presence only keeps the popup alive for exit.
+    const flags = { UZ: /Uzbekistan/i, RU: /Russia/i, EN: /United_Kingdom/i };
+    for (const [index, code] of ["UZ", "RU", "EN"].entries()) {
+      if (index > 0) {
+        await page.locator(".sidebar-account__lang-trigger").click();
+        await page.locator(".sidebar-account__lang-panel").waitFor({ state: "visible" });
+      }
+      await page.locator(".sidebar-account__lang-panel button", { hasText: code }).first().click();
+      await page.waitForTimeout(40);
+      expect(await page.locator(".sidebar-account__lang-panel.is-closing").count()).toBe(1);
+      await expect(page.locator(".sidebar-account__lang-panel")).toHaveCSS("animation-name", "owner-lang-panel-out");
+      await page.waitForTimeout(180);
+      expect(await page.locator(".sidebar-account__lang-panel").count()).toBe(0);
+      expect((await page.locator(".sidebar-account__lang-current").first().innerText()).trim()).toContain(code);
+      await expect(page.locator(".sidebar-account__lang-current-flag img")).toHaveAttribute("src", flags[code]);
+    }
+    expect(startCode).toBeTruthy();
+    expect(startFlag).toBeTruthy();
 
     // reopen → selection persisted
     await page.locator(".sidebar-user--button").first().click(); // close
@@ -763,7 +1008,7 @@ test.describe("OWNER white shell", () => {
     await page.locator(".sidebar-user--button").first().click(); // reopen
     await page.locator(".sidebar-account__menu").waitFor({ state: "visible" });
     await page.waitForTimeout(240);
-    expect((await page.locator(".sidebar-account__lang-current").first().innerText()).trim()).toContain(target);
+    expect((await page.locator(".sidebar-account__lang-current").first().innerText()).trim()).toContain("EN");
 
     // smooth close: the menu runs an exit animation before unmounting (not instant)
     await page.locator(".sidebar-user--button").first().click();
@@ -773,6 +1018,237 @@ test.describe("OWNER white shell", () => {
     expect(outAnim).toBe("owner-account-menu-out");
     await page.waitForTimeout(320);
     expect(await page.locator(".sidebar-account__menu").count()).toBe(0);
+  });
+
+  test("collapsed profile: stable anchor, contained language popup, smooth exit + reopen", async () => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto("/");
+    await page.locator(".premium-kpi").first().waitFor({ state: "visible" });
+    await page.getByRole("button", { name: "Свернуть меню" }).click();
+    await page.waitForTimeout(260);
+
+    const account = page.locator(".sidebar-account");
+    await account.hover();
+    const menu = page.locator(".sidebar-account__menu");
+    await menu.waitFor({ state: "visible" });
+    await page.waitForTimeout(220);
+    const anchor = await page.evaluate(() => {
+      const sidebar = document.querySelector(".dashboard-sidebar").getBoundingClientRect();
+      const trigger = document.querySelector(".sidebar-user--button").getBoundingClientRect();
+      const panel = document.querySelector(".sidebar-account__menu").getBoundingClientRect();
+      return {
+        sidebarRight: sidebar.right,
+        triggerBottom: trigger.bottom,
+        panelLeft: panel.left,
+        panelBottom: panel.bottom,
+        panelRight: panel.right,
+        panelOverflow: document.querySelector(".sidebar-account__menu").scrollWidth
+          - document.querySelector(".sidebar-account__menu").clientWidth,
+      };
+    });
+    expect(anchor.panelLeft).toBeGreaterThan(anchor.sidebarRight);
+    expect(Math.abs(anchor.panelBottom - anchor.triggerBottom)).toBeLessThanOrEqual(2);
+    expect(anchor.panelRight).toBeLessThanOrEqual(1280);
+    expect(anchor.panelOverflow).toBeLessThanOrEqual(1);
+
+    await page.locator(".sidebar-account__lang-trigger").click();
+    await page.locator(".sidebar-account__lang-panel").waitFor({ state: "visible" });
+    await page.waitForTimeout(180);
+    const langContained = await page.evaluate(() => {
+      const menuEl = document.querySelector(".sidebar-account__menu");
+      const panelEl = document.querySelector(".sidebar-account__lang-panel");
+      const triggerEl = document.querySelector(".sidebar-account__lang-trigger");
+      const mr = menuEl.getBoundingClientRect();
+      const pr = panelEl.getBoundingClientRect();
+      const tr = triggerEl.getBoundingClientRect();
+      const horizontallyContained = (outer, node) => {
+        const rect = node.getBoundingClientRect();
+        return rect.left >= outer.left - 1 && rect.right <= outer.right + 1;
+      };
+      return {
+        leftInset: pr.left - mr.left,
+        rightInset: mr.right - pr.right,
+        menuOverflow: menuEl.scrollWidth - menuEl.clientWidth,
+        panelOverflow: panelEl.scrollWidth - panelEl.clientWidth,
+        documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        overflowX: getComputedStyle(menuEl).overflowX,
+        hasHorizontalScroll: menuEl.scrollWidth > menuEl.clientWidth + 1,
+        triggerContentContained: [...triggerEl.querySelectorAll(".sidebar-account__lang-current, .sidebar-account__lang-current-flag, .sidebar-account__lang-chevron")]
+          .every((node) => horizontallyContained(tr, node)),
+        popupContentContained: [...panelEl.querySelectorAll(".sidebar-account__lang-flag, .sidebar-account__lang-code")]
+          .every((node) => horizontallyContained(pr, node)),
+      };
+    });
+    expect(langContained.leftInset).toBeGreaterThanOrEqual(-1);
+    expect(langContained.rightInset).toBeGreaterThanOrEqual(-1);
+    expect(langContained.menuOverflow).toBeLessThanOrEqual(1);
+    expect(langContained.panelOverflow).toBeLessThanOrEqual(1);
+    expect(langContained.documentOverflow).toBeLessThanOrEqual(1);
+    expect(langContained.overflowX).toBe("auto");
+    expect(langContained.hasHorizontalScroll).toBe(false);
+    expect(langContained.triggerContentContained).toBe(true);
+    expect(langContained.popupContentContained).toBe(true);
+
+    const collapsedFlags = { UZ: /Uzbekistan/i, RU: /Russia/i, EN: /United_Kingdom/i };
+    for (const [index, code] of ["UZ", "RU", "EN"].entries()) {
+      if (index > 0) {
+        await page.locator(".sidebar-account__lang-trigger").click();
+        await page.locator(".sidebar-account__lang-panel").waitFor({ state: "visible" });
+      }
+      const option = page.locator(".sidebar-account__lang-panel button", { hasText: code }).first();
+      expect(await option.evaluate((el) => {
+        const outer = el.getBoundingClientRect();
+        return [...el.querySelectorAll(".sidebar-account__lang-flag, .sidebar-account__lang-code")].every((node) => {
+          const rect = node.getBoundingClientRect();
+          return rect.left >= outer.left - 1 && rect.right <= outer.right + 1;
+        });
+      })).toBe(true);
+      await option.click();
+      await page.locator(".sidebar-account__lang-panel.is-closing").waitFor({ state: "attached", timeout: 1000 });
+      expect(await menu.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+      await page.locator(".sidebar-account__lang-panel").waitFor({ state: "detached", timeout: 1000 });
+      expect((await page.locator(".sidebar-account__lang-current").innerText()).trim()).toContain(code);
+      await expect(page.locator(".sidebar-account__lang-current-flag img")).toHaveAttribute("src", collapsedFlags[code]);
+    }
+
+    await page.mouse.move(600, 300);
+    await page.locator(".sidebar-account__menu.is-closing").waitFor({ state: "attached", timeout: 1000 });
+    expect(await menu.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+    await expect(page.locator(".sidebar-account__menu")).toHaveCSS("animation-name", "owner-account-flyout-out");
+    await page.locator(".sidebar-account__menu").waitFor({ state: "detached", timeout: 1000 });
+
+    await account.hover();
+    await menu.waitFor({ state: "visible" });
+    await page.waitForTimeout(220);
+    await expect(menu).toHaveCSS("animation-name", "owner-account-flyout-in");
+  });
+
+  test("collapsed flyouts: every category is bounded; icons, hover and shadow stay invariant", async () => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto("/reports/z-report");
+    await page.locator(".sidebar-submenu").first().waitFor({ state: "visible" });
+    await page.getByRole("button", { name: "Свернуть меню" }).click();
+    await page.waitForTimeout(260);
+
+    const expectedParents = ["Отчеты", "Сотрудники", "Меню", "Склад", "Отчёт по складам", "Финансы", "Настройки"];
+    const parents = page.locator(".sidebar-nav-item.has-submenu");
+    expect(await parents.count()).toBe(expectedParents.length);
+    let invariantShadow = "";
+
+    for (const [index, expectedLabel] of expectedParents.entries()) {
+      const host = parents.nth(index);
+      expect((await host.locator(":scope > .sidebar-link--button").textContent()).trim()).toContain(expectedLabel);
+      await host.hover();
+      const flyout = host.locator(".sidebar-collapsed-popover");
+      await flyout.waitFor({ state: "visible" });
+      await page.waitForTimeout(220);
+      const probe = await flyout.evaluate((el) => {
+        const rect = el.getBoundingClientRect();
+        const topbarBottom = document.querySelector(".dashboard-topbar").getBoundingClientRect().bottom;
+        const accountTop = document.querySelector(".sidebar-account").getBoundingClientRect().top;
+        const icon = el.querySelector(".sidebar-collapsed-popover__icon");
+        const svg = icon.querySelector("svg");
+        const ic = getComputedStyle(icon);
+        const sc = getComputedStyle(svg);
+        const pc = getComputedStyle(el);
+        const last = el.querySelector(".sidebar-collapsed-popover__link:last-child").getBoundingClientRect();
+        return {
+          rect: { top: rect.top, right: rect.right, bottom: rect.bottom },
+          topbarBottom,
+          accountTop,
+          shadow: pc.boxShadow,
+          insetShadow: pc.boxShadow.includes("inset"),
+          icon: { bg: ic.backgroundColor, shadow: ic.boxShadow, width: ic.width, svgWidth: sc.width, stroke: sc.strokeWidth },
+          lastGap: rect.bottom - last.bottom,
+          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        };
+      });
+      expect(probe.rect.top).toBeGreaterThanOrEqual(probe.topbarBottom + 7);
+      expect(probe.rect.bottom).toBeLessThanOrEqual(probe.accountTop - 7);
+      expect(probe.rect.right).toBeLessThanOrEqual(1280);
+      expect(probe.lastGap).toBeGreaterThanOrEqual(8);
+      expect(probe.overflow).toBeLessThanOrEqual(1);
+      expect(probe.insetShadow).toBe(false);
+      expect(probe.icon).toEqual({ bg: "rgba(0, 0, 0, 0)", shadow: "none", width: "18px", svgWidth: "17px", stroke: "2px" });
+      if (!invariantShadow) invariantShadow = probe.shadow;
+      expect(probe.shadow).toBe(invariantShadow);
+
+      const inactive = flyout.locator(".sidebar-collapsed-popover__link:not(.is-active)").first();
+      if (await inactive.count()) {
+        await inactive.hover();
+        await page.waitForTimeout(220);
+        await expect(inactive).toHaveCSS("background-color", "rgba(29, 181, 181, 0.08)");
+        await expect(inactive).toHaveCSS("transform", "matrix(1, 0, 0, 1, 3, 0)");
+        await expect(inactive.locator(".sidebar-collapsed-popover__icon")).toHaveCSS("color", TURQUOISE);
+        expect(await flyout.evaluate((el) => getComputedStyle(el).boxShadow)).toBe(invariantShadow);
+      }
+      await page.mouse.move(600, 300);
+      await page.waitForTimeout(100);
+    }
+
+    const reports = parents.first();
+    await reports.hover();
+    const activeChild = reports.locator(".sidebar-collapsed-popover__link.is-active");
+    await activeChild.waitFor({ state: "visible" });
+    await expect(activeChild.locator(".sidebar-collapsed-popover__icon")).toHaveCSS("color", TURQUOISE);
+    expect(await reports.locator(".sidebar-collapsed-popover").evaluate((el) => getComputedStyle(el).boxShadow)).toBe(invariantShadow);
+  });
+
+  test("collapsed flyout remeasures live across viewport height changes", async () => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto("/users/cashier");
+    await page.locator(".sidebar-nav-item.has-submenu.is-open .sidebar-submenu").first().waitFor({ state: "visible" });
+    await page.getByRole("button", { name: "Свернуть меню" }).click();
+    await page.waitForTimeout(260);
+
+    const staff = page.locator(".sidebar-nav-item.has-submenu").nth(1);
+    await staff.hover();
+    const flyout = staff.locator(".sidebar-collapsed-popover");
+    await flyout.waitFor({ state: "visible" });
+    await page.waitForTimeout(220);
+
+    const readGeometry = () => flyout.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      const topbarBottom = document.querySelector(".dashboard-topbar").getBoundingClientRect().bottom;
+      const accountTop = document.querySelector(".sidebar-account").getBoundingClientRect().top;
+      const last = el.querySelector(".sidebar-collapsed-popover__link:last-child").getBoundingClientRect();
+      return {
+        rect: { top: rect.top, right: rect.right, bottom: rect.bottom },
+        topbarBottom,
+        accountTop,
+        viewportWidth: window.innerWidth,
+        lastGap: rect.bottom - last.bottom,
+        flyoutOverflow: el.scrollWidth - el.clientWidth,
+        documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
+    });
+    const expectBounded = (geometry) => {
+      expect(geometry.rect.top).toBeGreaterThanOrEqual(geometry.topbarBottom + 7);
+      expect(geometry.rect.bottom).toBeLessThanOrEqual(geometry.accountTop - 7);
+      expect(geometry.rect.right).toBeLessThanOrEqual(geometry.viewportWidth);
+      expect(geometry.lastGap).toBeGreaterThanOrEqual(8);
+      expect(geometry.flyoutOverflow).toBeLessThanOrEqual(1);
+      expect(geometry.documentOverflow).toBeLessThanOrEqual(1);
+    };
+
+    const initial = await readGeometry();
+    expectBounded(initial);
+
+    await page.setViewportSize({ width: 1280, height: 640 });
+    await expect.poll(async () => {
+      const geometry = await readGeometry();
+      return Math.round(geometry.rect.bottom - geometry.accountTop);
+    }).toBeLessThanOrEqual(-7);
+    await expect(flyout).toBeVisible();
+    const constrained = await readGeometry();
+    expectBounded(constrained);
+    expect(constrained.rect.top).toBeLessThan(initial.rect.top - 40);
+
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await expect.poll(async () => Math.abs((await readGeometry()).rect.top - initial.rect.top)).toBeLessThanOrEqual(2);
+    await expect(flyout).toBeVisible();
+    const restored = await readGeometry();
+    expectBounded(restored);
   });
 
   test("sidebar search sits under brand, above Дашборд; active radius 24px", async () => {
@@ -795,11 +1271,14 @@ test.describe("OWNER white shell", () => {
     const bottomGap = rects.search.top - rects.brand.bottom;
     expect(Math.abs(topGap - bottomGap)).toBeLessThanOrEqual(3);
 
-    // visual: field is the light recessed shell (new spec), placeholder "Поиск"
+    // visual: field is the light pill shell (42px, radius 24, solid #f4f7fc),
+    // placeholder "Поиск"
     const field = page.locator(".sidebar-search__field");
-    await expect(field).toHaveCSS("background-color", "rgba(15, 35, 60, 0.055)");
-    await expect(field).toHaveCSS("border-top-left-radius", "12px");
+    await expect(field).toHaveCSS("background-color", "rgb(244, 247, 252)");
+    await expect(field).toHaveCSS("border-top-left-radius", "24px");
     await expect(field).toHaveCSS("box-shadow", "none");
+    const fieldH = await field.evaluate((el) => Math.round(el.getBoundingClientRect().height));
+    expect(fieldH).toBe(42);
     await expect(page.locator(".sidebar-search__input")).toHaveAttribute("placeholder", "Поиск");
     // accessible focus state on the field (bg animates to white over 160ms → poll until settled)
     await page.locator(".sidebar-search__input").focus();
@@ -964,9 +1443,37 @@ test.describe("OWNER white shell", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/reports/z-report");
     await page.locator(".sidebar-submenu").first().waitFor({ state: "visible" });
-    const dur = await page.locator(".sidebar-submenu__link").first().evaluate((el) => getComputedStyle(el).transitionDuration);
-    // near-instant when reduced motion is requested
-    expect(dur.split(",").every((d) => parseFloat(d) <= 0.02)).toBe(true);
+    const nearInstant = (durations) => durations.split(",").every((duration) => parseFloat(duration) <= 0.02);
+
+    const submenuDuration = await page.locator(".sidebar-submenu__link").first()
+      .evaluate((el) => getComputedStyle(el).transitionDuration);
+    expect(nearInstant(submenuDuration)).toBe(true);
+
+    await page.locator(".sidebar-user--button").click();
+    const accountMenu = page.locator(".sidebar-account__menu");
+    await accountMenu.waitFor({ state: "visible" });
+    expect(nearInstant(await accountMenu.evaluate((el) => getComputedStyle(el).animationDuration))).toBe(true);
+
+    await page.locator(".sidebar-account__lang-trigger").click();
+    const languagePanel = page.locator(".sidebar-account__lang-panel");
+    await languagePanel.waitFor({ state: "visible" });
+    expect(nearInstant(await languagePanel.evaluate((el) => getComputedStyle(el).animationDuration))).toBe(true);
+    await page.locator(".sidebar-account__lang-trigger").click();
+    await languagePanel.waitFor({ state: "detached" });
+    await page.locator(".sidebar-user--button").click();
+    await accountMenu.waitFor({ state: "detached" });
+
+    await page.getByRole("button", { name: "Свернуть меню" }).click();
+    const reports = page.locator(".sidebar-nav-item.has-submenu").first();
+    await reports.hover();
+    const collapsedFlyout = reports.locator(".sidebar-collapsed-popover");
+    await collapsedFlyout.waitFor({ state: "visible" });
+    const collapsedDurations = await collapsedFlyout.evaluate((el) => ({
+      panel: getComputedStyle(el).transitionDuration,
+      link: getComputedStyle(el.querySelector(".sidebar-collapsed-popover__link")).transitionDuration,
+      icon: getComputedStyle(el.querySelector(".sidebar-collapsed-popover__icon")).transitionDuration,
+    }));
+    expect(Object.values(collapsedDurations).every(nearInstant)).toBe(true);
     await page.emulateMedia({ reducedMotion: null });
   });
 });
