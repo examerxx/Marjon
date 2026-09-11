@@ -267,6 +267,10 @@ export default function ReportDateRangePicker({
   showRangeHighlight = false,
   collapseCalendarOnOk = false,
   useCustomCalendarSelects = false,
+  animateExit = false,
+  open: controlledOpen,
+  onOpenChange,
+  onExitComplete,
 }) {
   const canonical = variant === "canonical";
   const effectiveButtonClassName = [canonical ? "owner-reports__period-button" : "", buttonClassName].filter(Boolean).join(" ");
@@ -297,7 +301,14 @@ export default function ReportDateRangePicker({
   const monthSelectButtonRef = useRef(null);
   const yearSelectListRef = useRef(null);
   const monthSelectListRef = useRef(null);
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const controlled = controlledOpen !== undefined;
+  const open = controlled ? controlledOpen : internalOpen;
+  const setOpen = (nextOpen) => {
+    const resolved = typeof nextOpen === "function" ? nextOpen(open) : nextOpen;
+    if (!controlled) setInternalOpen(resolved);
+    onOpenChange?.(resolved);
+  };
   const [draft, setDraft] = useState(() => withDefaultTimes(value));
   const [activePicker, setActivePicker] = useState(null);
   const [validationError, setValidationError] = useState("");
@@ -388,6 +399,33 @@ export default function ReportDateRangePicker({
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [effectiveEnableEscapeClose, open]);
+
+  // Opt-in exit animation (REPORT-03, Orders report). `open` keeps owning every
+  // behaviour — the outside-click, Escape and focus effects above are untouched;
+  // this only keeps the panel in the DOM while its close animation plays and then
+  // drops it, so a closing panel is visible instead of vanishing in one frame.
+  // Default OFF, so every other caller (Z-report, HQ dashboards, finance) still
+  // unmounts on close exactly as before.
+  const [menuWasOpen, setMenuWasOpen] = useState(open);
+  const [menuClosing, setMenuClosing] = useState(false);
+  const menuOpenRef = useRef(open);
+  if (animateExit && open !== menuOpenRef.current) {
+    menuOpenRef.current = open;
+    if (open) {
+      if (!menuWasOpen) setMenuWasOpen(true);
+      if (menuClosing) setMenuClosing(false);
+    } else if (menuWasOpen && !menuClosing) {
+      setMenuClosing(true);
+    }
+  }
+  const menuMounted = animateExit ? (open || menuClosing) : open;
+  const handleMenuAnimationEnd = (event) => {
+    if (menuClosing && event.target === event.currentTarget) {
+      setMenuClosing(false);
+      setMenuWasOpen(false);
+      onExitComplete?.();
+    }
+  };
 
   function openPicker() {
     setDraft(withDefaultTimes(value));
@@ -662,11 +700,14 @@ export default function ReportDateRangePicker({
         {effectiveShowDropdownIcon ? <Icon name="bi-chevron-down" size={18} /> : null}
         {effectiveTrailingIconName ? <Icon name={effectiveTrailingIconName} size={effectiveTrailingIconSize} /> : null}
       </button>
-      {open ? (
+      {menuMounted ? (
         <div
-          className={`report-date-menu${effectiveShowTime ? "" : " report-date-menu--date-only"}`}
+          className={`report-date-menu${effectiveShowTime ? "" : " report-date-menu--date-only"}${menuClosing ? " is-closing" : ""}`}
           id={effectiveExposeCalendarA11y ? menuId : undefined}
           onWheel={blockWheelScroll}
+          onAnimationEnd={animateExit ? handleMenuAnimationEnd : undefined}
+          aria-hidden={menuClosing ? true : undefined}
+          {...(menuClosing ? { inert: true } : {})}
         >
           <div className="report-date-presets">
             {presetOptions.map((preset) => (

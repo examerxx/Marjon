@@ -74,6 +74,39 @@ describe("ReportDateRangePicker canonical Reports variant", () => {
     await waitFor(() => expect(trigger).toHaveFocus());
   });
 
+  it("supports controlled open state and reports animated exit completion", async () => {
+    const onOpenChange = vi.fn();
+    const onExitComplete = vi.fn();
+    const props = {
+      variant: "canonical",
+      value: { start: "01.08.2026", end: "25.08.2026" },
+      onChange: vi.fn(),
+      buttonAriaLabel: "Период тестового отчёта",
+      animateExit: true,
+      onOpenChange,
+      onExitComplete,
+    };
+    const { container, rerender } = render(<ReportDateRangePicker {...props} open />);
+
+    const trigger = screen.getByRole("button", { name: "Период тестового отчёта" });
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(trigger);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    const openMenu = container.querySelector(".report-date-menu");
+    expect(openMenu).toBeInTheDocument();
+
+    rerender(<ReportDateRangePicker {...props} open={false} />);
+    const closingMenu = container.querySelector(".report-date-menu.is-closing");
+    expect(closingMenu).toBe(openMenu);
+    expect(closingMenu).toHaveAttribute("inert");
+    expect(closingMenu).toHaveAttribute("aria-hidden", "true");
+    fireEvent(closingMenu, new Event("webkitAnimationEnd", { bubbles: true }));
+    await waitFor(() => expect(onExitComplete).toHaveBeenCalledTimes(1));
+    expect(container.querySelector(".report-date-menu")).toBeNull();
+  });
+
   // ZR-PERIOD-01B: current-period presets all mean start-of-period → TODAY and
   // must never reach into the future. Driven with a frozen clock so the
   // first-day / mid-month / last-day cases are deterministic.

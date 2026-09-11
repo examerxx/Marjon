@@ -1418,15 +1418,17 @@
   border-radius: 12px;
   background: #fff;
   color: var(--neutral-950, #071428);
-  font: inherit;
+  font-family: inherit;
   font-size: 13px;
-  font-weight: 550;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: normal;
   text-align: left;
   cursor: pointer;
   transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 .orders-report-page .orders-filter-select__trigger.is-placeholder {
-  color: var(--neutral-500, #94a3b8);
+  color: var(--neutral-400, #7a94b4);
 }
 .orders-report-page .orders-filter-select__trigger:hover:not(:disabled) {
   border-color: rgba(31, 201, 201, 0.55);
@@ -1477,7 +1479,9 @@
   min-height: 38px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* REPORT-03: the tick moved to a LEADING checkbox square (Z-report language),
+     so the row is left-packed instead of pushing a trailing icon to the edge. */
+  justify-content: flex-start;
   gap: 10px;
   padding: 0 10px;
   border: 0;
@@ -1494,12 +1498,107 @@
 .orders-report-page .orders-filter-select__option.is-active {
   background: rgba(31, 201, 201, 0.1);
 }
-.orders-report-page .orders-filter-select__option.is-selected {
+.orders-report-page .orders-filter-select__option.is-checked {
   color: var(--owner-accent-hover, #1bb1b1);
 }
 .orders-report-page .orders-filter-select__option:focus-visible {
   outline: 2px solid rgba(31, 201, 201, 0.5);
   outline-offset: -2px;
+}
+
+/* REPORT-04 interaction polish (Orders report only) ----------------------- */
+/* The period panel and the filter panels open and close with ONE short, quiet
+   motion: a small lift plus a 1.5% scale from the corner each panel is anchored
+   to. The close is the exact visual reverse of the open — same 170ms, same
+   distance, mirrored easing — because a faster/different close read as a snap.
+   Everything is scoped to `.orders-report-page`, so the Z-report picker and the
+   HQ/finance pickers keep their committed instant behaviour. The CLOSE half only
+   runs because OrdersReportPage passes `animateExit` to ReportDateRangePicker,
+   which keeps the panel mounted (inert + aria-hidden) until
+   `owner-report-panel-out` ends — the name is matched in JS, so do not rename it
+   without updating the picker. */
+@keyframes owner-report-panel-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes owner-report-panel-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-6px) scale(0.985); }
+}
+.orders-report-page .report-actions .report-date-menu {
+  transform-origin: top center;
+  animation: owner-report-panel-in 170ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.orders-report-page .report-actions .report-date-menu.is-closing {
+  pointer-events: none;
+  animation: owner-report-panel-out 170ms cubic-bezier(0.64, 0, 0.78, 0) both;
+}
+/* Stacking fix: `.owner-reports__period.report-actions` carries a transform, which
+   makes it a stacking context — so the panel's own z-index is trapped inside it and
+   the later-in-DOM filter section painted OVER the open period panel. Raising the
+   context itself puts the whole picker above the filter row again. */
+.orders-report-page .owner-reports__period.report-actions {
+  position: relative;
+  z-index: 200;
+}
+/* Filter menus mirror the same motion (they unmount on close, so no exit half). */
+.orders-report-page .orders-filter-select__panel {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  /* Height follows the content: no reserved empty block under three options. */
+  background: var(--color-card, #fff);
+  border: 1px solid rgba(15, 35, 60, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 35, 60, 0.14);
+  transform-origin: top center;
+  animation: owner-report-panel-in 170ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.orders-report-page .orders-filter-select__panel.is-closing {
+  pointer-events: none;
+  animation: owner-report-panel-out 170ms cubic-bezier(0.64, 0, 0.78, 0) both;
+}
+/* The list is the only scrolling part, and only once it is genuinely long. */
+.orders-report-page .orders-filter-select__panel .orders-filter-select__menu {
+  position: static;
+  z-index: auto;
+  max-height: 232px;
+  overflow-y: auto;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  animation: none;
+}
+/* Trigger feedback: the chevron turns while the panel is open. */
+.orders-report-page .orders-filter-select__chevron {
+  transition: transform 170ms cubic-bezier(0.22, 1, 0.36, 1), color 140ms ease;
+}
+.orders-report-page .orders-filter-select.is-open .orders-filter-select__chevron {
+  transform: rotate(180deg);
+  color: var(--owner-accent, #1fc9c9);
+}
+/* Active-filter summary line: the chips were bare inline spans, so with several
+   values per dimension they ran into each other ("…Алишер, ЭльёрТип заказа: …").
+   A flex row with a gap separates them without changing their look. */
+.orders-report-page .report-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .orders-report-page .report-actions .report-date-menu,
+  .orders-report-page .report-actions .report-date-menu.is-closing,
+  .orders-report-page .orders-filter-select__panel {
+    animation-duration: 0.01ms;
+  }
+  .orders-report-page .orders-filter-select__chevron {
+    transition: none;
+  }
 }
 
 .orders-report-page .orders-filter-panel[hidden],

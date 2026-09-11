@@ -15,12 +15,12 @@ function formatDate(value) {
 
 const initialFilters = {
   orderNumber: "",
-  waiterId: "all",
-  cashierId: "all",
-  productId: "all",
-  orderType: "all",
-  orderStatus: "all",
-  paymentMethod: "all",
+  waiterId: [],
+  cashierId: [],
+  productId: [],
+  orderType: [],
+  orderStatus: [],
+  paymentMethod: [],
 };
 
 const emptyFilterOptions = {
@@ -51,62 +51,119 @@ const filterOptionGroups = {
   paymentMethod: "payment_methods",
 };
 
-function optionLabel(key, value, options) {
-  if (key === "orderNumber") return value;
-  return (options[filterOptionGroups[key]] || []).find((option) => option.value === value)?.label || value;
+// REPORT-03: the Orders report offers only the three service modes the floor
+// actually books against, in this order and with the floor's own wording. The
+// VALUES stay canonical (`dine_in` / `takeaway` / `delivery`) — nothing is
+// renamed for the backend, only relabelled for this dropdown — and any type the
+// backend does not return is dropped, so the picker can never offer a value the
+// server would reject. `qr` is deliberately not offered here.
+const ORDER_TYPE_ROWS = [
+  { value: "dine_in", label: "На стол" },
+  { value: "takeaway", label: "На вынос" },
+  { value: "delivery", label: "Доставка" },
+];
+
+function curateOrderTypes() {
+  return ORDER_TYPE_ROWS;
 }
 
-// Orders-local custom dropdown. Composes the SAME behaviour/visual language as
-// the Settings → Место `MarjonSelect` (white rounded panel, soft-cyan hover,
-// keyboard listbox) WITHOUT importing that page-local component or touching
-// Settings — styling lives under `.orders-report-page` in reports.css. The
-// placeholder ("all") is the first, selectable reset row so parity with the
-// former native <select> is preserved; onChange only mutates the DRAFT filter.
-function FilterDropdown({ label, placeholder, value, options, onChange, disabled = false }) {
-  const [open, setOpen] = useState(false);
+function optionLabel(key, value, options) {
+  if (key === "orderNumber") return value;
+  const group = options[filterOptionGroups[key]] || [];
+  const label = (v) => group.find((option) => option.value === v)?.label || v;
+  return Array.isArray(value) ? value.map(label).join(", ") : label(value);
+}
+
+// REPORT-04: every select filter is MULTI-value. The canonical Orders report takes
+// repeated query params per dimension (`waiter_id=<a>&waiter_id=<b>`), so several
+// values inside one dimension are OR'd by the backend and different dimensions are
+// AND'd there — nothing is post-filtered in the browser.
+function isFilterActive(value) {
+  return Array.isArray(value) ? value.length > 0 : Boolean(String(value ?? "").trim());
+}
+
+// Closed-trigger summary. One selection reads as itself; several read as a joined
+// list while it fits the field, and collapse to «first +N» when it would not.
+const TRIGGER_SUMMARY_BUDGET = 24;
+function summariseSelection(selected, options) {
+  const labels = selected.map((value) => options.find((o) => o.value === value)?.label ?? value);
+  if (!labels.length) return "";
+  const joined = labels.join(", ");
+  if (labels.length === 1 || joined.length <= TRIGGER_SUMMARY_BUDGET) return joined;
+  return `${labels[0]} +${labels.length - 1}`;
+}
+
+// Orders-local multi-select filter primitive — one component, used by all six
+// select filters. Visual language is the Z-report dropdown (`owner-msel__*`
+// checkbox rows reused verbatim); layout/typography stay the Orders field styles.
+//
+// IMMEDIATE (Z-report parity): checking a row toggles the page's filter draft at
+// once and the trigger re-renders with the new summary. There is NO draft copy
+// and NO dropdown footer — no «Выбрать»/«Отменить» inside the panel. Toggling
+// never issues an analytics request: the click only mutates the page draft, and
+// the page-level «Фильтровать» is still what commits the draft into
+// appliedFilters — the state the request effect actually reads. Outside click,
+// Escape and Tab simply close the panel; toggled rows stay toggled. The parent
+// owns which panel is open, so at most one floating panel exists at a time.
+//
+// The placeholder is trigger-only: there is deliberately no reset row inside the
+// panel — unchecking is the per-filter reset, and page-level «Очистить» resets all.
+function FilterMultiSelect({
+  label, placeholder, options, selected, onToggle, disabled = false,
+  open, closing = false, onOpen, onClose, onExitComplete,
+}) {
   const [activeIndex, setActiveIndex] = useState(-1);
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
-  // Row 0 is the placeholder/reset ("all"); real options follow.
-  const rows = [{ value: "all", label: placeholder }, ...options];
-  const selectedIndex = rows.findIndex((o) => o.value === value);
-  const selected = value !== "all" ? rows.find((o) => o.value === value) : null;
   const listId = `orders-filter-${label}-listbox`;
+  const summary = summariseSelection(selected, options);
 
+  // Every open starts keyboard navigation from the top.
   useEffect(() => {
-    if (!open) return undefined;
-    function onDown(event) { if (!rootRef.current?.contains(event.target)) setOpen(false); }
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+    if (open) setActiveIndex(-1);
   }, [open]);
 
-  function openMenu(index = selectedIndex >= 0 ? selectedIndex : 0) { setActiveIndex(index); setOpen(true); }
-  function commit(index) {
-    const option = rows[index];
-    if (option) onChange(option.value);
-    setOpen(false);
-    triggerRef.current?.focus();
+  // Outside click just closes; the selection is already the page's draft state.
+  useEffect(() => {
+    if (!open) return undefined;
+    function onDown(event) {
+      if (!rootRef.current?.contains(event.target)) onClose();
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open, onClose]);
+
+  function toggle(value) {
+    onToggle(value);
   }
+
   function onKeyDown(event) {
-    if (event.key === "Escape") { if (open) { event.preventDefault(); event.stopPropagation(); setOpen(false); } return; }
-    if (event.key === "Tab") { setOpen(false); return; }
+    if (event.key === "Escape") {
+      if (open) { event.preventDefault(); event.stopPropagation(); onClose(); triggerRef.current?.focus(); }
+      return;
+    }
+    if (event.key === "Tab") { if (open) onClose(); return; }
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
-      if (!open) { openMenu(); return; }
+      if (!open) { onOpen(); return; }
       const step = event.key === "ArrowDown" ? 1 : -1;
       setActiveIndex((i) => {
         const next = i + step;
-        if (next < 0) return rows.length - 1;
-        if (next >= rows.length) return 0;
+        if (next < 0) return options.length - 1;
+        if (next >= options.length) return 0;
         return next;
       });
       return;
     }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      if (!open) { openMenu(); return; }
-      commit(activeIndex);
+      if (!open) { onOpen(); return; }
+      if (activeIndex >= 0 && options[activeIndex]) toggle(options[activeIndex].value);
     }
+  }
+
+  function handlePanelAnimationEnd(event) {
+    if (closing && event.target === event.currentTarget) onExitComplete();
   }
 
   return (
@@ -114,41 +171,55 @@ function FilterDropdown({ label, placeholder, value, options, onChange, disabled
       <button
         type="button"
         ref={triggerRef}
-        className={`orders-filter-select__trigger${selected ? "" : " is-placeholder"}`}
+        className={`orders-filter-select__trigger${summary ? "" : " is-placeholder"}`}
         role="combobox"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
         aria-activedescendant={open && activeIndex >= 0 ? `${listId}-opt-${activeIndex}` : undefined}
         aria-label={label}
+        title={summary || undefined}
         disabled={disabled}
-        onClick={() => (open ? setOpen(false) : openMenu())}
+        onClick={() => (open ? onClose() : onOpen())}
       >
-        <span className="orders-filter-select__value">{selected ? selected.label : placeholder}</span>
+        <span className="orders-filter-select__value">{summary || placeholder}</span>
         <span className="orders-filter-select__chevron" aria-hidden="true"><Icon name="bi-chevron-down" size={16} /></span>
       </button>
-      {open ? (
-        <ul className="orders-filter-select__menu" id={listId} role="listbox" aria-label={label}>
-          {rows.map((option, index) => {
-            const isSelected = option.value === value;
-            return (
-              <li key={option.value}>
-                <button
-                  type="button"
-                  id={`${listId}-opt-${index}`}
-                  role="option"
-                  aria-selected={isSelected}
-                  className={`orders-filter-select__option${isSelected ? " is-selected" : ""}${index === activeIndex ? " is-active" : ""}`}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  onClick={() => commit(index)}
-                >
-                  <span>{option.label}</span>
-                  {isSelected ? <Icon name="bi-check2" size={14} /> : null}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+      {open || closing ? (
+        <div
+          className={`orders-filter-select__panel${closing ? " is-closing" : ""}`}
+          aria-hidden={closing ? true : undefined}
+          {...(closing ? { inert: true } : {})}
+          onAnimationEnd={closing ? handlePanelAnimationEnd : undefined}
+        >
+          <ul className="orders-filter-select__menu" id={listId} role="listbox" aria-multiselectable="true" aria-label={label}>
+            {options.map((option, index) => {
+              const checked = selected.includes(option.value);
+              return (
+                <li key={option.value}>
+                  <button
+                    type="button"
+                    id={`${listId}-opt-${index}`}
+                    role="option"
+                    aria-selected={checked}
+                    className={`orders-filter-select__option owner-msel__option${checked ? " is-checked" : ""}${index === activeIndex ? " is-active" : ""}`}
+                    onMouseEnter={() => setActiveIndex(index)}
+                    onClick={() => toggle(option.value)}
+                  >
+                    <span className="owner-msel__check" aria-hidden="true">
+                      {checked ? (
+                        <svg className="owner-msel__tick" viewBox="0 0 16 16" width="12" height="12">
+                          <path d="M13 4.5 6.5 11 3 7.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      ) : null}
+                    </span>
+                    <span className="owner-msel__option-label">{option.label}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       ) : null}
     </div>
   );
@@ -157,6 +228,7 @@ function FilterDropdown({ label, placeholder, value, options, onChange, disabled
 export default function OrdersReportPage() {
   const [dateRange, setDateRange] = useState(currentMonthRange);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [panelState, setPanelState] = useState({ active: "", closing: "", pending: "" });
   const [filters, setFilters] = useState(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
   const [filterOptions, setFilterOptions] = useState(emptyFilterOptions);
@@ -164,6 +236,8 @@ export default function OrdersReportPage() {
   const [rows, setRows] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [requestVersion, setRequestVersion] = useState(0);
   const [error, setError] = useState("");
   const beginRequest = useLatestRequest();
   const beginOptionsRequest = useLatestRequest();
@@ -181,12 +255,26 @@ export default function OrdersReportPage() {
   }, [selectedOrder]);
 
   useEffect(() => {
+    if (!panelState.closing) return undefined;
+    function cancelPendingOnOutsideClick(event) {
+      if (!event.target.closest?.(".orders-filter-select, .report-period-picker")) {
+        setPanelState((current) => ({ ...current, pending: "" }));
+      }
+    }
+    document.addEventListener("mousedown", cancelPendingOnOutsideClick);
+    return () => document.removeEventListener("mousedown", cancelPendingOnOutsideClick);
+  }, [panelState.closing]);
+
+  useEffect(() => {
     const request = beginOptionsRequest();
     setFilterOptionsLoading(true);
     reportsService.getOrdersFilters({ signal: request.signal })
       .then(({ data }) => {
         if (!request.isCurrent()) return;
-        setFilterOptions({ ...emptyFilterOptions, ...(data || {}) });
+        const merged = { ...emptyFilterOptions, ...(data || {}) };
+        // Curate once, here, so the dropdown AND the active-filter chips read the
+        // same three labels.
+        setFilterOptions({ ...merged, order_types: curateOrderTypes(merged.order_types) });
       })
       .catch((err) => {
         if (!request.isCurrent() || isAbortError(err)) return;
@@ -205,6 +293,7 @@ export default function OrdersReportPage() {
       setRows([]);
       setError("Дата начала периода не может быть позже даты окончания.");
       setLoading(false);
+      setHasLoaded(true);
       return;
     }
     reportsService.listOrders(dateFrom, dateTo, { filters: appliedFilters, signal: request.signal })
@@ -228,7 +317,12 @@ export default function OrdersReportPage() {
         setRows([]);
         setError(err.response?.data?.detail || "Не удалось загрузить отчёт по заказам.");
       })
-      .finally(() => { if (request.isCurrent()) setLoading(false); });
+      .finally(() => {
+        if (request.isCurrent()) {
+          setLoading(false);
+          setHasLoaded(true);
+        }
+      });
   }, [
     beginRequest,
     dateRange.start,
@@ -240,22 +334,74 @@ export default function OrdersReportPage() {
     appliedFilters.orderType,
     appliedFilters.orderStatus,
     appliedFilters.paymentMethod,
+    requestVersion,
   ]);
 
   const visibleRows = rows;
-  const activeFilterEntries = Object.entries(appliedFilters).filter(([, value]) => value && value !== "all");
+  const activeFilterEntries = Object.entries(appliedFilters).filter(([, value]) => isFilterActive(value));
 
   function updateFilter(key, value) {
     setFilters((current) => ({ ...current, [key]: value }));
   }
 
+  // A checkbox click toggles the page draft IMMEDIATELY (Z-report parity) — the
+  // trigger re-renders at once, but no analytics request moves: only the page's
+  // own «Фильтровать» commits the draft into appliedFilters, which is what the
+  // request effect reads.
+  function toggleFilterValue(key, value) {
+    setFilters((current) => {
+      const list = current[key];
+      const next = list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
+      return { ...current, [key]: next };
+    });
+  }
+
+  function requestPanel(panelId) {
+    setPanelState((current) => {
+      if (current.closing) {
+        const nextPending = current.pending === panelId ? "" : panelId;
+        return { ...current, pending: nextPending };
+      }
+      if (!current.active) return panelId ? { active: panelId, closing: "", pending: "" } : current;
+      return {
+        active: "",
+        closing: current.active,
+        pending: current.active === panelId ? "" : panelId,
+      };
+    });
+  }
+
+  function completePanelExit(panelId) {
+    setPanelState((current) => {
+      if (current.closing !== panelId) return current;
+      return { active: current.pending, closing: "", pending: "" };
+    });
+  }
+
+  function closeFilterPanel() {
+    requestPanel("");
+  }
+
   function applyFilters() {
-    setAppliedFilters(filters);
+    setAppliedFilters({ ...filters });
+    setRequestVersion((version) => version + 1);
+    requestPanel("");
   }
 
   function clearFilters() {
     setFilters(initialFilters);
     setAppliedFilters(initialFilters);
+    requestPanel("");
+  }
+
+  function filterPanelProps(panelId) {
+    return {
+      open: panelState.active === panelId,
+      closing: panelState.closing === panelId,
+      onOpen: () => requestPanel(panelId),
+      onClose: closeFilterPanel,
+      onExitComplete: () => completePanelExit(panelId),
+    };
   }
 
   function downloadExcel() {
@@ -271,7 +417,7 @@ export default function OrdersReportPage() {
     ], "orders-report");
   }
 
-  if (loading) return <section className="orders-report-page"><div className="dashboard-empty" role="status">Загрузка отчёта...</div></section>;
+  if (loading && !hasLoaded) return <section className="orders-report-page"><div className="dashboard-empty" role="status">Загрузка отчёта...</div></section>;
   if (error) return <section className="orders-report-page"><div className="login-error" role="alert">{error}</div></section>;
 
   return (
@@ -280,8 +426,26 @@ export default function OrdersReportPage() {
         <div className="report-page-header owner-report-header">
           <div className="report-title-group owner-report-heading"><span className="report-accent-bar" aria-hidden="true" /><div><span className="report-eyebrow owner-report-kicker">Отчёты</span><h1>Отчёт по заказам</h1></div></div>
           <div className="report-actions owner-report-actions">
-            <ReportDateRangePicker variant="canonical" value={dateRange} onChange={setDateRange} buttonAriaLabel="Период отчёта по заказам" />
-            <button className="orders-filter-toggle" type="button" aria-expanded={filtersOpen} aria-controls="orders-report-filters" onClick={() => setFiltersOpen((value) => !value)}><Icon name="bi-sliders" size={17} /> Фильтровать</button>
+            <ReportDateRangePicker
+              variant="canonical"
+              animateExit
+              value={dateRange}
+              onChange={setDateRange}
+              open={panelState.active === "period"}
+              onOpenChange={(nextOpen) => requestPanel(nextOpen ? "period" : "")}
+              onExitComplete={() => completePanelExit("period")}
+              buttonAriaLabel="Период отчёта по заказам"
+            />
+            <button
+              className="orders-filter-toggle"
+              type="button"
+              aria-expanded={filtersOpen}
+              aria-controls="orders-report-filters"
+              onClick={() => {
+                if (filtersOpen) requestPanel("");
+                setFiltersOpen((value) => !value);
+              }}
+            ><Icon name="bi-sliders" size={17} /> Фильтровать</button>
             <button className="report-excel-button owner-report-excel" type="button" onClick={downloadExcel}><Icon name="bi-filetype-xlsx" size={19} strokeWidth={1.9} className="owner-report-xlsx-icon" /> Скачать Excel</button>
           </div>
         </div>
@@ -293,12 +457,12 @@ export default function OrdersReportPage() {
                 <Icon name="bi-search" size={17} />
                 <input aria-label="Номер заказа" value={filters.orderNumber} onChange={(event) => updateFilter("orderNumber", event.target.value)} placeholder="Введите номер заказа" />
               </label>
-              <FilterDropdown label="Официант" placeholder="Выберите официанта" value={filters.waiterId} options={filterOptions.waiters} onChange={(value) => updateFilter("waiterId", value)} disabled={filterOptionsLoading || !filterOptions.waiters.length} />
-              <FilterDropdown label="Кассир" placeholder="Выберите кассира" value={filters.cashierId} options={filterOptions.cashiers} onChange={(value) => updateFilter("cashierId", value)} disabled={filterOptionsLoading || !filterOptions.cashiers.length} />
-              <FilterDropdown label="Блюда" placeholder="Выберите блюдо" value={filters.productId} options={filterOptions.products} onChange={(value) => updateFilter("productId", value)} disabled={filterOptionsLoading || !filterOptions.products.length} />
-              <FilterDropdown label="Тип заказа" placeholder="Выберите тип заказа" value={filters.orderType} options={filterOptions.order_types} onChange={(value) => updateFilter("orderType", value)} disabled={filterOptionsLoading || !filterOptions.order_types.length} />
-              <FilterDropdown label="Статус заказа" placeholder="Выберите статус заказа" value={filters.orderStatus} options={filterOptions.order_statuses} onChange={(value) => updateFilter("orderStatus", value)} disabled={filterOptionsLoading || !filterOptions.order_statuses.length} />
-              <FilterDropdown label="Тип оплаты" placeholder="Выберите тип оплаты" value={filters.paymentMethod} options={filterOptions.payment_methods} onChange={(value) => updateFilter("paymentMethod", value)} disabled={filterOptionsLoading || !filterOptions.payment_methods.length} />
+              <FilterMultiSelect label="Официант" placeholder="Выберите официанта" options={filterOptions.waiters} selected={filters.waiterId} onToggle={(v) => toggleFilterValue("waiterId", v)} disabled={filterOptionsLoading || !filterOptions.waiters.length} {...filterPanelProps("waiterId")} />
+              <FilterMultiSelect label="Кассир" placeholder="Выберите кассира" options={filterOptions.cashiers} selected={filters.cashierId} onToggle={(v) => toggleFilterValue("cashierId", v)} disabled={filterOptionsLoading || !filterOptions.cashiers.length} {...filterPanelProps("cashierId")} />
+              <FilterMultiSelect label="Блюда" placeholder="Выберите блюдо" options={filterOptions.products} selected={filters.productId} onToggle={(v) => toggleFilterValue("productId", v)} disabled={filterOptionsLoading || !filterOptions.products.length} {...filterPanelProps("productId")} />
+              <FilterMultiSelect label="Тип заказа" placeholder="Выберите тип заказа" options={filterOptions.order_types} selected={filters.orderType} onToggle={(v) => toggleFilterValue("orderType", v)} disabled={filterOptionsLoading || !filterOptions.order_types.length} {...filterPanelProps("orderType")} />
+              <FilterMultiSelect label="Статус заказа" placeholder="Выберите статус заказа" options={filterOptions.order_statuses} selected={filters.orderStatus} onToggle={(v) => toggleFilterValue("orderStatus", v)} disabled={filterOptionsLoading || !filterOptions.order_statuses.length} {...filterPanelProps("orderStatus")} />
+              <FilterMultiSelect label="Тип оплаты" placeholder="Выберите тип оплаты" options={filterOptions.payment_methods} selected={filters.paymentMethod} onToggle={(v) => toggleFilterValue("paymentMethod", v)} disabled={filterOptionsLoading || !filterOptions.payment_methods.length} {...filterPanelProps("paymentMethod")} />
               <div className="report-filter-buttons">
                 <button type="button" className="report-filter-apply" onClick={applyFilters}><Icon name="bi-sliders" size={17} /> Фильтровать</button>
                 <button type="button" className="report-filter-clear" onClick={clearFilters}><Icon name="bi-x-circle" size={17} /> Очистить</button>

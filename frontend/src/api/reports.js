@@ -5,13 +5,17 @@ function rangeParams(dateFrom, dateTo, extra = {}) {
 }
 
 function compactParams(params) {
-  return Object.fromEntries(Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== "" && value !== "all"));
+  return Object.fromEntries(Object.entries(params).filter(([, value]) => (
+    value !== undefined && value !== null && value !== "" && value !== "all"
+    && !(Array.isArray(value) && value.length === 0)
+  )));
 }
 
-// FastAPI reads `ids: list[UUID] = Query(...)` from REPEATED query params
-// (`ids=A&ids=B`). Axios' default array serializer emits `ids[]=A&ids[]=B`,
-// which the canonical backend rejects with 422 "Field required" — so the
-// repeated-list form is part of this endpoint's contract, not a caller option.
+// FastAPI reads list params (`ids: list[UUID] = Query(...)`, and REPORT-04's
+// `waiter_id: list[UUID] | None`) from REPEATED query params (`ids=A&ids=B`).
+// Axios' default array serializer emits `ids[]=A&ids[]=B`, which the canonical
+// backend rejects with 422 "Field required" — so the repeated-list form is part
+// of these endpoints' contract, not a caller option.
 const REPEATED_IDS_SERIALIZER = Object.freeze({ indexes: null });
 
 export const reportsService = {
@@ -41,7 +45,11 @@ export const reportsService = {
       order_status: filters.orderStatus,
       payment_method: filters.paymentMethod,
     });
-    return api.get("/reports/orders", { params: rangeParams(dateFrom, dateTo, filterParams), ...config });
+    return api.get("/reports/orders", {
+      params: rangeParams(dateFrom, dateTo, filterParams),
+      ...config,
+      paramsSerializer: REPEATED_IDS_SERIALIZER,
+    });
   },
   getOrdersFilters(config = {}) {
     return api.get("/reports/orders/filters", config);

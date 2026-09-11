@@ -119,7 +119,6 @@ describe("Web domain service contracts", () => {
     });
 
     it.each([
-      ["orders", reportsService.listOrders, "/reports/orders"],
       ["tables", reportsService.listTables, "/reports/tables"],
       ["waiters", reportsService.listWaiters, "/reports/waiters"],
       ["dishes", reportsService.listDishes, "/reports/dishes"],
@@ -132,24 +131,73 @@ describe("Web domain service contracts", () => {
       });
     });
 
+    // Orders is asserted separately: it carries the repeated-param serializer.
+    it("maps orders range parameters", async () => {
+      await reportsService.listOrders("2026-08-01", "2026-08-13");
+      expect(api.get).toHaveBeenLastCalledWith("/reports/orders", {
+        params: { date_from: "2026-08-01", date_to: "2026-08-13" },
+        paramsSerializer: { indexes: null },
+      });
+    });
+
+    it("serializes orders filters as waiter_id=A&waiter_id=B, never bracketed", () => {
+      const client = axios.create({ baseURL: "http://localhost:8000/api/v1" });
+      const uri = client.getUri({
+        url: "/reports/orders",
+        params: { waiter_id: ["A", "B"], order_type: ["dine_in", "delivery"] },
+        paramsSerializer: { indexes: null },
+      });
+      expect(uri).toContain("waiter_id=A&waiter_id=B");
+      expect(uri).toContain("order_type=dine_in&order_type=delivery");
+      expect(uri).not.toContain("waiter_id%5B%5D");
+      expect(uri).not.toContain("waiter_id=A%2CB");
+    });
+
     it("maps the seven supported Orders report filters", async () => {
       await reportsService.listOrders("2026-08-01", "2026-08-13", {
         filters: {
-          orderNumber: "  A-42  ", waiterId: "waiter-1", cashierId: "cashier-1",
-          productId: "product-1", orderType: "dine_in", orderStatus: "completed",
-          paymentMethod: "cash",
+          orderNumber: "  A-42  ", waiterId: ["waiter-1"], cashierId: ["cashier-1"],
+          productId: ["product-1"], orderType: ["dine_in"], orderStatus: ["completed"],
+          paymentMethod: ["cash"],
         },
       });
       expect(api.get).toHaveBeenLastCalledWith("/reports/orders", {
         params: {
           date_from: "2026-08-01", date_to: "2026-08-13", order_number: "A-42",
-          waiter_id: "waiter-1", cashier_id: "cashier-1", product_id: "product-1",
-          order_type: "dine_in", order_status: "completed", payment_method: "cash",
+          waiter_id: ["waiter-1"], cashier_id: ["cashier-1"], product_id: ["product-1"],
+          order_type: ["dine_in"], order_status: ["completed"], payment_method: ["cash"],
         },
+        paramsSerializer: { indexes: null },
       });
 
       await reportsService.getOrdersFilters();
       expect(api.get).toHaveBeenLastCalledWith("/reports/orders/filters", {});
+    });
+
+    it("sends several values per Orders dimension as repeated params and drops empty ones", async () => {
+      await reportsService.listOrders("2026-08-01", "2026-08-13", {
+        filters: {
+          orderNumber: "",
+          waiterId: ["waiter-1", "waiter-2"],
+          cashierId: [],
+          productId: [],
+          orderType: ["dine_in", "delivery"],
+          orderStatus: [],
+          paymentMethod: ["cash", "card"],
+        },
+      });
+      expect(api.get).toHaveBeenLastCalledWith("/reports/orders", {
+        params: {
+          date_from: "2026-08-01", date_to: "2026-08-13",
+          waiter_id: ["waiter-1", "waiter-2"],
+          order_type: ["dine_in", "delivery"],
+          payment_method: ["cash", "card"],
+        },
+        // REPORT-04: the backend reads repeated `waiter_id=A&waiter_id=B`; axios'
+        // default `waiter_id[]=A` form is simply ignored by FastAPI, which would
+        // silently drop the filter rather than fail loudly.
+        paramsSerializer: { indexes: null },
+      });
     });
 
     it("maps the four supported Tables filters and keeps Place UI-only", async () => {
