@@ -312,6 +312,7 @@ export default function ZReportPage() {
         <div className="owner-reports__head-actions">
           <ReportDateRangePicker
             variant="canonical"
+            animateExit
             value={selectedPeriod}
             onChange={setSelectedPeriod}
             validateRange={validateZReportPeriod}

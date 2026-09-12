@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { reportsService } from "../api/reports";
-import OrdersReportPage from "./OrdersReportPage";
+import { formatDateLabel, shiftDate, todayInputValue } from "../utils/date";
+import OrdersReportPage, { currentOrdersDateRange } from "./OrdersReportPage";
 
 vi.mock("../api/reports", () => ({
   reportsService: { listOrders: vi.fn(), getOrdersFilters: vi.fn() },
@@ -59,6 +60,10 @@ function applyBtn() {
 function clearBtn() {
   return document.querySelector(".report-filter-clear");
 }
+function finishPeriodExit() {
+  const closing = document.querySelector(".report-date-menu.is-closing");
+  if (closing) fireEvent(closing, new Event("webkitAnimationEnd", { bubbles: true }));
+}
 // Dropdowns have NO transactional footer — these are only asserted to be ABSENT.
 function panelFooter() {
   return document.querySelector(".orders-filter-select__footer");
@@ -87,6 +92,72 @@ describe("OrdersReportPage filters", () => {
   });
 
   // PLACEHOLDER_TESTS
+
+  it("builds the initial Orders period from the local calendar day", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(2026, 8, 12, 0, 30));
+      expect(currentOrdersDateRange()).toEqual({
+        preset: "Сегодня",
+        start: "12.09.2026",
+        end: "12.09.2026",
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("opens on Today and sends today/today in the initial request", async () => {
+    const today = todayInputValue();
+    const todayDisplay = formatDateLabel(today);
+    render(<OrdersReportPage />);
+    await screen.findByText("42");
+
+    expect(screen.getByRole("button", { name: "Период отчёта по заказам" })).toHaveTextContent(todayDisplay);
+    expect(reportsService.listOrders).toHaveBeenNthCalledWith(
+      1,
+      today,
+      today,
+      expect.objectContaining({
+        filters: {
+          orderNumber: "", waiterId: [], cashierId: [], productId: [],
+          orderType: [], orderStatus: [], paymentMethod: [],
+        },
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Период отчёта по заказам" }));
+    expect(screen.getByRole("button", { name: "Сегодня" })).toHaveClass("is-active");
+  });
+
+  it("keeps Yesterday, Today and an arbitrary manual range working", async () => {
+    const today = todayInputValue();
+    const yesterday = shiftDate(today, -1);
+    const trigger = () => screen.getByRole("button", { name: "Период отчёта по заказам" });
+    render(<OrdersReportPage />);
+    await screen.findByText("42");
+
+    fireEvent.click(trigger());
+    fireEvent.click(screen.getByRole("button", { name: "Вчера" }));
+    fireEvent.click(document.querySelector(".report-date-ok"));
+    await waitFor(() => expect(reportsService.listOrders).toHaveBeenCalledTimes(2));
+    expect(reportsService.listOrders.mock.calls[1].slice(0, 2)).toEqual([yesterday, yesterday]);
+    finishPeriodExit();
+
+    fireEvent.click(trigger());
+    fireEvent.click(screen.getByRole("button", { name: "Сегодня" }));
+    fireEvent.click(document.querySelector(".report-date-ok"));
+    await waitFor(() => expect(reportsService.listOrders).toHaveBeenCalledTimes(3));
+    expect(reportsService.listOrders.mock.calls[2].slice(0, 2)).toEqual([today, today]);
+    finishPeriodExit();
+
+    fireEvent.click(trigger());
+    fireEvent.change(screen.getByLabelText("Начало периода"), { target: { value: "05.08.2026 | 00:00" } });
+    fireEvent.change(screen.getByLabelText("Конец периода"), { target: { value: "07.08.2026 | 00:00" } });
+    fireEvent.click(document.querySelector(".report-date-ok"));
+    await waitFor(() => expect(reportsService.listOrders).toHaveBeenCalledTimes(4));
+    expect(reportsService.listOrders.mock.calls[3].slice(0, 2)).toEqual(["2026-08-05", "2026-08-07"]);
+  });
 
   it("panel expands/collapses via the toggle; closed panel is inert", async () => {
     render(<OrdersReportPage />);
@@ -446,6 +517,8 @@ describe("OrdersReportPage filters", () => {
 
     fireEvent.click(clearBtn());
     await waitFor(() => expect(reportsService.listOrders).toHaveBeenCalledTimes(3));
+    const periodBeforeClear = reportsService.listOrders.mock.calls[1].slice(0, 2);
+    expect(reportsService.listOrders.mock.calls[2].slice(0, 2)).toEqual(periodBeforeClear);
     expect(reportsService.listOrders.mock.calls[2][2].filters).toMatchObject({
       orderNumber: "", waiterId: [], cashierId: [], productId: [],
       orderType: [], orderStatus: [], paymentMethod: [],

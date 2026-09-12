@@ -107,6 +107,32 @@ describe("ReportDateRangePicker canonical Reports variant", () => {
     expect(container.querySelector(".report-date-menu")).toBeNull();
   });
 
+  it("keeps the same uncontrolled menu node mounted until its exit animation ends", async () => {
+    const { container } = render(
+      <ReportDateRangePicker
+        variant="canonical"
+        value={{ preset: "Сегодня", start: "12.09.2026", end: "12.09.2026" }}
+        onChange={vi.fn()}
+        buttonAriaLabel="Период Z-отчёта"
+        animateExit
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Период Z-отчёта" });
+    fireEvent.click(trigger);
+    const openMenu = container.querySelector(".report-date-menu");
+    expect(openMenu).toBeInTheDocument();
+
+    fireEvent.click(trigger);
+    const closingMenu = container.querySelector(".report-date-menu.is-closing");
+    expect(closingMenu).toBe(openMenu);
+    expect(closingMenu).toHaveAttribute("inert");
+    expect(closingMenu).toHaveAttribute("aria-hidden", "true");
+
+    fireEvent(closingMenu, new Event("webkitAnimationEnd", { bubbles: true }));
+    await waitFor(() => expect(container.querySelector(".report-date-menu")).toBeNull());
+  });
+
   // ZR-PERIOD-01B: current-period presets all mean start-of-period → TODAY and
   // must never reach into the future. Driven with a frozen clock so the
   // first-day / mid-month / last-day cases are deterministic.

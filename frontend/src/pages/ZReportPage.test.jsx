@@ -23,9 +23,9 @@ vi.mock("../components/ReportDateRangePicker", () => ({
   // its DD.MM.YYYY | HH:MM display are covered by its own suite / the browser
   // oracle). ZR-PRINT-FINAL-UX-06 prints that committed time, so the page needs a
   // way to commit one.
-  default: ({ onChange }) => (
+  default: ({ onChange, animateExit }) => (
     <>
-      <button type="button">Период Z-отчёта</button>
+      <button type="button" data-animate-exit={animateExit ? "true" : "false"}>Период Z-отчёта</button>
       <button
         type="button"
         onClick={() => onChange({ preset: "", start: "01.08.2026", end: "31.08.2026" })}
@@ -192,6 +192,11 @@ async function printDetail(rowTitle) {
 }
 
 describe("ZReportPage detail UX", () => {
+  it("opts the Z period into the approved shared exit lifecycle", async () => {
+    render(<ZReportPage />);
+    expect(screen.getByRole("button", { name: "Период Z-отчёта" })).toHaveAttribute("data-animate-exit", "true");
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     reportsService.getZReport.mockResolvedValue({ data: Z });

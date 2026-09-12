@@ -3,8 +3,9 @@ import { reportsService } from "../api/reports";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
 import { exportToExcel } from "../utils/excel";
+import { formatDateLabel, todayInputValue } from "../utils/date";
 import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/useAsyncSafety";
-import { currentMonthRange, toApiDate } from "./reports/reportPeriod";
+import { toApiDate } from "./reports/reportPeriod";
 import { formatMoney } from "./reports/reportMoney";
 
 function formatDate(value) {
@@ -31,6 +32,14 @@ const emptyFilterOptions = {
   order_statuses: [],
   payment_methods: [],
 };
+
+// Orders opens on the restaurant's local calendar day. todayInputValue uses
+// local Date fields (rather than an ISO/UTC slice), while the picker keeps its
+// approved DD.MM.YYYY display contract.
+export function currentOrdersDateRange() {
+  const today = formatDateLabel(todayInputValue());
+  return { preset: "Сегодня", start: today, end: today };
+}
 
 const filterNames = {
   orderNumber: "Номер заказа",
@@ -226,7 +235,7 @@ function FilterMultiSelect({
 }
 
 export default function OrdersReportPage() {
-  const [dateRange, setDateRange] = useState(currentMonthRange);
+  const [dateRange, setDateRange] = useState(currentOrdersDateRange);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [panelState, setPanelState] = useState({ active: "", closing: "", pending: "" });
   const [filters, setFilters] = useState(initialFilters);
