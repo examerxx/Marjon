@@ -1,7 +1,7 @@
 from __future__ import annotations
 import io
 from datetime import date, datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Iterable, Sequence, get_args
 from uuid import UUID
 
@@ -14,7 +14,8 @@ from app.modules.admin_reports.schemas import (
     DishReportFiltersResponse, DishReportRow, LoginHistoryRow, OrderReportRow,
     OrderReportFiltersResponse, ReportFilterOption,
     ProductCountRow, ProductReportRow, TableReportFiltersResponse,
-    TableReportRow, WaiterReportRow,
+    TableReportRow, WaiterDishRow, WaiterReportFiltersResponse,
+    WaiterReportResponse, WaiterReportRow, WaiterReportTotals,
 )
 from app.modules.auth.models import RefreshToken, User
 from app.modules.finance.models import Counterparty, FinTransaction, PaymentType
@@ -615,37 +616,160 @@ class AdminReportService:
         )
 
     async def waiters_report(
-        self, company_id: UUID, date_from: date | None, date_to: date | None
-    ) -> list[WaiterReportRow]:
+        self,
+        company_id: UUID,
+        date_from: date | None,
+        date_to: date | None,
+        *,
+        waiter_id: UUID | None = None,
+        service_percent: Decimal = Decimal("1"),
+        include_orders: bool = True,
+        include_takeaway_delivery: bool = False,
+        include_service: bool = False,
+    ) -> WaiterReportResponse:
+        non_service_total = Order.total_amount - Order.service_fee
+        ordinary_total = func.coalesce(func.sum(case(
+            (Order.order_type.notin_(["takeaway", "delivery"]), non_service_total),
+            else_=Decimal("0"),
+        )), 0).label("orders_total")
+        takeaway_delivery_total = func.coalesce(func.sum(case(
+            (Order.order_type.in_(["takeaway", "delivery"]), non_service_total),
+            else_=Decimal("0"),
+        )), 0).label("takeaway_delivery_total")
+        eligible_waiter = exists(
+            select(UserRole.id)
+            .join(Role, Role.id == UserRole.role_id)
+            .where(
+                UserRole.user_id == Order.waiter_id,
+                Role.company_id == company_id,
+                Role.slug == "waiter",
+                Role.is_system.is_(False),
+            )
+        )
         query = (
             select(
                 Order.waiter_id,
-                User.name.label("waiter_name"),
+                func.coalesce(User.name, User.email).label("waiter_name"),
                 func.count(Order.id).label("orders_count"),
-                func.coalesce(func.sum(Order.total_amount), 0).label("orders_total"),
-                func.coalesce(func.sum(
-                    select(func.count(OrderItem.id))
-                    .where(OrderItem.order_id == Order.id)
-                    .correlate(Order)
-                    .scalar_subquery()
-                ), 0).label("dishes_count"),
+                ordinary_total,
+                takeaway_delivery_total,
+                func.coalesce(func.sum(Order.service_fee), 0).label("service_total"),
             )
-            .outerjoin(User, User.id == Order.waiter_id)
-            .where(Order.company_id == company_id, Order.status == "completed")
-            .group_by(Order.waiter_id, User.name)
+            .join(User, and_(
+                User.id == Order.waiter_id,
+                User.company_id == company_id,
+                User.is_active.is_(True),
+            ))
+            .where(
+                Order.company_id == company_id,
+                Order.status == "completed",
+                eligible_waiter,
+            )
+            .group_by(Order.waiter_id, User.name, User.email)
             .order_by(func.sum(Order.total_amount).desc())
         )
+        if waiter_id is not None:
+            query = query.where(Order.waiter_id == waiter_id)
         query = self._order_date_filter(query, date_from, date_to)
-        rows = (await self.db.execute(query)).all()
-        return [
-            WaiterReportRow(
-                waiter_id=r.waiter_id, name=r.waiter_name or "—",
-                orders_count=r.orders_count,
-                orders_total=Decimal(str(r.orders_total)),
-                dishes_count=int(r.dishes_count or 0),
+        aggregate_rows = (await self.db.execute(query)).all()
+
+        dishes_by_waiter: dict[UUID, list[WaiterDishRow]] = {}
+        if aggregate_rows:
+            dish_query = (
+                select(
+                    Order.waiter_id,
+                    OrderItem.product_id,
+                    OrderItem.name,
+                    func.sum(OrderItem.quantity).label("quantity"),
+                    func.sum(OrderItem.total).label("amount"),
+                )
+                .join(Order, Order.id == OrderItem.order_id)
+                .join(User, and_(
+                    User.id == Order.waiter_id,
+                    User.company_id == company_id,
+                    User.is_active.is_(True),
+                ))
+                .where(
+                    Order.company_id == company_id,
+                    Order.status == "completed",
+                    OrderItem.status != "cancelled",
+                    eligible_waiter,
+                )
+                .group_by(Order.waiter_id, OrderItem.product_id, OrderItem.name)
+                .order_by(Order.waiter_id, func.sum(OrderItem.total).desc(), OrderItem.name)
             )
-            for r in rows
-        ]
+            if waiter_id is not None:
+                dish_query = dish_query.where(Order.waiter_id == waiter_id)
+            dish_query = self._order_date_filter(dish_query, date_from, date_to)
+            for dish in (await self.db.execute(dish_query)).all():
+                dishes_by_waiter.setdefault(dish.waiter_id, []).append(WaiterDishRow(
+                    product_id=dish.product_id,
+                    name=dish.name,
+                    quantity=Decimal(str(dish.quantity or 0)),
+                    amount=Decimal(str(dish.amount or 0)),
+                ))
+
+        def money(value: Decimal) -> Decimal:
+            return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        rows: list[WaiterReportRow] = []
+        for aggregate in aggregate_rows:
+            orders_total = Decimal(str(aggregate.orders_total or 0))
+            takeaway_total = Decimal(str(aggregate.takeaway_delivery_total or 0))
+            service_total = Decimal(str(aggregate.service_total or 0))
+            service_base = (
+                (orders_total if include_orders else Decimal("0"))
+                + (takeaway_total if include_takeaway_delivery else Decimal("0"))
+                + (service_total if include_service else Decimal("0"))
+            )
+            dishes = dishes_by_waiter.get(aggregate.waiter_id, [])
+            rows.append(WaiterReportRow(
+                waiter_id=aggregate.waiter_id,
+                name=aggregate.waiter_name,
+                orders_count=aggregate.orders_count,
+                orders_total=money(orders_total),
+                takeaway_delivery_total=money(takeaway_total),
+                service_total=money(service_total),
+                waiter_service_total=money(service_base * service_percent / Decimal("100")),
+                dishes_count=sum((dish.quantity for dish in dishes), Decimal("0")),
+                dishes=dishes,
+            ))
+
+        return WaiterReportResponse(
+            rows=rows,
+            totals=WaiterReportTotals(
+                orders_count=sum(row.orders_count for row in rows),
+                orders_total=money(sum((row.orders_total for row in rows), Decimal("0"))),
+                takeaway_delivery_total=money(sum((row.takeaway_delivery_total for row in rows), Decimal("0"))),
+                service_total=money(sum((row.service_total for row in rows), Decimal("0"))),
+                waiter_service_total=money(sum((row.waiter_service_total for row in rows), Decimal("0"))),
+                dishes_count=sum((row.dishes_count for row in rows), Decimal("0")),
+            ),
+        )
+
+    async def waiters_report_filters(self, company_id: UUID) -> WaiterReportFiltersResponse:
+        rows = (await self.db.execute(
+            select(User.id, User.name, User.email)
+            .where(
+                User.company_id == company_id,
+                User.is_active.is_(True),
+                exists(
+                    select(UserRole.id)
+                    .join(Role, Role.id == UserRole.role_id)
+                    .where(
+                        UserRole.user_id == User.id,
+                        Role.company_id == company_id,
+                        Role.slug == "waiter",
+                        Role.is_system.is_(False),
+                    )
+                ),
+            )
+            .order_by(func.coalesce(User.name, User.email), User.email, User.id)
+        )).all()
+        return WaiterReportFiltersResponse(waiters=[
+            ReportFilterOption(value=str(row.id), label=row.name or row.email)
+            for row in rows
+        ])
 
     async def dishes_report(
         self,

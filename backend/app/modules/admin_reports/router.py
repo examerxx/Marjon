@@ -1,5 +1,6 @@
 from __future__ import annotations
 from datetime import date
+from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
 
@@ -12,7 +13,8 @@ from app.modules.admin_reports import schemas
 from app.modules.admin_reports.schemas import (
     AttendanceRow, CancelledItemRow, DishReportFiltersResponse, DishReportRow,
     DebtCreditRow, LoginHistoryRow, OrderReportFiltersResponse, OrderReportRow, ProductCountRow,
-    ProductReportRow, TableReportFiltersResponse, TableReportRow, WaiterReportRow,
+    ProductReportRow, TableReportFiltersResponse, TableReportRow,
+    WaiterReportFiltersResponse, WaiterReportResponse,
 )
 from app.modules.admin_reports.service import AdminReportService, xlsx_response
 from app.modules.auth.dependencies import require_hq_admin, require_web_owner
@@ -183,14 +185,38 @@ async def tables_report_filters(
     return await AdminReportService(db).tables_report_filters(user.company_id)
 
 
-@router.get("/waiters", response_model=list[WaiterReportRow])
+@router.get("/waiters", response_model=WaiterReportResponse)
 async def waiters_report(
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
+    waiter_id: UUID | None = Query(None),
+    service_percent: Decimal = Query(Decimal("1"), ge=0, le=100),
+    include_orders: bool = Query(True),
+    include_takeaway_delivery: bool = Query(False),
+    include_service: bool = Query(False),
     user: User = Depends(require_web_owner),
     db: AsyncSession = Depends(get_db),
 ):
-    return await AdminReportService(db).waiters_report(user.company_id, date_from, date_to)
+    assert user.company_id is not None
+    return await AdminReportService(db).waiters_report(
+        user.company_id,
+        date_from,
+        date_to,
+        waiter_id=waiter_id,
+        service_percent=service_percent,
+        include_orders=include_orders,
+        include_takeaway_delivery=include_takeaway_delivery,
+        include_service=include_service,
+    )
+
+
+@router.get("/waiters/filters", response_model=WaiterReportFiltersResponse)
+async def waiters_report_filters(
+    user: User = Depends(require_web_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    assert user.company_id is not None
+    return await AdminReportService(db).waiters_report_filters(user.company_id)
 
 
 @router.get("/dishes", response_model=list[DishReportRow])

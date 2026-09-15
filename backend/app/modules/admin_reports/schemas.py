@@ -31,11 +31,36 @@ class TableReportRow(BaseModel):
 
 
 class WaiterReportRow(BaseModel):
-    waiter_id: UUID | None
+    waiter_id: UUID
     name: str
     orders_count: int
     orders_total: Decimal
-    dishes_count: int
+    takeaway_delivery_total: Decimal
+    service_total: Decimal
+    waiter_service_total: Decimal
+    dishes_count: Decimal
+    dishes: list["WaiterDishRow"]
+
+
+class WaiterDishRow(BaseModel):
+    product_id: UUID
+    name: str
+    quantity: Decimal
+    amount: Decimal
+
+
+class WaiterReportTotals(BaseModel):
+    orders_count: int
+    orders_total: Decimal
+    takeaway_delivery_total: Decimal
+    service_total: Decimal
+    waiter_service_total: Decimal
+    dishes_count: Decimal
+
+
+class WaiterReportResponse(BaseModel):
+    rows: list[WaiterReportRow]
+    totals: WaiterReportTotals
 
 
 class DishReportRow(BaseModel):
@@ -70,6 +95,10 @@ class TableReportFiltersResponse(BaseModel):
     payment_methods: list[ReportFilterOption]
     places: list[ReportFilterOption]
     place_filter_supported: bool = False
+
+
+class WaiterReportFiltersResponse(BaseModel):
+    waiters: list[ReportFilterOption]
 
 
 class DishReportFiltersResponse(BaseModel):
