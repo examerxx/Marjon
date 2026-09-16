@@ -67,8 +67,21 @@ export const reportsService = {
   getTablesFilters(config = {}) {
     return api.get("/reports/tables/filters", config);
   },
-  listWaiters(dateFrom, dateTo, config = {}) {
-    return api.get("/reports/waiters", { params: rangeParams(dateFrom, dateTo), ...config });
+  listWaiters(dateFrom, dateTo, { filters = {}, ...config } = {}) {
+    const filterParams = compactParams({
+      waiter_id: filters.waiterId,
+      service_percent: filters.servicePercent,
+      include_orders: filters.includeOrders,
+      include_takeaway_delivery: filters.includeTakeawayDelivery,
+      include_service: filters.includeService,
+    });
+    return api.get("/reports/waiters", {
+      params: rangeParams(dateFrom, dateTo, filterParams),
+      ...config,
+    });
+  },
+  getWaitersFilters(config = {}) {
+    return api.get("/reports/waiters/filters", config);
   },
   listDishes(dateFrom, dateTo, { filters = {}, ...config } = {}) {
     const filterParams = compactParams({

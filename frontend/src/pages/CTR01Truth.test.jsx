@@ -164,12 +164,18 @@ describe("CTR-01 critical financial truth", () => {
     expect(screen.getByRole("columnheader", { name: "Средний чек" })).toBeInTheDocument();
   });
 
-  it("renders only authoritative waiter aggregates and no invented zero columns", async () => {
-    api.get.mockResolvedValue({ data: [{ waiter_id: "waiter-1", name: "Backend Waiter", orders_count: 4, orders_total: 1200, dishes_count: 8 }] });
+  it("renders the canonical waiter calculation dimensions", async () => {
+    api.get.mockImplementation((path) => path === "/reports/waiters/filters"
+      ? Promise.resolve({ data: { waiters: [{ value: "waiter-1", label: "Backend Waiter" }] } })
+      : Promise.resolve({ data: {
+        rows: [{ waiter_id: "waiter-1", name: "Backend Waiter", orders_count: 4, orders_total: 1200, takeaway_delivery_total: 300, service_total: 100, waiter_service_total: 12, dishes_count: 8, dishes: [] }],
+        totals: { orders_count: 4, orders_total: 1200, takeaway_delivery_total: 300, service_total: 100, waiter_service_total: 12, dishes_count: 8 },
+      } }));
     render(<WaitersReportPage />);
-    expect((await screen.findAllByText("Backend Waiter")).length).toBe(2);
-    ["Сумма заказов на вынос", "Сумма услуги", "Обслуга официанта", "Процент"].forEach((label) => expect(screen.queryByText(label)).not.toBeInTheDocument());
-    expect(screen.getByRole("columnheader", { name: "Количество заказов" })).toBeInTheDocument();
+    expect(await screen.findByText("Backend Waiter")).toBeInTheDocument();
+    ["Сумма заказов", "Самовывоз и доставка", "Сумма услуги", "Обслуживание официанта", "Блюда"].forEach((label) => {
+      expect(screen.getByRole("columnheader", { name: label })).toBeInTheDocument();
+    });
   });
 
   it("renders and exports only frozen cancelled-item metadata", async () => {
@@ -275,7 +281,7 @@ describe("CTR-01 critical financial truth", () => {
     expect(sources["OwnerDashboard.jsx"]).not.toContain("prevIncome * 0.31");
     expect(sources["OrdersReportPage.jsx"]).not.toMatch(/goodsPrice|servicePrice|deliveryPrice|client_name|courier_name|order_type \|\|/);
     expect(sources["TablesReportPage.jsx"]).not.toMatch(/service_price|discount|place_price|dishes_amount/);
-    expect(sources["WaitersReportPage.jsx"]).not.toMatch(/takeaway|waiterService|service_total|percent/i);
+    expect(sources["WaitersReportPage.jsx"]).not.toMatch(/Khusniddin|Administrator|const fake|mockWaiter/i);
     expect(sources["CancelledDishesReportPage.jsx"]).not.toMatch(/order_type|chef|author|comment|На стол/);
     expect(sources["DebtorsCreditorsReportPage.jsx"]).not.toMatch(/12650|USD|item\.id/);
   });

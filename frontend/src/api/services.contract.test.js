@@ -120,7 +120,6 @@ describe("Web domain service contracts", () => {
 
     it.each([
       ["tables", reportsService.listTables, "/reports/tables"],
-      ["waiters", reportsService.listWaiters, "/reports/waiters"],
       ["dishes", reportsService.listDishes, "/reports/dishes"],
       ["cancelled", reportsService.listCancelledDishes, "/reports/cancelled"],
       ["debt-credit", reportsService.listDebtCredit, "/reports/debt-credit"],
@@ -129,6 +128,32 @@ describe("Web domain service contracts", () => {
       expect(api.get).toHaveBeenLastCalledWith(endpoint, {
         params: { date_from: "2026-08-01", date_to: "2026-08-13" },
       });
+    });
+
+    it("maps waiter report state and its canonical filter metadata endpoint", async () => {
+      await reportsService.listWaiters("2026-08-01", "2026-08-13", {
+        filters: {
+          waiterId: "waiter-1",
+          servicePercent: "12.5",
+          includeOrders: true,
+          includeTakeawayDelivery: false,
+          includeService: true,
+        },
+      });
+      expect(api.get).toHaveBeenLastCalledWith("/reports/waiters", {
+        params: {
+          date_from: "2026-08-01",
+          date_to: "2026-08-13",
+          waiter_id: "waiter-1",
+          service_percent: "12.5",
+          include_orders: true,
+          include_takeaway_delivery: false,
+          include_service: true,
+        },
+      });
+
+      await reportsService.getWaitersFilters({ signal: "signal" });
+      expect(api.get).toHaveBeenLastCalledWith("/reports/waiters/filters", { signal: "signal" });
     });
 
     // Orders is asserted separately: it carries the repeated-param serializer.

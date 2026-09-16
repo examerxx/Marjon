@@ -374,7 +374,7 @@ describe("truthful production data states", () => {
     reportSources.forEach((source) => {
       expect(source).toContain('setError("")');
       expect(source).toMatch(/catch\([^)]*\)[\s\S]*setError\(/);
-      expect(source).toMatch(/if \(error\) return|!error\s*&&\s*!rows\.length|!error\s*&&\s*!visibleRows\.length/);
+      expect(source).toMatch(/if \(error(?: && !hasLoaded)?\) return|!error\s*&&\s*!rows\.length|!error\s*&&\s*!visibleRows\.length/);
     });
   });
 });

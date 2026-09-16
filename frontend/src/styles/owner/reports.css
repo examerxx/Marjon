@@ -2087,3 +2087,662 @@
     transition-duration: 0.01ms;
   }
 }
+
+/* Waiters keeps the compact Zim Zim control placement while every visual token
+   and interaction surface stays in the OWNER reports family. */
+.waiters-report-page .report-actions .report-period-button,
+.waiters-report-page .report-actions .report-excel-button {
+  border-radius: 22px;
+}
+
+.waiters-report-page .waiters-report-header {
+  display: grid;
+  grid-template-columns: minmax(250px, 1fr) auto;
+  align-items: center;
+}
+
+.waiters-report-page .report-title-group.owner-report-heading {
+  align-items: center;
+  gap: 14px;
+}
+
+.waiters-report-page .owner-report-heading .report-accent-bar {
+  width: 8px;
+  min-width: 8px;
+  height: 44px;
+  margin: 0;
+  border-radius: 999px;
+  background: #16c6c8;
+  box-shadow: 0 8px 17px rgba(37, 99, 235, 0.154);
+}
+
+.waiters-report-page .waiters-report-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.waiters-report-page .waiters-report-actions .report-period-button {
+  width: max-content;
+  min-width: 0;
+  justify-content: center;
+  gap: 9px;
+  padding-inline: 12px;
+}
+
+.waiters-report-page .orders-filter-select {
+  position: relative;
+  display: block;
+  width: 202px;
+  min-width: 202px;
+  flex: 0 0 202px;
+}
+
+.waiters-report-page .orders-filter-select__trigger {
+  width: 100%;
+  min-height: 43px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid rgba(15, 35, 60, 0.14);
+  border-radius: 22px;
+  background: #ffffff;
+  color: var(--neutral-950, #071428);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  cursor: pointer;
+}
+
+.waiters-report-page .orders-filter-select__trigger.is-placeholder {
+  color: var(--neutral-400, #7a94b4);
+}
+
+.waiters-report-page .orders-filter-select__trigger:hover:not(:disabled) {
+  border-color: rgba(31, 201, 201, 0.55);
+}
+
+.waiters-report-page .orders-filter-select__trigger:focus-visible,
+.waiters-report-page .orders-filter-select__trigger[aria-expanded="true"] {
+  border-color: var(--owner-accent, #1fc9c9);
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.18);
+  outline: none;
+}
+
+.waiters-report-page .orders-filter-select__trigger:disabled {
+  cursor: not-allowed;
+  border-color: rgba(15, 35, 60, 0.11);
+  background: var(--owner-control-disabled, #eff2f9);
+  color: var(--neutral-500, #64748b);
+}
+
+.waiters-report-page .orders-filter-select__value {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.waiters-report-page .orders-filter-select__trigger.has-value .orders-filter-select__value {
+  padding-right: 24px;
+}
+
+.waiters-report-page .orders-filter-select__chevron {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: var(--neutral-500, #94a3b8);
+  transition: transform 170ms cubic-bezier(0.22, 1, 0.36, 1), color 140ms ease;
+}
+
+.waiters-report-page .orders-filter-select.is-open .orders-filter-select__chevron {
+  transform: rotate(180deg);
+  color: var(--owner-accent, #1fc9c9);
+}
+
+.waiters-report-page .waiters-filter-select__clear {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: 32px;
+  width: 24px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--neutral-400, #7a94b4);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.waiters-report-page .waiters-filter-select__clear:hover,
+.waiters-report-page .waiters-filter-select__clear:focus-visible {
+  background: rgba(31, 201, 201, 0.1);
+  color: var(--owner-accent-hover, #1bb1b1);
+  outline: none;
+}
+
+.waiters-report-page .waiters-filter-select__clear > span {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.waiters-report-page .orders-filter-select__panel {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(15, 35, 60, 0.12);
+  border-radius: 12px;
+  background: var(--color-card, #ffffff);
+  box-shadow: 0 12px 32px rgba(15, 35, 60, 0.14);
+  transform-origin: top center;
+  animation: owner-report-panel-in 170ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.waiters-report-page .orders-filter-select__panel.is-closing {
+  pointer-events: none;
+  animation: owner-report-panel-out 170ms cubic-bezier(0.64, 0, 0.78, 0) both;
+}
+
+.waiters-report-page .orders-filter-select__menu,
+.waiters-report-page .orders-filter-select__panel .orders-filter-select__menu {
+  position: static;
+  z-index: auto;
+  max-height: 232px;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  border: 0;
+  border-radius: 0;
+  list-style: none;
+  background: none;
+  box-shadow: none;
+  animation: none;
+}
+
+.waiters-report-page .orders-filter-select__option {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--neutral-900, #0b1f3f);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  text-align: left;
+  cursor: pointer;
+}
+
+.waiters-report-page .orders-filter-select__option:hover,
+.waiters-report-page .orders-filter-select__option.is-active {
+  background: rgba(31, 201, 201, 0.1);
+}
+
+.waiters-report-page .orders-filter-select__option.is-checked {
+  background: rgba(31, 201, 201, 0.1);
+  color: var(--owner-accent-hover, #1bb1b1);
+}
+
+.waiters-report-page .waiters-filter-select__state,
+.waiters-report-page .waiters-filter-select__state:hover {
+  justify-content: flex-start;
+  background: transparent;
+  color: var(--neutral-500, #7a94b4);
+  cursor: default;
+  font-weight: 500;
+}
+
+.waiters-report-page .waiters-filter-select__state.is-error {
+  color: var(--color-danger, #d9534f);
+}
+
+.waiters-report-page .waiters-filter-select__choice {
+  width: 16px;
+  height: 16px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 16px;
+  color: var(--owner-accent-hover, #1bb1b1);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.waiters-report-page .report-actions .report-date-menu {
+  transform-origin: top center;
+  animation: owner-report-panel-in 170ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.waiters-report-page .report-actions .report-date-menu.is-closing {
+  pointer-events: none;
+  animation: owner-report-panel-out 170ms cubic-bezier(0.64, 0, 0.78, 0) both;
+}
+
+.waiters-report-page .owner-reports__period.report-actions {
+  position: relative;
+  z-index: 200;
+}
+
+.waiters-report-page .waiters-percent-control-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.waiters-report-page .waiters-percent-stepper {
+  position: relative;
+  width: 84px;
+  height: 43px;
+  min-width: 84px;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 0 20px 0 12px;
+  border: 1px solid rgba(15, 35, 60, 0.14);
+  border-radius: 22px;
+  background: #ffffff;
+  color: var(--neutral-800, #1e293b);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.waiters-report-page .waiters-percent-stepper:focus-within {
+  border-color: var(--owner-accent, #1fc9c9);
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.18);
+}
+
+.waiters-report-page .waiters-percent-stepper.is-invalid {
+  border-color: rgba(200, 66, 55, 0.72);
+}
+
+.waiters-report-page .waiters-percent-stepper input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--neutral-900, #0b1f3f);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  transform: translateX(-6px);
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.waiters-report-page .waiters-percent-stepper input::-webkit-inner-spin-button,
+.waiters-report-page .waiters-percent-stepper input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+.waiters-report-page .waiters-percent-stepper__suffix {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--neutral-500, #64748b);
+  font-size: 14px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.waiters-report-page .waiters-percent-stepper__controls {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 20px;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 140ms ease, visibility 140ms ease;
+}
+
+.waiters-report-page .waiters-percent-stepper:hover .waiters-percent-stepper__controls,
+.waiters-report-page .waiters-percent-stepper:focus-within .waiters-percent-stepper__controls {
+  opacity: 1;
+  visibility: visible;
+}
+
+.waiters-report-page .waiters-percent-stepper__up,
+.waiters-report-page .waiters-percent-stepper__down {
+  flex: 1 1 0;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--neutral-500, #64748b);
+  cursor: pointer;
+}
+
+.waiters-report-page .waiters-percent-stepper__up:disabled,
+.waiters-report-page .waiters-percent-stepper__down:disabled {
+  color: var(--neutral-300, #cbd5e1);
+  cursor: default;
+}
+
+.waiters-report-page .waiters-percent-stepper__up::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 5px solid currentColor;
+}
+
+.waiters-report-page .waiters-percent-stepper__down::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+}
+
+.waiters-report-page .waiters-percent-stepper__up:hover,
+.waiters-report-page .waiters-percent-stepper__down:hover,
+.waiters-report-page .waiters-percent-stepper__up:focus-visible,
+.waiters-report-page .waiters-percent-stepper__down:focus-visible {
+  background: rgba(31, 201, 201, 0.1);
+  color: var(--owner-accent-hover, #1bb1b1);
+  outline: none;
+}
+
+.waiters-report-page .waiters-filter-error {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + 4px);
+  right: 0;
+  width: max-content;
+  max-width: 220px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: #fff3f2;
+  color: #c84237;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.waiters-report-page .waiters-table-toggle {
+  width: 100%;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 2px 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  user-select: none;
+}
+
+.waiters-report-page .waiters-table-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.waiters-report-page .waiters-table-toggle__box {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 18px;
+  border: 1px solid rgba(15, 35, 60, 0.24);
+  border-radius: 5px;
+  background: #ffffff;
+  color: #ffffff;
+  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+
+.waiters-report-page .waiters-table-toggle.is-checked .waiters-table-toggle__box {
+  border-color: var(--owner-accent, #1fc9c9);
+  background: var(--owner-accent, #1fc9c9);
+}
+
+.waiters-report-page .waiters-table-toggle__tick {
+  display: block;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1;
+  transform: translateY(-0.5px);
+}
+
+.waiters-report-page .waiters-table-toggle:hover .waiters-table-toggle__box {
+  border-color: rgba(31, 201, 201, 0.72);
+}
+
+.waiters-report-page .waiters-table-toggle:has(input:focus-visible) .waiters-table-toggle__box {
+  outline: 2px solid rgba(31, 201, 201, 0.5);
+  outline-offset: 2px;
+}
+
+.waiters-report-page .waiters-report-error {
+  margin: 0 0 12px;
+}
+
+.waiters-report-page .owner-report-table {
+  min-width: 960px;
+}
+
+.waiters-report-page .waiters-dishes-button {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  border: 1px solid rgba(31, 201, 201, 0.32);
+  border-radius: 16px;
+  background: rgba(31, 201, 201, 0.07);
+  color: #148e8e;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.waiters-report-page .waiters-dishes-button:hover,
+.waiters-report-page .waiters-dishes-button:focus-visible {
+  border-color: rgba(31, 201, 201, 0.7);
+  background: rgba(31, 201, 201, 0.12);
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.12);
+}
+
+.waiters-report-page .waiter-dishes-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.waiters-report-page .waiter-dishes-drawer__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.28);
+  pointer-events: auto;
+}
+
+.waiters-report-page .waiter-dishes-drawer__panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(520px, 100vw);
+  height: 100%;
+  padding: 24px;
+  overflow-y: auto;
+  border-left: 1px solid rgba(226, 232, 240, 0.9);
+  background: #ffffff;
+  box-shadow: -14px 0 42px rgba(13, 39, 72, 0.126);
+  pointer-events: auto;
+}
+
+.waiters-report-page .waiter-dishes-drawer__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.waiters-report-page .waiter-dishes-drawer__head span {
+  color: var(--neutral-500, #64748b);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.waiters-report-page .waiter-dishes-drawer__head h3 {
+  margin: 6px 0 0;
+  color: var(--neutral-900, #0b1f3f);
+  font-size: 28px;
+}
+
+.waiters-report-page .waiter-dishes-drawer__head button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  border: 1px solid rgba(203, 213, 225, 0.92);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--neutral-900, #0b1f3f);
+  cursor: pointer;
+}
+
+.waiters-report-page .waiter-dishes-drawer__period {
+  margin: 0 0 14px;
+  color: var(--neutral-500, #64748b);
+  font-size: 12px;
+}
+
+.waiters-report-page .waiter-dishes-drawer__table-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(15, 35, 60, 0.09);
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.waiters-report-page .waiter-dishes-drawer table {
+  width: 100%;
+  min-width: 430px;
+  border-collapse: collapse;
+}
+
+.waiters-report-page .waiter-dishes-drawer th,
+.waiters-report-page .waiter-dishes-drawer td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(15, 35, 60, 0.07);
+  color: var(--neutral-700, #334155);
+  font-size: 13px;
+  text-align: left;
+}
+
+.waiters-report-page .waiter-dishes-drawer th {
+  background: #f3f6fa;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1100px) {
+  .waiters-report-page .waiters-report-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .waiters-report-page .waiters-report-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) 84px minmax(202px, 1fr) auto;
+    justify-content: stretch;
+  }
+
+  .waiters-report-page .waiters-report-actions .report-period-picker,
+  .waiters-report-page .waiters-report-actions .orders-filter-select {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .waiters-report-page .waiters-report-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .waiters-report-page .waiters-report-actions > * {
+    height: 43px;
+    min-height: 43px;
+    flex: none;
+  }
+
+  .waiters-report-page .waiters-report-actions .report-period-button {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .waiters-report-page .waiter-dishes-drawer__panel {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 360px) {
+  .waiters-report-page .waiters-report-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .waiters-report-page .waiters-report-actions .owner-report-excel {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waiters-report-page .report-actions .report-date-menu,
+  .waiters-report-page .report-actions .report-date-menu.is-closing,
+  .waiters-report-page .orders-filter-select__panel {
+    animation-duration: 0.01ms;
+  }
+  .waiters-report-page .orders-filter-select__chevron,
+  .waiters-report-page .waiters-percent-stepper,
+  .waiters-report-page .waiters-percent-stepper__controls {
+    transition: none;
+  }
+}
