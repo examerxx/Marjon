@@ -1,5 +1,5 @@
 ﻿import { Outlet, useLocation } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import Sidebar from "./Sidebar";
 import SupportWidget from "./SupportWidget";
 import Topbar from "./Topbar";
@@ -30,7 +30,12 @@ export default function DashboardLayout() {
     setSelectedDate: (value) => setSelectedDate(clampToToday(value)),
   }), [user, selectedDate]);
 
-  useEffect(() => {
+  // OWNER shell scope must exist BEFORE first paint: the approved light shell
+  // rules are scoped under body.dashboard-body, while legacy layered rules
+  // paint the shell dark. useLayoutEffect flushes synchronously after DOM
+  // mutations and before the browser paints, so frame #1 is already correct.
+  // (useEffect would run after first paint => one dark flash frame.)
+  useLayoutEffect(() => {
     document.body.classList.add("dashboard-body");
     return () => document.body.classList.remove("dashboard-body");
   }, []);
