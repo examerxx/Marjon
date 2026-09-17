@@ -36,7 +36,7 @@ async def test_dishes_report_maps_supported_read_only_filters(client, monkeypatc
 
     async def fake_report(self, company_id, date_from, date_to, **filters):
         captured.update({"company_id": company_id, "date_from": date_from, "date_to": date_to, **filters})
-        return []
+        return {"rows": [], "totals": {"quantity": "0", "amount": "0"}}
 
     monkeypatch.setattr(AdminReportService, "dishes_report", fake_report)
     response = await client.get(
@@ -224,7 +224,7 @@ async def test_dishes_filters_preserve_tenant_scope_and_payment_aggregation(clie
 
     unfiltered = await client.get("/reports/dishes", headers=a_headers)
     assert unfiltered.status_code == 200, unfiltered.text
-    assert {row["product_id"] for row in unfiltered.json()} == {
+    assert {row["product_id"] for row in unfiltered.json()["rows"]} == {
         str(ids["product_a"]), str(ids["product_a_other"]),
     }
     assert "Company B Secret" not in unfiltered.text
@@ -243,9 +243,9 @@ async def test_dishes_filters_preserve_tenant_scope_and_payment_aggregation(clie
         },
     )
     assert filtered.status_code == 200, filtered.text
-    assert len(filtered.json()) == 1
-    assert Decimal(filtered.json()[0]["quantity"]) == Decimal("2")
-    assert Decimal(filtered.json()[0]["amount"]) == Decimal("200")
+    assert len(filtered.json()["rows"]) == 1
+    assert Decimal(filtered.json()["rows"][0]["quantity"]) == Decimal("2")
+    assert Decimal(filtered.json()["rows"][0]["amount"]) == Decimal("200")
 
     foreign_product = await client.get(
         "/reports/dishes",
@@ -253,7 +253,10 @@ async def test_dishes_filters_preserve_tenant_scope_and_payment_aggregation(clie
         params={"product_id": str(ids["product_b"])},
     )
     assert foreign_product.status_code == 200
-    assert foreign_product.json() == []
+    assert foreign_product.json() == {
+        "rows": [],
+        "totals": {"quantity": "0", "amount": "0.00"},
+    }
 
     metadata = await client.get("/reports/dishes/filters", headers=a_headers)
     assert metadata.status_code == 200, metadata.text
@@ -460,7 +463,7 @@ async def _assert_waiter_metadata_uses_current_company_roles(client, sessions):
         params={"author_id": waiter_a["id"]},
     )
     assert filtered.status_code == 200, filtered.text
-    assert [row["product_id"] for row in filtered.json()] == [str(ids["product"])]
+    assert [row["product_id"] for row in filtered.json()["rows"]] == [str(ids["product"])]
 
 
 @pytest.mark.asyncio
@@ -571,7 +574,7 @@ async def _assert_each_supported_dishes_predicate_independently_constrains_resul
 
     baseline = await client.get("/reports/dishes", headers=headers)
     assert baseline.status_code == 200, baseline.text
-    assert {row["product_id"] for row in baseline.json()} == {
+    assert {row["product_id"] for row in baseline.json()["rows"]} == {
         str(ids["target_product"]), str(ids["other_product"]),
     }
 
@@ -591,12 +594,12 @@ async def _assert_each_supported_dishes_predicate_independently_constrains_resul
             params={parameter: value},
         )
         assert response.status_code == 200, (parameter, response.text)
-        assert [row["product_id"] for row in response.json()] == [
+        assert [row["product_id"] for row in response.json()["rows"]] == [
             str(ids["target_product"])
         ], parameter
         if parameter == "payment_method":
-            assert Decimal(response.json()[0]["quantity"]) == Decimal("2")
-            assert Decimal(response.json()[0]["amount"]) == Decimal("200")
+            assert Decimal(response.json()["rows"][0]["quantity"]) == Decimal("2")
+            assert Decimal(response.json()["rows"][0]["amount"]) == Decimal("200")
 
 
 @pytest.mark.asyncio
@@ -617,3 +620,191 @@ async def test_each_supported_dishes_predicate_independently_constrains_results_
         client,
         sessions,
     )
+
+
+async def _assert_dishes_phase1_truth(client, sessions):
+    """Phase 1 contract: truthful unit/weighted price, authoritative totals,
+    subcategory matching, completed-payments-only filter, historical name
+    grouping, zero shape. No cost/profit/status keys anywhere."""
+    suffix = uuid4().hex[:8]
+    headers, _ = await register_company(
+        client, slug=f"phase1-{suffix}", email=f"phase1-owner-{suffix}@example.com",
+    )
+    identity = (await client.get("/auth/me", headers=headers)).json()
+    company_id = UUID(identity["company_id"])
+    owner_id = UUID(identity["id"])
+    ids = {name: uuid4() for name in (
+        "branch", "primary_category", "sub_category", "other_category",
+        "weighted", "rounded", "unit_null", "sub_product", "renamed",
+        "pending_pay_order", "completed_pay_order",
+        "order_w1", "order_w2", "order_r", "order_s", "order_u",
+        "order_old", "order_new", "order_pend", "order_comp",
+    )}
+
+    async with sessions() as db:
+        db.add(Branch(id=ids["branch"], company_id=company_id, name="Phase1 Branch"))
+        db.add_all([
+            Category(id=ids["primary_category"], company_id=company_id,
+                     name="Primary", slug=f"primary-{suffix}"),
+            Category(id=ids["sub_category"], company_id=company_id,
+                     name="Sub", slug=f"sub-{suffix}"),
+            Category(id=ids["other_category"], company_id=company_id,
+                     name="Other", slug=f"other-{suffix}"),
+        ])
+        await db.flush()
+        db.add_all([
+            Product(id=ids["weighted"], company_id=company_id,
+                    category_id=ids["primary_category"], name="Weighted Plov",
+                    price=Decimal("20000"), unit="порц"),
+            Product(id=ids["rounded"], company_id=company_id,
+                    category_id=ids["primary_category"], name="Rounded Soup",
+                    price=Decimal("100"), unit="порц"),
+            Product(id=ids["unit_null"], company_id=company_id,
+                    category_id=ids["primary_category"], name="No Unit Dish",
+                    price=Decimal("50"), unit=None),
+            Product(id=ids["sub_product"], company_id=company_id,
+                    category_id=ids["other_category"],
+                    subcategory_id=ids["sub_category"], name="Sub Dish",
+                    price=Decimal("70"), unit="порц"),
+            Product(id=ids["renamed"], company_id=company_id,
+                    category_id=ids["primary_category"], name="New Name",
+                    price=Decimal("90"), unit="порц"),
+        ])
+        await db.flush()
+
+        def _order(key, number):
+            return Order(
+                id=ids[key], company_id=company_id, branch_id=ids["branch"],
+                waiter_id=owner_id, order_number=number, order_type="dine_in",
+                status="completed", subtotal=Decimal("0"), total_amount=Decimal("0"),
+            )
+
+        db.add_all([
+            _order("order_w1", "W-1"), _order("order_w2", "W-2"),
+            _order("order_r", "R-1"), _order("order_s", "S-1"),
+            _order("order_u", "U-1"),
+            _order("order_old", "O-OLD"), _order("order_new", "O-NEW"),
+            _order("order_pend", "O-PEND"), _order("order_comp", "O-COMP"),
+        ])
+        await db.flush()
+        db.add_all([
+            # Weighted price fixture: 1x10000 + 3x20000 => qty 4, total 70000.
+            OrderItem(order_id=ids["order_w1"], product_id=ids["weighted"],
+                      name="Weighted Plov", price=Decimal("10000"),
+                      quantity=Decimal("1"), total=Decimal("10000")),
+            OrderItem(order_id=ids["order_w2"], product_id=ids["weighted"],
+                      name="Weighted Plov", price=Decimal("20000"),
+                      quantity=Decimal("3"), total=Decimal("60000")),
+            # Rounding fixture: 100/3 => 33.33, never 33.333...
+            OrderItem(order_id=ids["order_r"], product_id=ids["rounded"],
+                      name="Rounded Soup", price=Decimal("100"),
+                      quantity=Decimal("3"), total=Decimal("100")),
+            OrderItem(order_id=ids["order_s"], product_id=ids["sub_product"],
+                      name="Sub Dish", price=Decimal("70"),
+                      quantity=Decimal("2"), total=Decimal("140")),
+            OrderItem(order_id=ids["order_u"], product_id=ids["unit_null"],
+                      name="No Unit Dish", price=Decimal("50"),
+                      quantity=Decimal("1"), total=Decimal("50")),
+            # Same product, historical names stay separate groups.
+            OrderItem(order_id=ids["order_old"], product_id=ids["renamed"],
+                      name="Old Name", price=Decimal("90"),
+                      quantity=Decimal("1"), total=Decimal("90")),
+            OrderItem(order_id=ids["order_new"], product_id=ids["renamed"],
+                      name="New Name", price=Decimal("90"),
+                      quantity=Decimal("2"), total=Decimal("180")),
+            OrderItem(order_id=ids["order_pend"], product_id=ids["weighted"],
+                      name="Weighted Plov", price=Decimal("20000"),
+                      quantity=Decimal("1"), total=Decimal("20000")),
+            OrderItem(order_id=ids["order_comp"], product_id=ids["weighted"],
+                      name="Weighted Plov", price=Decimal("20000"),
+                      quantity=Decimal("1"), total=Decimal("20000")),
+            Payment(
+                company_id=company_id, order_id=ids["order_pend"],
+                amount=Decimal("20000"), method="cash", status="pending",
+            ),
+            Payment(
+                company_id=company_id, order_id=ids["order_comp"],
+                amount=Decimal("20000"), method="cash", status="completed",
+            ),
+        ])
+        await db.commit()
+
+    response = await client.get("/reports/dishes", headers=headers)
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert set(payload.keys()) == {"rows", "totals"}
+    by_id_name = {(row["product_id"], row["name"]): row for row in payload["rows"]}
+
+    # Weighted price, not AVG: (10000 + 60000 + 20000 + 20000) / (1+3+1+1).
+    weighted = by_id_name[(str(ids["weighted"]), "Weighted Plov")]
+    assert Decimal(weighted["quantity"]) == Decimal("6")
+    assert Decimal(weighted["amount"]) == Decimal("110000")
+    assert Decimal(weighted["price"]) == Decimal("18333.33")
+    # Rounding to 0.01, never repeating decimals.
+    rounded = by_id_name[(str(ids["rounded"]), "Rounded Soup")]
+    assert Decimal(rounded["price"]) == Decimal("33.33")
+    # Unit comes from the master; never a report-level literal fallback.
+    assert weighted["unit"] == "порц"
+    # ORM column default fills explicit None with "шт" — still master truth,
+    # and the contract tolerates null for legacy raw-SQL NULLs.
+    assert by_id_name[(str(ids["unit_null"]), "No Unit Dish")]["unit"] == "шт"
+    # No fake cost/profit/status keys anywhere in Phase 1 rows.
+    for row in payload["rows"]:
+        assert "cost" not in row
+        assert "profit" not in row
+        assert "status" not in row
+    # Authoritative totals match the rows exactly.
+    assert Decimal(payload["totals"]["quantity"]) == sum(
+        (Decimal(r["quantity"]) for r in payload["rows"]), Decimal("0")
+    )
+    assert Decimal(payload["totals"]["amount"]) == sum(
+        (Decimal(r["amount"]) for r in payload["rows"]), Decimal("0")
+    )
+    assert Decimal(payload["totals"]["quantity"]) == Decimal("15")
+    assert Decimal(payload["totals"]["amount"]) == Decimal("110560")
+
+    # Subcategory matches the canonical category filter.
+    sub = await client.get(
+        "/reports/dishes", headers=headers,
+        params={"category_id": str(ids["sub_category"])},
+    )
+    assert sub.status_code == 200, sub.text
+    assert [row["product_id"] for row in sub.json()["rows"]] == [str(ids["sub_product"])]
+
+    # Pending payments do not satisfy the payment-method filter.
+    pend = await client.get(
+        "/reports/dishes", headers=headers,
+        params={"payment_method": "cash", "product_id": str(ids["weighted"])},
+    )
+    assert pend.status_code == 200, pend.text
+    assert Decimal(pend.json()["rows"][0]["quantity"]) == Decimal("1")
+    assert Decimal(pend.json()["rows"][0]["amount"]) == Decimal("20000")
+
+    # Renamed dish keeps historical name groups separate.
+    ren = await client.get(
+        "/reports/dishes", headers=headers,
+        params={"product_id": str(ids["renamed"])},
+    )
+    assert ren.status_code == 200, ren.text
+    assert sorted(row["name"] for row in ren.json()["rows"]) == ["New Name", "Old Name"]
+
+    # Zero-data shape carries zero totals, never nulls.
+    empty = await client.get(
+        "/reports/dishes", headers=headers, params={"query": "no-such-dish-at-all"},
+    )
+    assert empty.status_code == 200
+    assert empty.json()["rows"] == []
+    assert Decimal(empty.json()["totals"]["quantity"]) == Decimal("0")
+    assert Decimal(empty.json()["totals"]["amount"]) == Decimal("0")
+
+
+@pytest.mark.asyncio
+async def test_dishes_phase1_truth(client, db_engine):
+    sessions = async_sessionmaker(db_engine, expire_on_commit=False)
+    await _assert_dishes_phase1_truth(client, sessions)
+
+
+@pytest.mark.asyncio
+async def test_dishes_phase1_truth_postgres(reports_api):
+    client, sessions = reports_api
+    await _assert_dishes_phase1_truth(client, sessions)

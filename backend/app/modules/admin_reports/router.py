@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.database.session import get_db
 from app.modules.admin_reports import schemas
 from app.modules.admin_reports.schemas import (
-    AttendanceRow, CancelledItemRow, DishReportFiltersResponse, DishReportRow,
+    AttendanceRow, CancelledItemRow, DishReportFiltersResponse, DishReportResponse,
     DebtCreditRow, LoginHistoryRow, OrderReportFiltersResponse, OrderReportRow, ProductCountRow,
     ProductReportRow, TableReportFiltersResponse, TableReportRow,
     WaiterReportFiltersResponse, WaiterReportResponse,
@@ -219,7 +219,7 @@ async def waiters_report_filters(
     return await AdminReportService(db).waiters_report_filters(user.company_id)
 
 
-@router.get("/dishes", response_model=list[DishReportRow])
+@router.get("/dishes", response_model=DishReportResponse)
 async def dishes_report(
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),

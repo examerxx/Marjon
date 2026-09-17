@@ -6,12 +6,13 @@ from typing import Iterable, Sequence, get_args
 from uuid import UUID
 
 from fastapi.responses import StreamingResponse
-from sqlalchemy import and_, case, exists, func, select
+from sqlalchemy import and_, case, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.admin_reports.schemas import (
     AttendanceRow, CancelledItemRow, DebtCreditRow,
-    DishReportFiltersResponse, DishReportRow, LoginHistoryRow, OrderReportRow,
+    DishReportFiltersResponse, DishReportResponse, DishReportRow,
+    DishReportTotals, LoginHistoryRow, OrderReportRow,
     OrderReportFiltersResponse, ReportFilterOption,
     ProductCountRow, ProductReportRow, TableReportFiltersResponse,
     TableReportRow, WaiterDishRow, WaiterReportFiltersResponse,
@@ -784,19 +785,19 @@ class AdminReportService:
         order_status: str | None = None,
         category_id: UUID | None = None,
         payment_method: str | None = None,
-    ) -> list[DishReportRow]:
+    ) -> DishReportResponse:
         report_query = (
             select(
                 OrderItem.product_id,
                 OrderItem.name,
+                Product.unit,
                 func.sum(OrderItem.quantity).label("qty"),
-                func.avg(OrderItem.price).label("avg_price"),
                 func.sum(OrderItem.total).label("total"),
             )
             .join(Order, Order.id == OrderItem.order_id)
             .join(Product, Product.id == OrderItem.product_id)
             .where(Order.company_id == company_id, Product.company_id == company_id)
-            .group_by(OrderItem.product_id, OrderItem.name)
+            .group_by(OrderItem.product_id, OrderItem.name, Product.unit)
             .order_by(func.sum(OrderItem.total).desc())
         )
         if order_status:
@@ -812,29 +813,49 @@ class AdminReportService:
         if order_type:
             report_query = report_query.where(Order.order_type == order_type)
         if category_id:
-            report_query = report_query.where(Product.category_id == category_id)
+            # Primary and subcategory are both canonical category relations.
+            report_query = report_query.where(or_(
+                Product.category_id == category_id,
+                Product.subcategory_id == category_id,
+            ))
         if payment_method:
             report_query = report_query.where(exists(
                 select(Payment.id).where(
                     Payment.order_id == Order.id,
                     Payment.company_id == company_id,
                     Payment.method == payment_method,
+                    Payment.status == "completed",
                 )
             ))
         report_query = self._order_date_filter(report_query, date_from, date_to)
         rows = (await self.db.execute(report_query)).all()
-        status_label = ORDER_STATUS_LABELS.get(order_status, order_status) if order_status else "Завершено"
-        return [
-            DishReportRow(
-                product_id=r.product_id, name=r.name, unit="Порция",
-                quantity=Decimal(str(r.qty or 0)),
-                price=Decimal(str(r.avg_price or 0)),
-                amount=Decimal(str(r.total or 0)),
-                cost=Decimal("0"), profit=Decimal(str(r.total or 0)),
-                status=status_label,
+        # Monetary convention matches products(): Decimal arithmetic with
+        # ROUND_HALF_UP to 0.01. Weighted price preserves
+        # amount == quantity * price per row (AVG(price) would break it when
+        # sale prices vary within a group).
+        total_quantity = Decimal("0")
+        total_amount = Decimal("0")
+        report_rows = []
+        for r in rows:
+            qty = Decimal(str(r.qty or 0))
+            amount = Decimal(str(r.total or 0)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            price = (
+                (amount / qty).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                if qty else Decimal("0")
             )
-            for r in rows
-        ]
+            total_quantity += qty
+            total_amount += amount
+            report_rows.append(DishReportRow(
+                product_id=r.product_id, name=r.name, unit=r.unit,
+                quantity=qty, price=price, amount=amount,
+            ))
+        return DishReportResponse(
+            rows=report_rows,
+            totals=DishReportTotals(
+                quantity=total_quantity,
+                amount=total_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+            ),
+        )
 
     async def orders_report_filters(self, company_id: UUID) -> OrderReportFiltersResponse:
         staff_rows = (await self.db.execute(

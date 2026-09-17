@@ -66,13 +66,25 @@ class WaiterReportResponse(BaseModel):
 class DishReportRow(BaseModel):
     product_id: UUID
     name: str
-    unit: str
+    # Real master unit (Product.unit); null when the master has none —
+    # never a hardcoded fallback. Cost/profit are intentionally absent in
+    # Phase 1: no truthful historical cost exists (no sale-time snapshot).
+    unit: str | None
     quantity: Decimal
+    # Weighted price (amount/quantity), NOT AVG(price): preserves
+    # amount == quantity * price per row. Decimal(0) when quantity is 0.
     price: Decimal
     amount: Decimal
-    cost: Decimal
-    profit: Decimal
-    status: str
+
+
+class DishReportTotals(BaseModel):
+    quantity: Decimal
+    amount: Decimal
+
+
+class DishReportResponse(BaseModel):
+    rows: list[DishReportRow]
+    totals: DishReportTotals
 
 
 class ReportFilterOption(BaseModel):
