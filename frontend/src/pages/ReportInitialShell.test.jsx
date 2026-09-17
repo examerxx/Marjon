@@ -101,12 +101,17 @@ describe("report initial shell without full-page loader", () => {
     const { unmount } = render(<DishesReportPage />);
     expect(screen.getByRole("heading", { name: "Отчёт по блюдам" })).toBeInTheDocument();
 
-    gate.resolve({ data: [{ id: "dish-7", name: "Плов", quantity: 2, price: 50000, amount: 100000 }] });
+    gate.resolve({
+      data: {
+        rows: [{ product_id: "dish-7", name: "Плов", unit: "порц", quantity: "2.000", price: "50000.00", amount: "100000" }],
+        totals: { quantity: "2", amount: "100000" },
+      },
+    });
     const section = await screen.findByText("1. Плов");
     expect(within(section.closest("section")).getByRole("heading", { name: "Отчёт по блюдам" })).toBeInTheDocument();
     unmount();
 
-    reportsService.listDishes.mockResolvedValue({ data: [] });
+    reportsService.listDishes.mockResolvedValue({ data: { rows: [], totals: { quantity: "0", amount: "0" } } });
     const second = render(<DishesReportPage />);
     expect(await screen.findByText("Блюд не найдено")).toBeInTheDocument();
     expect(document.querySelector(".report-loading-row")).toBeNull();

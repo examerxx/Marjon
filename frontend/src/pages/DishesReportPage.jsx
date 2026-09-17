@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { reportsService } from "../api/reports";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
@@ -9,7 +9,6 @@ import { toApiDate } from "./reports/reportPeriod";
 const initialFilters = {
   query: "",
   authorId: "all",
-  cookId: "all",
   productId: "all",
   orderType: "all",
   orderStatus: "all",
@@ -20,7 +19,6 @@ const initialFilters = {
 const filterNames = {
   query: "Поиск",
   authorId: "Официант",
-  cookId: "Повар",
   productId: "Продукт",
   orderType: "Тип заказа",
   orderStatus: "Статус заказа",
@@ -41,7 +39,6 @@ const emptyFilterOptions = {
 
 const filterOptionGroups = {
   authorId: "authors",
-  cookId: "cooks",
   productId: "products",
   orderType: "order_types",
   orderStatus: "order_statuses",
@@ -73,6 +70,60 @@ function formatReportMoney(value) {
   return `${Number(value || 0).toLocaleString("ru-RU")} UZS`;
 }
 
+function toDishesDisplayRow(item, index) {
+  const quantityValue = Number(item.quantity || 0);
+  const priceValue = Number(item.price || 0);
+  const amountValue = Number(item.amount || 0);
+
+  return {
+    // product_id is canonical; item.id covers the pre-Phase-1 frontend
+    // fallback (old backend always sent product_id).
+    id: String(item.product_id || item.id || item.name || index),
+    name: `${index + 1}. ${item.name || ""}`,
+    // Real master unit only — never a hardcoded fallback. Cost/profit/status
+    // are intentionally absent (no truthful source) and ignored when present.
+    unit: item.unit || "",
+    quantity: String(quantityValue),
+    price: formatReportMoney(priceValue),
+    amount: formatReportMoney(amountValue),
+  };
+}
+
+function normalizeDishesReportResponse(data) {
+  // ZERO-DOWNTIME BRIDGE (temporary, removable after the old contract retires):
+  // NEW canonical { rows, totals } => backend totals authoritative, never recomputed.
+  // OLD legacy [...] => transitional client totals from the returned rows only.
+  // Anything else => throw contract error (never fake zero-data).
+  if (Array.isArray(data)) {
+    let quantity = 0;
+    let amount = 0;
+    for (const item of data) {
+      const quantityValue = Number(item?.quantity || 0);
+      const amountValue = Number(item?.amount || 0);
+      if (Number.isFinite(quantityValue)) quantity += quantityValue;
+      if (Number.isFinite(amountValue)) amount += amountValue;
+    }
+    return { rows: data.map(toDishesDisplayRow), totals: { quantity, amount } };
+  }
+  if (
+    data &&
+    typeof data === "object" &&
+    Array.isArray(data.rows) &&
+    data.totals &&
+    typeof data.totals === "object" &&
+    data.totals.quantity != null &&
+    data.totals.amount != null
+  ) {
+    const quantity = Number(data.totals.quantity);
+    const amount = Number(data.totals.amount);
+    if (!Number.isFinite(quantity) || !Number.isFinite(amount)) {
+      throw new Error("Invalid dishes report response");
+    }
+    return { rows: data.rows.map(toDishesDisplayRow), totals: { quantity, amount } };
+  }
+  throw new Error("Invalid dishes report response");
+}
+
 export default function DishesReportPage() {
   const [dateRange, setDateRange] = useState(() => {
     const now = new Date();
@@ -85,8 +136,10 @@ export default function DishesReportPage() {
   const [filterOptions, setFilterOptions] = useState(emptyFilterOptions);
   const [filterOptionsLoading, setFilterOptionsLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [expandedRow, setExpandedRow] = useState("");
   const [rows, setRows] = useState([]);
+  // Canonical totals are backend-authoritative. The legacy bare-array branch
+  // below uses a transitional local sum ONLY for rollout compatibility.
+  const [totals, setTotals] = useState({ quantity: 0, amount: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const beginRequest = useLatestRequest();
@@ -122,32 +175,12 @@ export default function DishesReportPage() {
     reportsService.listDishes(dateFrom, dateTo, { filters: appliedFilters, signal: request.signal })
       .then(({ data }) => {
         if (!request.isCurrent()) return;
-        const items = Array.isArray(data) ? data : data?.items || data?.dishes || [];
-        setRows(items.map((item, index) => {
-          const quantityValue = Number(item.quantity || 0);
-          const priceValue = Number(item.price || 0);
-          const amountValue = Number(item.amount || 0);
-          const costValue = Number(item.cost_price || item.cost || 0);
-          const profitValue = Number(item.profit || 0);
-
-          return {
-            id: String(item.id || item.name || index),
-            name: `${index + 1}. ${item.name || ""}`,
-            unit: item.unit || "Порция (пр)",
-            quantity: String(quantityValue),
-            quantityValue,
-            price: formatReportMoney(priceValue),
-            priceValue,
-            amount: formatReportMoney(amountValue),
-            amountValue,
-            cost: formatReportMoney(costValue),
-            costValue,
-            profit: formatReportMoney(profitValue),
-            profitValue,
-            status: item.status || "Завершено",
-            details: item.details || undefined,
-          };
-        }));
+        // Phase 1 truth: cost/profit/status intentionally absent.
+        // Dual-shape bridge: canonical object keeps backend totals verbatim;
+        // legacy array falls back to transitional client totals.
+        const normalized = normalizeDishesReportResponse(data);
+        setRows(normalized.rows);
+        setTotals(normalized.totals);
       })
       .catch((err) => {
         if (!request.isCurrent() || isAbortError(err)) return;
@@ -169,20 +202,15 @@ export default function DishesReportPage() {
   ]);
 
   const filteredRows = rows;
-  const totalRow = useMemo(() => {
-    const sum = (key) => filteredRows.reduce((total, row) => total + Number(row[key] || 0), 0);
-
-    return {
-      name: "Итого",
-      unit: "",
-      quantity: String(sum("quantityValue").toLocaleString("ru-RU")),
-      price: "",
-      amount: formatReportMoney(sum("amountValue")),
-      cost: formatReportMoney(sum("costValue")),
-      profit: formatReportMoney(sum("profitValue")),
-      status: "",
-    };
-  }, [filteredRows]);
+  // The "Итого" row renders totals verbatim from normalization:
+  // backend-authoritative for canonical, transitional client sum for legacy.
+  const totalRow = useMemo(() => ({
+    name: "Итого",
+    unit: "",
+    quantity: String(Number(totals.quantity || 0).toLocaleString("ru-RU")),
+    price: "",
+    amount: formatReportMoney(totals.amount),
+  }), [totals]);
   const activeFilterEntries = Object.entries(appliedFilters).filter(([, value]) => value && value !== "all");
 
   function updateFilter(key, value) {
@@ -196,7 +224,6 @@ export default function DishesReportPage() {
   function clearFilters() {
     setFilters(initialFilters);
     setAppliedFilters(initialFilters);
-    setExpandedRow("");
   }
 
   function downloadExcel() {
@@ -205,11 +232,27 @@ export default function DishesReportPage() {
       { key: "unit", label: "Ед изм" },
       { key: "quantity", label: "Кол-во" },
       { key: "price", label: "Цена" },
-      { key: "total", label: "Сумма" },
-      { key: "cost", label: "Себестоимость" },
-      { key: "profit", label: "Прибыль" },
+      { key: "amount", label: "Сумма" },
     ];
-    exportToExcel(filteredRows, cols, "dishes-report");
+    const totalExcelRow = {
+      name: "Итого",
+      unit: "",
+      quantity: String(Number(totals.quantity || 0)),
+      price: "",
+      amount: formatReportMoney(totals.amount),
+    };
+    exportToExcel([...filteredRows, totalExcelRow], cols, "dishes-report", {
+      metadata: [
+        {
+          label: "Период",
+          value: dateRange.start === dateRange.end ? dateRange.start : `${dateRange.start} – ${dateRange.end}`,
+        },
+        ...activeFilterEntries.map(([key, value]) => ({
+          label: filterNames[key],
+          value: optionLabel(key, value, filterOptions),
+        })),
+      ],
+    });
   }
 
   // No full-page loader: the shell (title/controls/table header/totals row)
@@ -291,9 +334,6 @@ export default function DishesReportPage() {
                 <th>Кол-во</th>
                 <th>Цена</th>
                 <th>Сумма</th>
-                <th>Себестоимость</th>
-                <th>Прибыль</th>
-                <th>Статус</th>
               </tr>
             </thead>
             <tbody>
@@ -303,52 +343,24 @@ export default function DishesReportPage() {
                 <td>{totalRow.quantity}</td>
                 <td>{totalRow.price}</td>
                 <td>{totalRow.amount}</td>
-                <td>{totalRow.cost}</td>
-                <td className="report-profit-positive">{totalRow.profit}</td>
-                <td>{totalRow.status}</td>
               </tr>
-              {filteredRows.map((row) => {
-                const expanded = expandedRow === row.id;
-                return (
-                  <Fragment key={row.id}>
-                    <tr>
-                      <td>
-                        <div className="report-dish-name">
-                          {row.details ? (
-                            <button type="button" onClick={() => setExpandedRow(expanded ? "" : row.id)} aria-label={expanded ? "Скрыть детали" : "Показать детали"}>
-                              <Icon name={expanded ? "bi-dash" : "bi-plus"} size={15} />
-                            </button>
-                          ) : <span className="report-dish-name__spacer" />}
-                          <a href="#dish" onClick={(event) => event.preventDefault()}>{row.name}</a>
-                        </div>
-                      </td>
-                      <td>{row.unit}</td>
-                      <td>{row.quantity}</td>
-                      <td>{row.price}</td>
-                      <td>{row.amount}</td>
-                      <td>{row.cost}</td>
-                      <td className={row.profitValue < 0 ? "report-profit-negative" : "report-profit-positive"}>{row.profit}</td>
-                      <td><span className="report-status-badge">{row.status}</span></td>
-                    </tr>
-                    {expanded && row.details ? (
-                      <tr className="report-detail-row">
-                        <td colSpan="8">
-                          <div className="report-detail-grid">
-                            <div><span>Заказы</span><strong>{row.details.orders}</strong></div>
-                            <div><span>Повар</span><strong>{row.details.chef}</strong></div>
-                            <div><span>Категория</span><strong>{row.details.category}</strong></div>
-                            <div><span>Тип оплаты</span><strong>{row.details.paymentType}</strong></div>
-                            <div><span>Комментарий</span><strong>{row.details.comment}</strong></div>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : null}
-                  </Fragment>
-                );
-              })}
+              {filteredRows.map((row) => (
+                <tr key={row.id}>
+                  <td>
+                    <div className="report-dish-name">
+                      <span className="report-dish-name__spacer" />
+                      <a href="#dish" onClick={(event) => event.preventDefault()}>{row.name}</a>
+                    </div>
+                  </td>
+                  <td>{row.unit}</td>
+                  <td>{row.quantity}</td>
+                  <td>{row.price}</td>
+                  <td>{row.amount}</td>
+                </tr>
+              ))}
               {!filteredRows.length ? (
                 <tr className="report-empty-row" aria-hidden={loading || undefined}>
-                  <td colSpan="8"><div className="owner-report-empty" role="status" style={loading ? { visibility: "hidden" } : undefined}><span className="owner-report-empty__icon"><Icon name="bi-cup-hot" size={18} /></span><div><strong>Блюд не найдено</strong><span>Измените период, поиск или статус.</span></div></div></td>
+                  <td colSpan="5"><div className="owner-report-empty" role="status" style={loading ? { visibility: "hidden" } : undefined}><span className="owner-report-empty__icon"><Icon name="bi-cup-hot" size={18} /></span><div><strong>Блюд не найдено</strong><span>Измените период, поиск или статус.</span></div></div></td>
                 </tr>
               ) : null}
             </tbody>
