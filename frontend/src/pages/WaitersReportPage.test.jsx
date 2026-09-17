@@ -90,7 +90,12 @@ describe("WaitersReportPage", () => {
 
   it("opens on Today and renders the compact Zim Zim control order with OWNER visuals", async () => {
     render(<WaitersReportPage />);
-    expect(screen.getByRole("status")).toHaveTextContent("Загрузка отчёта");
+    // No full-page loader: the shell mounts immediately while pending.
+    expect(screen.getByRole("heading", { name: "Отчёт по официантам" })).toBeInTheDocument();
+    expect(screen.queryByText("Загрузка отчёта...")).toBeNull();
+
+    // Default state is real muted 0%: value "0" stored, initial DATA request
+    // fires with explicit service_percent=0, rows come from the backend.
     await screen.findByText("Алишер");
 
     const today = todayInputValue();
@@ -104,7 +109,10 @@ describe("WaitersReportPage", () => {
     );
     expect(screen.getByRole("heading", { name: "Отчёт по официантам" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Период отчёта по официантам" })).toBeInTheDocument();
-    expect(screen.getByRole("spinbutton", { name: "Процент обслуживания" })).toHaveValue(1);
+    const percent = screen.getByRole("spinbutton", { name: "Процент обслуживания" });
+    expect(percent).toHaveValue(0);
+    expect(percent).toHaveAttribute("placeholder", "0");
+    expect(percent.closest(".waiters-percent-stepper")).toHaveClass("is-empty");
     expect(screen.getByRole("spinbutton", { name: "Процент обслуживания" })).toHaveAttribute("step", "1");
     expect(screen.getByRole("combobox", { name: "Официант" })).toHaveTextContent("Выберите официанта");
     expect(screen.getByRole("button", { name: /Скачать Excel/ })).toBeInTheDocument();
@@ -398,13 +406,14 @@ describe("WaitersReportPage", () => {
     await renderLoaded();
     const percent = screen.getByRole("spinbutton", { name: "Процент обслуживания" });
 
+    // Leading zeroes are stripped immediately on input (never "0012").
     fireEvent.change(percent, { target: { value: "0012" } });
-    expect(percent.value).toBe("0012");
+    expect(percent.value).toBe("12");
     fireEvent.blur(percent);
     expect(percent.value).toBe("12");
 
     fireEvent.change(percent, { target: { value: "0033" } });
-    expect(percent.value).toBe("0033");
+    expect(percent.value).toBe("33");
     fireEvent.keyDown(percent, { key: "Enter" });
     expect(percent.value).toBe("33");
 
@@ -420,10 +429,11 @@ describe("WaitersReportPage", () => {
     fireEvent.blur(percent);
     expect(percent.value).toBe("100");
 
+    // Clearing is transient while editing (no error); commit restores real 0.
     fireEvent.change(percent, { target: { value: "" } });
-    expect(screen.getByRole("alert")).toHaveTextContent("целое число");
+    expect(screen.queryByRole("alert")).toBeNull();
     fireEvent.blur(percent);
-    expect(percent.value).toBe("100");
+    expect(percent.value).toBe("0");
     expect(screen.queryByRole("alert")).toBeNull();
   });
 

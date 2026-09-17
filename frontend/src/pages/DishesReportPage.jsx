@@ -212,7 +212,8 @@ export default function DishesReportPage() {
     exportToExcel(filteredRows, cols, "dishes-report");
   }
 
-  if (loading) return <section className="dishes-report-page"><div className="dashboard-empty" role="status">Загрузка отчёта...</div></section>;
+  // No full-page loader: the shell (title/controls/table header/totals row)
+  // renders immediately, even while the first request pends (see tbody).
   if (error) return <section className="dishes-report-page"><div className="login-error" role="alert">{error}</div></section>;
 
   return (
@@ -281,7 +282,7 @@ export default function DishesReportPage() {
           </div>
         ) : null}
 
-        <div className="report-table-wrapper owner-report-table-scroll">
+        <div className="report-table-wrapper owner-report-table-scroll" aria-busy={loading ? "true" : "false"}>
           <table className="report-table owner-report-table" aria-label="Отчёт по блюдам">
             <thead>
               <tr>
@@ -346,8 +347,8 @@ export default function DishesReportPage() {
                 );
               })}
               {!filteredRows.length ? (
-                <tr className="report-empty-row">
-                  <td colSpan="8"><div className="owner-report-empty" role="status"><span className="owner-report-empty__icon"><Icon name="bi-cup-hot" size={18} /></span><div><strong>Блюд не найдено</strong><span>Измените период, поиск или статус.</span></div></div></td>
+                <tr className="report-empty-row" aria-hidden={loading || undefined}>
+                  <td colSpan="8"><div className="owner-report-empty" role="status" style={loading ? { visibility: "hidden" } : undefined}><span className="owner-report-empty__icon"><Icon name="bi-cup-hot" size={18} /></span><div><strong>Блюд не найдено</strong><span>Измените период, поиск или статус.</span></div></div></td>
                 </tr>
               ) : null}
             </tbody>

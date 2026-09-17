@@ -126,7 +126,8 @@ export default function TablesReportPage() {
     ], "tables-report");
   }
 
-  if (loading) return <section className="tables-report-page"><div className="dashboard-empty" role="status">Загрузка отчёта...</div></section>;
+  // No full-page loader: the shell (title/controls/table header) renders
+  // immediately, even while the first request pends (see the tbody branch).
   if (error) return <section className="tables-report-page"><div className="login-error" role="alert">{error}</div></section>;
 
   return (
@@ -156,12 +157,12 @@ export default function TablesReportPage() {
           </div>
         </div>
 
-        <div className="report-table-wrapper owner-report-table-scroll">
+        <div className="report-table-wrapper owner-report-table-scroll" aria-busy={loading ? "true" : "false"}>
           <table className="report-table owner-report-table" aria-label="Отчёт по столам">
             <thead><tr><th>Номер стола</th><th>Количество заказов</th><th>Выручка</th><th>Средний чек</th></tr></thead>
             <tbody>
               {rows.map((row) => <tr key={row.tableNumber}><td><strong>{row.tableNumber}</strong></td><td>{row.ordersCount}</td><td>{formatMoney(row.revenue)}</td><td>{formatMoney(row.avgCheck)}</td></tr>)}
-              {!rows.length ? <tr className="report-empty-row"><td colSpan={4}><div className="owner-report-empty" role="status"><span className="owner-report-empty__icon"><Icon name="bi-grid-3x3-gap" size={18} /></span><div><strong>Столов не найдено</strong><span>Измените период или фильтры.</span></div></div></td></tr> : null}
+              {!rows.length ? <tr className="report-empty-row" aria-hidden={loading || undefined}><td colSpan={4}><div className="owner-report-empty" role="status" style={loading ? { visibility: "hidden" } : undefined}><span className="owner-report-empty__icon"><Icon name="bi-grid-3x3-gap" size={18} /></span><div><strong>Столов не найдено</strong><span>Измените период или фильтры.</span></div></div></td></tr> : null}
             </tbody>
           </table>
         </div>

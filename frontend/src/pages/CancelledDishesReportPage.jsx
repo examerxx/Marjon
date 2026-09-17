@@ -127,7 +127,8 @@ export default function CancelledDishesReportPage() {
     ], "cancelled-dishes-report");
   }
 
-  if (loading) return <section className="cancelled-report-page"><div className="dashboard-empty" role="status">Загрузка отчёта...</div></section>;
+  // No full-page loader: the shell (title/controls/table header) renders
+  // immediately, even while the first request pends (see the tbody branch).
   if (error) return <section className="cancelled-report-page"><div className="login-error" role="alert">{error}</div></section>;
 
   return (
@@ -147,12 +148,12 @@ export default function CancelledDishesReportPage() {
           <button className="cancelled-filter-button" type="button" onClick={applyFilters}><Icon name="bi-sliders" size={18} /> Фильтровать</button>
         </div>
 
-        <div className="cancelled-table-wrap owner-report-table-scroll">
+        <div className="cancelled-table-wrap owner-report-table-scroll" aria-busy={loading ? "true" : "false"}>
           <table className="cancelled-table owner-report-table" aria-label="Отчёт по отменённым блюдам">
             <thead><tr><th>Дата</th><th>Номер заказа</th><th>Номер стола</th><th>Название</th><th>Официант</th><th>Ед. изм.</th><th>Количество</th><th>Цена</th></tr></thead>
             <tbody>
               {visibleRows.map((row) => <tr key={row.key}><td>{formatDateTime(row.date, row.time)}</td><td>{row.orderNumber}</td><td>{row.tableNumber ?? "—"}</td><td><strong>{row.name}</strong></td><td>{row.waiterName ?? "—"}</td><td>{row.unit}</td><td>{row.quantity}</td><td>{formatMoney(row.price, "UZS")}</td></tr>)}
-              {!visibleRows.length ? <tr className="cancelled-empty-row"><td colSpan={8}><div className="owner-report-empty" role="status"><span className="owner-report-empty__icon"><Icon name="bi-x-octagon" size={18} /></span><div><strong>Отменённых блюд нет</strong><span>За выбранный период и фильтры отмены не найдены.</span></div></div></td></tr> : null}
+              {!visibleRows.length ? <tr className="cancelled-empty-row" aria-hidden={loading || undefined}><td colSpan={8}><div className="owner-report-empty" role="status" style={loading ? { visibility: "hidden" } : undefined}><span className="owner-report-empty__icon"><Icon name="bi-x-octagon" size={18} /></span><div><strong>Отменённых блюд нет</strong><span>За выбранный период и фильтры отмены не найдены.</span></div></div></td></tr> : null}
             </tbody>
           </table>
         </div>

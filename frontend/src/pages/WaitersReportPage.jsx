@@ -9,7 +9,11 @@ import { toApiDate } from "./reports/reportPeriod";
 import { formatMoney } from "./reports/reportMoney";
 
 export const defaultWaiterFilters = Object.freeze({
-  waiterId: "", servicePercent: "1", includeOrders: true,
+  // 0% is the real initial value AND the muted default look: the initial DATA
+  // request fires with explicit service_percent=0, so rows/totals always come
+  // from the backend. Backend contract untouched (range 0..100). An emptied
+  // field is only a transient editing state — commit normalizes it back to 0.
+  waiterId: "", servicePercent: "0", includeOrders: true,
   includeTakeawayDelivery: false, includeService: false,
 });
 
@@ -211,7 +215,6 @@ export default function WaitersReportPage() {
   const drawerCloseRef = useRef(null);
   const percentInputRef = useRef(null);
   const lastValidPercentRef = useRef(defaultWaiterFilters.servicePercent);
-  const percentDigitCount = Math.min(3, Math.max(1, String(filters.servicePercent || "0").replace(/\D/g, "").length));
 
   useEffect(() => {
     const input = percentInputRef.current;
@@ -265,6 +268,9 @@ export default function WaitersReportPage() {
     const dateTo = toApiDate(dateRange.end);
     const validatedPercent = normalizeServicePercent(filters.servicePercent);
     if (validatedPercent.error) {
+      // Invalid uncommitted input: fetch nothing and claim nothing.
+      // hasLoaded flips only on a resolved DATA request or the invalid-date
+      // error state below — never synthesized here.
       setLoading(false);
       return;
     }
@@ -323,13 +329,30 @@ export default function WaitersReportPage() {
   }
 
   function updateServicePercent(rawValue) {
+    // Clearing the field returns to the gray 0% placeholder — never an error.
+    if (String(rawValue ?? "") === "") {
+      setPercentError("");
+      updateFilter("servicePercent", "");
+      return;
+    }
     const validated = normalizeServicePercent(rawValue);
     setPercentError(validated.error);
     if (!validated.error) lastValidPercentRef.current = validated.value;
-    updateFilter("servicePercent", rawValue);
+    // Store the NORMALIZED value ("0012" -> "12"): with initial "0", typing
+    // would otherwise append ("0"+"12" = "012"). Invalid input stays raw so
+    // the user sees what to fix alongside the error.
+    updateFilter("servicePercent", validated.error ? rawValue : validated.value);
   }
 
   function commitServicePercent() {
+    // An emptied field normalizes back to real 0 on commit — the report must
+    // never sit in an unrequested state.
+    if (String(filters.servicePercent ?? "").trim() === "") {
+      lastValidPercentRef.current = "0";
+      setPercentError("");
+      updateFilter("servicePercent", "0");
+      return;
+    }
     const validated = normalizeCommittedServicePercent(filters.servicePercent);
     if (validated.error) {
       setPercentError("");
@@ -376,7 +399,9 @@ export default function WaitersReportPage() {
     ] });
   }
 
-  if (loading && !hasLoaded) return <section className="waiters-report-page"><div className="dashboard-empty" role="status">Загрузка отчёта...</div></section>;
+  // No full-page loader: the shell (title/controls/table header/totals row)
+  // renders immediately, even while the first request pends. hasLoaded still
+  // gates only the initial-error page below.
   if (error && !hasLoaded) return <section className="waiters-report-page"><div className="login-error" role="alert">{error}</div></section>;
 
   return (
@@ -392,8 +417,8 @@ export default function WaitersReportPage() {
               open={panelState.active === "period"} onOpenChange={(nextOpen) => requestPanel(nextOpen ? "period" : "")}
               onExitComplete={() => completePanelExit("period")} buttonAriaLabel="Период отчёта по официантам" />
             <div className="waiters-percent-control-wrap">
-              <div className={`waiters-percent-stepper${percentError ? " is-invalid" : ""}`}>
-                <input ref={percentInputRef} type="number" min="0" max="100" step="1" inputMode="numeric" aria-label="Процент обслуживания"
+              <div className={`waiters-percent-stepper${percentError ? " is-invalid" : ""}${!filters.servicePercent || Number(filters.servicePercent) === 0 ? " is-empty" : ""}`}>
+                <input ref={percentInputRef} type="number" min="0" max="100" step="1" inputMode="numeric" aria-label="Процент обслуживания" placeholder="0"
                   aria-invalid={percentError ? true : undefined} aria-describedby={percentError ? "waiters-percent-error" : undefined}
                   value={filters.servicePercent} onChange={(event) => updateServicePercent(event.target.value)} onBlur={commitServicePercent}
                   onKeyDown={(event) => {
@@ -403,8 +428,11 @@ export default function WaitersReportPage() {
                       commitServicePercent();
                     }
                   }} />
+                {/* MICRO-JITTER-02: fixed suffix slot — one constant offset for
+                    0..100. The right-anchored numeric slot absorbs digit-width
+                    differences, so "%" never shifts per value. */}
                 <span className="waiters-percent-stepper__suffix" aria-hidden="true"
-                  style={{ left: `calc(33px + ${percentDigitCount / 2}ch)` }}>%</span>
+                  style={{ left: "calc(33px + 0.5ch)" }}>%</span>
                 <span className="waiters-percent-stepper__controls">
                   <button type="button" className="waiters-percent-stepper__up" aria-label="Увеличить процент обслуживания"
                     disabled={!percentError && Number(filters.servicePercent) >= 100}

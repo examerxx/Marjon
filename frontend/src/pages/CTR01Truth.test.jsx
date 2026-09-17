@@ -172,6 +172,8 @@ describe("CTR-01 critical financial truth", () => {
         totals: { orders_count: 4, orders_total: 1200, takeaway_delivery_total: 300, service_total: 100, waiter_service_total: 12, dishes_count: 8 },
       } }));
     render(<WaitersReportPage />);
+    // Percent starts at real muted 0 (initial DATA request fires on mount),
+    // so rows resolve without any prior selection.
     expect(await screen.findByText("Backend Waiter")).toBeInTheDocument();
     ["Сумма заказов", "Самовывоз и доставка", "Сумма услуги", "Обслуживание официанта", "Блюда"].forEach((label) => {
       expect(screen.getByRole("columnheader", { name: label })).toBeInTheDocument();

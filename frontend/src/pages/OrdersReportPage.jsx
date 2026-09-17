@@ -245,7 +245,6 @@ export default function OrdersReportPage() {
   const [rows, setRows] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [hasLoaded, setHasLoaded] = useState(false);
   const [requestVersion, setRequestVersion] = useState(0);
   const [error, setError] = useState("");
   const beginRequest = useLatestRequest();
@@ -302,7 +301,6 @@ export default function OrdersReportPage() {
       setRows([]);
       setError("Дата начала периода не может быть позже даты окончания.");
       setLoading(false);
-      setHasLoaded(true);
       return;
     }
     reportsService.listOrders(dateFrom, dateTo, { filters: appliedFilters, signal: request.signal })
@@ -329,7 +327,6 @@ export default function OrdersReportPage() {
       .finally(() => {
         if (request.isCurrent()) {
           setLoading(false);
-          setHasLoaded(true);
         }
       });
   }, [
@@ -426,7 +423,8 @@ export default function OrdersReportPage() {
     ], "orders-report");
   }
 
-  if (loading && !hasLoaded) return <section className="orders-report-page"><div className="dashboard-empty" role="status">Загрузка отчёта...</div></section>;
+  // No full-page loader: the shell (title/controls/table header) renders
+  // immediately, even while the first request pends (see the tbody branch).
   if (error) return <section className="orders-report-page"><div className="login-error" role="alert">{error}</div></section>;
 
   return (
@@ -486,7 +484,7 @@ export default function OrdersReportPage() {
           </div>
         ) : null}
 
-        <div className="report-table-wrapper owner-report-table-scroll">
+        <div className="report-table-wrapper owner-report-table-scroll" aria-busy={loading ? "true" : "false"}>
           <table className="report-table owner-report-table" aria-label="Отчёт по заказам">
             <thead><tr><th>ID заказа</th><th>Номер заказа</th><th>Дата</th><th>Статус</th><th>Номер стола</th><th>Официант</th><th>Количество позиций</th><th>Итоговая сумма</th></tr></thead>
             <tbody>
@@ -508,7 +506,7 @@ export default function OrdersReportPage() {
                   <td><strong>{row.id}</strong></td><td>{row.orderNumber}</td><td>{formatDate(row.createdAt)}</td><td>{row.status}</td><td>{row.tableNumber ?? "—"}</td><td>{row.waiterName ?? "—"}</td><td>{row.itemsCount}</td><td className="report-total-price">{formatMoney(row.totalAmount)}</td>
                 </tr>
               ))}
-              {!visibleRows.length ? <tr className="report-empty-row"><td colSpan={8}><div className="owner-report-empty" role="status"><span className="owner-report-empty__icon"><Icon name="bi-receipt" size={18} /></span><div><strong>Заказов не найдено</strong><span>Измените период или параметры фильтра.</span></div></div></td></tr> : null}
+              {!visibleRows.length ? <tr className="report-empty-row" aria-hidden={loading || undefined}><td colSpan={8}><div className="owner-report-empty" role="status" style={loading ? { visibility: "hidden" } : undefined}><span className="owner-report-empty__icon"><Icon name="bi-receipt" size={18} /></span><div><strong>Заказов не найдено</strong><span>Измените период или параметры фильтра.</span></div></div></td></tr> : null}
             </tbody>
           </table>
         </div>

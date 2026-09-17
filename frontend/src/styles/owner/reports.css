@@ -2122,7 +2122,14 @@
   gap: 8px;
 }
 
-.waiters-report-page .waiters-report-actions .report-period-button {
+/* PERIOD-GEOMETRY-01: the Waiters compact trigger is the visual oracle.
+   Orders and Z-report reuse the same canonical picker but otherwise fall back
+   to the shared 146px min-width rule, which stretches them and parks the
+   calendar icon far from the date (space-between). Same declarations, same
+   cascade slot — intrinsic content width, no hardcoded size. */
+.waiters-report-page .waiters-report-actions .report-period-button,
+.orders-report-page .report-actions .report-period-button,
+.owner-reports-page--generator .owner-reports__head-actions .report-period-button {
   width: max-content;
   min-width: 0;
   justify-content: center;
@@ -2384,7 +2391,15 @@
   font-size: 14px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  text-align: center;
+  /* MICRO-JITTER-02: Golos Text has no tabular figures, so centered text
+     re-centered per digit ("1"=8.83 vs "5"=8.27). Typography stays approved —
+     instead the digits are right-anchored inside a fixed slot: the numeric
+     RIGHT edge is constant for 0..100, wider values grow leftward, and the
+     fixed "%" suffix never moves. box-sizing keeps width:100% exact. */
+  text-align: right;
+  box-sizing: border-box;
+  padding-right: 20px;
+  border-radius: 0;
   transform: translateX(-6px);
   -moz-appearance: textfield;
   appearance: textfield;
@@ -2395,6 +2410,38 @@
   -webkit-appearance: none;
   appearance: none;
   margin: 0;
+}
+
+/* MICRO-JITTER-03: neutralize the global `.dashboard-shell input:focus` ring
+   (react-overrides.css) on this control only. That rule paints a rectangular
+   3px teal glow on the square input box INSIDE the rounded pill, fading in on
+   every focus enter and out on every blur — the "inner rectangle" plus the
+   intermittent jitter (it fires iff focus enters/leaves the input, never on
+   repeated arrow clicks while focus stays put, and independent of request
+   phase). Specificity 0,3,1 beats the global 0,2,1. The outer pill keeps its
+   own approved :focus-within ring; visual typography is untouched. */
+.waiters-report-page .waiters-percent-stepper input:focus {
+  outline: none;
+  border-color: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Unselected/zero percent reads as a placeholder in the same muted system as
+   "Выберите официанта" (.orders-filter-select__trigger.is-placeholder):
+   --neutral-400. Kicks in for the empty initial state and actual 0. */
+.waiters-report-page .waiters-percent-stepper.is-empty input {
+  color: var(--neutral-400, #7a94b4);
+}
+
+.waiters-report-page .waiters-percent-stepper.is-empty input::placeholder {
+  color: var(--neutral-400, #7a94b4);
+  opacity: 1;
+}
+
+.waiters-report-page .waiters-percent-stepper.is-empty .waiters-percent-stepper__suffix {
+  color: var(--neutral-400, #7a94b4);
 }
 
 .waiters-report-page .waiters-percent-stepper__suffix {
