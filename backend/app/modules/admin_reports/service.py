@@ -14,7 +14,7 @@ from app.modules.admin_reports.schemas import (
     DishReportFiltersResponse, DishReportResponse, DishReportRow,
     DishReportTotals, LoginHistoryRow, OrderReportRow,
     OrderReportFiltersResponse, ReportFilterOption,
-    ProductCountRow, ProductReportRow, TableReportFiltersResponse,
+    ProductCountRow, ProductReportRow, TableOrderSummary, TableReportFiltersResponse,
     TableReportRow, WaiterDishRow, WaiterReportFiltersResponse,
     WaiterReportResponse, WaiterReportRow, WaiterReportTotals,
 )
@@ -433,10 +433,10 @@ class AdminReportService:
         date_to: date | None,
         *,
         table_number: str | None = None,
-        waiter_id: UUID | None = None,
-        payment_method: str | None = None,
-        cashier_id: UUID | None = None,
-        hall_id: UUID | None = None,
+        waiter_id: Sequence[UUID] | None = None,
+        payment_method: Sequence[str] | None = None,
+        cashier_id: Sequence[UUID] | None = None,
+        hall_id: Sequence[UUID] | None = None,
     ) -> list[TableReportRow]:
         # Row identity is the canonical Table when the order carries one, else the
         # legacy free-text number. Grouping by (table_id, table_number) keeps those
@@ -444,27 +444,16 @@ class AdminReportService:
         # never collapse into one row, and a legacy NULL-table_id "5" stays separate
         # from a canonical Table #5. Hall is joined only for display/predicate; both
         # joins are on primary keys, so they never multiply orders/revenue.
-        query = (
-            select(
-                Order.table_id,
-                Order.table_number,
-                Table.hall_id.label("hall_id"),
-                Hall.name.label("hall_name"),
-                func.count(Order.id).label("cnt"),
-                func.coalesce(func.sum(Order.total_amount), 0).label("rev"),
-            )
-            .outerjoin(Table, Table.id == Order.table_id)
-            .outerjoin(Hall, Hall.id == Table.hall_id)
-            .where(
-                Order.company_id == company_id,
-                Order.status == "completed",
-                Order.table_number.is_not(None),
-            )
-            .group_by(Order.table_id, Order.table_number, Table.hall_id, Hall.name)
-            .order_by(func.sum(Order.total_amount).desc())
-        )
-        if hall_id is not None:
-            # Tenant-safe: 404 (not a leak) if the hall isn't this company's. Hall has
+        #
+        # The lightweight per-row order summaries below reuse EXACTLY these
+        # predicates, so Date/Sum lines can never disagree with the aggregate.
+        conditions = [
+            Order.company_id == company_id,
+            Order.status == "completed",
+            Order.table_number.is_not(None),
+        ]
+        if hall_id:
+            # Tenant-safe: 404 (not a leak) if any hall isn't this company's. Hall has
             # a direct company_id, so the shared resolver applies. Filtering on the
             # canonical Table.hall_id (never table_number) also excludes legacy
             # NULL-table_id orders, which cannot truthfully belong to any hall.
@@ -477,19 +466,25 @@ class AdminReportService:
             # POS, and the /reports/tables/filters place directory), so this is
             # an explicit by-id historical read, never a resurrection and never
             # a cross-tenant hole.
-            await require_company_resource(
-                self.db, Hall, hall_id, company_id, detail="Hall not found"
-            )
-            query = query.where(Table.hall_id == hall_id)
+            for single_hall_id in hall_id:
+                await require_company_resource(
+                    self.db, Hall, single_hall_id, company_id, detail="Hall not found"
+                )
+            conditions.append(Table.hall_id.in_(list(hall_id)))
         if table_number and (normalized_table_number := table_number.strip()):
-            query = query.where(Order.table_number.ilike(f"%{normalized_table_number}%"))
+            conditions.append(Order.table_number.ilike(f"%{normalized_table_number}%"))
         if waiter_id:
-            waiter_is_eligible = exists(
+            # REPORT-04 multi-value: the order's waiter must be one of the
+            # selected ones. The role guard is ROW-CORRELATED — evaluated
+            # against the order's OWN Order.waiter_id, so no selected id is
+            # silently dropped: a foreign/ineligible/inactive id simply matches
+            # nothing. Same rule as the old scalar eligibility, widened to lists.
+            waiter_has_company_role = exists(
                 select(UserRole.id)
                 .join(Role, Role.id == UserRole.role_id)
                 .join(User, User.id == UserRole.user_id)
                 .where(
-                    UserRole.user_id == waiter_id,
+                    UserRole.user_id == Order.waiter_id,
                     User.company_id == company_id,
                     User.is_active.is_(True),
                     Role.company_id == company_id,
@@ -497,24 +492,32 @@ class AdminReportService:
                     Role.is_system.is_(False),
                 )
             )
-            query = query.where(Order.waiter_id == waiter_id, waiter_is_eligible)
+            conditions.append(Order.waiter_id.in_(list(waiter_id)))
+            conditions.append(waiter_has_company_role)
         if payment_method:
-            query = query.where(
+            # Completed-payment truth: pending/failed/refunded payments must not
+            # qualify a table (dishes_report parity). Multiple methods OR.
+            conditions.append(
                 exists(
                     select(Payment.id).where(
                         Payment.company_id == company_id,
                         Payment.order_id == Order.id,
-                        Payment.method == payment_method,
+                        Payment.method.in_(list(payment_method)),
+                        Payment.status == "completed",
                     )
                 )
             )
         if cashier_id:
-            cashier_is_eligible = exists(
+            # Attribution is UNCHANGED: the order must carry a COMPLETED payment
+            # taken by one of the selected cashiers. The role guard is correlated
+            # to that payment's own Payment.cashier_id — the ACTUALLY attributed
+            # cashier — so the guard follows the attribution, never the selection.
+            attributed_cashier_has_role = exists(
                 select(UserRole.id)
                 .join(Role, Role.id == UserRole.role_id)
                 .join(User, User.id == UserRole.user_id)
                 .where(
-                    UserRole.user_id == cashier_id,
+                    UserRole.user_id == Payment.cashier_id,
                     User.company_id == company_id,
                     User.is_active.is_(True),
                     Role.company_id == company_id,
@@ -522,24 +525,75 @@ class AdminReportService:
                     Role.is_system.is_(False),
                 )
             )
-            query = query.where(
-                cashier_is_eligible,
+            conditions.append(
                 exists(
                     select(Payment.id).where(
                         Payment.company_id == company_id,
                         Payment.order_id == Order.id,
-                        Payment.cashier_id == cashier_id,
+                        Payment.cashier_id.in_(list(cashier_id)),
+                        Payment.status == "completed",
+                        attributed_cashier_has_role,
                     )
                 ),
             )
+        query = (
+            select(
+                Order.table_id,
+                Order.table_number,
+                Table.hall_id.label("hall_id"),
+                Hall.name.label("hall_name"),
+                func.count(Order.id).label("cnt"),
+                func.coalesce(func.sum(Order.total_amount), 0).label("rev"),
+            )
+            .outerjoin(Table, Table.id == Order.table_id)
+            .outerjoin(Hall, Hall.id == Table.hall_id)
+            .where(*conditions)
+            .group_by(Order.table_id, Order.table_number, Table.hall_id, Hall.name)
+            .order_by(func.sum(Order.total_amount).desc())
+        )
         query = self._order_date_filter(query, date_from, date_to)
         rows = (await self.db.execute(query)).all()
+        # One extra query (never N+1): the same population at order grain for
+        # the Date/Sum lines, deterministic created_at ascending (+ id tiebreak
+        # for identical timestamps) so lines stay aligned 1:1.
+        order_rows = (
+            select(
+                Order.id,
+                Order.order_number,
+                Order.created_at,
+                Order.total_amount,
+                Order.table_id,
+                Order.table_number,
+                Order.order_type,
+                Order.status,
+                func.coalesce(User.name, User.email).label("waiter_name"),
+            )
+            .outerjoin(Table, Table.id == Order.table_id)
+            .outerjoin(User, User.id == Order.waiter_id)
+            .where(*conditions)
+            .order_by(Order.created_at.asc(), Order.id.asc())
+        )
+        order_rows = self._order_date_filter(order_rows, date_from, date_to)
+        summaries: dict[tuple, list[TableOrderSummary]] = {}
+        for o in (await self.db.execute(order_rows)).all():
+            summaries.setdefault((o.table_id, o.table_number), []).append(
+                TableOrderSummary(
+                    order_id=o.id,
+                    order_number=o.order_number,
+                    created_at=o.created_at,
+                    total_amount=Decimal(str(o.total_amount or 0)),
+                    order_type=o.order_type,
+                    status=o.status,
+                    waiter_name=o.waiter_name,
+                )
+            )
         return [
             TableReportRow(
                 table_number=r.table_number, orders_count=r.cnt,
                 revenue=Decimal(str(r.rev)),
                 avg_check=Decimal(str(r.rev)) / r.cnt if r.cnt else Decimal("0"),
                 table_id=r.table_id, hall_id=r.hall_id, hall_name=r.hall_name,
+                orders=summaries.get((r.table_id, r.table_number), []),
             )
             for r in rows
         ]
@@ -779,12 +833,12 @@ class AdminReportService:
         date_to: date | None,
         *,
         search: str | None = None,
-        author_id: UUID | None = None,
-        product_id: UUID | None = None,
-        order_type: str | None = None,
-        order_status: str | None = None,
-        category_id: UUID | None = None,
-        payment_method: str | None = None,
+        author_id: Sequence[UUID] | None = None,
+        product_id: Sequence[UUID] | None = None,
+        order_type: Sequence[str] | None = None,
+        order_status: Sequence[str] | None = None,
+        category_id: Sequence[UUID] | None = None,
+        payment_method: Sequence[str] | None = None,
     ) -> DishReportResponse:
         report_query = (
             select(
@@ -801,29 +855,35 @@ class AdminReportService:
             .order_by(func.sum(OrderItem.total).desc())
         )
         if order_status:
-            report_query = report_query.where(Order.status == order_status)
+            report_query = report_query.where(Order.status.in_(list(order_status)))
         else:
             report_query = report_query.where(Order.status.notin_(["cancelled"]))
         if search and search.strip():
             report_query = report_query.where(OrderItem.name.ilike(f"%{search.strip()}%"))
         if author_id:
-            report_query = report_query.where(Order.waiter_id == author_id)
+            # Multi-value widening of the scalar predicate: Order.waiter_id IN
+            # selected ids (OR within the dimension). No role guard here — the
+            # author options already offer only active same-company
+            # waiter/cashier users, and the company predicate below keeps every
+            # foreign id from matching anything.
+            report_query = report_query.where(Order.waiter_id.in_(list(author_id)))
         if product_id:
-            report_query = report_query.where(OrderItem.product_id == product_id)
+            report_query = report_query.where(OrderItem.product_id.in_(list(product_id)))
         if order_type:
-            report_query = report_query.where(Order.order_type == order_type)
+            report_query = report_query.where(Order.order_type.in_(list(order_type)))
         if category_id:
             # Primary and subcategory are both canonical category relations.
+            category_ids = list(category_id)
             report_query = report_query.where(or_(
-                Product.category_id == category_id,
-                Product.subcategory_id == category_id,
+                Product.category_id.in_(category_ids),
+                Product.subcategory_id.in_(category_ids),
             ))
         if payment_method:
             report_query = report_query.where(exists(
                 select(Payment.id).where(
                     Payment.order_id == Order.id,
                     Payment.company_id == company_id,
-                    Payment.method == payment_method,
+                    Payment.method.in_(list(payment_method)),
                     Payment.status == "completed",
                 )
             ))

@@ -16,6 +16,20 @@ class OrderReportRow(BaseModel):
     total_amount: Decimal
 
 
+class TableOrderSummary(BaseModel):
+    # Lightweight per-order line for the main table Date/Sum columns and the
+    # "Посмотреть заказы" modal. waiter_name is a live join (same caveat as
+    # every report); order_type/status are stored per-order values.
+    # Full contents come from the canonical per-order endpoints.
+    order_id: UUID
+    order_number: str
+    created_at: datetime
+    total_amount: Decimal
+    order_type: str
+    status: str
+    waiter_name: str | None = None
+
+
 class TableReportRow(BaseModel):
     table_number: str
     orders_count: int
@@ -28,6 +42,9 @@ class TableReportRow(BaseModel):
     table_id: UUID | None = None
     hall_id: UUID | None = None
     hall_name: str | None = None
+    # Matching completed orders for the same filtered population, ordered
+    # created_at ascending so Date lines align 1:1 with Sum lines.
+    orders: list[TableOrderSummary] = []
 
 
 class WaiterReportRow(BaseModel):

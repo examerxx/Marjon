@@ -57,13 +57,30 @@ async def test_dishes_report_maps_supported_read_only_filters(client, monkeypatc
 
     assert response.status_code == 200
     assert captured["search"] == "Плов"
-    assert captured["author_id"] == ids["author"]
-    assert captured["product_id"] == ids["product"]
-    assert captured["order_type"] == "dine_in"
-    assert captured["order_status"] == "completed"
-    assert captured["category_id"] == ids["category"]
-    assert captured["payment_method"] == "cash"
+    # Old scalar clients keep working: a single value arrives as a 1-item list.
+    assert captured["author_id"] == [ids["author"]]
+    assert captured["product_id"] == [ids["product"]]
+    assert captured["order_type"] == ["dine_in"]
+    assert captured["order_status"] == ["completed"]
+    assert captured["category_id"] == [ids["category"]]
+    assert captured["payment_method"] == ["cash"]
 
+    # New repeated params arrive as multi-item lists on the same names.
+    repeated = await client.get(
+        "/reports/dishes",
+        headers=headers,
+        params=[
+            ("date_from", "2026-08-01"),
+            ("date_to", "2026-08-25"),
+            ("author_id", str(ids["author"])),
+            ("author_id", str(uuid4())),
+            ("order_type", "dine_in"),
+            ("order_type", "delivery"),
+        ],
+    )
+    assert repeated.status_code == 200, repeated.text
+    assert len(captured["author_id"]) == 2
+    assert captured["order_type"] == ["dine_in", "delivery"]
 
 @pytest.mark.asyncio
 async def test_dishes_filter_metadata_reports_unsupported_cook_dimension(client, monkeypatch):
@@ -869,3 +886,173 @@ async def test_dishes_phase1_truth(client, db_engine):
 async def test_dishes_phase1_truth_postgres(reports_api):
     client, sessions = reports_api
     await _assert_dishes_phase1_truth(client, sessions)
+
+
+@pytest.mark.asyncio
+async def test_dishes_multi_select_or_within_and_across_dimensions(client, db_engine):
+    """Multi-select truth: OR within a dimension, AND across dimensions.
+
+    Covers authors/products/types/statuses/categories/payments, the
+    primary+subcategory category rule, duplicates, foreign and malformed ids,
+    empty selection, and totals computed over the exact filtered population.
+    """
+    sessions = async_sessionmaker(db_engine, expire_on_commit=False)
+    suffix = uuid4().hex[:8]
+    a_headers, _ = await register_company(
+        client, slug=f"multi-a-{suffix}", email=f"multi-a-{suffix}@example.com"
+    )
+    b_headers, _ = await register_company(
+        client, slug=f"multi-b-{suffix}", email=f"multi-b-{suffix}@example.com"
+    )
+    company_a = UUID((await client.get("/auth/me", headers=a_headers)).json()["company_id"])
+    company_b = UUID((await client.get("/auth/me", headers=b_headers)).json()["company_id"])
+    w1 = UUID((await _create_staff(
+        client, a_headers, email=f"multi-w1-{suffix}@example.com", role_slug="waiter"
+    ))["id"])
+    w2 = UUID((await _create_staff(
+        client, a_headers, email=f"multi-w2-{suffix}@example.com", role_slug="waiter"
+    ))["id"])
+    w_foreign = UUID((await _create_staff(
+        client, b_headers, email=f"multi-wb-{suffix}@example.com", role_slug="waiter"
+    ))["id"])
+
+    ids = {name: uuid4() for name in (
+        "branch_a", "branch_b", "cat_main", "cat_sub",
+        "p1", "p2", "o1", "o2", "o3", "o4_new", "o_foreign",
+    )}
+    async with sessions() as db:
+        db.add_all([
+            Branch(id=ids["branch_a"], company_id=company_a, name="Branch A"),
+            Branch(id=ids["branch_b"], company_id=company_b, name="Branch B"),
+            Category(id=ids["cat_main"], company_id=company_a,
+                     name="Main", slug=f"multi-main-{suffix}"),
+            Category(id=ids["cat_sub"], company_id=company_a,
+                     name="Sub", slug=f"multi-sub-{suffix}"),
+        ])
+        await db.flush()
+        db.add_all([
+            Product(id=ids["p1"], company_id=company_a, category_id=ids["cat_main"],
+                    name="Multi Plov", price=Decimal("100"), cost_price=Decimal("40")),
+            Product(id=ids["p2"], company_id=company_a, subcategory_id=ids["cat_sub"],
+                    name="Multi Soup", price=Decimal("50"), cost_price=Decimal("20")),
+        ])
+        await db.flush()
+        db.add_all([
+            Order(
+                id=ids["o1"], company_id=company_a, branch_id=ids["branch_a"],
+                waiter_id=w1, order_number="M-1", order_type="dine_in",
+                status="completed", subtotal=Decimal("200"), total_amount=Decimal("200"),
+            ),
+            Order(
+                id=ids["o2"], company_id=company_a, branch_id=ids["branch_a"],
+                waiter_id=w2, order_number="M-2", order_type="delivery",
+                status="completed", subtotal=Decimal("50"), total_amount=Decimal("50"),
+            ),
+            Order(
+                id=ids["o3"], company_id=company_a, branch_id=ids["branch_a"],
+                waiter_id=w1, order_number="M-3", order_type="dine_in",
+                status="completed", subtotal=Decimal("150"), total_amount=Decimal("150"),
+            ),
+            Order(
+                id=ids["o4_new"], company_id=company_a, branch_id=ids["branch_a"],
+                waiter_id=w1, order_number="M-4-NEW", order_type="dine_in",
+                status="new", subtotal=Decimal("100"), total_amount=Decimal("100"),
+            ),
+            Order(
+                id=ids["o_foreign"], company_id=company_b, branch_id=ids["branch_b"],
+                waiter_id=w_foreign, order_number="M-FOREIGN",
+                order_type="dine_in", status="completed",
+                subtotal=Decimal("700"), total_amount=Decimal("700"),
+            ),
+        ])
+        await db.flush()
+        db.add_all([
+            OrderItem(order_id=ids["o1"], product_id=ids["p1"], name="Multi Plov",
+                      price=Decimal("100"), quantity=Decimal("2"), total=Decimal("200")),
+            OrderItem(order_id=ids["o2"], product_id=ids["p2"], name="Multi Soup",
+                      price=Decimal("50"), quantity=Decimal("1"), total=Decimal("50")),
+            OrderItem(order_id=ids["o3"], product_id=ids["p2"], name="Multi Soup",
+                      price=Decimal("50"), quantity=Decimal("3"), total=Decimal("150")),
+            OrderItem(order_id=ids["o4_new"], product_id=ids["p1"], name="Multi Plov",
+                      price=Decimal("100"), quantity=Decimal("1"), total=Decimal("100")),
+            Payment(company_id=company_a, order_id=ids["o1"], amount=Decimal("200"),
+                    method="cash", status="completed"),
+            Payment(company_id=company_a, order_id=ids["o2"], amount=Decimal("50"),
+                    method="card", status="completed"),
+        ])
+        await db.commit()
+
+    async def dish_rows(params=None, **kw):
+        response = await client.get(
+            "/reports/dishes", headers=a_headers, params=params if params is not None else kw
+        )
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    def by_product(body):
+        return {row["product_id"]: row for row in body["rows"]}
+
+    # Baseline: new (not cancelled) included, foreign excluded.
+    base = await dish_rows()
+    assert set(by_product(base)) == {str(ids["p1"]), str(ids["p2"])}
+    assert Decimal(base["totals"]["quantity"]) == Decimal("7")
+    assert Decimal(base["totals"]["amount"]) == Decimal("500")
+
+    # Authors OR: [w1, w2] == baseline; [w1] narrows; duplicates collapse.
+    both = await dish_rows(params=[("author_id", str(w1)), ("author_id", str(w2))])
+    assert set(by_product(both)) == {str(ids["p1"]), str(ids["p2"])}
+    one = await dish_rows(params=[("author_id", str(w1))])
+    assert set(by_product(one)) == {str(ids["p1"]), str(ids["p2"])}
+    assert Decimal(one["rows"][0]["quantity"]) + Decimal(one["rows"][1]["quantity"]) == Decimal("6")
+    dup = await dish_rows(params=[("author_id", str(w1)), ("author_id", str(w1))])
+    assert set(by_product(dup)) == set(by_product(one))
+    mixed = await dish_rows(params=[("author_id", str(w1)), ("author_id", str(w_foreign))])
+    assert set(by_product(mixed)) == set(by_product(one))
+    assert "FOREIGN" not in str(mixed)
+    assert (await dish_rows(params=[("author_id", str(w_foreign))]))["rows"] == []
+
+    # Malformed UUID keeps the scalar 422 contract.
+    bad = await client.get(
+        "/reports/dishes", headers=a_headers, params={"author_id": "not-a-uuid"}
+    )
+    assert bad.status_code == 422, bad.text
+
+    # Categories: primary OR subcategory across the selected list.
+    cats = await dish_rows(params=[("category_id", str(ids["cat_main"])), ("category_id", str(ids["cat_sub"]))])
+    assert set(by_product(cats)) == {str(ids["p1"]), str(ids["p2"])}
+    main_only = await dish_rows(params=[("category_id", str(ids["cat_main"]))])
+    assert set(by_product(main_only)) == {str(ids["p1"])}
+    sub_only = await dish_rows(params=[("category_id", str(ids["cat_sub"]))])
+    assert set(by_product(sub_only)) == {str(ids["p2"])}
+
+    # Products / types / statuses.
+    assert set(by_product(await dish_rows(
+        params=[("product_id", str(ids["p1"])), ("product_id", str(ids["p2"]))],
+    ))) == {str(ids["p1"]), str(ids["p2"])}
+    assert set(by_product(await dish_rows(
+        params=[("order_type", "dine_in"), ("order_type", "delivery")],
+    ))) == {str(ids["p1"]), str(ids["p2"])}
+    assert set(by_product(await dish_rows(params=[("order_type", "delivery")]))) == {str(ids["p2"])}
+    assert set(by_product(await dish_rows(
+        params=[("order_status", "new"), ("order_status", "completed")],
+    ))) == {str(ids["p1"]), str(ids["p2"])}
+
+    # Payments: completed-only, OR across methods.
+    pays = await dish_rows(params=[("payment_method", "cash"), ("payment_method", "card")])
+    assert set(by_product(pays)) == {str(ids["p1"]), str(ids["p2"])}
+    assert Decimal(pays["rows"][0]["quantity"]) + Decimal(pays["rows"][1]["quantity"]) == Decimal("3")
+    cash_only = await dish_rows(params=[("payment_method", "cash")])
+    assert set(by_product(cash_only)) == {str(ids["p1"])}
+
+    # AND across dimensions + totals over the exact population.
+    combo = await dish_rows(params=[
+        ("author_id", str(w1)), ("author_id", str(w2)),
+        ("order_type", "dine_in"),
+        ("payment_method", "cash"),
+    ])
+    combo_rows = by_product(combo)
+    assert set(combo_rows) == {str(ids["p1"])}
+    assert Decimal(combo_rows[str(ids["p1"])]["quantity"]) == Decimal("2")
+    assert Decimal(combo_rows[str(ids["p1"])]["amount"]) == Decimal("200")
+    assert Decimal(combo["totals"]["quantity"]) == Decimal("2")
+    assert Decimal(combo["totals"]["amount"]) == Decimal("200")

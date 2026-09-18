@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.modules.admin_reports.service import AdminReportService
 from app.modules.companies.models import Branch
 from app.modules.finance.models import PaymentType
+from app.modules.halls.models import Hall, Table
 from app.modules.payments.models import Payment
 from app.modules.pos.models import Order
 from tests.conftest import register_company
@@ -58,9 +61,27 @@ async def test_tables_report_maps_supported_read_only_filters(client, monkeypatc
 
     assert response.status_code == 200, response.text
     assert captured["table_number"] == "12A"
-    assert captured["waiter_id"] == waiter_id
-    assert captured["payment_method"] == "cash"
-    assert captured["cashier_id"] == cashier_id
+    # Old scalar clients keep working: a single value arrives as a 1-item list.
+    assert captured["waiter_id"] == [waiter_id]
+    assert captured["payment_method"] == ["cash"]
+    assert captured["cashier_id"] == [cashier_id]
+
+    # New repeated params arrive as multi-item lists on the same names.
+    repeated = await client.get(
+        "/reports/tables",
+        headers=headers,
+        params=[
+            ("date_from", "2026-08-01"),
+            ("date_to", "2026-08-25"),
+            ("waiter_id", str(waiter_id)),
+            ("waiter_id", str(uuid4())),
+            ("payment_method", "cash"),
+            ("payment_method", "card"),
+        ],
+    )
+    assert repeated.status_code == 200, repeated.text
+    assert len(captured["waiter_id"]) == 2
+    assert captured["payment_method"] == ["cash", "card"]
 
 
 @pytest.mark.asyncio
@@ -177,18 +198,21 @@ async def test_tables_filters_are_tenant_safe_zero_history_and_do_not_multiply_r
                 waiter_id=UUID(waiter_a["id"]), order_number="TARGET-1",
                 order_type="dine_in", status="completed", table_number="12A",
                 subtotal=Decimal("200"), total_amount=Decimal("200"),
+                created_at=datetime(2026, 8, 10, 10, 0),
             ),
             Order(
                 id=ids["order_same_table"], company_id=company_a, branch_id=ids["branch_a"],
                 waiter_id=UUID(waiter_other["id"]), order_number="TARGET-2",
                 order_type="dine_in", status="completed", table_number="12A",
                 subtotal=Decimal("50"), total_amount=Decimal("50"),
+                created_at=datetime(2026, 8, 10, 12, 0),
             ),
             Order(
                 id=ids["order_other"], company_id=company_a, branch_id=ids["branch_a"],
                 waiter_id=UUID(waiter_other["id"]), order_number="OTHER-1",
                 order_type="dine_in", status="completed", table_number="7",
                 subtotal=Decimal("75"), total_amount=Decimal("75"),
+                created_at=datetime(2026, 8, 10, 14, 0),
             ),
             Order(
                 id=ids["order_b"], company_id=company_b, branch_id=ids["branch_b"],
@@ -225,16 +249,382 @@ async def test_tables_filters_are_tenant_safe_zero_history_and_do_not_multiply_r
 
     unfiltered = await table_rows()
     # Legacy orders (table_number only, no canonical table_id) → canonical identity
-    # fields are null but present (additive Phase 2 contract).
-    assert unfiltered == [
-        {"table_number": "12A", "orders_count": 2, "revenue": "250.00", "avg_check": "125.00",
-         "table_id": None, "hall_id": None, "hall_name": None},
-        {"table_number": "7", "orders_count": 1, "revenue": "75.00", "avg_check": "75.00",
-         "table_id": None, "hall_id": None, "hall_name": None},
+    # fields are null but present (additive Phase 2 contract). The additive
+    # `orders` summaries carry the same population in created_at order so Date
+    # lines align 1:1 with Sum lines.
+    assert [(r["table_number"], r["orders_count"], r["revenue"]) for r in unfiltered] == [
+        ("12A", 2, "250.00"),
+        ("7", 1, "75.00"),
     ]
+    row_12a, row_7 = unfiltered
+    for row in (row_12a, row_7):
+        assert set(row) == {
+            "table_number", "orders_count", "revenue", "avg_check",
+            "table_id", "hall_id", "hall_name", "orders",
+        }
+    assert row_12a["avg_check"] == "125.00"
+    assert [o["order_number"] for o in row_12a["orders"]] == ["TARGET-1", "TARGET-2"]
+    assert [o["total_amount"] for o in row_12a["orders"]] == ["200.00", "50.00"]
+    assert [o["order_id"] for o in row_12a["orders"]] == [
+        str(ids["order_target"]), str(ids["order_same_table"]),
+    ]
+    assert row_12a["orders"][0]["created_at"].startswith("2026-08-10T10:00")
+    assert row_12a["orders"][1]["created_at"].startswith("2026-08-10T12:00")
+    assert [o["order_number"] for o in row_7["orders"]] == ["OTHER-1"]
     assert [row["table_number"] for row in await table_rows(table_number="12")] == ["12A"]
     assert (await table_rows(waiter_id=waiter_a["id"]))[0]["orders_count"] == 1
     assert (await table_rows(payment_method="cash"))[0]["orders_count"] == 1
     assert (await table_rows(cashier_id=cashier_a["id"]))[0]["orders_count"] == 1
     assert await table_rows(waiter_id=waiter_b["id"]) == []
     assert await table_rows(cashier_id=cashier_b["id"]) == []
+
+
+@pytest.mark.asyncio
+async def test_tables_phase1_order_summaries_filters_identity_and_completed_payments(
+    client, db_engine
+):
+    """SQLite Phase 1 contract for the additive per-row order summaries.
+
+    Proves: bare-array shape preserved; canonical (table_id) identity incl.
+    same number across halls; legacy bucket summaries; created_at-ascending
+    Date/Sum alignment; every filter honored identically by aggregates and
+    summaries; completed-only payment/cashier semantics; completed-only
+    population; tenant isolation.
+    """
+    sessions = async_sessionmaker(db_engine, expire_on_commit=False)
+    suffix = uuid4().hex[:8]
+    a_headers, _ = await register_company(
+        client, slug=f"tblsum-a-{suffix}", email=f"tblsum-a-{suffix}@example.com"
+    )
+    b_headers, _ = await register_company(
+        client, slug=f"tblsum-b-{suffix}", email=f"tblsum-b-{suffix}@example.com"
+    )
+    company_a = UUID((await client.get("/auth/me", headers=a_headers)).json()["company_id"])
+    company_b = UUID((await client.get("/auth/me", headers=b_headers)).json()["company_id"])
+
+    waiter_a = await _create_staff(
+        client, a_headers, email=f"tblsum-waiter-a-{suffix}@example.com", role_slug="waiter"
+    )
+    cashier_a = await _create_staff(
+        client, a_headers, email=f"tblsum-cashier-a-{suffix}@example.com", role_slug="cashier"
+    )
+    kitchen_a = await _create_staff(
+        client, a_headers, email=f"tblsum-kitchen-a-{suffix}@example.com", role_slug="kitchen"
+    )
+
+    ids = {name: uuid4() for name in (
+        "branch_a", "branch_b", "zal", "bar", "t3_zal", "t3_bar",
+        "o1", "o2", "o3_bar", "o_legacy", "o_new", "o_foreign",
+    )}
+    async with sessions() as db:
+        db.add_all([
+            Branch(id=ids["branch_a"], company_id=company_a, name="Branch A"),
+            Branch(id=ids["branch_b"], company_id=company_b, name="Branch B"),
+        ])
+        await db.flush()
+        db.add_all([
+            Hall(id=ids["zal"], company_id=company_a, branch_id=ids["branch_a"],
+                 name="Zal", is_active=True),
+            Hall(id=ids["bar"], company_id=company_a, branch_id=ids["branch_a"],
+                 name="Bar", is_active=True),
+        ])
+        await db.flush()
+        db.add_all([
+            Table(id=ids["t3_zal"], hall_id=ids["zal"], number=3, is_active=True),
+            Table(id=ids["t3_bar"], hall_id=ids["bar"], number=3, is_active=True),
+        ])
+        await db.flush()
+        db.add_all([
+            Order(
+                id=ids["o1"], company_id=company_a, branch_id=ids["branch_a"],
+                waiter_id=UUID(waiter_a["id"]), order_number="T3-EARLY",
+                table_id=ids["t3_zal"], table_number="3",
+                order_type="dine_in", status="completed",
+                subtotal=Decimal("120"), total_amount=Decimal("120"),
+                created_at=datetime(2026, 9, 9, 10, 35),
+            ),
+            Order(
+                id=ids["o2"], company_id=company_a, branch_id=ids["branch_a"],
+                waiter_id=UUID(waiter_a["id"]), order_number="T3-LATE",
+                table_id=ids["t3_zal"], table_number="3",
+                order_type="dine_in", status="completed",
+                subtotal=Decimal("85"), total_amount=Decimal("85"),
+                created_at=datetime(2026, 9, 10, 14, 20),
+            ),
+            Order(
+                id=ids["o3_bar"], company_id=company_a, branch_id=ids["branch_a"],
+                waiter_id=UUID(waiter_a["id"]), order_number="BAR-1",
+                table_id=ids["t3_bar"], table_number="3",
+                order_type="dine_in", status="completed",
+                subtotal=Decimal("200"), total_amount=Decimal("200"),
+                created_at=datetime(2026, 9, 10, 9, 0),
+            ),
+            # Legacy bucket: number but no canonical table_id.
+            Order(
+                id=ids["o_legacy"], company_id=company_a, branch_id=ids["branch_a"],
+                waiter_id=UUID(waiter_a["id"]), order_number="LEGACY-9",
+                table_id=None, table_number="9",
+                order_type="dine_in", status="completed",
+                subtotal=Decimal("50"), total_amount=Decimal("50"),
+                created_at=datetime(2026, 9, 10, 11, 0),
+            ),
+            # Non-completed order: must not appear anywhere.
+            Order(
+                id=ids["o_new"], company_id=company_a, branch_id=ids["branch_a"],
+                waiter_id=UUID(waiter_a["id"]), order_number="NEW-1",
+                table_id=ids["t3_zal"], table_number="3",
+                order_type="dine_in", status="new",
+                subtotal=Decimal("999"), total_amount=Decimal("999"),
+                created_at=datetime(2026, 9, 10, 15, 0),
+            ),
+            Order(
+                id=ids["o_foreign"], company_id=company_b, branch_id=ids["branch_b"],
+                order_number="FOREIGN-1",
+                table_id=None, table_number="3",
+                order_type="dine_in", status="completed",
+                subtotal=Decimal("700"), total_amount=Decimal("700"),
+                created_at=datetime(2026, 9, 10, 10, 0),
+            ),
+        ])
+        await db.flush()
+        db.add_all([
+            Payment(
+                company_id=company_a, order_id=ids["o1"], amount=Decimal("120"),
+                method="cash", status="completed", cashier_id=UUID(cashier_a["id"]),
+            ),
+            Payment(
+                company_id=company_a, order_id=ids["o2"], amount=Decimal("85"),
+                method="cash", status="completed", cashier_id=UUID(cashier_a["id"]),
+            ),
+            Payment(
+                company_id=company_a, order_id=ids["o3_bar"], amount=Decimal("200"),
+                method="card", status="completed", cashier_id=UUID(cashier_a["id"]),
+            ),
+            # Pending payment: must NOT qualify its order for payment filters.
+            Payment(
+                company_id=company_a, order_id=ids["o_legacy"], amount=Decimal("50"),
+                method="cash", status="pending", cashier_id=UUID(cashier_a["id"]),
+            ),
+        ])
+        await db.commit()
+
+    async def table_rows(headers, **params):
+        response = await client.get("/reports/tables", headers=headers, params=params)
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert isinstance(body, list), body
+        return body
+
+    rows = await table_rows(a_headers)
+    assert len(rows) == 3, rows
+    by_key = {(r["table_id"], r["table_number"]): r for r in rows}
+    zal = by_key[(str(ids["t3_zal"]), "3")]
+    bar = by_key[(str(ids["t3_bar"]), "3")]
+    legacy = by_key[(None, "9")]
+    # Same number in different halls stays two canonical rows.
+    assert zal["hall_name"] == "Zal" and bar["hall_name"] == "Bar"
+    assert zal["orders_count"] == 2 and zal["revenue"] == "205.00"
+    assert bar["orders_count"] == 1 and bar["revenue"] == "200.00"
+    assert legacy["hall_id"] is None and legacy["orders_count"] == 1
+    # Non-completed and foreign orders never leak into aggregates.
+    assert "999" not in str(rows) and "700" not in str(rows)
+    # Legacy compatibility fields preserved.
+    assert set(zal) == {
+        "table_number", "orders_count", "revenue", "avg_check",
+        "table_id", "hall_id", "hall_name", "orders",
+    }
+    # Date/Sum alignment: created_at ascending, 1:1 with totals.
+    assert [o["order_number"] for o in zal["orders"]] == ["T3-EARLY", "T3-LATE"]
+    assert [o["total_amount"] for o in zal["orders"]] == ["120.00", "85.00"]
+    assert [o["order_id"] for o in zal["orders"]] == [str(ids["o1"]), str(ids["o2"])]
+    assert zal["orders"][0]["created_at"].startswith("2026-09-09T10:35")
+    assert zal["orders"][1]["created_at"].startswith("2026-09-10T14:20")
+    assert [o["order_number"] for o in legacy["orders"]] == ["LEGACY-9"]
+    # Modal fields ride the same summaries: stored type/status + live waiter.
+    assert [o["order_type"] for o in zal["orders"]] == ["dine_in", "dine_in"]
+    assert [o["status"] for o in zal["orders"]] == ["completed", "completed"]
+    assert zal["orders"][0]["waiter_name"] == f"tblsum-waiter-a-{suffix}@example.com"
+
+    # Summaries honor every filter exactly like the aggregates.
+    cash_rows = await table_rows(a_headers, payment_method="cash")
+    # o3_bar paid by card only, o_legacy only pending: cash leaves just zal.
+    assert [(r["table_id"], r["table_number"]) for r in cash_rows] == [
+        (str(ids["t3_zal"]), "3"),
+    ]
+    # o_legacy has only a PENDING cash payment: excluded by completed-only rule.
+    assert all(r["table_number"] != "9" for r in cash_rows)
+    zal_cash = cash_rows[0]
+    assert zal_cash["orders_count"] == 2
+    assert [o["order_number"] for o in zal_cash["orders"]] == ["T3-EARLY", "T3-LATE"]
+
+    by_cashier = await table_rows(a_headers, cashier_id=cashier_a["id"])
+    assert len(by_cashier) == 2, by_cashier  # zal (2 completed) + bar (1 completed)
+    assert all(r["table_number"] == "3" for r in by_cashier)
+
+    by_waiter = await table_rows(a_headers, waiter_id=waiter_a["id"])
+    assert len(by_waiter) == 3, by_waiter
+
+    # Ineligible author (unrelated role) matches nothing.
+    assert await table_rows(a_headers, waiter_id=kitchen_a["id"]) == []
+
+    # Hall filter keeps canonical rows and drops the legacy bucket.
+    zal_only = await table_rows(a_headers, hall_id=str(ids["zal"]))
+    assert len(zal_only) == 1 and zal_only[0]["table_id"] == str(ids["t3_zal"])
+    assert [o["order_number"] for o in zal_only[0]["orders"]] == ["T3-EARLY", "T3-LATE"]
+
+    # Date period constrains summaries and aggregates together.
+    day2 = await table_rows(a_headers, date_from="2026-09-10", date_to="2026-09-10")
+    zal_day2 = [r for r in day2 if r["table_id"] == str(ids["t3_zal"])][0]
+    assert zal_day2["orders_count"] == 1 and zal_day2["revenue"] == "85.00"
+    assert [o["order_number"] for o in zal_day2["orders"]] == ["T3-LATE"]
+    assert await table_rows(a_headers, date_from="2026-09-11", date_to="2026-09-11") == []
+
+    # Foreign tenant sees only its own history.
+    foreign = await table_rows(b_headers)
+    assert len(foreign) == 1 and foreign[0]["table_number"] == "3"
+    assert [o["order_number"] for o in foreign[0]["orders"]] == ["FOREIGN-1"]
+
+
+@pytest.mark.asyncio
+async def test_tables_multi_select_or_within_and_across_dimensions(client, db_engine):
+    """Multi-select truth for tables: OR within a dimension, AND across.
+
+    Covers waiter/hall/cashier/payment lists, duplicates, foreign and
+    malformed ids, completed-payment requirement under lists, and row
+    orders[] honoring the exact same multi-filter population.
+    """
+    sessions = async_sessionmaker(db_engine, expire_on_commit=False)
+    suffix = uuid4().hex[:8]
+    a_headers, _ = await register_company(
+        client, slug=f"tblmulti-a-{suffix}", email=f"tblmulti-a-{suffix}@example.com"
+    )
+    company_a = UUID((await client.get("/auth/me", headers=a_headers)).json()["company_id"])
+    w1 = UUID((await _create_staff(
+        client, a_headers, email=f"tblmulti-w1-{suffix}@example.com", role_slug="waiter"
+    ))["id"])
+    w2 = UUID((await _create_staff(
+        client, a_headers, email=f"tblmulti-w2-{suffix}@example.com", role_slug="waiter"
+    ))["id"])
+    c1 = UUID((await _create_staff(
+        client, a_headers, email=f"tblmulti-c1-{suffix}@example.com", role_slug="cashier"
+    ))["id"])
+    c2 = UUID((await _create_staff(
+        client, a_headers, email=f"tblmulti-c2-{suffix}@example.com", role_slug="cashier"
+    ))["id"])
+
+    ids = {name: uuid4() for name in (
+        "branch", "h1", "h2", "ta", "tb", "oa1", "oa2", "ob1",
+    )}
+    async with sessions() as db:
+        db.add(Branch(id=ids["branch"], company_id=company_a, name="Branch"))
+        await db.flush()
+        db.add_all([
+            Hall(id=ids["h1"], company_id=company_a, branch_id=ids["branch"],
+                 name="H1", is_active=True),
+            Hall(id=ids["h2"], company_id=company_a, branch_id=ids["branch"],
+                 name="H2", is_active=True),
+        ])
+        await db.flush()
+        db.add_all([
+            Table(id=ids["ta"], hall_id=ids["h1"], number=1, is_active=True),
+            Table(id=ids["tb"], hall_id=ids["h2"], number=2, is_active=True),
+        ])
+        await db.flush()
+        db.add_all([
+            Order(
+                id=ids["oa1"], company_id=company_a, branch_id=ids["branch"],
+                waiter_id=w1, order_number="MA-1",
+                table_id=ids["ta"], table_number="1",
+                order_type="dine_in", status="completed",
+                subtotal=Decimal("100"), total_amount=Decimal("100"),
+                created_at=datetime(2026, 9, 9, 10, 0),
+            ),
+            Order(
+                id=ids["oa2"], company_id=company_a, branch_id=ids["branch"],
+                waiter_id=w2, order_number="MA-2",
+                table_id=ids["ta"], table_number="1",
+                order_type="dine_in", status="completed",
+                subtotal=Decimal("50"), total_amount=Decimal("50"),
+                created_at=datetime(2026, 9, 10, 11, 0),
+            ),
+            Order(
+                id=ids["ob1"], company_id=company_a, branch_id=ids["branch"],
+                waiter_id=w1, order_number="MB-1",
+                table_id=ids["tb"], table_number="2",
+                order_type="dine_in", status="completed",
+                subtotal=Decimal("200"), total_amount=Decimal("200"),
+                created_at=datetime(2026, 9, 10, 12, 0),
+            ),
+        ])
+        await db.flush()
+        db.add_all([
+            Payment(company_id=company_a, order_id=ids["oa1"], amount=Decimal("100"),
+                    method="cash", status="completed", cashier_id=c1),
+            Payment(company_id=company_a, order_id=ids["oa2"], amount=Decimal("50"),
+                    method="card", status="completed", cashier_id=c2),
+            Payment(company_id=company_a, order_id=ids["ob1"], amount=Decimal("200"),
+                    method="cash", status="completed", cashier_id=c1),
+        ])
+        await db.commit()
+
+    async def table_rows(params=None, **kw):
+        response = await client.get(
+            "/reports/tables", headers=a_headers, params=params if params is not None else kw
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert isinstance(body, list), body
+        return body
+
+    def by_table(rows):
+        return {(r["table_id"], r["table_number"]): r for r in rows}
+
+    base = by_table(await table_rows())
+    assert set(base) == {(str(ids["ta"]), "1"), (str(ids["tb"]), "2")}
+    assert base[(str(ids["ta"]), "1")]["orders_count"] == 2
+
+    # OR within each dimension.
+    assert set(by_table(await table_rows(
+        params=[("waiter_id", str(w1)), ("waiter_id", str(w2))],
+    ))) == set(base)
+    assert set(by_table(await table_rows(
+        params=[("hall_id", str(ids["h1"])), ("hall_id", str(ids["h2"]))],
+    ))) == set(base)
+    assert set(by_table(await table_rows(
+        params=[("cashier_id", str(c1)), ("cashier_id", str(c2))],
+    ))) == set(base)
+    assert set(by_table(await table_rows(
+        params=[("payment_method", "cash"), ("payment_method", "card")],
+    ))) == set(base)
+
+    # Single picks narrow; duplicates collapse to the same set.
+    assert set(by_table(await table_rows(params=[("waiter_id", str(w2))]))) == {
+        (str(ids["ta"]), "1"),
+    }
+    dup = await table_rows(params=[("waiter_id", str(w1)), ("waiter_id", str(w1))])
+    single = await table_rows(params=[("waiter_id", str(w1))])
+    assert [o["order_number"] for r in dup for o in r["orders"]] == [
+        o["order_number"] for r in single for o in r["orders"]
+    ]
+
+    # AND across dimensions + summaries honor the same population.
+    combo = by_table(await table_rows(params=[
+        ("waiter_id", str(w1)),
+        ("hall_id", str(ids["h2"])),
+        ("cashier_id", str(c1)),
+        ("payment_method", "cash"),
+    ]))
+    assert set(combo) == {(str(ids["tb"]), "2")}
+    assert [o["order_number"] for o in combo[(str(ids["tb"]), "2")]["orders"]] == ["MB-1"]
+
+    # Foreign and malformed ids: no leak, scalar 422 contract kept.
+    assert await table_rows(params=[("waiter_id", str(uuid4()))]) == []
+    assert await table_rows(params=[("waiter_id", str(w1)), ("waiter_id", str(uuid4()))]) != []
+    bad_hall = await client.get(
+        "/reports/tables", headers=a_headers, params={"hall_id": str(uuid4())}
+    )
+    assert bad_hall.status_code == 404, bad_hall.text
+    bad_uuid = await client.get(
+        "/reports/tables", headers=a_headers, params={"waiter_id": "not-a-uuid"}
+    )
+    assert bad_uuid.status_code == 422, bad_uuid.text
