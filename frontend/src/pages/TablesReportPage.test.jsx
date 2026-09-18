@@ -237,6 +237,16 @@ describe("TablesReportPage Phase 1 exact table", () => {
     expect(document.querySelector(".report-loading-row")).toBeNull();
   });
 
+  it("renders the shared universal illustration instead of the legacy icon", async () => {
+    reportsService.listTables.mockResolvedValue({ data: [] });
+    const { container } = render(<TablesReportPage />);
+    await screen.findByText("Столы не найдены");
+    const image = container.querySelector(".owner-report-empty-image");
+    expect(image?.tagName).toBe("IMG");
+    expect(image).toHaveAttribute("alt", "");
+    expect(container.querySelector(".owner-report-empty__icon")).toBeNull();
+  });
+
   it("shows error UI instead of fake zero-data on malformed response", async () => {
     reportsService.listTables.mockResolvedValue({ data: { rows: [], totals: {} } });
     render(<TablesReportPage />);

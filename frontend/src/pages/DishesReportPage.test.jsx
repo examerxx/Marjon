@@ -169,6 +169,16 @@ describe("DishesReportPage Phase 1 truthful core", () => {
     expect(document.querySelector(".report-loading-row")).toBeNull();
   });
 
+  it("renders the shared universal illustration instead of the legacy icon", async () => {
+    reportsService.listDishes.mockResolvedValue({ data: { rows: [], totals: { quantity: "0", amount: "0" } } });
+    const { container } = render(<DishesReportPage />);
+    await screen.findByText("Блюд не найдено");
+    const image = container.querySelector(".owner-report-empty-image");
+    expect(image?.tagName).toBe("IMG");
+    expect(image).toHaveAttribute("alt", "");
+    expect(container.querySelector(".owner-report-empty__icon")).toBeNull();
+  });
+
   it("hides the visible totals row for successful zero-data", async () => {
     reportsService.listDishes.mockResolvedValue({ data: { rows: [], totals: { quantity: "0", amount: "0" } } });
     render(<DishesReportPage />);

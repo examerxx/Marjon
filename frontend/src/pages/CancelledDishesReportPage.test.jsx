@@ -242,6 +242,16 @@ describe("CancelledDishesReportPage Phase 1B", () => {
     expect(screen.queryByText("Итого")).toBeNull();
   });
 
+  it("renders the shared universal illustration instead of the legacy icon", async () => {
+    reportsService.listCancelledDishes.mockResolvedValue({ data: [] });
+    const { container } = render(<CancelledDishesReportPage />);
+    await screen.findByText("Отменённых блюд нет");
+    const image = container.querySelector(".owner-report-empty-image");
+    expect(image?.tagName).toBe("IMG");
+    expect(image).toHaveAttribute("alt", "");
+    expect(container.querySelector(".owner-report-empty__icon")).toBeNull();
+  });
+
   it("keeps the shell on error with an inline alert", async () => {
     reportsService.listCancelledDishes.mockRejectedValue({ response: { data: { detail: "Backend down" } } });
     render(<CancelledDishesReportPage />);

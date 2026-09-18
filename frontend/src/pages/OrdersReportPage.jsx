@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { reportsService } from "../api/reports";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
+import ReportEmptyState from "../components/ReportEmptyState";
 import { exportToExcel } from "../utils/excel";
 import { formatSelectedLabels } from "../components/ReportMultiSelect";
 import { formatDateLabel, todayInputValue } from "../utils/date";
@@ -502,7 +503,7 @@ export default function OrdersReportPage() {
                   <td><strong>{row.id}</strong></td><td>{row.orderNumber}</td><td>{formatDate(row.createdAt)}</td><td>{row.status}</td><td>{row.tableNumber ?? "—"}</td><td>{row.waiterName ?? "—"}</td><td>{row.itemsCount}</td><td className="report-total-price">{formatMoney(row.totalAmount)}</td>
                 </tr>
               ))}
-              {!visibleRows.length ? <tr className="report-empty-row" aria-hidden={loading || undefined}><td colSpan={8}><div className="owner-report-empty" role="status" style={loading ? { visibility: "hidden" } : undefined}><span className="owner-report-empty__icon"><Icon name="bi-receipt" size={18} /></span><div><strong>Заказов не найдено</strong><span>Измените период или параметры фильтра.</span></div></div></td></tr> : null}
+              {!visibleRows.length ? <tr className="report-empty-row" aria-hidden={loading || undefined}><td colSpan={8}><ReportEmptyState title="Заказов не найдено" hidden={loading} /></td></tr> : null}
             </tbody>
           </table>
         </div>

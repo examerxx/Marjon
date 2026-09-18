@@ -3,6 +3,7 @@ import { reportsService } from "../api/reports";
 import { ordersService } from "../api/orders";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
+import ReportEmptyState from "../components/ReportEmptyState";
 import ReportMultiSelect from "../components/ReportMultiSelect";
 import { exportToExcel } from "../utils/excel";
 import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/useAsyncSafety";
@@ -525,10 +526,7 @@ export default function CancelledDishesReportPage() {
               {!filteredRows.length ? (
                 <tr className="cancelled-empty-row" aria-hidden={loading || undefined}>
                   <td colSpan={10}>
-                    <div className="owner-report-empty" role="status" style={loading ? { visibility: "hidden" } : undefined}>
-                      <span className="owner-report-empty__icon"><Icon name="bi-x-octagon" size={18} /></span>
-                      <div><strong>Отменённых блюд нет</strong><span>За выбранный период и фильтры отмены не найдены.</span></div>
-                    </div>
+                    <ReportEmptyState title="Отменённых блюд нет" hidden={loading} />
                   </td>
                 </tr>
               ) : null}

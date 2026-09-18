@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { reportsService } from "../api/reports";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
+import ReportEmptyState from "../components/ReportEmptyState";
 import ReportMultiSelect from "../components/ReportMultiSelect";
 import { exportToExcel } from "../utils/excel";
 import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/useAsyncSafety";
@@ -458,7 +459,7 @@ export default function DishesReportPage() {
               ))}
               {!filteredRows.length ? (
                 <tr className="report-empty-row" aria-hidden={loading || undefined}>
-                  <td colSpan="5"><div className="owner-report-empty" role="status" style={loading ? { visibility: "hidden" } : undefined}><span className="owner-report-empty__icon"><Icon name="bi-cup-hot" size={18} /></span><div><strong>Блюд не найдено</strong><span>Измените период, поиск или статус.</span></div></div></td>
+                  <td colSpan="5"><ReportEmptyState title="Блюд не найдено" hidden={loading} /></td>
                 </tr>
               ) : null}
             </tbody>

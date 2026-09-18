@@ -596,4 +596,14 @@ describe("OrdersReportPage filters", () => {
     render(<OrdersReportPage />);
     expect(await screen.findByText("Заказов не найдено")).toBeInTheDocument();
   });
+
+  it("renders the shared universal illustration instead of the legacy icon", async () => {
+    reportsService.listOrders.mockResolvedValueOnce({ data: [] });
+    const { container } = render(<OrdersReportPage />);
+    await screen.findByText("Заказов не найдено");
+    const image = container.querySelector(".owner-report-empty-image");
+    expect(image?.tagName).toBe("IMG");
+    expect(image).toHaveAttribute("alt", "");
+    expect(container.querySelector(".owner-report-empty__icon")).toBeNull();
+  });
 });

@@ -2172,6 +2172,50 @@
   font-weight: 450;
 }
 
+/* UNIVERSAL-EMPTY-01: one shared illustrated empty state for the ordinary
+   reports (Orders, Dishes, Tables, Cancelled). The artwork carries its own
+   soft 3D lighting — no filters, overlays, or extra shadows. The variant
+   only reflows the shared `.owner-report-empty` shell into a centered
+   column; loading/error/visibility semantics stay page-owned. */
+.owner-report-empty--illustrated {
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+  min-height: 270px;
+  padding: 28px 20px;
+  text-align: center;
+  /* EMPTY-CENTER-01: the PNG's transparent top padding outweighs its bottom
+     padding, so mathematical flex centering leaves visibly more air above
+     the artwork than below the title. This visual-only shift rebalances the
+     whole group (image + title move together); layout, body height, and all
+     approved sizes/gaps are untouched. Tuned optically in-browser. */
+  transform: translateY(-26px);
+}
+
+.owner-report-empty--illustrated .owner-report-empty-image {
+  /* EMPTY-FIX-01: the 1254px PNG canvas carries wide transparent padding
+     (meaningful artwork is only ~53–56% of the canvas), so the box is 200px
+     for a ~105–115px VISIBLE clipboard. The negative bottom margin cancels
+     the invisible bottom padding so the OPTICAL illustration→title gap lands
+     at ~16px; tuned from browser screenshots, not from CSS arithmetic. */
+  width: 200px;
+  max-width: 100%;
+  height: auto;
+  margin-bottom: -34px;
+}
+
+.owner-report-empty--illustrated .owner-report-empty-text {
+  display: grid;
+  justify-items: center;
+}
+
+.owner-report-empty--illustrated .owner-report-empty-title {
+  color: var(--neutral-950, #071428);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .cancelled-report-page .cancelled-pagination {
   margin-top: 14px;
 }
