@@ -17,12 +17,26 @@ vi.mock("../utils/excel", () => ({ exportToExcel: vi.fn() }));
 
 const FILTERS = {
   data: {
-    authors: [{ value: "author-1", label: "Официант 1" }],
+    authors: [
+      { value: "author-1", label: "Официант 1" },
+      { value: "cashier-1", label: "Кассир 1" },
+    ],
     cooks: [],
     products: [{ value: "product-1", label: "Плов" }],
     categories: [{ value: "category-1", label: "Горячие блюда" }],
-    order_types: [{ value: "dine_in", label: "На месте" }],
-    order_statuses: [{ value: "completed", label: "Завершён" }],
+    order_types: [
+      { value: "dine_in", label: "На месте" },
+      { value: "takeaway", label: "На вынос" },
+      { value: "delivery", label: "Доставка" },
+      { value: "qr", label: "QR" },
+    ],
+    order_statuses: [
+      { value: "new", label: "Новый" },
+      { value: "accepted", label: "Принят" },
+      { value: "cooking", label: "Готовится" },
+      { value: "ready", label: "Готов" },
+      { value: "completed", label: "Завершён" },
+    ],
     payment_methods: [{ value: "cash", label: "Наличные" }],
     cook_filter_supported: false,
   },
@@ -45,6 +59,27 @@ function rowsPayload() {
 function lastListDishesFilters() {
   const calls = reportsService.listDishes.mock.calls;
   return calls[calls.length - 1][2].filters;
+}
+
+function headerFilterToggle() {
+  // The header toggle and the panel Apply share the accessible name; the
+  // collapse keeps both mounted, so select by the toggle's own class.
+  return screen.getAllByRole("button", { name: "Фильтровать" }).find((button) => (
+    button.classList.contains("dishes-filter-toggle")
+  ));
+}
+
+function finishDropdownExit() {
+  // Orders parity: opening another dropdown while one closes hands off only
+  // after the exit animation; jsdom never runs it, so finish it manually.
+  const closingPanel = document.querySelector(".orders-filter-select__panel.is-closing");
+  if (closingPanel) fireEvent(closingPanel, new Event("webkitAnimationEnd", { bubbles: true }));
+}
+
+function openDishFilter(label) {
+  fireEvent.click(screen.getByRole("combobox", { name: label }));
+  finishDropdownExit();
+  return screen.getByRole("listbox", { name: label });
 }
 
 describe("DishesReportPage Phase 1 truthful core", () => {
@@ -125,6 +160,19 @@ describe("DishesReportPage Phase 1 truthful core", () => {
     expect(document.querySelector(".report-loading-row")).toBeNull();
   });
 
+  it("hides the visible totals row for successful zero-data", async () => {
+    reportsService.listDishes.mockResolvedValue({ data: { rows: [], totals: { quantity: "0", amount: "0" } } });
+    render(<DishesReportPage />);
+    expect(await screen.findByText("Блюд не найдено")).toBeInTheDocument();
+    expect(document.querySelector(".dishes-report-page .report-total-row")).toBeNull();
+  });
+
+  it("keeps the totals row when rows exist", async () => {
+    render(<DishesReportPage />);
+    await screen.findByText("1. Плов");
+    expect(document.querySelector(".dishes-report-page .report-total-row")).not.toBeNull();
+  });
+
   it("keeps stale rows while a refetch pends and lets the latest win", async () => {
     render(<DishesReportPage />);
     await screen.findByText("1. Плов");
@@ -164,29 +212,131 @@ describe("DishesReportPage Phase 1 truthful core", () => {
     await screen.findByText("1. Плов");
 
     expect(screen.queryByLabelText("Повар")).toBeNull();
-    const toggle = screen.getByRole("button", { name: "Фильтровать" });
+    expect(document.querySelector(".dishes-report-page select")).toBeNull();
+    const toggle = headerFilterToggle();
     fireEvent.click(toggle);
     const search = screen.getByLabelText("Поиск по названию блюда");
     search.focus();
     await user.tab();
     fireEvent.change(search, { target: { value: "Плов" } });
-    fireEvent.change(screen.getByLabelText("Официант"), { target: { value: "author-1" } });
-    fireEvent.change(screen.getByLabelText("Статус заказа"), { target: { value: "completed" } });
+    openDishFilter("Автор");
+    fireEvent.click(screen.getByRole("option", { name: "Официант 1" }));
+    openDishFilter("Статус заказа");
+    fireEvent.click(screen.getByRole("option", { name: "Завершенный" }));
     fireEvent.click(screen.getAllByRole("button", { name: "Фильтровать" })[1]);
     await waitFor(() => expect(lastListDishesFilters()).toMatchObject({
       query: "Плов", authorId: "author-1", orderStatus: "completed",
     }));
     const sent = lastListDishesFilters();
     expect("cookId" in sent).toBe(false);
+    expect(typeof sent.authorId).toBe("string");
+    expect(typeof sent.orderStatus).toBe("string");
     expect(screen.getByText("Поиск: Плов")).toBeInTheDocument();
-    expect(screen.getByText("Официант: Официант 1")).toBeInTheDocument();
+    expect(screen.getByText("Автор: Официант 1")).toBeInTheDocument();
+  });
+
+  it("opens on today and sends today/today in the initial request", async () => {
+    render(<DishesReportPage />);
+    await screen.findByText("1. Плов");
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    expect(reportsService.listDishes).toHaveBeenNthCalledWith(
+      1, today, today, expect.anything()
+    );
+  });
+
+  it("shows the author placeholder in muted Orders style until selected", async () => {
+    render(<DishesReportPage />);
+    await screen.findByText("1. Плов");
+    fireEvent.click(headerFilterToggle());
+    const author = screen.getByRole("combobox", { name: "Автор" });
+    expect(author).toHaveTextContent("Выберите автора");
+    expect(author).toHaveClass("is-placeholder");
+    fireEvent.click(author);
+    fireEvent.click(screen.getByRole("option", { name: "Официант 1" }));
+    expect(author).toHaveTextContent("Официант 1");
+    expect(author).not.toHaveClass("is-placeholder");
+  });
+
+  it("offers exactly the requested order type subset without qr", async () => {
+    render(<DishesReportPage />);
+    await screen.findByText("1. Плов");
+    fireEvent.click(headerFilterToggle());
+    openDishFilter("Тип заказа");
+    expect(screen.getByRole("option", { name: "На стол" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Доставка" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "С собой" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "QR" })).toBeNull();
+    expect(screen.queryByRole("option", { name: "На месте" })).toBeNull();
+    expect(screen.queryByRole("option", { name: "На вынос" })).toBeNull();
+  });
+
+  it("offers exactly the requested order status subset", async () => {
+    render(<DishesReportPage />);
+    await screen.findByText("1. Плов");
+    fireEvent.click(headerFilterToggle());
+    openDishFilter("Статус заказа");
+    expect(screen.getByRole("option", { name: "Новый" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Завершенный" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Принят" })).toBeNull();
+    expect(screen.queryByRole("option", { name: "Готовится" })).toBeNull();
+    expect(screen.queryByRole("option", { name: "Готов" })).toBeNull();
+  });
+
+  it("replaces the previous single value instead of multi-selecting", async () => {
+    render(<DishesReportPage />);
+    await screen.findByText("1. Плов");
+    fireEvent.click(headerFilterToggle());
+    openDishFilter("Тип заказа");
+    fireEvent.click(screen.getByRole("option", { name: "На стол" }));
+    expect(screen.getByRole("option", { name: "На стол" })).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByRole("option", { name: "Доставка" }));
+    expect(screen.getByRole("option", { name: "Доставка" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("option", { name: "На стол" })).toHaveAttribute("aria-selected", "false");
+    fireEvent.click(screen.getAllByRole("button", { name: "Фильтровать" })[1]);
+    await waitFor(() => expect(lastListDishesFilters()).toMatchObject({ orderType: "delivery" }));
+    expect(Array.isArray(lastListDishesFilters().orderType)).toBe(false);
+  });
+
+  it("offers backend cashier authors without local injection and sends scalar author_id", async () => {
+    render(<DishesReportPage />);
+    await screen.findByText("1. Плов");
+    fireEvent.click(headerFilterToggle());
+    openDishFilter("Автор");
+    fireEvent.click(screen.getByRole("option", { name: "Кассир 1" }));
+    expect(screen.getByRole("combobox", { name: "Автор" })).toHaveTextContent("Кассир 1");
+    fireEvent.click(screen.getAllByRole("button", { name: "Фильтровать" })[1]);
+    await waitFor(() => expect(lastListDishesFilters()).toMatchObject({ authorId: "cashier-1" }));
+    expect(typeof lastListDishesFilters().authorId).toBe("string");
+    expect(Array.isArray(lastListDishesFilters().authorId)).toBe(false);
+  });
+
+  it("keeps the dropdown exit animation mounted instead of vanishing instantly", async () => {
+    render(<DishesReportPage />);
+    await screen.findByText("1. Плов");
+    fireEvent.click(headerFilterToggle());
+    openDishFilter("Автор");
+    expect(document.querySelector(".orders-filter-select__panel:not(.is-closing)")).not.toBeNull();
+    fireEvent.keyDown(document.querySelector(".dishes-filter-panel .orders-filter-select"), { key: "Escape" });
+    const closing = document.querySelector(".orders-filter-select__panel.is-closing");
+    expect(closing).not.toBeNull();
+  });
+
+  it("keeps at most one dropdown panel open at a time", async () => {
+    render(<DishesReportPage />);
+    await screen.findByText("1. Плов");
+    fireEvent.click(headerFilterToggle());
+    openDishFilter("Автор");
+    openDishFilter("Тип заказа");
+    expect(document.querySelectorAll(".orders-filter-select__panel:not(.is-closing)")).toHaveLength(1);
+    expect(screen.getByRole("combobox", { name: "Тип заказа" })).toHaveAttribute("aria-expanded", "true");
   });
 
   it("exports visible columns with backend totals and active filter metadata", async () => {
     render(<DishesReportPage />);
     await screen.findByText("1. Плов");
 
-    const toggle = screen.getByRole("button", { name: "Фильтровать" });
+    const toggle = headerFilterToggle();
     fireEvent.click(toggle);
     fireEvent.change(screen.getByLabelText("Поиск по названию блюда"), { target: { value: "Плов" } });
     fireEvent.click(screen.getAllByRole("button", { name: "Фильтровать" })[1]);
@@ -212,31 +362,33 @@ describe("DishesReportPage Phase 1 truthful core", () => {
     render(<DishesReportPage />);
     await screen.findByText("1. Плов");
 
-    const toggle = screen.getByRole("button", { name: "Фильтровать" });
+    const toggle = headerFilterToggle();
     const panel = document.getElementById("dishes-report-filters");
+    const collapse = document.querySelector(".dishes-report-page .orders-filter-collapse");
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(toggle).toHaveAttribute("aria-controls", "dishes-report-filters");
-    expect(panel).toHaveAttribute("hidden");
+    expect(collapse).not.toHaveClass("is-open");
     expect(screen.getByRole("button", { name: "Скачать Excel" }).querySelector("svg")).toBeInTheDocument();
 
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(panel).not.toHaveAttribute("hidden");
+    expect(collapse).toHaveClass("is-open");
 
     const search = screen.getByLabelText("Поиск по названию блюда");
-    const author = screen.getByLabelText("Официант");
-    const status = screen.getByLabelText("Статус заказа");
-    expect(screen.getByLabelText("Продукт")).toBeInTheDocument();
-    expect(screen.getByLabelText("Тип заказа")).toBeInTheDocument();
-    expect(screen.getByLabelText("Категория")).toBeInTheDocument();
-    expect(screen.getByLabelText("Тип оплаты")).toBeInTheDocument();
+    const author = screen.getByRole("combobox", { name: "Автор" });
+    const status = screen.getByRole("combobox", { name: "Статус заказа" });
+    expect(screen.getByRole("combobox", { name: "Продукт" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Тип заказа" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Категория" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Тип оплаты" })).toBeInTheDocument();
+    expect(document.querySelectorAll(".dishes-filter-panel select")).toHaveLength(0);
     expect(Array.from(panel.children).map((element) => (
       element.matches(".report-filter-buttons")
         ? "Действия"
-        : element.querySelector("input, select")?.getAttribute("aria-label")
+        : element.querySelector("input, button")?.getAttribute("aria-label")
     ))).toEqual([
       "Поиск по названию блюда",
-      "Официант",
+      "Автор",
       "Категория",
       "Продукт",
       "Тип заказа",
@@ -249,11 +401,14 @@ describe("DishesReportPage Phase 1 truthful core", () => {
     await user.tab();
     expect(author).toHaveFocus();
     fireEvent.change(search, { target: { value: "Плов" } });
-    fireEvent.change(author, { target: { value: "author-1" } });
-    fireEvent.change(status, { target: { value: "completed" } });
+    fireEvent.click(author);
+    fireEvent.click(screen.getByRole("option", { name: "Официант 1" }));
+    fireEvent.click(status);
+    finishDropdownExit();
+    fireEvent.click(screen.getByRole("option", { name: "Завершенный" }));
 
     fireEvent.click(toggle);
-    expect(panel).toHaveAttribute("hidden");
+    expect(collapse).not.toHaveClass("is-open");
     fireEvent.click(toggle);
     expect(search).toHaveValue("Плов");
   });
@@ -339,20 +494,19 @@ describe("DishesReportPage zero-downtime bridge", () => {
     expect(document.querySelector(".report-detail-row")).toBeNull();
   });
 
-  it("accepts legacy empty [] as valid zero-data with 0/0 totals", async () => {
+  it("accepts legacy empty [] as valid zero-data without a visible totals row", async () => {
     reportsService.listDishes.mockResolvedValue({ data: [] });
     render(<DishesReportPage />);
     expect(await screen.findByText("Блюд не найдено")).toBeInTheDocument();
-    const totalRow = document.querySelector(".dishes-report-page .report-total-row");
-    expect(totalRow.textContent).toContain("Итого");
-    expect(/0 UZS/.test(totalRow.textContent)).toBe(true);
+    expect(document.querySelector(".dishes-report-page .report-total-row")).toBeNull();
   });
 
-  it("accepts canonical empty object as valid zero-data with backend totals", async () => {
+  it("accepts canonical empty object as valid zero-data without a visible totals row", async () => {
     reportsService.listDishes.mockResolvedValue({ data: { rows: [], totals: { quantity: 0, amount: 0 } } });
     render(<DishesReportPage />);
     expect(await screen.findByText("Блюд не найдено")).toBeInTheDocument();
     expect(document.querySelector(".report-loading-row")).toBeNull();
+    expect(document.querySelector(".dishes-report-page .report-total-row")).toBeNull();
   });
 
   it.each([

@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { reportsService } from "../api/reports";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
 import { exportToExcel } from "../utils/excel";
 import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/useAsyncSafety";
+import { formatDateLabel, todayInputValue } from "../utils/date";
 import { toApiDate } from "./reports/reportPeriod";
 
 const initialFilters = {
@@ -18,7 +19,7 @@ const initialFilters = {
 
 const filterNames = {
   query: "Поиск",
-  authorId: "Официант",
+  authorId: "Автор",
   productId: "Продукт",
   orderType: "Тип заказа",
   orderStatus: "Статус заказа",
@@ -52,17 +53,143 @@ function optionLabel(key, value, options) {
   return group.find((option) => option.value === value)?.label || value;
 }
 
-function FilterSelect({ label, placeholder, value, options, onChange, disabled = false }) {
+// DISHES-01: the Dishes UI exposes only the user-requested subsets below.
+// Values stay canonical (backend enum untouched); labels are the requested
+// user wording. Subsets are intersected with backend-provided options so the
+// UI can never offer a value the server would reject.
+const DISHES_ORDER_TYPE_OPTIONS = [
+  { value: "dine_in", label: "На стол" },
+  { value: "delivery", label: "Доставка" },
+  { value: "takeaway", label: "С собой" },
+];
+
+const DISHES_ORDER_STATUS_OPTIONS = [
+  { value: "new", label: "Новый" },
+  { value: "completed", label: "Завершенный" },
+];
+
+function intersectOptions(allowed, provided) {
+  const available = new Set((provided || []).map((option) => option.value));
+  return allowed.filter((row) => available.has(row.value));
+}
+
+// Dishes-local single-select filter primitive. Visual/interaction template is
+// the approved Orders filter language (`orders-filter-select__*` panel +
+// Z-report `owner-msel__*` checkbox rows, same classes so the same approved
+// CSS applies), but selection stays single-value: the Dishes backend accepts
+// ONE value per dimension, so picking another option REPLACES the previous
+// one and arrays are never sent. Clicking the checked option clears to "all"
+// (unchecking is the per-filter reset, same as Orders).
+function DishesFilterSelect({
+  filterKey, label, placeholder, options, value, onSelect,
+  disabled = false, open, closing = false, onOpen, onClose, onExitComplete,
+}) {
+  const rootRef = useRef(null);
+  const triggerRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const items = options || [];
+  const selected = items.find((option) => option.value === value);
+  const summary = selected ? selected.label : "";
+
+  useEffect(() => {
+    if (!open) return undefined;
+    setActiveIndex(-1);
+    function onPointerDown(event) {
+      if (!rootRef.current?.contains(event.target)) onClose();
+    }
+    function onKeyDown(event) {
+      if (event.key === "Escape") {
+        onClose();
+        triggerRef.current?.focus();
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, onClose]);
+
+  function handleTriggerKeyDown(event) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (!open) {
+        onOpen();
+        return;
+      }
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      setActiveIndex((current) => {
+        if (!items.length) return -1;
+        return (current + direction + items.length) % items.length;
+      });
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (!open) {
+        onOpen();
+        return;
+      }
+      const option = items[activeIndex];
+      if (option) onSelect(option.value === value ? "all" : option.value);
+    } else if (event.key === "Tab") {
+      onClose();
+    }
+  }
+
+  const listId = `dishes-filter-${filterKey}-menu`;
   return (
-    <label className="report-filter-select">
-      <select aria-label={label} value={value} onChange={onChange} disabled={disabled}>
-        <option value="all">{placeholder}</option>
-        {options.map((option) => (
-          <option value={option.value} key={option.value}>{option.label}</option>
-        ))}
-      </select>
-      <Icon name="bi-chevron-down" size={16} />
-    </label>
+    <div ref={rootRef} className={`orders-filter-select${open ? " is-open" : ""}`} onKeyDown={handleTriggerKeyDown}>
+      <button
+        type="button"
+        ref={triggerRef}
+        className={`orders-filter-select__trigger${summary ? "" : " is-placeholder"}`}
+        role="combobox"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label={label}
+        title={summary || undefined}
+        disabled={disabled}
+        onClick={() => (open ? onClose() : onOpen())}
+      >
+        <span className="orders-filter-select__value">{summary || placeholder}</span>
+        <span className="orders-filter-select__chevron" aria-hidden="true"><Icon name="bi-chevron-down" size={16} /></span>
+      </button>
+      {open || closing ? (
+        <div
+          className={`orders-filter-select__panel${closing ? " is-closing" : ""}`}
+          onAnimationEnd={(event) => { if (event.target === event.currentTarget) onExitComplete(); }}
+          inert={open ? undefined : true}
+        >
+          <ul className="orders-filter-select__menu" id={listId} role="listbox" aria-multiselectable="false" aria-label={label}>
+            {items.map((option, index) => {
+              const checked = option.value === value;
+              return (
+                <li key={option.value}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={checked}
+                    className={`orders-filter-select__option owner-msel__option${checked ? " is-checked" : ""}${index === activeIndex ? " is-active" : ""}`}
+                    onMouseEnter={() => setActiveIndex(index)}
+                    onClick={() => onSelect(option.value === value ? "all" : option.value)}
+                  >
+                    <span className="owner-msel__check" aria-hidden="true">
+                      {checked ? (
+                        <svg className="owner-msel__tick" viewBox="0 0 16 16" width="12" height="12">
+                          <path d="M13 4.5 6.5 11 3 7.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      ) : null}
+                    </span>
+                    <span className="owner-msel__option-label">{option.label}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -125,17 +252,22 @@ function normalizeDishesReportResponse(data) {
 }
 
 export default function DishesReportPage() {
+  // DISHES-01: Dishes opens on today only, same semantics as Orders
+  // (local calendar day, single-date label, preset "Сегодня").
   const [dateRange, setDateRange] = useState(() => {
-    const now = new Date();
-    const start = `01.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
-    const end = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
-    return { preset: "", start, end };
+    const today = formatDateLabel(todayInputValue());
+    return { preset: "Сегодня", start: today, end: today };
   });
   const [filters, setFilters] = useState(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
   const [filterOptions, setFilterOptions] = useState(emptyFilterOptions);
   const [filterOptionsLoading, setFilterOptionsLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // Shared open-panel orchestration (Orders parity): at most one floating
+  // panel (period popover or filter dropdown) is open at a time; `pending`
+  // hands off when another panel is requested mid-exit, and an outside click
+  // during exit cancels the handoff so no invisible overlay can stick around.
+  const [panelState, setPanelState] = useState({ active: "", closing: "", pending: "" });
   const [rows, setRows] = useState([]);
   // Canonical totals are backend-authoritative. The legacy bare-array branch
   // below uses a transitional local sum ONLY for rollout compatibility.
@@ -146,12 +278,30 @@ export default function DishesReportPage() {
   const beginOptionsRequest = useLatestRequest();
 
   useEffect(() => {
+    if (!panelState.closing) return undefined;
+    function cancelPendingOnOutsideClick(event) {
+      if (!event.target.closest?.(".orders-filter-select, .report-period-picker")) {
+        setPanelState((current) => ({ ...current, pending: "" }));
+      }
+    }
+    document.addEventListener("mousedown", cancelPendingOnOutsideClick);
+    return () => document.removeEventListener("mousedown", cancelPendingOnOutsideClick);
+  }, [panelState.closing]);
+
+  useEffect(() => {
     const request = beginOptionsRequest();
     setFilterOptionsLoading(true);
     reportsService.getDishesFilters({ signal: request.signal })
       .then(({ data }) => {
         if (!request.isCurrent()) return;
-        setFilterOptions({ ...emptyFilterOptions, ...(data || {}) });
+        // DISHES-01: order type/status expose only the requested user subsets
+        // (intersected with backend options so no unserviceable value appears).
+        setFilterOptions({
+          ...emptyFilterOptions,
+          ...(data || {}),
+          order_types: intersectOptions(DISHES_ORDER_TYPE_OPTIONS, data?.order_types),
+          order_statuses: intersectOptions(DISHES_ORDER_STATUS_OPTIONS, data?.order_statuses),
+        });
       })
       .catch((err) => {
         if (!request.isCurrent() || isAbortError(err)) return;
@@ -217,13 +367,51 @@ export default function DishesReportPage() {
     setFilters((current) => ({ ...current, [key]: value }));
   }
 
+  function requestPanel(panelId) {
+    setPanelState((current) => {
+      if (current.closing) {
+        const nextPending = current.pending === panelId ? "" : panelId;
+        return { ...current, pending: nextPending };
+      }
+      if (!current.active) return panelId ? { active: panelId, closing: "", pending: "" } : current;
+      return {
+        active: "",
+        closing: current.active,
+        pending: current.active === panelId ? "" : panelId,
+      };
+    });
+  }
+
+  function completePanelExit(panelId) {
+    setPanelState((current) => {
+      if (current.closing !== panelId) return current;
+      return { active: current.pending, closing: "", pending: "" };
+    });
+  }
+
+  function closeFilterPanel() {
+    requestPanel("");
+  }
+
+  function dishFilterPanelProps(key) {
+    return {
+      open: panelState.active === key,
+      closing: panelState.closing === key,
+      onOpen: () => requestPanel(key),
+      onClose: closeFilterPanel,
+      onExitComplete: () => completePanelExit(key),
+    };
+  }
+
   function applyFilters() {
     setAppliedFilters(filters);
+    requestPanel("");
   }
 
   function clearFilters() {
     setFilters(initialFilters);
     setAppliedFilters(initialFilters);
+    requestPanel("");
   }
 
   function downloadExcel() {
@@ -255,7 +443,7 @@ export default function DishesReportPage() {
     });
   }
 
-  // No full-page loader: the shell (title/controls/table header/totals row)
+  // No full-page loader: the shell (title/controls/table header)
   // renders immediately, even while the first request pends (see tbody).
   if (error) return <section className="dishes-report-page"><div className="login-error" role="alert">{error}</div></section>;
 
@@ -271,13 +459,16 @@ export default function DishesReportPage() {
             </div>
           </div>
           <div className="report-actions owner-report-actions">
-            <ReportDateRangePicker variant="canonical" value={dateRange} onChange={setDateRange} buttonAriaLabel="Период отчёта по блюдам" />
+            <ReportDateRangePicker variant="canonical" animateExit value={dateRange} onChange={setDateRange} open={panelState.active === "period"} onOpenChange={(nextOpen) => requestPanel(nextOpen ? "period" : "")} onExitComplete={() => completePanelExit("period")} buttonAriaLabel="Период отчёта по блюдам" />
             <button
               className="dishes-filter-toggle"
               type="button"
               aria-expanded={filtersOpen}
               aria-controls="dishes-report-filters"
-              onClick={() => setFiltersOpen((current) => !current)}
+              onClick={() => {
+                if (filtersOpen) requestPanel("");
+                setFiltersOpen((current) => !current);
+              }}
             >
               <Icon name="bi-sliders" size={17} />
               Фильтровать
@@ -289,22 +480,23 @@ export default function DishesReportPage() {
           </div>
         </div>
 
+        <div className={`orders-filter-collapse${filtersOpen ? " is-open" : ""}`}>
+          <div className="orders-filter-collapse__inner" inert={!filtersOpen ? true : undefined}>
         <div
           className="report-filters-grid dishes-filter-panel"
           id="dishes-report-filters"
           aria-label="Фильтры отчёта по блюдам"
-          hidden={!filtersOpen}
         >
           <label className="report-filter-input">
             <Icon name="bi-search" size={17} />
             <input aria-label="Поиск по названию блюда" value={filters.query} onChange={(event) => updateFilter("query", event.target.value)} placeholder="Поиск" />
           </label>
-          <FilterSelect label="Официант" placeholder="Выберите официанта" value={filters.authorId} options={filterOptions.authors} onChange={(event) => updateFilter("authorId", event.target.value)} disabled={filterOptionsLoading || !filterOptions.authors.length} />
-          <FilterSelect label="Категория" placeholder="Выберите категорию" value={filters.categoryId} options={filterOptions.categories} onChange={(event) => updateFilter("categoryId", event.target.value)} disabled={filterOptionsLoading || !filterOptions.categories.length} />
-          <FilterSelect label="Продукт" placeholder="Выберите продукт" value={filters.productId} options={filterOptions.products} onChange={(event) => updateFilter("productId", event.target.value)} disabled={filterOptionsLoading || !filterOptions.products.length} />
-          <FilterSelect label="Тип заказа" placeholder="Выберите тип заказа" value={filters.orderType} options={filterOptions.order_types} onChange={(event) => updateFilter("orderType", event.target.value)} disabled={filterOptionsLoading || !filterOptions.order_types.length} />
-          <FilterSelect label="Статус заказа" placeholder="Выберите статус заказа" value={filters.orderStatus} options={filterOptions.order_statuses} onChange={(event) => updateFilter("orderStatus", event.target.value)} disabled={filterOptionsLoading || !filterOptions.order_statuses.length} />
-          <FilterSelect label="Тип оплаты" placeholder="Выберите тип оплаты" value={filters.paymentMethod} options={filterOptions.payment_methods} onChange={(event) => updateFilter("paymentMethod", event.target.value)} disabled={filterOptionsLoading || !filterOptions.payment_methods.length} />
+          <DishesFilterSelect filterKey="authorId" label="Автор" placeholder="Выберите автора" options={filterOptions.authors} value={filters.authorId} onSelect={(next) => updateFilter("authorId", next)} disabled={filterOptionsLoading || !filterOptions.authors.length} {...dishFilterPanelProps("authorId")} />
+          <DishesFilterSelect filterKey="categoryId" label="Категория" placeholder="Выберите категорию" options={filterOptions.categories} value={filters.categoryId} onSelect={(next) => updateFilter("categoryId", next)} disabled={filterOptionsLoading || !filterOptions.categories.length} {...dishFilterPanelProps("categoryId")} />
+          <DishesFilterSelect filterKey="productId" label="Продукт" placeholder="Выберите продукт" options={filterOptions.products} value={filters.productId} onSelect={(next) => updateFilter("productId", next)} disabled={filterOptionsLoading || !filterOptions.products.length} {...dishFilterPanelProps("productId")} />
+          <DishesFilterSelect filterKey="orderType" label="Тип заказа" placeholder="Выберите тип заказа" options={filterOptions.order_types} value={filters.orderType} onSelect={(next) => updateFilter("orderType", next)} disabled={filterOptionsLoading || !filterOptions.order_types.length} {...dishFilterPanelProps("orderType")} />
+          <DishesFilterSelect filterKey="orderStatus" label="Статус заказа" placeholder="Выберите статус заказа" options={filterOptions.order_statuses} value={filters.orderStatus} onSelect={(next) => updateFilter("orderStatus", next)} disabled={filterOptionsLoading || !filterOptions.order_statuses.length} {...dishFilterPanelProps("orderStatus")} />
+          <DishesFilterSelect filterKey="paymentMethod" label="Тип оплаты" placeholder="Выберите тип оплаты" options={filterOptions.payment_methods} value={filters.paymentMethod} onSelect={(next) => updateFilter("paymentMethod", next)} disabled={filterOptionsLoading || !filterOptions.payment_methods.length} {...dishFilterPanelProps("paymentMethod")} />
           <div className="report-filter-buttons">
             <button type="button" className="report-filter-apply" onClick={applyFilters}>
               <Icon name="bi-sliders" size={17} />
@@ -314,6 +506,8 @@ export default function DishesReportPage() {
               <Icon name="bi-x-circle" size={17} />
               Очистить
             </button>
+          </div>
+        </div>
           </div>
         </div>
 
@@ -337,13 +531,20 @@ export default function DishesReportPage() {
               </tr>
             </thead>
             <tbody>
-              <tr className="report-total-row">
-                <td>{totalRow.name}</td>
-                <td>{totalRow.unit}</td>
-                <td>{totalRow.quantity}</td>
-                <td>{totalRow.price}</td>
-                <td>{totalRow.amount}</td>
-              </tr>
+              {/* DISHES-01: the visible totals row exists only when the report
+                  has rows. Successful zero-data shows the truthful empty state
+                  without a totals row; rows state persists during refetch so
+                  stale-while-refresh never flashes. Backend-authoritative
+                  totals are preserved whenever rows exist. */}
+              {filteredRows.length ? (
+                <tr className="report-total-row">
+                  <td>{totalRow.name}</td>
+                  <td>{totalRow.unit}</td>
+                  <td>{totalRow.quantity}</td>
+                  <td>{totalRow.price}</td>
+                  <td>{totalRow.amount}</td>
+                </tr>
+              ) : null}
               {filteredRows.map((row) => (
                 <tr key={row.id}>
                   <td>
