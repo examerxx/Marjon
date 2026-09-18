@@ -156,12 +156,13 @@ describe("CTR-01 critical financial truth", () => {
     expect(screen.getByRole("columnheader", { name: "Количество позиций" })).toBeInTheDocument();
   });
 
-  it("renders only table_number, orders_count, revenue, and avg_check in Tables report", async () => {
-    api.get.mockResolvedValue({ data: [{ table_number: "9", orders_count: 4, revenue: 1200, avg_check: 300 }] });
+  it("renders the approved Tables Phase 1 columns without KPI cards", async () => {
+    api.get.mockResolvedValue({ data: [{ table_number: "9", orders_count: 4, revenue: 1200, avg_check: 300, table_id: null, hall_id: null, hall_name: null, orders: [] }] });
     render(<TablesReportPage />);
     expect(await screen.findByText("9")).toBeInTheDocument();
-    ["Цена обслуживания", "Скидка", "Цена места", "Сумма блюд", "Транзакции", "Действие"].forEach((label) => expect(screen.queryByRole("columnheader", { name: label })).not.toBeInTheDocument());
-    expect(screen.getByRole("columnheader", { name: "Средний чек" })).toBeInTheDocument();
+    ["Номер стола", "Дата", "Сумма", "Транзакции"].forEach((label) => expect(screen.getByRole("columnheader", { name: label })).toBeInTheDocument());
+    ["Кол-во заказов", "Выручка", "Средний чек", "Зал", "Действие", "Цена обслуживания", "Скидка", "Цена места", "Сумма блюд"].forEach((label) => expect(screen.queryByRole("columnheader", { name: label })).not.toBeInTheDocument());
+    expect(document.querySelector(".report-summary-grid")).toBeNull();
   });
 
   it("renders the canonical waiter calculation dimensions", async () => {
@@ -282,7 +283,10 @@ describe("CTR-01 critical financial truth", () => {
     expect(sources["OwnerDashboard.jsx"]).not.toContain("const expenseChange");
     expect(sources["OwnerDashboard.jsx"]).not.toContain("prevIncome * 0.31");
     expect(sources["OrdersReportPage.jsx"]).not.toMatch(/goodsPrice|servicePrice|deliveryPrice|client_name|courier_name|order_type \|\|/);
-    expect(sources["TablesReportPage.jsx"]).not.toMatch(/service_price|discount|place_price|dishes_amount/);
+    expect(sources["TablesReportPage.jsx"]).not.toMatch(/service_price|place_price|dishes_amount/);
+    // Approved stored order breakdown only: real OrderResponse money fields.
+    expect(sources["TablesReportPage.jsx"]).toMatch(/discount_amount/);
+    expect(sources["TablesReportPage.jsx"]).toMatch(/service_fee/);
     expect(sources["WaitersReportPage.jsx"]).not.toMatch(/Khusniddin|Administrator|const fake|mockWaiter/i);
     expect(sources["CancelledDishesReportPage.jsx"]).not.toMatch(/order_type|chef|author|comment|На стол/);
     expect(sources["DebtorsCreditorsReportPage.jsx"]).not.toMatch(/12650|USD|item\.id/);

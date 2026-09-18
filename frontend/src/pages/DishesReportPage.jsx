@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { reportsService } from "../api/reports";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
+import ReportMultiSelect from "../components/ReportMultiSelect";
 import { exportToExcel } from "../utils/excel";
 import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/useAsyncSafety";
 import { formatDateLabel, todayInputValue } from "../utils/date";
@@ -9,12 +10,12 @@ import { toApiDate } from "./reports/reportPeriod";
 
 const initialFilters = {
   query: "",
-  authorId: "all",
-  productId: "all",
-  orderType: "all",
-  orderStatus: "all",
-  categoryId: "all",
-  paymentMethod: "all",
+  authorId: [],
+  productId: [],
+  orderType: [],
+  orderStatus: [],
+  categoryId: [],
+  paymentMethod: [],
 };
 
 const filterNames = {
@@ -50,7 +51,13 @@ const filterOptionGroups = {
 function optionLabel(key, value, options) {
   if (key === "query") return value;
   const group = options[filterOptionGroups[key]] || [];
-  return group.find((option) => option.value === value)?.label || value;
+  const values = Array.isArray(value) ? value : [value];
+  return values.map((single) => group.find((option) => option.value === single)?.label || single).join(", ");
+}
+
+function isFilterActive(value) {
+  if (Array.isArray(value)) return value.length > 0;
+  return Boolean(String(value ?? "").trim());
 }
 
 // DISHES-01: the Dishes UI exposes only the user-requested subsets below.
@@ -71,126 +78,6 @@ const DISHES_ORDER_STATUS_OPTIONS = [
 function intersectOptions(allowed, provided) {
   const available = new Set((provided || []).map((option) => option.value));
   return allowed.filter((row) => available.has(row.value));
-}
-
-// Dishes-local single-select filter primitive. Visual/interaction template is
-// the approved Orders filter language (`orders-filter-select__*` panel +
-// Z-report `owner-msel__*` checkbox rows, same classes so the same approved
-// CSS applies), but selection stays single-value: the Dishes backend accepts
-// ONE value per dimension, so picking another option REPLACES the previous
-// one and arrays are never sent. Clicking the checked option clears to "all"
-// (unchecking is the per-filter reset, same as Orders).
-function DishesFilterSelect({
-  filterKey, label, placeholder, options, value, onSelect,
-  disabled = false, open, closing = false, onOpen, onClose, onExitComplete,
-}) {
-  const rootRef = useRef(null);
-  const triggerRef = useRef(null);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const items = options || [];
-  const selected = items.find((option) => option.value === value);
-  const summary = selected ? selected.label : "";
-
-  useEffect(() => {
-    if (!open) return undefined;
-    setActiveIndex(-1);
-    function onPointerDown(event) {
-      if (!rootRef.current?.contains(event.target)) onClose();
-    }
-    function onKeyDown(event) {
-      if (event.key === "Escape") {
-        onClose();
-        triggerRef.current?.focus();
-      }
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open, onClose]);
-
-  function handleTriggerKeyDown(event) {
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
-      if (!open) {
-        onOpen();
-        return;
-      }
-      const direction = event.key === "ArrowDown" ? 1 : -1;
-      setActiveIndex((current) => {
-        if (!items.length) return -1;
-        return (current + direction + items.length) % items.length;
-      });
-    } else if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      if (!open) {
-        onOpen();
-        return;
-      }
-      const option = items[activeIndex];
-      if (option) onSelect(option.value === value ? "all" : option.value);
-    } else if (event.key === "Tab") {
-      onClose();
-    }
-  }
-
-  const listId = `dishes-filter-${filterKey}-menu`;
-  return (
-    <div ref={rootRef} className={`orders-filter-select${open ? " is-open" : ""}`} onKeyDown={handleTriggerKeyDown}>
-      <button
-        type="button"
-        ref={triggerRef}
-        className={`orders-filter-select__trigger${summary ? "" : " is-placeholder"}`}
-        role="combobox"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={listId}
-        aria-label={label}
-        title={summary || undefined}
-        disabled={disabled}
-        onClick={() => (open ? onClose() : onOpen())}
-      >
-        <span className="orders-filter-select__value">{summary || placeholder}</span>
-        <span className="orders-filter-select__chevron" aria-hidden="true"><Icon name="bi-chevron-down" size={16} /></span>
-      </button>
-      {open || closing ? (
-        <div
-          className={`orders-filter-select__panel${closing ? " is-closing" : ""}`}
-          onAnimationEnd={(event) => { if (event.target === event.currentTarget) onExitComplete(); }}
-          inert={open ? undefined : true}
-        >
-          <ul className="orders-filter-select__menu" id={listId} role="listbox" aria-multiselectable="false" aria-label={label}>
-            {items.map((option, index) => {
-              const checked = option.value === value;
-              return (
-                <li key={option.value}>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={checked}
-                    className={`orders-filter-select__option owner-msel__option${checked ? " is-checked" : ""}${index === activeIndex ? " is-active" : ""}`}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    onClick={() => onSelect(option.value === value ? "all" : option.value)}
-                  >
-                    <span className="owner-msel__check" aria-hidden="true">
-                      {checked ? (
-                        <svg className="owner-msel__tick" viewBox="0 0 16 16" width="12" height="12">
-                          <path d="M13 4.5 6.5 11 3 7.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      ) : null}
-                    </span>
-                    <span className="owner-msel__option-label">{option.label}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 function formatReportMoney(value) {
@@ -361,10 +248,20 @@ export default function DishesReportPage() {
     price: "",
     amount: formatReportMoney(totals.amount),
   }), [totals]);
-  const activeFilterEntries = Object.entries(appliedFilters).filter(([, value]) => value && value !== "all");
+  const activeFilterEntries = Object.entries(appliedFilters).filter(([, value]) => isFilterActive(value));
 
   function updateFilter(key, value) {
     setFilters((current) => ({ ...current, [key]: value }));
+  }
+
+  // Multi-select toggle: checking adds, unchecking removes; the panel stays
+  // open and the draft commits only through page-level «Фильтровать».
+  function toggleFilterValue(key, value) {
+    setFilters((current) => {
+      const list = Array.isArray(current[key]) ? current[key] : [];
+      const next = list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
+      return { ...current, [key]: next };
+    });
   }
 
   function requestPanel(panelId) {
@@ -491,12 +388,12 @@ export default function DishesReportPage() {
             <Icon name="bi-search" size={17} />
             <input aria-label="Поиск по названию блюда" value={filters.query} onChange={(event) => updateFilter("query", event.target.value)} placeholder="Поиск" />
           </label>
-          <DishesFilterSelect filterKey="authorId" label="Автор" placeholder="Выберите автора" options={filterOptions.authors} value={filters.authorId} onSelect={(next) => updateFilter("authorId", next)} disabled={filterOptionsLoading || !filterOptions.authors.length} {...dishFilterPanelProps("authorId")} />
-          <DishesFilterSelect filterKey="categoryId" label="Категория" placeholder="Выберите категорию" options={filterOptions.categories} value={filters.categoryId} onSelect={(next) => updateFilter("categoryId", next)} disabled={filterOptionsLoading || !filterOptions.categories.length} {...dishFilterPanelProps("categoryId")} />
-          <DishesFilterSelect filterKey="productId" label="Продукт" placeholder="Выберите продукт" options={filterOptions.products} value={filters.productId} onSelect={(next) => updateFilter("productId", next)} disabled={filterOptionsLoading || !filterOptions.products.length} {...dishFilterPanelProps("productId")} />
-          <DishesFilterSelect filterKey="orderType" label="Тип заказа" placeholder="Выберите тип заказа" options={filterOptions.order_types} value={filters.orderType} onSelect={(next) => updateFilter("orderType", next)} disabled={filterOptionsLoading || !filterOptions.order_types.length} {...dishFilterPanelProps("orderType")} />
-          <DishesFilterSelect filterKey="orderStatus" label="Статус заказа" placeholder="Выберите статус заказа" options={filterOptions.order_statuses} value={filters.orderStatus} onSelect={(next) => updateFilter("orderStatus", next)} disabled={filterOptionsLoading || !filterOptions.order_statuses.length} {...dishFilterPanelProps("orderStatus")} />
-          <DishesFilterSelect filterKey="paymentMethod" label="Тип оплаты" placeholder="Выберите тип оплаты" options={filterOptions.payment_methods} value={filters.paymentMethod} onSelect={(next) => updateFilter("paymentMethod", next)} disabled={filterOptionsLoading || !filterOptions.payment_methods.length} {...dishFilterPanelProps("paymentMethod")} />
+          <ReportMultiSelect filterKey="authorId" label="Автор" placeholder="Выберите автора" options={filterOptions.authors} selected={filters.authorId} onToggle={(value) => toggleFilterValue("authorId", value)} disabled={filterOptionsLoading || !filterOptions.authors.length} {...dishFilterPanelProps("authorId")} />
+          <ReportMultiSelect filterKey="categoryId" label="Категория" placeholder="Выберите категорию" options={filterOptions.categories} selected={filters.categoryId} onToggle={(value) => toggleFilterValue("categoryId", value)} disabled={filterOptionsLoading || !filterOptions.categories.length} {...dishFilterPanelProps("categoryId")} />
+          <ReportMultiSelect filterKey="productId" label="Продукт" placeholder="Выберите продукт" options={filterOptions.products} selected={filters.productId} onToggle={(value) => toggleFilterValue("productId", value)} disabled={filterOptionsLoading || !filterOptions.products.length} {...dishFilterPanelProps("productId")} />
+          <ReportMultiSelect filterKey="orderType" label="Тип заказа" placeholder="Выберите тип заказа" options={filterOptions.order_types} selected={filters.orderType} onToggle={(value) => toggleFilterValue("orderType", value)} disabled={filterOptionsLoading || !filterOptions.order_types.length} {...dishFilterPanelProps("orderType")} />
+          <ReportMultiSelect filterKey="orderStatus" label="Статус заказа" placeholder="Выберите статус заказа" options={filterOptions.order_statuses} selected={filters.orderStatus} onToggle={(value) => toggleFilterValue("orderStatus", value)} disabled={filterOptionsLoading || !filterOptions.order_statuses.length} {...dishFilterPanelProps("orderStatus")} />
+          <ReportMultiSelect filterKey="paymentMethod" label="Тип оплаты" placeholder="Выберите тип оплаты" options={filterOptions.payment_methods} selected={filters.paymentMethod} onToggle={(value) => toggleFilterValue("paymentMethod", value)} disabled={filterOptionsLoading || !filterOptions.payment_methods.length} {...dishFilterPanelProps("paymentMethod")} />
           <div className="report-filter-buttons">
             <button type="button" className="report-filter-apply" onClick={applyFilters}>
               <Icon name="bi-sliders" size={17} />

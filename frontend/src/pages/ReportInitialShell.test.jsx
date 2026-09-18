@@ -131,7 +131,7 @@ describe("report initial shell without full-page loader", () => {
 
     reportsService.listTables.mockResolvedValue({ data: [] });
     const second = render(<TablesReportPage />);
-    expect(await screen.findByText("Столов не найдено")).toBeInTheDocument();
+    expect(await screen.findByText("Столы не найдены")).toBeInTheDocument();
     expect(document.querySelector(".report-loading-row")).toBeNull();
     second.unmount();
   });

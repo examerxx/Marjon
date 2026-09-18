@@ -116,9 +116,9 @@ describe("TablesReportPage auth lifecycle", () => {
 
     expect(await screen.findByRole("heading", { name: "Отчёт по столам" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Период отчёта по столам" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Фильтровать" })).toBeInTheDocument();
+    expect(document.querySelector(".tables-report-page .tables-filter-toggle")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Скачать Excel" })).toBeInTheDocument();
-    expect(await screen.findByText("Столов не найдено")).toBeInTheDocument();
+    expect(await screen.findByText("Столы не найдены")).toBeInTheDocument();
     expect(screen.queryByText("Не удалось загрузить отчёт по столам.")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 

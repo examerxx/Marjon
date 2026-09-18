@@ -22,8 +22,14 @@ const FILTERS = {
       { value: "cashier-1", label: "Кассир 1" },
     ],
     cooks: [],
-    products: [{ value: "product-1", label: "Плов" }],
-    categories: [{ value: "category-1", label: "Горячие блюда" }],
+    products: [
+      { value: "product-1", label: "Плов" },
+      { value: "product-2", label: "Лагман" },
+    ],
+    categories: [
+      { value: "category-1", label: "Горячие блюда" },
+      { value: "category-2", label: "Супы" },
+    ],
     order_types: [
       { value: "dine_in", label: "На месте" },
       { value: "takeaway", label: "На вынос" },
@@ -37,7 +43,10 @@ const FILTERS = {
       { value: "ready", label: "Готов" },
       { value: "completed", label: "Завершён" },
     ],
-    payment_methods: [{ value: "cash", label: "Наличные" }],
+    payment_methods: [
+      { value: "cash", label: "Наличные" },
+      { value: "card", label: "Карта" },
+    ],
     cook_filter_supported: false,
   },
 };
@@ -225,14 +234,130 @@ describe("DishesReportPage Phase 1 truthful core", () => {
     fireEvent.click(screen.getByRole("option", { name: "Завершенный" }));
     fireEvent.click(screen.getAllByRole("button", { name: "Фильтровать" })[1]);
     await waitFor(() => expect(lastListDishesFilters()).toMatchObject({
-      query: "Плов", authorId: "author-1", orderStatus: "completed",
+      query: "Плов", authorId: ["author-1"], orderStatus: ["completed"],
     }));
     const sent = lastListDishesFilters();
     expect("cookId" in sent).toBe(false);
-    expect(typeof sent.authorId).toBe("string");
-    expect(typeof sent.orderStatus).toBe("string");
+    expect(Array.isArray(sent.authorId)).toBe(true);
+    expect(Array.isArray(sent.orderStatus)).toBe(true);
     expect(screen.getByText("Поиск: Плов")).toBeInTheDocument();
     expect(screen.getByText("Автор: Официант 1")).toBeInTheDocument();
+  });
+
+  it("multi-selects authors with OR semantics and a compact trigger", async () => {
+    render(<DishesReportPage />);
+    await screen.findByText("1. Плов");
+    fireEvent.click(headerFilterToggle());
+    openDishFilter("Автор");
+    fireEvent.click(screen.getByRole("option", { name: "Официант 1" }));
+    // Panel stays open; both stay checked after the second click.
+    expect(screen.getByRole("option", { name: "Официант 1" })).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByRole("option", { name: "Кассир 1" }));
+    expect(screen.getByRole("option", { name: "Официант 1" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("option", { name: "Кассир 1" })).toHaveAttribute("aria-selected", "true");
+    expect(document.querySelector(".orders-filter-select__panel:not(.is-closing)")).not.toBeNull();
+    const author = screen.getByRole("combobox", { name: "Автор" });
+    expect(author).toHaveTextContent("Официант 1, Кассир 1");
+    expect(author).not.toHaveClass("is-placeholder");
+    fireEvent.click(screen.getAllByRole("button", { name: "Фильтровать" })[1]);
+    await waitFor(() => expect(lastListDishesFilters()).toMatchObject({
+      authorId: ["author-1", "cashier-1"],
+    }));
+    // Chip joins every selected label truthfully.
+    expect(screen.getByText("Автор: Официант 1, Кассир 1")).toBeInTheDocument();
+    // Unchecking one preserves the other.
+    fireEvent.click(headerFilterToggle());
+    openDishFilter("Автор");
+    fireEvent.click(screen.getByRole("option", { name: "Официант 1" }));
+    expect(screen.getByRole("option", { name: "Официант 1" })).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByRole("option", { name: "Кассир 1" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("combobox", { name: "Автор" })).toHaveTextContent("Кассир 1");
+  });
+
+  it("multi-selects type, status, payment, category and product dimensions", async () => {
+    render(<DishesReportPage />);
+    await screen.findByText("1. Плов");
+    fireEvent.click(headerFilterToggle());
+    openDishFilter("Тип заказа");
+    fireEvent.click(screen.getByRole("option", { name: "На стол" }));
+    fireEvent.click(screen.getByRole("option", { name: "Доставка" }));
+    openDishFilter("Статус заказа");
+    fireEvent.click(screen.getByRole("option", { name: "Новый" }));
+    fireEvent.click(screen.getByRole("option", { name: "Завершенный" }));
+    openDishFilter("Тип оплаты");
+    fireEvent.click(screen.getByRole("option", { name: "Наличные" }));
+    fireEvent.click(screen.getByRole("option", { name: "Карта" }));
+    openDishFilter("Категория");
+    fireEvent.click(screen.getByRole("option", { name: "Горячие блюда" }));
+    fireEvent.click(screen.getByRole("option", { name: "Супы" }));
+    openDishFilter("Продукт");
+    fireEvent.click(screen.getByRole("option", { name: "Плов" }));
+    fireEvent.click(screen.getByRole("option", { name: "Лагман" }));
+    expect(screen.getByRole("combobox", { name: "Тип заказа" })).toHaveTextContent("На стол, Доставка");
+    expect(screen.getByRole("combobox", { name: "Продукт" })).toHaveTextContent("Плов, Лагман");
+    expect(screen.getByRole("combobox", { name: "Статус заказа" })).toHaveTextContent("Новый, Завершенный");
+    fireEvent.click(screen.getAllByRole("button", { name: "Фильтровать" })[1]);
+    await waitFor(() => expect(lastListDishesFilters()).toMatchObject({
+      orderType: ["dine_in", "delivery"],
+      orderStatus: ["new", "completed"],
+      paymentMethod: ["cash", "card"],
+      categoryId: ["category-1", "category-2"],
+      productId: ["product-1", "product-2"],
+    }));
+  });
+
+  it("shows all three labels for a fully selected type filter", async () => {
+    render(<DishesReportPage />);
+    await screen.findByText("1. Плов");
+    fireEvent.click(headerFilterToggle());
+    openDishFilter("Тип заказа");
+    fireEvent.click(screen.getByRole("option", { name: "На стол" }));
+    fireEvent.click(screen.getByRole("option", { name: "Доставка" }));
+    fireEvent.click(screen.getByRole("option", { name: "С собой" }));
+    const trigger = screen.getByRole("combobox", { name: "Тип заказа" });
+    expect(trigger).toHaveTextContent("На стол, Доставка, С собой");
+    expect(trigger.textContent).not.toMatch(/\+\d/);
+    expect(trigger.textContent).not.toContain("Выбрано");
+  });
+
+  it("exports every selected filter value in Excel metadata", async () => {
+    render(<DishesReportPage />);
+    await screen.findByText("1. Плов");
+    fireEvent.click(headerFilterToggle());
+    openDishFilter("Автор");
+    fireEvent.click(screen.getByRole("option", { name: "Официант 1" }));
+    fireEvent.click(screen.getByRole("option", { name: "Кассир 1" }));
+    openDishFilter("Тип заказа");
+    fireEvent.click(screen.getByRole("option", { name: "На стол" }));
+    fireEvent.click(screen.getByRole("option", { name: "Доставка" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Фильтровать" })[1]);
+    await screen.findByText("Автор: Официант 1, Кассир 1");
+    document.querySelector(".report-excel-button").click();
+    expect(exportToExcel).toHaveBeenCalledTimes(1);
+    const [, , , options] = exportToExcel.mock.calls[0];
+    expect(options.metadata.some(
+      (item) => item.label === "Автор" && item.value === "Официант 1, Кассир 1"
+    )).toBe(true);
+    expect(options.metadata.some(
+      (item) => item.label === "Тип заказа" && item.value === "На стол, Доставка"
+    )).toBe(true);
+  });
+
+  it("Очистить resets every multi-select to placeholders with no params sent", async () => {
+    render(<DishesReportPage />);
+    await screen.findByText("1. Плов");
+    fireEvent.click(headerFilterToggle());
+    openDishFilter("Автор");
+    fireEvent.click(screen.getByRole("option", { name: "Официант 1" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Фильтровать" })[1]);
+    await screen.findByText("Автор: Официант 1");
+    fireEvent.click(screen.getByRole("button", { name: "Очистить" }));
+    expect(screen.getByRole("combobox", { name: "Автор" })).toHaveTextContent("Выберите автора");
+    expect(screen.getByRole("combobox", { name: "Автор" })).toHaveClass("is-placeholder");
+    await waitFor(() => expect(lastListDishesFilters()).toMatchObject({
+      query: "", authorId: [], productId: [], orderType: [], orderStatus: [],
+      categoryId: [], paymentMethod: [],
+    }));
   });
 
   it("opens on today and sends today/today in the initial request", async () => {
@@ -283,22 +408,7 @@ describe("DishesReportPage Phase 1 truthful core", () => {
     expect(screen.queryByRole("option", { name: "Готов" })).toBeNull();
   });
 
-  it("replaces the previous single value instead of multi-selecting", async () => {
-    render(<DishesReportPage />);
-    await screen.findByText("1. Плов");
-    fireEvent.click(headerFilterToggle());
-    openDishFilter("Тип заказа");
-    fireEvent.click(screen.getByRole("option", { name: "На стол" }));
-    expect(screen.getByRole("option", { name: "На стол" })).toHaveAttribute("aria-selected", "true");
-    fireEvent.click(screen.getByRole("option", { name: "Доставка" }));
-    expect(screen.getByRole("option", { name: "Доставка" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("option", { name: "На стол" })).toHaveAttribute("aria-selected", "false");
-    fireEvent.click(screen.getAllByRole("button", { name: "Фильтровать" })[1]);
-    await waitFor(() => expect(lastListDishesFilters()).toMatchObject({ orderType: "delivery" }));
-    expect(Array.isArray(lastListDishesFilters().orderType)).toBe(false);
-  });
-
-  it("offers backend cashier authors without local injection and sends scalar author_id", async () => {
+  it("offers backend cashier authors without local injection and sends list params", async () => {
     render(<DishesReportPage />);
     await screen.findByText("1. Плов");
     fireEvent.click(headerFilterToggle());
@@ -306,9 +416,8 @@ describe("DishesReportPage Phase 1 truthful core", () => {
     fireEvent.click(screen.getByRole("option", { name: "Кассир 1" }));
     expect(screen.getByRole("combobox", { name: "Автор" })).toHaveTextContent("Кассир 1");
     fireEvent.click(screen.getAllByRole("button", { name: "Фильтровать" })[1]);
-    await waitFor(() => expect(lastListDishesFilters()).toMatchObject({ authorId: "cashier-1" }));
-    expect(typeof lastListDishesFilters().authorId).toBe("string");
-    expect(Array.isArray(lastListDishesFilters().authorId)).toBe(false);
+    await waitFor(() => expect(lastListDishesFilters()).toMatchObject({ authorId: ["cashier-1"] }));
+    expect(Array.isArray(lastListDishesFilters().authorId)).toBe(true);
   });
 
   it("keeps the dropdown exit animation mounted instead of vanishing instantly", async () => {

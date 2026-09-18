@@ -119,14 +119,15 @@ describe("Web domain service contracts", () => {
     });
 
     it.each([
-      ["tables", reportsService.listTables, "/reports/tables"],
-      ["dishes", reportsService.listDishes, "/reports/dishes"],
-      ["cancelled", reportsService.listCancelledDishes, "/reports/cancelled"],
-      ["debt-credit", reportsService.listDebtCredit, "/reports/debt-credit"],
-    ])("maps %s range parameters", async (_, request, endpoint) => {
+      ["tables", reportsService.listTables, "/reports/tables", true],
+      ["dishes", reportsService.listDishes, "/reports/dishes", true],
+      ["cancelled", reportsService.listCancelledDishes, "/reports/cancelled", false],
+      ["debt-credit", reportsService.listDebtCredit, "/reports/debt-credit", false],
+    ])("maps %s range parameters", async (_, request, endpoint, withRepeatedSerializer) => {
       await request("2026-08-01", "2026-08-13");
       expect(api.get).toHaveBeenLastCalledWith(endpoint, {
         params: { date_from: "2026-08-01", date_to: "2026-08-13" },
+        ...(withRepeatedSerializer ? { paramsSerializer: { indexes: null } } : {}),
       });
     });
 
@@ -237,6 +238,23 @@ describe("Web domain service contracts", () => {
           date_from: "2026-08-01", date_to: "2026-08-13", table_number: "12A",
           waiter_id: "waiter-1", payment_method: "cash", cashier_id: "cashier-1",
         },
+        paramsSerializer: { indexes: null },
+      });
+
+      await reportsService.listTables("2026-08-01", "2026-08-13", {
+        filters: {
+          tableNumber: "", waiterId: ["waiter-1", "waiter-2"], paymentMethod: [],
+          cashierId: ["cashier-1"], hallId: ["hall-1", "hall-2"],
+        },
+      });
+      expect(api.get).toHaveBeenLastCalledWith("/reports/tables", {
+        params: {
+          date_from: "2026-08-01", date_to: "2026-08-13",
+          waiter_id: ["waiter-1", "waiter-2"],
+          cashier_id: ["cashier-1"],
+          hall_id: ["hall-1", "hall-2"],
+        },
+        paramsSerializer: { indexes: null },
       });
 
       await reportsService.getTablesFilters();
@@ -257,6 +275,25 @@ describe("Web domain service contracts", () => {
           author_id: "author-1", product_id: "product-1", order_type: "dine_in",
           order_status: "completed", category_id: "category-1", payment_method: "cash",
         },
+        paramsSerializer: { indexes: null },
+      });
+
+      await reportsService.listDishes("2026-08-01", "2026-08-13", {
+        filters: {
+          query: "", authorId: ["author-1", "author-2"], productId: [],
+          orderType: ["dine_in", "delivery"], orderStatus: [],
+          categoryId: ["category-1"], paymentMethod: ["cash", "card"],
+        },
+      });
+      expect(api.get).toHaveBeenLastCalledWith("/reports/dishes", {
+        params: {
+          date_from: "2026-08-01", date_to: "2026-08-13",
+          author_id: ["author-1", "author-2"],
+          order_type: ["dine_in", "delivery"],
+          category_id: ["category-1"],
+          payment_method: ["cash", "card"],
+        },
+        paramsSerializer: { indexes: null },
       });
 
       await reportsService.getDishesFilters();

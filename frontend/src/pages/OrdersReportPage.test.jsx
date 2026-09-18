@@ -484,7 +484,7 @@ describe("OrdersReportPage filters", () => {
     expect(document.querySelectorAll(".report-date-menu, .orders-filter-select__panel")).toHaveLength(1);
   });
 
-  it("summarises selections that exceed the trigger budget as first +N", async () => {
+  it("shows every selected label without any count summary", async () => {
     reportsService.getOrdersFilters.mockResolvedValueOnce({
       data: {
         ...options,
@@ -500,7 +500,10 @@ describe("OrdersReportPage filters", () => {
     fireEvent.click(toggleBtn());
     openFilter("Официант");
     ["Алишер Абдуллаев", "Эльёр Рахимов", "Бехруз Каримов"].forEach((name) => check("Официант", name));
-    expect(screen.getByRole("combobox", { name: "Официант" })).toHaveTextContent("Алишер Абдуллаев +2");
+    expect(screen.getByRole("combobox", { name: "Официант" })).toHaveTextContent(
+      "Алишер Абдуллаев, Эльёр Рахимов, Бехруз Каримов"
+    );
+    expect(screen.getByRole("combobox", { name: "Официант" }).textContent).not.toMatch(/\+\d/);
   });
 
   it("page-level «Очистить» resets every filter back to its placeholder", async () => {

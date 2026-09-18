@@ -3,6 +3,7 @@ import { reportsService } from "../api/reports";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
 import { exportToExcel } from "../utils/excel";
+import { formatSelectedLabels } from "../components/ReportMultiSelect";
 import { formatDateLabel, todayInputValue } from "../utils/date";
 import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/useAsyncSafety";
 import { toApiDate } from "./reports/reportPeriod";
@@ -91,15 +92,10 @@ function isFilterActive(value) {
   return Array.isArray(value) ? value.length > 0 : Boolean(String(value ?? "").trim());
 }
 
-// Closed-trigger summary. One selection reads as itself; several read as a joined
-// list while it fits the field, and collapse to «first +N» when it would not.
-const TRIGGER_SUMMARY_BUDGET = 24;
+// Closed-trigger summary. Every selected label is shown, joined with ", "
+// in dropdown option order (shared formatSelectedLabels) — never a count.
 function summariseSelection(selected, options) {
-  const labels = selected.map((value) => options.find((o) => o.value === value)?.label ?? value);
-  if (!labels.length) return "";
-  const joined = labels.join(", ");
-  if (labels.length === 1 || joined.length <= TRIGGER_SUMMARY_BUDGET) return joined;
-  return `${labels[0]} +${labels.length - 1}`;
+  return formatSelectedLabels(selected, options);
 }
 
 // Orders-local multi-select filter primitive — one component, used by all six

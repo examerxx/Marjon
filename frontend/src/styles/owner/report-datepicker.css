@@ -873,21 +873,21 @@
       text-align: center;
   }
 
-  .orders-report-page .order-details-drawer {
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer {
       position: fixed;
       inset: 0;
       z-index: 1000;
       pointer-events: none;
   }
 
-  .orders-report-page .order-details-drawer__backdrop {
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__backdrop {
       position: absolute;
       inset: 0;
       background: rgba(15, 23, 42, .28);
       pointer-events: auto;
   }
 
-  .orders-report-page .order-details-drawer__panel {
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__panel {
       position: absolute;
       top: 0;
       right: 0;
@@ -901,7 +901,7 @@
       pointer-events: auto;
   }
 
-  .orders-report-page .order-details-drawer__head {
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__head {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
@@ -909,10 +909,10 @@
       margin-bottom: 18px;
   }
 
-  .orders-report-page .order-details-drawer__head span,
-  .orders-report-page .order-details-drawer__grid span,
-  .orders-report-page .order-details-drawer__dishes > span,
-  .orders-report-page .order-details-drawer__totals span {
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__head span,
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__grid span,
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__dishes > span,
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__totals span {
       color: var(--text-secondary);
       font-size: 12px;
       font-weight: 500;
@@ -920,13 +920,13 @@
       text-transform: uppercase;
   }
 
-  .orders-report-page .order-details-drawer__head h3 {
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__head h3 {
       margin: 6px 0 0;
       color: var(--text-primary);
       font-size: 28px;
   }
 
-  .orders-report-page .order-details-drawer__head button {
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__head button {
       width: 40px;
       height: 40px;
       display: grid;
@@ -938,17 +938,17 @@
       cursor: pointer;
   }
 
-  .orders-report-page .order-details-drawer__grid,
-  .orders-report-page .order-details-drawer__dishes,
-  .orders-report-page .order-details-drawer__totals {
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__grid,
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__dishes,
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__totals {
       display: grid;
       gap: 12px;
       margin-bottom: 14px;
   }
 
-  .orders-report-page .order-details-drawer__grid div,
-  .orders-report-page .order-details-drawer__dishes,
-  .orders-report-page .order-details-drawer__totals div {
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__grid div,
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__dishes,
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__totals div {
       display: grid;
       gap: 6px;
       padding: 14px;
@@ -957,9 +957,9 @@
       background: #fff;
   }
 
-  .orders-report-page .order-details-drawer__grid strong,
-  .orders-report-page .order-details-drawer__dishes strong,
-  .orders-report-page .order-details-drawer__totals strong {
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__grid strong,
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__dishes strong,
+  :is(.orders-report-page, .tables-report-page) .order-details-drawer__totals strong {
       color: var(--text-primary);
       font-weight: 800;
   }

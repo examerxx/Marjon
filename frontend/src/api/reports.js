@@ -62,7 +62,7 @@ export const reportsService = {
       cashier_id: filters.cashierId,
       hall_id: filters.hallId,
     });
-    return api.get("/reports/tables", { params: rangeParams(dateFrom, dateTo, filterParams), ...config });
+    return api.get("/reports/tables", { params: rangeParams(dateFrom, dateTo, filterParams), ...config, paramsSerializer: REPEATED_IDS_SERIALIZER });
   },
   getTablesFilters(config = {}) {
     return api.get("/reports/tables/filters", config);
@@ -93,7 +93,7 @@ export const reportsService = {
       category_id: filters.categoryId,
       payment_method: filters.paymentMethod,
     });
-    return api.get("/reports/dishes", { params: rangeParams(dateFrom, dateTo, filterParams), ...config });
+    return api.get("/reports/dishes", { params: rangeParams(dateFrom, dateTo, filterParams), ...config, paramsSerializer: REPEATED_IDS_SERIALIZER });
   },
   getDishesFilters(config = {}) {
     return api.get("/reports/dishes/filters", config);
