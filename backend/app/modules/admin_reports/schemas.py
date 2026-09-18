@@ -142,6 +142,7 @@ class DishReportFiltersResponse(BaseModel):
 
 
 class CancelledItemRow(BaseModel):
+    # Legacy fields (preserved for deployed frontend ce7e84a compatibility).
     date: str
     time: str
     order_number: str
@@ -151,6 +152,36 @@ class CancelledItemRow(BaseModel):
     price: Decimal
     waiter_name: str | None
     unit: str
+    # Phase 1A additive truthful fields.
+    order_id: UUID | None = None
+    order_item_id: UUID | None = None
+    order_created_at: datetime | None = None
+    cancelled_at: datetime | None = None
+    cancellation_scope: str | None = None  # "item" | "order"
+    order_type: str | None = None
+    amount: Decimal | None = None
+    cancelled_by_id: UUID | None = None
+    cancelled_by_name: str | None = None
+    order_status: str | None = None
+    item_status: str | None = None
+    # Period semantics transparency: which timestamp powers the period filter.
+    # "cancelled_at" for new truthful events, "legacy_order_created_at" when
+    # cancelled_at is NULL (historical rows, COALESCE fallback to created_at).
+    date_source: str | None = None
+    report_event_at: datetime | None = None
+
+
+class CancelledAuthorOption(BaseModel):
+    id: UUID
+    name: str
+    role: str  # "waiter" | "cashier"
+
+
+class CancelledFiltersResponse(BaseModel):
+    authors: list[CancelledAuthorOption] = []
+    # Distinct OrderItem.name snapshot values among cancelled-eligible rows
+    # for this company (historical truth, survives Product renames/deletes).
+    dishes: list[str] = []
 
 
 class LoginHistoryRow(BaseModel):

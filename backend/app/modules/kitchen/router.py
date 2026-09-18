@@ -29,4 +29,4 @@ async def active_orders(branch_id: UUID = Query(...), user: User = Depends(requi
 
 @router.patch("/orders/items/status")
 async def update_item_status(data: KitchenItemStatusUpdate, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
-    return await KitchenService(db).update_item_status(user.company_id, data)
+    return await KitchenService(db).update_item_status(user.company_id, data, actor_id=user.id)

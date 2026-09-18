@@ -54,6 +54,14 @@ class Order(TimeStampedModel):
     note: Mapped[str | None] = mapped_column(Text)
     # pos | qr | delivery_app
     source: Mapped[str] = mapped_column(String(50), default="pos")
+    # Phase 1A cancellation truth: when/who cancelled the whole order.
+    # Nullable, never backfilled — NULL means unknown/legacy or not cancelled.
+    # cancelled_by_id is NULL for system/webhook cancellations with no
+    # authenticated actor. ON DELETE SET NULL preserves order history.
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancelled_by_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     items: Mapped[list[OrderItem]] = relationship(back_populates="order", cascade="all, delete-orphan")
 
@@ -73,6 +81,14 @@ class OrderItem(TimeStampedModel):
     note: Mapped[str | None] = mapped_column(Text)
     modifiers: Mapped[dict] = mapped_column(JSON, default=list)
     course: Mapped[int] = mapped_column(Integer, default=1)
+    # Phase 1A cancellation truth: when/who cancelled this item.
+    # Nullable, never backfilled — NULL means unknown/legacy or not cancelled.
+    # cancelled_by_id is NULL for system cancellations with no authenticated
+    # actor. ON DELETE SET NULL preserves item history.
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancelled_by_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     order: Mapped[Order] = relationship(back_populates="items")
 

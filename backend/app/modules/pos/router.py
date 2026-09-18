@@ -56,12 +56,12 @@ async def update_order(order_id: UUID, data: OrderUpdate, user: User = Depends(r
 
 @router.patch("/orders/{order_id}/status", response_model=OrderResponse)
 async def update_order_status(order_id: UUID, data: OrderStatusUpdate, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
-    return await OrderService(db).update_status(user.company_id, order_id, data)
+    return await OrderService(db).update_status(user.company_id, order_id, data, actor_id=user.id)
 
 
 @router.delete("/orders/{order_id}", response_model=OrderResponse)
 async def cancel_order(order_id: UUID, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
-    return await OrderService(db).cancel(user.company_id, order_id)
+    return await OrderService(db).cancel(user.company_id, order_id, actor_id=user.id)
 
 
 @router.post("/orders/{order_id}/items", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
@@ -71,7 +71,7 @@ async def add_item(order_id: UUID, data: OrderItemCreate, user: User = Depends(r
 
 @router.delete("/orders/{order_id}/items/{item_id}", response_model=OrderResponse)
 async def remove_item(order_id: UUID, item_id: UUID, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
-    return await OrderService(db).remove_item(user.company_id, order_id, item_id)
+    return await OrderService(db).remove_item(user.company_id, order_id, item_id, actor_id=user.id)
 
 
 # ── Terminals ─────────────────────────────────────────────────────────────────

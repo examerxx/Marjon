@@ -38,6 +38,30 @@ def _quantize(v: Decimal) -> Decimal:
     return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _stamp_order_cancellation(order: Order, actor_id: UUID | None) -> None:
+    """Phase 1A: record truthful whole-order cancellation event, idempotently.
+
+    Only fills missing values — never overwrites an existing cancellation
+    event with a later request. System paths pass actor_id=None (stays NULL).
+    """
+    if order.cancelled_at is None:
+        order.cancelled_at = _utcnow()
+    if order.cancelled_by_id is None and actor_id is not None:
+        order.cancelled_by_id = actor_id
+
+
+def _stamp_item_cancellation(item: OrderItem, actor_id: UUID | None) -> None:
+    """Phase 1A: record truthful item cancellation event, idempotently."""
+    if item.cancelled_at is None:
+        item.cancelled_at = _utcnow()
+    if item.cancelled_by_id is None and actor_id is not None:
+        item.cancelled_by_id = actor_id
+
+
 class OrderService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -158,7 +182,10 @@ class OrderService:
 
     # ── Update status (state machine) ─────────────────────────────────────────
 
-    async def update_status(self, company_id: UUID, order_id: UUID, data: OrderStatusUpdate) -> Order:
+    async def update_status(
+        self, company_id: UUID, order_id: UUID, data: OrderStatusUpdate,
+        actor_id: UUID | None = None,
+    ) -> Order:
         order = await self.get(company_id, order_id)
         current = order.status
         target = data.status
@@ -170,6 +197,11 @@ class OrderService:
             )
 
         order.status = target
+        if target == "cancelled":
+            # Truthful whole-order cancellation via state machine (POS status
+            # PATCH). Only stamps when the transition actually becomes
+            # cancelled; later updates are impossible (cancelled is final).
+            _stamp_order_cancellation(order, actor_id)
         if target == "cooking":
             # Kitchen accepted the whole order — move its pending items into cooking too,
             # otherwise "mark item ready" fails validation (pending can't skip to ready).
@@ -197,11 +229,14 @@ class OrderService:
 
     # ── Cancel ────────────────────────────────────────────────────────────────
 
-    async def cancel(self, company_id: UUID, order_id: UUID) -> Order:
+    async def cancel(
+        self, company_id: UUID, order_id: UUID, actor_id: UUID | None = None
+    ) -> Order:
         order = await self.get(company_id, order_id)
         if order.status in ("completed", "cancelled"):
             raise ValidationError(f"Невозможно отменить заказ в статусе '{order.status}'")
         order.status = "cancelled"
+        _stamp_order_cancellation(order, actor_id)
         saved = await self.repo.save(order)
         try:
             await kitchen_manager.broadcast(
@@ -244,7 +279,10 @@ class OrderService:
 
     # ── Remove item from order ────────────────────────────────────────────────
 
-    async def remove_item(self, company_id: UUID, order_id: UUID, item_id: UUID) -> Order:
+    async def remove_item(
+        self, company_id: UUID, order_id: UUID, item_id: UUID,
+        actor_id: UUID | None = None,
+    ) -> Order:
         order = await self.get(company_id, order_id)
         if order.status in ("completed", "cancelled"):
             raise ValidationError("Нельзя удалить позицию из завершённого или отменённого заказа")
@@ -252,6 +290,7 @@ class OrderService:
         item = await self._get_order_item(order, item_id)
         order.subtotal -= item.total
         item.status = "cancelled"
+        _stamp_item_cancellation(item, actor_id)
         item.total = Decimal("0")
         self._recalculate_totals(order)
         await self.db.commit()

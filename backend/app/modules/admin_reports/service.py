@@ -8,9 +8,11 @@ from uuid import UUID
 from fastapi.responses import StreamingResponse
 from sqlalchemy import and_, case, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app.modules.admin_reports.schemas import (
-    AttendanceRow, CancelledItemRow, DebtCreditRow,
+    AttendanceRow, CancelledAuthorOption, CancelledFiltersResponse, CancelledItemRow,
+    DebtCreditRow,
     DishReportFiltersResponse, DishReportResponse, DishReportRow,
     DishReportTotals, LoginHistoryRow, OrderReportRow,
     OrderReportFiltersResponse, ReportFilterOption,
@@ -1064,37 +1066,269 @@ class AdminReportService:
             cook_filter_supported=False,
         )
 
+    @staticmethod
+    def _cancelled_line_amount(
+        price: Decimal | float | int | None,
+        quantity: Decimal | float | int | None,
+        discount: Decimal | float | int | None,
+    ) -> Decimal:
+        """Truthful historical line amount BEFORE cancellation zeroing.
+
+        Canonical POS formula (pos/service.py create/add_item): the stored
+        ``total`` was ``quantize(price * quantity) - quantize(discount)``
+        floored at zero. One POS cancellation path zeroes ``item.total``, so
+        the report must recompute from the preserved snapshots instead of
+        reading ``total``. Never uses Payment.amount or current Product.price.
+        """
+        p = Decimal(str(price or 0))
+        q = Decimal(str(quantity or 0))
+        d = Decimal(str(discount or 0))
+        gross = (p * q).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        disc = d.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return max(gross - disc, Decimal("0"))
+
     async def cancelled_items(
-        self, company_id: UUID, date_from: date | None, date_to: date | None
+        self,
+        company_id: UUID,
+        date_from: date | None,
+        date_to: date | None,
+        *,
+        order_number: str | None = None,
+        author_id: Sequence[UUID] | None = None,
+        dish_name: Sequence[str] | None = None,
     ) -> list[CancelledItemRow]:
+        """Cancelled Dishes truth foundation (Phase 1A).
+
+        Inclusion: OrderItem.status == 'cancelled' OR Order.status ==
+        'cancelled' (item-level cancellations on live orders are included;
+        items of whole-cancelled orders are included; no duplicate row when
+        both are true — one row per OrderItem).
+
+        Scope: 'item' when the item itself is cancelled (wins when both are
+        cancelled), else 'order'. Event timestamp/author inherit from the
+        scope owner. Historical NULL timestamps use legacy fallback
+        report_event_at = COALESCE(effective cancelled_at, Order.created_at)
+        with date_source marking the fallback. Period filter applies to
+        report_event_at so legacy rows stay visible.
+        """
+        WaiterUser = aliased(User)
+        ItemAuthor = aliased(User)
+        OrderAuthor = aliased(User)
+
+        effective_cancelled = case(
+            (OrderItem.status == "cancelled", OrderItem.cancelled_at),
+            else_=Order.cancelled_at,
+        )
+        report_event = func.coalesce(effective_cancelled, Order.created_at)
+
         query = (
             select(
-                Order.created_at, Order.order_number, Order.table_number,
-                OrderItem.name, OrderItem.quantity, OrderItem.price,
-                User.name.label("waiter_name"),
+                Order.id.label("order_id"),
+                Order.order_number,
+                Order.table_number,
+                Order.order_type,
+                Order.status.label("order_status"),
+                Order.created_at.label("order_created_at"),
+                Order.cancelled_at.label("order_cancelled_at"),
+                Order.cancelled_by_id.label("order_cancelled_by_id"),
+                OrderItem.id.label("order_item_id"),
+                OrderItem.name,
+                OrderItem.quantity,
+                OrderItem.price,
+                OrderItem.discount,
+                OrderItem.status.label("item_status"),
+                OrderItem.cancelled_at.label("item_cancelled_at"),
+                OrderItem.cancelled_by_id.label("item_cancelled_by_id"),
+                WaiterUser.name.label("waiter_name"),
+                ItemAuthor.name.label("item_author_name"),
+                ItemAuthor.email.label("item_author_email"),
+                OrderAuthor.name.label("order_author_name"),
+                OrderAuthor.email.label("order_author_email"),
+                report_event.label("report_event_at"),
             )
-            .join(OrderItem, OrderItem.order_id == Order.id)
-            .outerjoin(User, User.id == Order.waiter_id)
-            .where(Order.company_id == company_id, Order.status == "cancelled")
-            .order_by(Order.created_at.desc())
+            .select_from(OrderItem)
+            .join(
+                Order,
+                and_(
+                    Order.id == OrderItem.order_id,
+                    Order.company_id == company_id,
+                ),
+            )
+            .outerjoin(
+                WaiterUser,
+                and_(
+                    WaiterUser.id == Order.waiter_id,
+                    WaiterUser.company_id == company_id,
+                ),
+            )
+            .outerjoin(
+                ItemAuthor,
+                and_(
+                    ItemAuthor.id == OrderItem.cancelled_by_id,
+                    ItemAuthor.company_id == company_id,
+                ),
+            )
+            .outerjoin(
+                OrderAuthor,
+                and_(
+                    OrderAuthor.id == Order.cancelled_by_id,
+                    OrderAuthor.company_id == company_id,
+                ),
+            )
+            .where(
+                Order.company_id == company_id,
+                or_(
+                    OrderItem.status == "cancelled",
+                    Order.status == "cancelled",
+                ),
+            )
         )
-        query = self._order_date_filter(query, date_from, date_to)
+        if order_number and (normalized_order_number := order_number.strip()):
+            query = query.where(
+                Order.order_number.ilike(f"%{normalized_order_number}%")
+            )
+        if author_id:
+            # OR within Author, targeting the TRUE actor per scope. Item scope
+            # wins when both are cancelled, so the order-scope clause requires
+            # the item NOT to be cancelled. Legacy NULL actors match nothing.
+            author_ids = list(author_id)
+            query = query.where(
+                or_(
+                    and_(
+                        OrderItem.status == "cancelled",
+                        OrderItem.cancelled_by_id.in_(author_ids),
+                    ),
+                    and_(
+                        OrderItem.status != "cancelled",
+                        Order.status == "cancelled",
+                        Order.cancelled_by_id.in_(author_ids),
+                    ),
+                )
+            )
+        if dish_name:
+            # Exact snapshot match on OrderItem.name (historical truth —
+            # survives Product renames/deletes). OR within the dimension.
+            query = query.where(OrderItem.name.in_(list(dish_name)))
+        if date_from:
+            query = query.where(
+                report_event
+                >= datetime.combine(date_from, datetime.min.time())
+            )
+        if date_to:
+            query = query.where(
+                report_event
+                <= datetime.combine(date_to, datetime.max.time())
+            )
+        query = query.order_by(
+            report_event.desc(), Order.created_at.desc(), Order.id, OrderItem.id
+        )
         rows = (await self.db.execute(query)).all()
         result = []
         for r in rows:
-            dt = r.created_at
+            is_item_cancelled = r.item_status == "cancelled"
+            scope = "item" if is_item_cancelled else "order"
+            cancelled_at = (
+                r.item_cancelled_at if is_item_cancelled else r.order_cancelled_at
+            )
+            if is_item_cancelled:
+                cancelled_by_id = r.item_cancelled_by_id
+                cancelled_by_name = r.item_author_name or r.item_author_email
+            else:
+                cancelled_by_id = r.order_cancelled_by_id
+                cancelled_by_name = r.order_author_name or r.order_author_email
+            date_source = (
+                "cancelled_at" if cancelled_at is not None else "legacy_order_created_at"
+            )
+            report_event_at = cancelled_at if cancelled_at is not None else r.order_created_at
+            # Legacy date/time stay on order-created truth for backward
+            # compatibility with the deployed frontend.
+            dt = r.order_created_at
+            quantity = Decimal(str(r.quantity or 0))
+            price = Decimal(str(r.price or 0))
+            amount = self._cancelled_line_amount(r.price, r.quantity, r.discount)
             result.append(CancelledItemRow(
                 date=dt.strftime("%d.%m.%Y") if dt else "",
                 time=dt.strftime("%H:%M") if dt else "",
                 order_number=r.order_number,
                 table_number=r.table_number,
                 name=r.name,
-                quantity=Decimal(str(r.quantity)),
-                price=Decimal(str(r.price)),
+                quantity=quantity,
+                price=price,
                 waiter_name=r.waiter_name,
                 unit="шт",
+                order_id=r.order_id,
+                order_item_id=r.order_item_id,
+                order_created_at=r.order_created_at,
+                cancelled_at=cancelled_at,
+                cancellation_scope=scope,
+                order_type=r.order_type,
+                amount=amount,
+                cancelled_by_id=cancelled_by_id,
+                cancelled_by_name=cancelled_by_name,
+                order_status=r.order_status,
+                item_status=r.item_status,
+                date_source=date_source,
+                report_event_at=report_event_at,
             ))
         return result
+
+    async def cancelled_filters(self, company_id: UUID) -> CancelledFiltersResponse:
+        """Author + dish directories for Cancelled Dishes (tenant-scoped).
+
+        Authors: active same-company users holding a non-system waiter OR
+        cashier role — no cancellation/order history required (same product
+        policy as Dishes author directory). Dishes: distinct OrderItem.name
+        snapshots among cancelled-eligible rows (survives renames/deletes).
+        """
+        staff_rows = (await self.db.execute(
+            select(User.id, User.name, User.email, Role.slug)
+            .join(UserRole, UserRole.user_id == User.id)
+            .join(Role, Role.id == UserRole.role_id)
+            .where(
+                User.company_id == company_id,
+                User.is_active.is_(True),
+                Role.company_id == company_id,
+                Role.slug.in_(["waiter", "cashier"]),
+                Role.is_system.is_(False),
+            )
+            .order_by(
+                func.coalesce(User.name, User.email), User.email, User.id
+            )
+        )).all()
+        authors: list[CancelledAuthorOption] = []
+        seen_authors: set[UUID] = set()
+        # A user holding both roles appears once (first row wins); role kept
+        # truthful per user for the filter directory.
+        for row in staff_rows:
+            if row.id in seen_authors:
+                continue
+            seen_authors.add(row.id)
+            authors.append(CancelledAuthorOption(
+                id=row.id,
+                name=row.name or row.email,
+                role=row.slug,
+            ))
+
+        dish_rows = (await self.db.execute(
+            select(OrderItem.name.distinct())
+            .join(
+                Order,
+                and_(
+                    Order.id == OrderItem.order_id,
+                    Order.company_id == company_id,
+                ),
+            )
+            .where(
+                Order.company_id == company_id,
+                or_(
+                    OrderItem.status == "cancelled",
+                    Order.status == "cancelled",
+                ),
+            )
+            .order_by(OrderItem.name)
+        )).all()
+        dishes = [r[0] for r in dish_rows if r[0]]
+        return CancelledFiltersResponse(authors=authors, dishes=dishes)
 
     async def login_history(self, company_id: UUID) -> list[LoginHistoryRow]:
         query = (

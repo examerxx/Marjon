@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import datetime, timezone
 from decimal import Decimal
 import hashlib
 from uuid import UUID
@@ -155,6 +156,10 @@ async def payment_webhook(
     elif data.action == "cancel":
         if order.status == "completed":
             order.status = "cancelled"
+            # Phase 1A system cancellation: no authenticated user, so
+            # cancelled_by_id stays NULL. Fill cancelled_at idempotently.
+            if getattr(order, "cancelled_at", None) is None:
+                order.cancelled_at = datetime.now(timezone.utc)
             db.add(order)
             await db.commit()
 

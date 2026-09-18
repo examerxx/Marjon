@@ -60,6 +60,9 @@ class OrderItemResponse(BaseResponseSchema):
     note: str | None
     modifiers: list
     course: int
+    # Phase 1A cancellation truth (additive, nullable).
+    cancelled_at: datetime | None = None
+    cancelled_by_id: UUID | None = None
 
 
 class OrderResponse(BaseResponseSchema):
@@ -79,6 +82,9 @@ class OrderResponse(BaseResponseSchema):
     note: str | None
     source: str
     items: list[OrderItemResponse] = Field(default_factory=list)
+    # Phase 1A cancellation truth (additive, nullable).
+    cancelled_at: datetime | None = None
+    cancelled_by_id: UUID | None = None
 
 
 class TerminalCreate(BaseSchema):

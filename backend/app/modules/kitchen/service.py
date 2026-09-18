@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import datetime, timezone
 from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -55,7 +56,10 @@ class KitchenService:
         )
         return list(result.scalars().all())
 
-    async def update_item_status(self, company_id: UUID, data: KitchenItemStatusUpdate) -> OrderItem:
+    async def update_item_status(
+        self, company_id: UUID, data: KitchenItemStatusUpdate,
+        actor_id: UUID | None = None,
+    ) -> OrderItem:
         # Join through Order to validate company_id
         result = await self.db.execute(
             select(OrderItem)
@@ -78,6 +82,13 @@ class KitchenService:
             )
 
         item.status = target
+        if target == "cancelled":
+            # Phase 1A: truthful item cancellation via kitchen. Idempotent —
+            # never overwrites an existing event.
+            if item.cancelled_at is None:
+                item.cancelled_at = datetime.now(timezone.utc)
+            if item.cancelled_by_id is None and actor_id is not None:
+                item.cancelled_by_id = actor_id
         self.db.add(item)
         await self.db.commit()
         await self.db.refresh(item)

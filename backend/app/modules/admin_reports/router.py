@@ -11,7 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.database.session import get_db
 from app.modules.admin_reports import schemas
 from app.modules.admin_reports.schemas import (
-    AttendanceRow, CancelledItemRow, DishReportFiltersResponse, DishReportResponse,
+    AttendanceRow, CancelledFiltersResponse, CancelledItemRow,
+    DishReportFiltersResponse, DishReportResponse,
     DebtCreditRow, LoginHistoryRow, OrderReportFiltersResponse, OrderReportRow, ProductCountRow,
     ProductReportRow, TableReportFiltersResponse, TableReportRow,
     WaiterReportFiltersResponse, WaiterReportResponse,
@@ -259,10 +260,33 @@ async def dishes_report_filters(
 async def cancelled_report(
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
+    order_number: str | None = Query(None, max_length=100),
+    author_id: list[UUID] | None = Query(None),
+    dish_name: list[str] | None = Query(None, max_length=500),
     user: User = Depends(require_web_owner),
     db: AsyncSession = Depends(get_db),
 ):
-    return await AdminReportService(db).cancelled_items(user.company_id, date_from, date_to)
+    # Phase 1A multi-select: repeated singular params are OR within a
+    # dimension (author_id=A&author_id=B, dish_name=A&dish_name=B), AND
+    # across dimensions. Scalar requests stay valid as one-item lists.
+    assert user.company_id is not None
+    return await AdminReportService(db).cancelled_items(
+        user.company_id,
+        date_from,
+        date_to,
+        order_number=order_number,
+        author_id=author_id,
+        dish_name=dish_name,
+    )
+
+
+@router.get("/cancelled/filters", response_model=CancelledFiltersResponse)
+async def cancelled_report_filters(
+    user: User = Depends(require_web_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    assert user.company_id is not None
+    return await AdminReportService(db).cancelled_filters(user.company_id)
 
 
 @admin_reports_router.get("/dashboard-kpis")
