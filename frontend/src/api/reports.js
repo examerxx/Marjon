@@ -98,8 +98,25 @@ export const reportsService = {
   getDishesFilters(config = {}) {
     return api.get("/reports/dishes/filters", config);
   },
-  listCancelledDishes(dateFrom, dateTo, config = {}) {
-    return api.get("/reports/cancelled", { params: rangeParams(dateFrom, dateTo), ...config });
+  // Cancelled Dishes Phase 1A truth contract: repeated singular params are OR
+  // within a dimension (author_id=A&author_id=B, dish_name=A&dish_name=B) and
+  // AND across dimensions. dish_name matches historical OrderItem.name
+  // snapshots; author_id matches the TRUE cancellation actor (never the
+  // order waiter). Empty selections are omitted, never sent as blanks.
+  listCancelledDishes(dateFrom, dateTo, { filters = {}, ...config } = {}) {
+    const filterParams = compactParams({
+      order_number: filters.orderNumber?.trim(),
+      author_id: filters.authorId,
+      dish_name: filters.dishName,
+    });
+    return api.get("/reports/cancelled", {
+      params: rangeParams(dateFrom, dateTo, filterParams),
+      ...config,
+      paramsSerializer: REPEATED_IDS_SERIALIZER,
+    });
+  },
+  getCancelledFilters(config = {}) {
+    return api.get("/reports/cancelled/filters", config);
   },
   listDebtCredit(dateFrom, dateTo, counterpartyId, config = {}) {
     return api.get("/reports/debt-credit", {

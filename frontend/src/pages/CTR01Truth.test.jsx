@@ -181,28 +181,81 @@ describe("CTR-01 critical financial truth", () => {
     });
   });
 
-  it("renders and exports only frozen cancelled-item metadata", async () => {
-    api.get.mockResolvedValue({ data: [{ date: "2026-08-12", time: "10:00", order_number: "42", table_number: null, name: "Backend Dish", quantity: 2, price: 300, waiter_name: null, unit: "шт" }] });
+  // CANCELLED-1B: Phase 1A truth contract — waiter and author stay separate,
+  // amount comes from the backend snapshot, never recomputed client-side.
+  it("renders cancelled truth from backend fields without fabrication", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/reports/cancelled/filters") {
+        return Promise.resolve({ data: { authors: [], dishes: [] } });
+      }
+      return Promise.resolve({ data: [{
+        date: "12.08.2026", time: "10:00", order_number: "42", table_number: null,
+        name: "Backend Dish", quantity: 2, price: 300, waiter_name: "Официант",
+        unit: "шт", order_id: "order-1", order_item_id: "item-1",
+        order_created_at: "2026-08-12T07:00:00Z", cancelled_at: "2026-08-12T10:00:00Z",
+        cancellation_scope: "item", order_type: "dine_in", amount: 600,
+        cancelled_by_id: "author-9", cancelled_by_name: "Автор",
+        order_status: "cooking", item_status: "cancelled",
+        date_source: "cancelled_at", report_event_at: "2026-08-12T10:00:00Z",
+      }] });
+    });
     render(<CancelledDishesReportPage />);
     expect(await screen.findByText("Backend Dish")).toBeInTheDocument();
-    expect(screen.queryByRole("columnheader", { name: "Сумма" })).not.toBeInTheDocument();
-    ["Комментарий", "Тип", "Повар", "Автор"].forEach((label) => expect(screen.queryByRole("columnheader", { name: label })).not.toBeInTheDocument());
-    expect(screen.queryByText("На стол")).not.toBeInTheDocument();
+    // Truthful columns exist; author shows the cancellation actor, not the waiter.
+    ["Номер заказа", "Дата", "Название", "Номер стола", "Кол-во", "Официант", "Тип", "Сумма", "Автор", "Действие"].forEach((label) => {
+      expect(screen.getByRole("columnheader", { name: label })).toBeInTheDocument();
+    });
+    const row = screen.getByText("Backend Dish").closest("tr");
+    expect(within(row).getByText("Автор")).toBeInTheDocument();
+    expect(within(row).getByText("Официант")).toBeInTheDocument();
+    expect(within(row).getByText("600 UZS")).toBeInTheDocument();
+    expect(screen.queryByText("Комментарий")).not.toBeInTheDocument();
+    expect(screen.queryByText("Повар")).not.toBeInTheDocument();
+  });
+
+  it("renders — for missing author without substituting the waiter", async () => {
+    api.get.mockImplementation((path) => {
+      if (path === "/reports/cancelled/filters") {
+        return Promise.resolve({ data: { authors: [], dishes: [] } });
+      }
+      return Promise.resolve({ data: [{
+        order_number: "43", name: "System Dish", quantity: 1, price: 100,
+        waiter_name: "Официант", table_number: "5", order_type: "delivery",
+        amount: 100, cancelled_by_name: null, report_event_at: "2026-08-12T10:00:00Z",
+        order_id: "order-2", order_item_id: "item-2",
+      }] });
+    });
+    render(<CancelledDishesReportPage />);
+    const row = await screen.findByText("System Dish").then((node) => node.closest("tr"));
+    const cells = within(row).getAllByRole("cell");
+    // Author cell (9th) is —, waiter cell (6th) keeps the waiter.
+    expect(cells[8]).toHaveTextContent("—");
+    expect(cells[5]).toHaveTextContent("Официант");
   });
 
   it("keeps the Cancelled Dishes period as draft until the existing Filter action", async () => {
-    api.get.mockResolvedValue({ data: [] });
+    api.get.mockImplementation((path) => (
+      path === "/reports/cancelled/filters"
+        ? Promise.resolve({ data: { authors: [], dishes: [] } })
+        : Promise.resolve({ data: [] })
+    ));
     render(<CancelledDishesReportPage />);
-    const filterButton = await screen.findByRole("button", { name: "Фильтровать" });
-    expect(api.get).toHaveBeenCalledTimes(1);
+    const filterButton = await screen.findAllByRole("button", { name: "Фильтровать" }).then((buttons) => (
+      buttons.find((button) => button.classList.contains("report-filter-apply"))
+    ));
+    // Mount fires the report request plus the independent filters-directory
+    // request; period edits stay draft until «Фильтровать».
+    expect(api.get).toHaveBeenCalledTimes(2);
 
     fireEvent.change(screen.getByLabelText("Начало периода"), { target: { value: "02.08.2026" } });
     fireEvent.change(screen.getByLabelText("Конец периода"), { target: { value: "12.08.2026" } });
-    expect(api.get).toHaveBeenCalledTimes(1);
+    expect(api.get).toHaveBeenCalledTimes(2);
 
     fireEvent.click(filterButton);
-    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
-    expect(api.get).toHaveBeenLastCalledWith("/reports/cancelled", expect.objectContaining({
+    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(3));
+    const reportCalls = api.get.mock.calls.filter(([path]) => path === "/reports/cancelled");
+    expect(reportCalls).toHaveLength(2);
+    expect(reportCalls[1][1]).toEqual(expect.objectContaining({
       params: { date_from: "2026-08-02", date_to: "2026-08-12" },
       signal: expect.any(AbortSignal),
     }));
@@ -288,7 +341,14 @@ describe("CTR-01 critical financial truth", () => {
     expect(sources["TablesReportPage.jsx"]).toMatch(/discount_amount/);
     expect(sources["TablesReportPage.jsx"]).toMatch(/service_fee/);
     expect(sources["WaitersReportPage.jsx"]).not.toMatch(/Khusniddin|Administrator|const fake|mockWaiter/i);
-    expect(sources["CancelledDishesReportPage.jsx"]).not.toMatch(/order_type|chef|author|comment|На стол/);
+    // CANCELLED-1B truth invariants: the page may read backend order_type /
+    // author fields, but must never fabricate or misattribute them.
+    expect(sources["CancelledDishesReportPage.jsx"]).not.toMatch(/chef|comment|reason|updated_at/);
+    expect(sources["CancelledDishesReportPage.jsx"]).not.toMatch(/price\s*\*\s*quantity/);
+    expect(sources["CancelledDishesReportPage.jsx"]).not.toMatch(/item\.total/);
+    expect(sources["CancelledDishesReportPage.jsx"]).not.toMatch(/waiterName\s*\|\|\s*\w*[Aa]uthor/);
+    expect(sources["CancelledDishesReportPage.jsx"]).toMatch(/cancelled_by_name/);
+    expect(sources["CancelledDishesReportPage.jsx"]).toMatch(/report_event_at/);
     expect(sources["DebtorsCreditorsReportPage.jsx"]).not.toMatch(/12650|USD|item\.id/);
   });
 });

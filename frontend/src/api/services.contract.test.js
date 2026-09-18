@@ -121,7 +121,7 @@ describe("Web domain service contracts", () => {
     it.each([
       ["tables", reportsService.listTables, "/reports/tables", true],
       ["dishes", reportsService.listDishes, "/reports/dishes", true],
-      ["cancelled", reportsService.listCancelledDishes, "/reports/cancelled", false],
+      ["cancelled", reportsService.listCancelledDishes, "/reports/cancelled", true],
       ["debt-credit", reportsService.listDebtCredit, "/reports/debt-credit", false],
     ])("maps %s range parameters", async (_, request, endpoint, withRepeatedSerializer) => {
       await request("2026-08-01", "2026-08-13");
@@ -298,6 +298,48 @@ describe("Web domain service contracts", () => {
 
       await reportsService.getDishesFilters();
       expect(api.get).toHaveBeenLastCalledWith("/reports/dishes/filters", {});
+    });
+
+    // Cancelled Dishes Phase 1A truth contract: repeated singular params
+    // (author_id=A&author_id=B, dish_name=A&dish_name=B), server-side
+    // order_number, empty selections omitted — never brackets/CSV/arrays.
+    it("maps cancelled filters as repeated params and drops empty ones", async () => {
+      await reportsService.listCancelledDishes("2026-09-01", "2026-09-30", {
+        filters: {
+          orderNumber: "  A-42  ", authorId: ["author-1", "author-2"], dishName: ["Плов", "Лагман"],
+        },
+      });
+      expect(api.get).toHaveBeenLastCalledWith("/reports/cancelled", {
+        params: {
+          date_from: "2026-09-01", date_to: "2026-09-30", order_number: "A-42",
+          author_id: ["author-1", "author-2"], dish_name: ["Плов", "Лагман"],
+        },
+        paramsSerializer: { indexes: null },
+      });
+
+      await reportsService.listCancelledDishes("2026-09-01", "2026-09-30", {
+        filters: { orderNumber: "", authorId: [], dishName: [] },
+      });
+      expect(api.get).toHaveBeenLastCalledWith("/reports/cancelled", {
+        params: { date_from: "2026-09-01", date_to: "2026-09-30" },
+        paramsSerializer: { indexes: null },
+      });
+
+      await reportsService.getCancelledFilters({ signal: "signal" });
+      expect(api.get).toHaveBeenLastCalledWith("/reports/cancelled/filters", { signal: "signal" });
+    });
+
+    it("serializes cancelled filters as author_id=A&author_id=B, never bracketed", () => {
+      const client = axios.create({ baseURL: "http://localhost:8000/api/v1" });
+      const uri = client.getUri({
+        url: "/reports/cancelled",
+        params: { author_id: ["A", "B"], dish_name: ["Плов", "Лагман"] },
+        paramsSerializer: { indexes: null },
+      });
+      expect(uri).toContain("author_id=A&author_id=B");
+      expect(uri).not.toContain("author_id%5B%5D");
+      expect(uri).not.toContain("author_id=A%2CB");
+      expect(uri).not.toContain("dish_name%5B%5D");
     });
 
     it("maps dashboard analytics without fallback data", async () => {

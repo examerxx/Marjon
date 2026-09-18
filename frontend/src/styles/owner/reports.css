@@ -1084,6 +1084,7 @@
   .orders-filter-toggle,
   .dishes-filter-toggle,
   .tables-filter-toggle,
+  .cancelled-filter-toggle,
   .owner-report-excel,
   .owner-reports__date,
   .owner-reports__shift-print,
@@ -1131,6 +1132,7 @@
 .owner-report-view .orders-filter-toggle,
 .owner-report-view .dishes-filter-toggle,
 .owner-report-view .tables-filter-toggle,
+.owner-report-view .cancelled-filter-toggle,
 .owner-report-view .cancelled-filter-button {
   display: inline-flex;
   align-items: center;
@@ -1151,6 +1153,9 @@
 .owner-report-view .tables-filter-toggle:hover,
 .owner-report-view .tables-filter-toggle:focus-visible,
 .owner-report-view .tables-filter-toggle[aria-expanded="true"],
+.owner-report-view .cancelled-filter-toggle:hover,
+.owner-report-view .cancelled-filter-toggle:focus-visible,
+.owner-report-view .cancelled-filter-toggle[aria-expanded="true"],
 .owner-report-view .cancelled-filter-button:hover,
 .owner-report-view .cancelled-filter-button:focus-visible {
   border-color: rgba(31, 201, 201, 0.68);
@@ -1162,6 +1167,7 @@
 .orders-report-page .orders-filter-toggle,
 .dishes-report-page .dishes-filter-toggle,
 .tables-report-page .tables-filter-toggle,
+.cancelled-report-page .cancelled-filter-toggle,
 .cancelled-report-page .cancelled-filter-button {
   border-color: var(--owner-accent, #1fc9c9);
   background: var(--owner-accent, #1fc9c9);
@@ -1177,6 +1183,9 @@
 .tables-report-page .tables-filter-toggle:hover,
 .tables-report-page .tables-filter-toggle:focus-visible,
 .tables-report-page .tables-filter-toggle[aria-expanded="true"],
+.cancelled-report-page .cancelled-filter-toggle:hover,
+.cancelled-report-page .cancelled-filter-toggle:focus-visible,
+.cancelled-report-page .cancelled-filter-toggle[aria-expanded="true"],
 .cancelled-report-page .cancelled-filter-button:hover,
 .cancelled-report-page .cancelled-filter-button:focus-visible {
   border-color: var(--owner-accent-hover, #1bb1b1);
@@ -1219,7 +1228,8 @@
 
 .orders-report-page .owner-report-excel,
 .dishes-report-page .owner-report-excel,
-.tables-report-page .owner-report-excel {
+.tables-report-page .owner-report-excel,
+.cancelled-report-page .owner-report-excel {
   border-color: var(--owner-excel, #00d26a);
   background: var(--owner-excel, #00d26a);
   color: #ffffff;
@@ -1230,7 +1240,9 @@
 .dishes-report-page .owner-report-excel:hover,
 .dishes-report-page .owner-report-excel:focus-visible,
 .tables-report-page .owner-report-excel:hover,
-.tables-report-page .owner-report-excel:focus-visible {
+.tables-report-page .owner-report-excel:focus-visible,
+.cancelled-report-page .owner-report-excel:hover,
+.cancelled-report-page .owner-report-excel:focus-visible {
   border-color: var(--owner-excel-hover, #00b95d);
   background: var(--owner-excel-hover, #00b95d);
   color: #ffffff;
@@ -1304,7 +1316,8 @@
 
 .orders-report-page .report-filters-grid,
 .dishes-report-page .report-filters-grid,
-.tables-report-page .report-filters-grid {
+.tables-report-page .report-filters-grid,
+.cancelled-report-page .report-filters-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(260px, 1fr);
   align-items: stretch;
@@ -1425,6 +1438,96 @@
 .tables-report-page .report-filter-buttons .report-filter-clear {
   border-radius: 22px;
 }
+
+/* CANCELLED-1B: Cancelled Dishes Phase 1B — same oracle geometry as
+   Orders/Dishes/Tables (8×44 title accent, 22px control pills). The shared
+   multiselect/collapse/drawer language is reused verbatim via the widened
+   :is() selectors above; only cancelled-scoped layout below. */
+.cancelled-report-page .report-actions .report-period-button,
+.cancelled-report-page .report-actions .cancelled-filter-toggle,
+.cancelled-report-page .report-actions .report-excel-button {
+  border-radius: 22px;
+}
+.cancelled-report-page .cancelled-report-title.owner-report-heading {
+  align-items: center;
+  gap: 14px;
+}
+/* CANCELLED-02: the period popover is absolutely positioned inside the card,
+   so the legacy `.cancelled-report-card { overflow: hidden }` (react-
+   overrides) clips its calendar/time/OK section. Oracle cards
+   (orders/dishes/tables) already run `overflow: visible` for exactly this
+   reason — same architecture here. This file loads after react-overrides,
+   so the approved visible behavior wins without touching table scroll or
+   corner rules (those live on `.cancelled-table-wrap`, untouched). */
+.cancelled-report-page .cancelled-report-card {
+  overflow: visible;
+}
+.cancelled-report-page .owner-report-heading .report-accent-bar {
+  width: 8px;
+  min-width: 8px;
+  height: 44px;
+  margin: 0;
+  border-radius: 999px;
+  background: #16c6c8;
+  box-shadow: 0 8px 17px rgba(37, 99, 235, 0.154);
+}
+.cancelled-report-page .report-filter-buttons {
+  grid-column: 4;
+}
+.cancelled-report-page .report-filter-buttons .report-filter-apply,
+.cancelled-report-page .report-filter-buttons .report-filter-clear {
+  border-radius: 22px;
+}
+.cancelled-report-page .report-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+/* Row details action: quiet accent-outline icon button (Tables toggle
+   language, icon-only for the 10-column grid). */
+.cancelled-report-page .cancelled-details-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(31, 201, 201, 0.55);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--owner-accent-hover, #1bb1b1);
+  cursor: pointer;
+}
+.cancelled-report-page .cancelled-details-action:hover:not(:disabled) {
+  border-color: var(--owner-accent, #1fc9c9);
+  background: rgba(31, 201, 201, 0.08);
+}
+.cancelled-report-page .cancelled-details-action:disabled {
+  cursor: not-allowed;
+  border-color: rgba(15, 35, 60, 0.11);
+  background: var(--owner-control-disabled, #eff2f9);
+  color: var(--neutral-500, #64748b);
+}
+/* Cancelled modal reuses the OWNER drawer grid language (Tables parity). */
+.cancelled-report-page .order-details-drawer__items {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4px 0 6px;
+  font-size: 13px;
+}
+.cancelled-report-page .order-details-drawer__items th,
+.cancelled-report-page .order-details-drawer__items td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(213, 220, 232, 0.9);
+  text-align: left;
+}
+.cancelled-report-page .order-details-drawer__items th {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
 /* In-table "Посмотреть заказы" action: quiet accent-outline button with a
    clearly muted disabled state for rows without identifiable orders. */
 .tables-report-page .tables-orders-toggle {
@@ -1510,7 +1613,7 @@
    `inert` (set in JSX when closed) keeps its controls out of the tab order.
    Inner overflow is hidden during the height transition, then flipped visible
    200ms in so an opened dropdown menu can escape the panel without clipping. */
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-collapse {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-collapse {
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
@@ -1518,27 +1621,27 @@
   margin: 0;
   transition: grid-template-rows 200ms ease, opacity 200ms ease, transform 200ms ease;
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-collapse.is-open {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-collapse.is-open {
   grid-template-rows: 1fr;
   opacity: 1;
   transform: none;
   margin: 0 0 16px;
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-collapse__inner {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-collapse__inner {
   min-height: 0;
   overflow: hidden;
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-collapse.is-open .orders-filter-collapse__inner {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-collapse.is-open .orders-filter-collapse__inner {
   overflow: visible;
   transition: overflow 0s 200ms;
 }
 /* The grid keeps its own inner margin off now that the collapse owns spacing. */
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-collapse .report-filters-grid {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-collapse .report-filters-grid {
   margin: 0;
 }
 @media (prefers-reduced-motion: reduce) {
-  :is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-collapse,
-  :is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-collapse.is-open .orders-filter-collapse__inner {
+  :is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-collapse,
+  :is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-collapse.is-open .orders-filter-collapse__inner {
     transition: none;
   }
 }
@@ -1552,11 +1655,11 @@
 /* Custom filter dropdown — same visual language as the Settings → Место
    `.settings-select` reference (white rounded panel, subtle border+shadow,
    soft-cyan hover/active, dark text). Scoped to Orders; no native <select>. */
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select {
   position: relative;
   display: block;
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__trigger {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__trigger {
   width: 100%;
   min-height: 43px;
   display: inline-flex;
@@ -1577,27 +1680,27 @@
   cursor: pointer;
   transition: border-color 140ms ease, box-shadow 140ms ease;
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__trigger.is-placeholder {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__trigger.is-placeholder {
   color: var(--neutral-400, #7a94b4);
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__trigger:hover:not(:disabled) {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__trigger:hover:not(:disabled) {
   border-color: rgba(31, 201, 201, 0.55);
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__trigger:focus-visible,
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__trigger[aria-expanded="true"] {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__trigger:focus-visible,
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__trigger[aria-expanded="true"] {
   border-color: var(--owner-accent, #1fc9c9);
   box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.18);
   outline: none;
 }
 /* Disabled report control: the shared OWNER disabled fill, not a blunt opacity
    fade (which dimmed the border and text unevenly against the white row). */
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__trigger:disabled {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__trigger:disabled {
   cursor: not-allowed;
   border-color: rgba(15, 35, 60, 0.11);
   background: var(--owner-control-disabled, #eff2f9);
   color: var(--neutral-500, #64748b);
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__value {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__value {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1606,23 +1709,23 @@
    line; when the labels overflow, the value area scrolls horizontally with an
    invisible scrollbar while the chevron (fixed flex child) never scrolls.
    Trigger height, padding, radius, border and focus state are unchanged. */
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__value {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__value {
   flex: 1 1 auto;
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
   text-overflow: clip;
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__value::-webkit-scrollbar {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__value::-webkit-scrollbar {
   display: none;
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__chevron {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__chevron {
   display: inline-grid;
   place-items: center;
   color: var(--neutral-500, #94a3b8);
   flex: 0 0 auto;
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__menu {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__menu {
   position: absolute;
   z-index: 50;
   top: calc(100% + 6px);
@@ -1638,7 +1741,7 @@
   border-radius: 12px;
   box-shadow: 0 12px 32px rgba(15, 35, 60, 0.14);
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__option {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__option {
   width: 100%;
   min-height: 38px;
   display: flex;
@@ -1658,14 +1761,14 @@
   text-align: left;
   cursor: pointer;
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__option:hover,
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__option.is-active {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__option:hover,
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__option.is-active {
   background: rgba(31, 201, 201, 0.1);
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__option.is-checked {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__option.is-checked {
   color: var(--owner-accent-hover, #1bb1b1);
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__option:focus-visible {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__option:focus-visible {
   outline: 2px solid rgba(31, 201, 201, 0.5);
   outline-offset: -2px;
 }
@@ -1692,6 +1795,7 @@
 .orders-report-page .report-actions .report-date-menu,
 .dishes-report-page .report-actions .report-date-menu,
 .tables-report-page .report-actions .report-date-menu,
+.cancelled-report-page .report-actions .report-date-menu,
 .owner-reports-page--generator .owner-reports__head-actions .report-date-menu {
   transform-origin: top center;
   animation: owner-report-panel-in 170ms cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -1699,6 +1803,7 @@
 .orders-report-page .report-actions .report-date-menu.is-closing,
 .dishes-report-page .report-actions .report-date-menu.is-closing,
 .tables-report-page .report-actions .report-date-menu.is-closing,
+.cancelled-report-page .report-actions .report-date-menu.is-closing,
 .owner-reports-page--generator .owner-reports__head-actions .report-date-menu.is-closing {
   pointer-events: none;
   animation: owner-report-panel-out 170ms cubic-bezier(0.64, 0, 0.78, 0) both;
@@ -1709,12 +1814,13 @@
    context itself puts the whole picker above the filter row again. */
 .orders-report-page .owner-reports__period.report-actions,
 .dishes-report-page .owner-reports__period.report-actions,
-.tables-report-page .owner-reports__period.report-actions {
+.tables-report-page .owner-reports__period.report-actions,
+.cancelled-report-page .owner-reports__period.report-actions {
   position: relative;
   z-index: 200;
 }
 /* Filter menus mirror the same motion (they unmount on close, so no exit half). */
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__panel {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__panel {
   position: absolute;
   z-index: 60;
   top: calc(100% + 6px);
@@ -1730,12 +1836,12 @@
   transform-origin: top center;
   animation: owner-report-panel-in 170ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__panel.is-closing {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__panel.is-closing {
   pointer-events: none;
   animation: owner-report-panel-out 170ms cubic-bezier(0.64, 0, 0.78, 0) both;
 }
 /* The list is the only scrolling part, and only once it is genuinely long. */
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__panel .orders-filter-select__menu {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__panel .orders-filter-select__menu {
   position: static;
   z-index: auto;
   max-height: 232px;
@@ -1747,10 +1853,10 @@
   animation: none;
 }
 /* Trigger feedback: the chevron turns while the panel is open. */
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__chevron {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__chevron {
   transition: transform 170ms cubic-bezier(0.22, 1, 0.36, 1), color 140ms ease;
 }
-:is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select.is-open .orders-filter-select__chevron {
+:is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select.is-open .orders-filter-select__chevron {
   transform: rotate(180deg);
   color: var(--owner-accent, #1fc9c9);
 }
@@ -1765,12 +1871,14 @@
 @media (prefers-reduced-motion: reduce) {
   .orders-report-page .report-actions .report-date-menu,
   .orders-report-page .report-actions .report-date-menu.is-closing,
+  .cancelled-report-page .report-actions .report-date-menu,
+  .cancelled-report-page .report-actions .report-date-menu.is-closing,
   .owner-reports-page--generator .owner-reports__head-actions .report-date-menu,
   .owner-reports-page--generator .owner-reports__head-actions .report-date-menu.is-closing,
-  :is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__panel {
+  :is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__panel {
     animation-duration: 0.01ms;
   }
-  :is(.orders-report-page, .dishes-report-page, .tables-report-page) .orders-filter-select__chevron {
+  :is(.orders-report-page, .dishes-report-page, .tables-report-page, .cancelled-report-page) .orders-filter-select__chevron {
     transition: none;
   }
 }
@@ -1889,7 +1997,8 @@
   box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.14);
 }
 
-.dishes-report-page .report-active-filters {
+.dishes-report-page .report-active-filters,
+.cancelled-report-page .report-active-filters {
   min-height: 0;
   margin: 0 0 12px;
   padding: 0 2px;
@@ -1899,7 +2008,8 @@
   font-size: 12px;
 }
 
-.dishes-report-page .report-active-filters span {
+.dishes-report-page .report-active-filters span,
+.cancelled-report-page .report-active-filters span {
   padding: 0;
   border: 0;
   background: transparent;
@@ -2096,13 +2206,15 @@
 
   .orders-report-page .report-filters-grid,
   .dishes-report-page .report-filters-grid,
-  .tables-report-page .report-filters-grid {
+  .tables-report-page .report-filters-grid,
+  .cancelled-report-page .report-filters-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .orders-report-page .report-filter-buttons,
   .dishes-report-page .report-filter-buttons,
-  .tables-report-page .report-filter-buttons {
+  .tables-report-page .report-filter-buttons,
+  .cancelled-report-page .report-filter-buttons {
     grid-column: 1 / -1;
   }
 }
@@ -2147,6 +2259,7 @@
   .owner-report-view .orders-filter-toggle,
   .owner-report-view .dishes-filter-toggle,
   .owner-report-view .tables-filter-toggle,
+  .owner-report-view .cancelled-filter-toggle,
   .owner-report-view .owner-reports__shift-print,
   .owner-report-view .owner-reports__date,
   .waiters-report-page .z-waiters-report__select,
@@ -2156,7 +2269,8 @@
 
   .orders-report-page .owner-report-actions,
   .dishes-report-page .owner-report-actions,
-  .tables-report-page .owner-report-actions {
+  .tables-report-page .owner-report-actions,
+  .cancelled-report-page .owner-report-actions {
     display: grid;
     grid-template-columns: minmax(220px, 1fr) auto auto;
     align-items: center;
@@ -2165,7 +2279,8 @@
 
   .orders-report-page .owner-report-actions > *,
   .dishes-report-page .owner-report-actions > *,
-  .tables-report-page .owner-report-actions > * {
+  .tables-report-page .owner-report-actions > *,
+  .cancelled-report-page .owner-report-actions > * {
     height: 43px;
     min-height: 43px;
     flex: none;
@@ -2173,7 +2288,8 @@
 
   .orders-report-page .owner-report-actions :is(.orders-filter-toggle, .owner-report-excel),
   .dishes-report-page .owner-report-actions :is(.dishes-filter-toggle, .owner-report-excel),
-  .tables-report-page .owner-report-actions :is(.tables-filter-toggle, .owner-report-excel) {
+  .tables-report-page .owner-report-actions :is(.tables-filter-toggle, .owner-report-excel),
+  .cancelled-report-page .owner-report-actions :is(.cancelled-filter-toggle, .owner-report-excel) {
     width: auto;
   }
 
@@ -2216,7 +2332,8 @@
 
   .orders-report-page .owner-report-actions :is(.orders-filter-toggle, .owner-report-excel),
   .dishes-report-page .owner-report-actions :is(.dishes-filter-toggle, .owner-report-excel),
-  .tables-report-page .owner-report-actions :is(.tables-filter-toggle, .owner-report-excel) {
+  .tables-report-page .owner-report-actions :is(.tables-filter-toggle, .owner-report-excel),
+  .cancelled-report-page .owner-report-actions :is(.cancelled-filter-toggle, .owner-report-excel) {
     width: 100%;
   }
 }
@@ -2225,7 +2342,8 @@
 
   .orders-report-page .report-filters-grid,
   .dishes-report-page .report-filters-grid,
-  .tables-report-page .report-filters-grid {
+  .tables-report-page .report-filters-grid,
+  .cancelled-report-page .report-filters-grid {
     grid-template-columns: 1fr;
   }
 
@@ -2237,13 +2355,15 @@
 
   .orders-report-page .report-filter-buttons,
   .dishes-report-page .report-filter-buttons,
-  .tables-report-page .report-filter-buttons {
+  .tables-report-page .report-filter-buttons,
+  .cancelled-report-page .report-filter-buttons {
     flex-direction: column;
   }
 
   .orders-report-page .report-filter-buttons > button,
   .dishes-report-page .report-filter-buttons > button,
-  .tables-report-page .report-filter-buttons > button {
+  .tables-report-page .report-filter-buttons > button,
+  .cancelled-report-page .report-filter-buttons > button {
     width: 100%;
   }
 }
@@ -2301,6 +2421,7 @@
 .orders-report-page .report-actions .report-period-button,
 .dishes-report-page .report-actions .report-period-button,
 .tables-report-page .report-actions .report-period-button,
+.cancelled-report-page .report-actions .report-period-button,
 .owner-reports-page--generator .owner-reports__head-actions .report-period-button {
   width: max-content;
   min-width: 0;

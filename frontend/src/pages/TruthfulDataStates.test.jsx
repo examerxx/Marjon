@@ -374,7 +374,15 @@ describe("truthful production data states", () => {
     reportSources.forEach((source) => {
       expect(source).toContain('setError("")');
       expect(source).toMatch(/catch\([^)]*\)[\s\S]*setError\(/);
+    });
+    // Pre-1B pages keep the early-return error shell; Cancelled Phase 1B is
+    // shell-first by product rule (item 23): headers/controls/table stay
+    // mounted and the failure renders as an inline alert, never a collapse.
+    reportSources.slice(0, 4).concat(reportSources.slice(5)).forEach((source) => {
       expect(source).toMatch(/if \(error(?: && !hasLoaded)?\) return|!error\s*&&\s*!rows\.length|!error\s*&&\s*!visibleRows\.length/);
     });
+    const cancelledSource = reportSources[4];
+    expect(cancelledSource).toMatch(/\{error \? <div className="login-error" role="alert">/);
+    expect(cancelledSource).not.toMatch(/if \(error\) return/);
   });
 });
