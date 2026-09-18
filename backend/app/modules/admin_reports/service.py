@@ -929,6 +929,10 @@ class AdminReportService:
         )
 
     async def dishes_report_filters(self, company_id: UUID) -> DishReportFiltersResponse:
+        # Product rule: available authors are active same-company employees with
+        # a waiter OR cashier role (no order history required). The report
+        # predicate itself stays Order.waiter_id == author_id — Payment.cashier_id
+        # is a separate axis and is NOT merged here.
         author_rows = (await self.db.execute(
             select(User.id, User.name, User.email)
             .where(
@@ -940,7 +944,7 @@ class AdminReportService:
                     .where(
                         UserRole.user_id == User.id,
                         Role.company_id == company_id,
-                        Role.slug == "waiter",
+                        Role.slug.in_(["waiter", "cashier"]),
                         Role.is_system.is_(False),
                     )
                 ),

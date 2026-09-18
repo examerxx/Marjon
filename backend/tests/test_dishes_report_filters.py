@@ -406,26 +406,49 @@ async def _assert_waiter_metadata_uses_current_company_roles(client, sessions):
     waiter_a_email = f"zero-order-waiter-a-{suffix}@example.com"
     cashier_a_email = f"cashier-only-a-{suffix}@example.com"
     waiter_b_email = f"foreign-waiter-b-{suffix}@example.com"
+    cashier_b_email = f"foreign-cashier-b-{suffix}@example.com"
+    kitchen_a_email = f"kitchen-a-{suffix}@example.com"
+    inactive_cashier_a_email = f"inactive-cashier-a-{suffix}@example.com"
     waiter_a = await _create_staff(
         client, a_headers, email=waiter_a_email, role_slug="waiter"
     )
     cashier_a = await _create_staff(
         client, a_headers, email=cashier_a_email, role_slug="cashier"
     )
+    kitchen_a = await _create_staff(
+        client, a_headers, email=kitchen_a_email, role_slug="kitchen"
+    )
+    inactive_cashier_a = await _create_staff(
+        client, a_headers, email=inactive_cashier_a_email, role_slug="cashier"
+    )
     waiter_b = await _create_staff(
         client, b_headers, email=waiter_b_email, role_slug="waiter"
     )
+    cashier_b = await _create_staff(
+        client, b_headers, email=cashier_b_email, role_slug="cashier"
+    )
+    async with sessions() as db:
+        inactive_user = await db.get(User, UUID(inactive_cashier_a["id"]))
+        inactive_user.is_active = False
+        await db.commit()
 
     metadata_before_orders = await client.get(
         "/reports/dishes/filters", headers=a_headers
     )
     assert metadata_before_orders.status_code == 200, metadata_before_orders.text
     authors = metadata_before_orders.json()["authors"]
-    assert authors == [{"value": waiter_a["id"], "label": waiter_a_email}]
-    assert cashier_a["id"] not in metadata_before_orders.text
-    assert cashier_a_email not in metadata_before_orders.text
-    assert waiter_b["id"] not in metadata_before_orders.text
-    assert waiter_b_email not in metadata_before_orders.text
+    # Product rule: active same-company waiters AND cashiers are offered with
+    # no order history required; everyone else is excluded.
+    assert {row["value"] for row in authors} == {waiter_a["id"], cashier_a["id"]}
+    assert {row["label"] for row in authors} == {waiter_a_email, cashier_a_email}
+    for excluded_id, excluded_email in (
+        (kitchen_a["id"], kitchen_a_email),
+        (inactive_cashier_a["id"], inactive_cashier_a_email),
+        (waiter_b["id"], waiter_b_email),
+        (cashier_b["id"], cashier_b_email),
+    ):
+        assert excluded_id not in metadata_before_orders.text
+        assert excluded_email not in metadata_before_orders.text
 
     ids = {name: uuid4() for name in ("branch", "category", "product", "order")}
     async with sessions() as db:
@@ -464,6 +487,44 @@ async def _assert_waiter_metadata_uses_current_company_roles(client, sessions):
     )
     assert filtered.status_code == 200, filtered.text
     assert [row["product_id"] for row in filtered.json()["rows"]] == [str(ids["product"])]
+
+    # The order-author predicate is unchanged: a cashier-created order still
+    # matches author_id == cashier (Payment.cashier_id is NOT consulted), while
+    # an unrelated-role user truthfully matches nothing.
+    cashier_order_id = uuid4()
+    async with sessions() as db:
+        db.add(Order(
+            id=cashier_order_id, company_id=company_a, branch_id=ids["branch"],
+            waiter_id=UUID(cashier_a["id"]), order_number="CASHIER-AUTHORED",
+            order_type="dine_in", status="completed",
+            subtotal=Decimal("75"), total_amount=Decimal("75"),
+        ))
+        await db.flush()
+        db.add(OrderItem(
+            order_id=cashier_order_id, product_id=ids["product"],
+            name="Waiter Metadata Dish", price=Decimal("75"),
+            quantity=Decimal("1"), total=Decimal("75"),
+        ))
+        await db.commit()
+
+    cashier_filtered = await client.get(
+        "/reports/dishes",
+        headers=a_headers,
+        params={"author_id": cashier_a["id"]},
+    )
+    assert cashier_filtered.status_code == 200, cashier_filtered.text
+    assert [row["product_id"] for row in cashier_filtered.json()["rows"]] == [str(ids["product"])]
+
+    kitchen_filtered = await client.get(
+        "/reports/dishes",
+        headers=a_headers,
+        params={"author_id": kitchen_a["id"]},
+    )
+    assert kitchen_filtered.status_code == 200, kitchen_filtered.text
+    assert kitchen_filtered.json() == {
+        "rows": [],
+        "totals": {"quantity": "0", "amount": "0.00"},
+    }
 
 
 @pytest.mark.asyncio
