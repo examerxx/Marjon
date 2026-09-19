@@ -327,7 +327,7 @@ class AdminReportService:
         query = (
             select(
                 Order.id, Order.order_number, Order.created_at,
-                Order.status, Order.table_number,
+                Order.status, Order.table_number, Order.order_type,
                 User.name.label("waiter_name"),
                 items_count.label("items_count"),
                 Order.total_amount,
@@ -362,10 +362,13 @@ class AdminReportService:
                 waiter_has_company_role,
             )
         if cashier_id:
-            # Accounting attribution is UNCHANGED: the order must carry a payment
-            # taken by one of the selected cashiers. The role guard is correlated to
-            # that payment's own Payment.cashier_id — the ACTUALLY attributed cashier
-            # — so the guard follows the attribution instead of the selection.
+            # Aligned with cashier_names row attribution (Variant A): the order
+            # must carry a COMPLETED payment taken by one of the selected
+            # cashiers. Pending/failed/refunded payments and NULL (gateway)
+            # cashiers never match. The role guard is correlated to that
+            # payment's own Payment.cashier_id — the ACTUALLY attributed
+            # cashier — so the guard follows the attribution instead of the
+            # selection.
             attributed_cashier_has_role = exists(
                 select(UserRole.id)
                 .join(Role, Role.id == UserRole.role_id)
@@ -381,6 +384,7 @@ class AdminReportService:
                     select(Payment.id).where(
                         Payment.company_id == company_id,
                         Payment.order_id == Order.id,
+                        Payment.status == "completed",
                         Payment.cashier_id.in_(list(cashier_id)),
                         attributed_cashier_has_role,
                     )
@@ -418,15 +422,69 @@ class AdminReportService:
             )
         query = self._order_date_filter(query, date_from, date_to)
         rows = (await self.db.execute(query)).all()
+        cashier_names = await self._order_cashier_names(
+            company_id, [r.id for r in rows]
+        )
         return [
             OrderReportRow(
                 order_id=r.id, order_number=r.order_number,
                 created_at=r.created_at, status=r.status,
                 table_number=r.table_number, waiter_name=r.waiter_name,
                 items_count=r.items_count, total_amount=Decimal(str(r.total_amount or 0)),
+                order_type=r.order_type,
+                cashier_names=cashier_names.get(r.id, []),
             )
             for r in rows
         ]
+
+    async def _order_cashier_names(
+        self, company_id: UUID, order_ids: Sequence[UUID]
+    ) -> dict[UUID, list[str]]:
+        """Variant A cashier attribution for one Orders report page.
+
+        Кассир = ALL UNIQUE authenticated cashiers on the order's COMPLETED
+        payments (Payment.cashier_id → same-company User display name).
+        Gateway/system payments (cashier_id NULL), unpaid orders, and
+        non-completed payments contribute nothing; waiter is never consulted.
+        One bounded query for the whole page (never per-row), ordered by first
+        completed-payment occurrence (created_at, id) with per-order
+        first-seen dedup — so one order always yields one name list and the
+        main query can never multiply rows.
+        """
+        if not order_ids:
+            return {}
+        pay_rows = (
+            await self.db.execute(
+                select(
+                    Payment.order_id,
+                    func.coalesce(User.name, User.email).label("cashier_name"),
+                    Payment.created_at,
+                    Payment.id,
+                )
+                .join(
+                    User,
+                    and_(
+                        User.id == Payment.cashier_id,
+                        User.company_id == company_id,
+                    ),
+                )
+                .where(
+                    Payment.company_id == company_id,
+                    Payment.status == "completed",
+                    Payment.cashier_id.is_not(None),
+                    Payment.order_id.in_(list(order_ids)),
+                )
+                .order_by(Payment.created_at.asc(), Payment.id.asc())
+            )
+        ).all()
+        by_order: dict[UUID, list[str]] = {}
+        for row in pay_rows:
+            if row.cashier_name is None:
+                continue
+            names = by_order.setdefault(row.order_id, [])
+            if row.cashier_name not in names:
+                names.append(row.cashier_name)
+        return by_order
 
     async def tables_report(
         self,

@@ -14,6 +14,12 @@ class OrderReportRow(BaseModel):
     waiter_name: str | None
     items_count: int
     total_amount: Decimal
+    # REPORTS-EXCEL-02 additive truth (no migration: both derive from existing
+    # columns). order_type is the stored canonical enum value, never a label.
+    # cashier_names lists EVERY unique authenticated cashier attributed to the
+    # order's COMPLETED payments (Variant A product rule) — [] when none.
+    order_type: str
+    cashier_names: list[str] = []
 
 
 class TableOrderSummary(BaseModel):
