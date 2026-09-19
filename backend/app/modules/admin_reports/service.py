@@ -330,7 +330,7 @@ class AdminReportService:
                 Order.status, Order.table_number, Order.order_type,
                 User.name.label("waiter_name"),
                 items_count.label("items_count"),
-                Order.total_amount,
+                Order.total_amount, Order.service_fee,
             )
             .outerjoin(
                 User,
@@ -409,20 +409,24 @@ class AdminReportService:
         if order_status:
             query = query.where(Order.status.in_(list(order_status)))
         if payment_method:
-            # Unchanged semantic, widened: the order has a payment whose method is one
-            # of the selected ones.
+            # Aligned with payment_methods row attribution (Variant A): the
+            # order must carry a COMPLETED payment with one of the selected
+            # methods. Pending/failed/refunded payments never match.
+            # cashier_id is never required — a completed gateway payment with
+            # cashier_id NULL still matches its method.
             query = query.where(
                 exists(
                     select(Payment.id).where(
                         Payment.company_id == company_id,
                         Payment.order_id == Order.id,
+                        Payment.status == "completed",
                         Payment.method.in_(list(payment_method)),
                     )
                 )
             )
         query = self._order_date_filter(query, date_from, date_to)
         rows = (await self.db.execute(query)).all()
-        cashier_names = await self._order_cashier_names(
+        cashier_names, payment_methods = await self._order_payment_attribution(
             company_id, [r.id for r in rows]
         )
         return [
@@ -433,35 +437,47 @@ class AdminReportService:
                 items_count=r.items_count, total_amount=Decimal(str(r.total_amount or 0)),
                 order_type=r.order_type,
                 cashier_names=cashier_names.get(r.id, []),
+                service_fee=Decimal(str(r.service_fee if r.service_fee is not None else 0)),
+                payment_methods=payment_methods.get(r.id, []),
             )
             for r in rows
         ]
 
-    async def _order_cashier_names(
+    async def _order_payment_attribution(
         self, company_id: UUID, order_ids: Sequence[UUID]
-    ) -> dict[UUID, list[str]]:
-        """Variant A cashier attribution for one Orders report page.
+    ) -> tuple[dict[UUID, list[str]], dict[UUID, list[str]]]:
+        """Variant A payment attribution for one Orders report page.
 
-        Кассир = ALL UNIQUE authenticated cashiers on the order's COMPLETED
-        payments (Payment.cashier_id → same-company User display name).
-        Gateway/system payments (cashier_id NULL), unpaid orders, and
-        non-completed payments contribute nothing; waiter is never consulted.
-        One bounded query for the whole page (never per-row), ordered by first
-        completed-payment occurrence (created_at, id) with per-order
-        first-seen dedup — so one order always yields one name list and the
-        main query can never multiply rows.
+        Returns (cashier_names, payment_methods), both derived from the SAME
+        single bounded query over the orders' COMPLETED payments:
+
+        Кассир = ALL UNIQUE authenticated cashiers on COMPLETED payments
+        (Payment.cashier_id → same-company User display name). Gateway/system
+        payments (cashier_id NULL), unpaid orders, and non-completed payments
+        contribute no name; waiter is never consulted.
+
+        Тип оплаты = ALL UNIQUE raw Payment.method values on COMPLETED
+        payments (never labels). A completed gateway payment with
+        cashier_id NULL still contributes its method — method attribution is
+        logically independent from cashier attribution.
+
+        One bounded query for the whole page (never per-row), ordered by
+        first completed-payment occurrence (created_at, id) with per-order
+        first-seen dedup — so one order always yields one name list and one
+        method list, and the main query can never multiply rows.
         """
         if not order_ids:
-            return {}
+            return {}, {}
         pay_rows = (
             await self.db.execute(
                 select(
                     Payment.order_id,
                     func.coalesce(User.name, User.email).label("cashier_name"),
+                    Payment.method,
                     Payment.created_at,
                     Payment.id,
                 )
-                .join(
+                .outerjoin(
                     User,
                     and_(
                         User.id == Payment.cashier_id,
@@ -471,20 +487,23 @@ class AdminReportService:
                 .where(
                     Payment.company_id == company_id,
                     Payment.status == "completed",
-                    Payment.cashier_id.is_not(None),
                     Payment.order_id.in_(list(order_ids)),
                 )
                 .order_by(Payment.created_at.asc(), Payment.id.asc())
             )
         ).all()
-        by_order: dict[UUID, list[str]] = {}
+        cashier_names: dict[UUID, list[str]] = {}
+        payment_methods: dict[UUID, list[str]] = {}
         for row in pay_rows:
-            if row.cashier_name is None:
-                continue
-            names = by_order.setdefault(row.order_id, [])
-            if row.cashier_name not in names:
-                names.append(row.cashier_name)
-        return by_order
+            if row.cashier_name is not None:
+                names = cashier_names.setdefault(row.order_id, [])
+                if row.cashier_name not in names:
+                    names.append(row.cashier_name)
+            if row.method is not None:
+                methods = payment_methods.setdefault(row.order_id, [])
+                if row.method not in methods:
+                    methods.append(row.method)
+        return cashier_names, payment_methods
 
     async def tables_report(
         self,

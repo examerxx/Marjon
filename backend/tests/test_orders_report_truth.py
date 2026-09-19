@@ -45,7 +45,8 @@ async def _staff(client, owner_headers, sessions, *, email: str, role: str, name
 
 
 async def _order(sessions, *, company_id, branch_id, number, waiter_id=None,
-                 order_type="dine_in", status="completed", created_at=None):
+                  order_type="dine_in", status="completed", created_at=None,
+                  service_fee=Decimal("0")):
     oid = uuid4()
     async with sessions() as db:
         order = Order(
@@ -54,6 +55,7 @@ async def _order(sessions, *, company_id, branch_id, number, waiter_id=None,
             order_type=order_type, status=status,
             table_number="7",
             subtotal=Decimal("100"), total_amount=Decimal("100"),
+            service_fee=service_fee,
         )
         if created_at is not None:
             order.created_at = created_at
@@ -63,12 +65,12 @@ async def _order(sessions, *, company_id, branch_id, number, waiter_id=None,
 
 
 async def _payment(sessions, *, company_id, order_id, cashier_id,
-                   status="completed", created_at=None):
+                    status="completed", created_at=None, method="cash"):
     pid = uuid4()
     async with sessions() as db:
         payment = Payment(
             id=pid, company_id=company_id, order_id=order_id,
-            amount=Decimal("100"), method="cash", status=status,
+            amount=Decimal("100"), method=method, status=status,
             cashier_id=cashier_id,
         )
         if created_at is not None:
@@ -619,3 +621,442 @@ async def test_orders_report_preserves_existing_contract(client, db_engine):
     assert Decimal(str(row["total_amount"])) == Decimal("100")
     assert row["order_type"] == "delivery"
     assert row["cashier_names"] == []
+    assert Decimal(str(row["service_fee"])) == Decimal("0")
+    assert row["payment_methods"] == []
+
+
+@pytest.mark.asyncio
+async def test_service_fee_zero_returns_numeric_zero(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"fee-0-{suffix}", email=f"fee-0-{suffix}@example.com",
+    )
+    await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="FEE-0", service_fee=Decimal("0"),
+    )
+    rows = await _report(client, ctx["headers"])
+    # Zero is returned as numeric zero — never NULL, never a dash.
+    assert Decimal(str(rows["FEE-0"]["service_fee"])) == Decimal("0")
+
+
+@pytest.mark.asyncio
+async def test_service_fee_positive_passes_through_exactly(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"fee-1-{suffix}", email=f"fee-1-{suffix}@example.com",
+    )
+    await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="FEE-1", service_fee=Decimal("12.50"),
+    )
+    rows = await _report(client, ctx["headers"])
+    row = rows["FEE-1"]
+    # Stored value passes through verbatim; total stays untouched.
+    assert Decimal(str(row["service_fee"])) == Decimal("12.50")
+    assert Decimal(str(row["total_amount"])) == Decimal("100")
+    # Not a formatted string or a recomputed value.
+    assert isinstance(row["service_fee"], (int, float, str))
+    assert "UZS" not in str(row["service_fee"])
+
+
+@pytest.mark.asyncio
+async def test_payment_methods_single_completed_method(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"pm-1-{suffix}", email=f"pm-1-{suffix}@example.com",
+    )
+    oid = await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="PM-1",
+    )
+    await _payment(
+        ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+        cashier_id=None, method="payme",
+    )
+    rows = await _report(client, ctx["headers"])
+    assert rows["PM-1"]["payment_methods"] == ["payme"]
+
+
+@pytest.mark.asyncio
+async def test_payment_methods_duplicate_method_deduped(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"pm-2-{suffix}", email=f"pm-2-{suffix}@example.com",
+    )
+    oid = await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="PM-2",
+    )
+    for hour in (9, 11):
+        await _payment(
+            ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+            cashier_id=None, method="cash", created_at=_dt(hour),
+        )
+    rows = await _report(client, ctx["headers"])
+    assert rows["PM-2"]["payment_methods"] == ["cash"]
+
+
+@pytest.mark.asyncio
+async def test_payment_methods_two_different_methods_both_preserved(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"pm-3-{suffix}", email=f"pm-3-{suffix}@example.com",
+    )
+    oid = await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="PM-3",
+    )
+    await _payment(
+        ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+        cashier_id=None, method="cash", created_at=_dt(9),
+    )
+    await _payment(
+        ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+        cashier_id=None, method="payme", created_at=_dt(11),
+    )
+    rows = await _report(client, ctx["headers"])
+    # First-occurrence order, both preserved — never first-only.
+    assert rows["PM-3"]["payment_methods"] == ["cash", "payme"]
+
+
+@pytest.mark.asyncio
+async def test_payment_methods_non_completed_are_ignored(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"pm-4-{suffix}", email=f"pm-4-{suffix}@example.com",
+    )
+    oid = await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="PM-4",
+    )
+    await _payment(
+        ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+        cashier_id=None, method="cash",
+    )
+    for method, status in (
+        ("payme", "pending"), ("click", "failed"), ("uzum", "refunded"),
+    ):
+        await _payment(
+            ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+            cashier_id=None, method=method, status=status,
+        )
+    rows = await _report(client, ctx["headers"])
+    assert rows["PM-4"]["payment_methods"] == ["cash"]
+
+
+@pytest.mark.asyncio
+async def test_payment_methods_no_completed_payment_is_empty(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"pm-5-{suffix}", email=f"pm-5-{suffix}@example.com",
+    )
+    oid = await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="PM-5",
+    )
+    await _payment(
+        ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+        cashier_id=None, method="payme", status="pending",
+    )
+    rows = await _report(client, ctx["headers"])
+    assert rows["PM-5"]["payment_methods"] == []
+
+
+@pytest.mark.asyncio
+async def test_payment_methods_gateway_null_cashier_still_counts(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"pm-6-{suffix}", email=f"pm-6-{suffix}@example.com",
+    )
+    oid = await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="PM-6",
+    )
+    await _payment(
+        ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+        cashier_id=None, method="click",
+    )
+    rows = await _report(client, ctx["headers"])
+    row = rows["PM-6"]
+    # cashier_id NULL contributes no name but its method is truthful.
+    assert row["cashier_names"] == []
+    assert row["payment_methods"] == ["click"]
+
+
+@pytest.mark.asyncio
+async def test_payment_methods_independent_from_cashier_names(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"pm-7-{suffix}", email=f"pm-7-{suffix}@example.com",
+    )
+    cashier = await _staff(
+        client, ctx["headers"], ctx["sessions"],
+        email=f"pc-{suffix}@example.com", role="cashier", name="Кассир",
+    )
+    oid = await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="PM-7",
+    )
+    await _payment(
+        ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+        cashier_id=cashier, method="cash", created_at=_dt(9),
+    )
+    await _payment(
+        ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+        cashier_id=None, method="payme", created_at=_dt(11),
+    )
+    rows = await _report(client, ctx["headers"])
+    row = rows["PM-7"]
+    assert row["cashier_names"] == ["Кассир"]
+    assert row["payment_methods"] == ["cash", "payme"]
+
+
+@pytest.mark.asyncio
+async def test_payment_methods_multiple_payments_keep_single_row(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"pm-8-{suffix}", email=f"pm-8-{suffix}@example.com",
+    )
+    oid = await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="PM-8",
+    )
+    for hour, method in ((9, "cash"), (11, "payme"), (13, "cash")):
+        await _payment(
+            ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+            cashier_id=None, method=method, created_at=_dt(hour),
+        )
+    rows = await _report(client, ctx["headers"])
+    assert list(rows) == ["PM-8"]
+    assert rows["PM-8"]["payment_methods"] == ["cash", "payme"]
+
+
+@pytest.mark.asyncio
+async def test_payment_methods_cross_company_does_not_leak(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx_a = await _setup(
+        client, db_engine,
+        slug=f"pm-a-{suffix}", email=f"pm-a-{suffix}@example.com",
+    )
+    ctx_b = await _setup(
+        client, db_engine,
+        slug=f"pm-b-{suffix}", email=f"pm-b-{suffix}@example.com",
+    )
+    foreign_cashier = await _staff(
+        client, ctx_b["headers"], ctx_b["sessions"],
+        email=f"pl-{suffix}@example.com", role="cashier", name="Чужой Секрет",
+    )
+    oid = await _order(
+        ctx_a["sessions"], company_id=ctx_a["company_id"],
+        branch_id=ctx_a["branch_id"], number="PM-9",
+    )
+    # Same-company payment row pointing at B's cashier: its method counts
+    # (attribution follows the payment's own company), but the foreign name
+    # must never leak into A's report — and B sees nothing of A's order.
+    await _payment(
+        ctx_a["sessions"], company_id=ctx_a["company_id"], order_id=oid,
+        cashier_id=foreign_cashier, method="cash",
+    )
+    rows_a = await _report(client, ctx_a["headers"])
+    assert rows_a["PM-9"]["payment_methods"] == ["cash"]
+    assert rows_a["PM-9"]["cashier_names"] == []
+    assert "Чужой Секрет" not in str(rows_a)
+    rows_b = await _report(client, ctx_b["headers"])
+    assert "PM-9" not in rows_b
+
+
+async def _report_numbers(client, headers, params):
+    response = await client.get("/reports/orders", headers=headers, params=params)
+    assert response.status_code == 200, response.text
+    return {row["order_number"]: row for row in response.json()}
+
+
+@pytest.mark.asyncio
+async def test_payment_filter_completed_cash_included(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"pf-1-{suffix}", email=f"pf-1-{suffix}@example.com",
+    )
+    oid = await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="PF-1",
+    )
+    await _payment(
+        ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+        cashier_id=None, method="cash",
+    )
+    rows = await _report_numbers(client, ctx["headers"], {"payment_method": "cash"})
+    assert list(rows) == ["PF-1"]
+    assert rows["PF-1"]["payment_methods"] == ["cash"]
+
+
+@pytest.mark.asyncio
+async def test_payment_filter_pending_failed_refunded_excluded(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"pf-2-{suffix}", email=f"pf-2-{suffix}@example.com",
+    )
+    cases = (("PF-PEND", "pending"), ("PF-FAIL", "failed"), ("PF-REF", "refunded"))
+    for number, status in cases:
+        oid = await _order(
+            ctx["sessions"], company_id=ctx["company_id"],
+            branch_id=ctx["branch_id"], number=number,
+        )
+        await _payment(
+            ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+            cashier_id=None, method="payme", status=status,
+        )
+    rows = await _report_numbers(client, ctx["headers"], {"payment_method": "payme"})
+    assert rows == {}
+    # Unfiltered, all three rows exist with empty attribution.
+    all_rows = await _report(client, ctx["headers"])
+    assert sorted(all_rows) == ["PF-FAIL", "PF-PEND", "PF-REF"]
+    assert all(all_rows[n]["payment_methods"] == [] for n in all_rows)
+
+
+@pytest.mark.asyncio
+async def test_payment_filter_gateway_null_cashier_included(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"pf-3-{suffix}", email=f"pf-3-{suffix}@example.com",
+    )
+    oid = await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="PF-3",
+    )
+    await _payment(
+        ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+        cashier_id=None, method="payme",
+    )
+    rows = await _report_numbers(client, ctx["headers"], {"payment_method": "payme"})
+    assert list(rows) == ["PF-3"]
+    assert rows["PF-3"]["payment_methods"] == ["payme"]
+    assert rows["PF-3"]["cashier_names"] == []
+
+
+@pytest.mark.asyncio
+async def test_payment_filter_mixed_pending_and_completed(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"pf-4-{suffix}", email=f"pf-4-{suffix}@example.com",
+    )
+    oid = await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="PF-4",
+    )
+    await _payment(
+        ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+        cashier_id=None, method="payme", status="pending",
+        created_at=_dt(9),
+    )
+    await _payment(
+        ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+        cashier_id=None, method="cash", created_at=_dt(11),
+    )
+    # Pending payme alone never matches its own method filter.
+    assert await _report_numbers(
+        client, ctx["headers"], {"payment_method": "payme"}) == {}
+    # Completed cash matches and attribution reflects completed truth only.
+    rows = await _report_numbers(client, ctx["headers"], {"payment_method": "cash"})
+    assert list(rows) == ["PF-4"]
+    assert rows["PF-4"]["payment_methods"] == ["cash"]
+
+
+@pytest.mark.asyncio
+async def test_payment_filter_multi_select_or_single_row(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"pf-5-{suffix}", email=f"pf-5-{suffix}@example.com",
+    )
+    oid = await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="PF-5",
+    )
+    await _payment(
+        ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+        cashier_id=None, method="cash", created_at=_dt(9),
+    )
+    await _payment(
+        ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+        cashier_id=None, method="payme", created_at=_dt(11),
+    )
+    # OR-within-dimension: one order matches either/both selections, still one row.
+    rows = await _report_numbers(
+        client, ctx["headers"],
+        [("payment_method", "cash"), ("payment_method", "payme")],
+    )
+    assert list(rows) == ["PF-5"]
+    assert rows["PF-5"]["payment_methods"] == ["cash", "payme"]
+
+
+@pytest.mark.asyncio
+async def test_payment_filter_cross_company_cannot_match(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx_a = await _setup(
+        client, db_engine,
+        slug=f"pf-a-{suffix}", email=f"pf-a-{suffix}@example.com",
+    )
+    ctx_b = await _setup(
+        client, db_engine,
+        slug=f"pf-b-{suffix}", email=f"pf-b-{suffix}@example.com",
+    )
+    oid = await _order(
+        ctx_a["sessions"], company_id=ctx_a["company_id"],
+        branch_id=ctx_a["branch_id"], number="PF-6",
+    )
+    await _payment(
+        ctx_a["sessions"], company_id=ctx_a["company_id"], order_id=oid,
+        cashier_id=None, method="uzum",
+    )
+    # B's company scope can never match A's completed payment.
+    assert await _report_numbers(
+        client, ctx_b["headers"], {"payment_method": "uzum"}) == {}
+    rows_a = await _report_numbers(
+        client, ctx_a["headers"], {"payment_method": "uzum"})
+    assert list(rows_a) == ["PF-6"]
+
+
+@pytest.mark.asyncio
+async def test_payment_filter_combines_and_with_other_dimensions(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"pf-7-{suffix}", email=f"pf-7-{suffix}@example.com",
+    )
+    waiter = await _staff(
+        client, ctx["headers"], ctx["sessions"],
+        email=f"pw-{suffix}@example.com", role="waiter", name="Официант",
+    )
+    for number, order_type in (("PF-7A", "dine_in"), ("PF-7B", "delivery")):
+        oid = await _order(
+            ctx["sessions"], company_id=ctx["company_id"],
+            branch_id=ctx["branch_id"], number=number, waiter_id=waiter,
+            order_type=order_type, status="ready",
+        )
+        await _payment(
+            ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+            cashier_id=None, method="cash",
+        )
+    response = await client.get(
+        "/reports/orders", headers=ctx["headers"],
+        params={"payment_method": "cash", "order_type": "delivery",
+                "order_status": "ready"},
+    )
+    assert response.status_code == 200, response.text
+    assert [r["order_number"] for r in response.json()] == ["PF-7B"]

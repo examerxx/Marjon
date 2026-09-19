@@ -20,6 +20,14 @@ class OrderReportRow(BaseModel):
     # order's COMPLETED payments (Variant A product rule) — [] when none.
     order_type: str
     cashier_names: list[str] = []
+    # REPORTS-EXCEL-02 final Excel truth (additive, no migration: both derive
+    # from existing columns). service_fee is the STORED per-order service
+    # charge (Order.service_fee, part of total_amount) — numeric passthrough,
+    # never recomputed, never a display string; 0 means no service charge.
+    # payment_methods lists EVERY unique Payment.method on the order's
+    # COMPLETED payments only (raw values, never labels) — [] when none.
+    service_fee: Decimal
+    payment_methods: list[str] = []
 
 
 class TableOrderSummary(BaseModel):
