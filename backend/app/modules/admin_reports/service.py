@@ -326,8 +326,9 @@ class AdminReportService:
         )
         query = (
             select(
-                Order.id, Order.order_number, Order.created_at,
-                Order.status, Order.table_number, Order.order_type,
+                Order.id, Order.public_id, Order.order_number, Order.created_at,
+                Order.status, Order.table_number, Order.hall_name_snapshot,
+                Order.order_type,
                 User.name.label("waiter_name"),
                 items_count.label("items_count"),
                 Order.total_amount, Order.service_fee,
@@ -431,9 +432,10 @@ class AdminReportService:
         )
         return [
             OrderReportRow(
-                order_id=r.id, order_number=r.order_number,
+                order_id=r.id, public_id=r.public_id, order_number=r.order_number,
                 created_at=r.created_at, status=r.status,
-                table_number=r.table_number, waiter_name=r.waiter_name,
+                table_number=r.table_number, hall_name=r.hall_name_snapshot,
+                waiter_name=r.waiter_name,
                 items_count=r.items_count, total_amount=Decimal(str(r.total_amount or 0)),
                 order_type=r.order_type,
                 cashier_names=cashier_names.get(r.id, []),

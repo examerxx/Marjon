@@ -14,8 +14,28 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 # Importing app.main registers every module's models on Base.metadata.
 from app.main import app
 from app.infrastructure.database.session import get_db
+from app.modules.pos.models import Order
 from app.modules.rbac.permissions import seed_permissions
 from app.shared.base_model import Base
+
+# ORDERS-TRUTH-01: orders.public_id is NOT NULL in the model AND the production
+# DB (per-company identity, assigned by OrderService.create — the only
+# production creator). Many test files insert Order rows DIRECTLY (bypassing the
+# service) to set up report/z-report fixtures; those inserts legitimately omit
+# public_id. Rather than thread an explicit id through ~42 call sites, this one
+# shared before_insert hook stamps a deterministic, high-range public_id ONLY
+# when a test leaves it unset. It never fires for service-created orders (they
+# always assign public_id first), and the high 90000000+ range with a per-row
+# counter cannot collide with the service's 10000000-based per-company values
+# within any test. Test-only: registered here in conftest, never in app code.
+_TEST_PUBLIC_ID = [90_000_000]
+
+
+@event.listens_for(Order, "before_insert")
+def _assign_test_public_id(_mapper, _connection, target):  # pragma: no cover - test harness
+    if getattr(target, "public_id", None) is None:
+        target.public_id = _TEST_PUBLIC_ID[0]
+        _TEST_PUBLIC_ID[0] += 1
 
 
 @pytest_asyncio.fixture(autouse=True)

@@ -14,7 +14,9 @@ from app.modules.halls.models import Hall, Table
 from app.modules.inventory.models import Product
 from app.modules.kitchen.websocket import kitchen_manager
 from app.modules.audit.service import AuditService
-from app.modules.pos.models import Order, OrderItem, PosTerminal, CashierShift
+from app.modules.pos.models import (
+    Order, OrderItem, OrderNumberCounter, OrderPublicIdCounter, PosTerminal, CashierShift,
+)
 from app.modules.pos.repository import OrderRepository, OrderItemRepository, TerminalRepository
 from app.modules.pos.schemas import (
     OrderCreate, OrderItemCreate, OrderStatusUpdate,
@@ -82,22 +84,32 @@ class OrderService:
         # table_number snapshot. Otherwise fall back to the legacy free-text number.
         table_id = None
         table_number = data.table_number
+        hall_name_snapshot = None
         if data.table_id is not None:
             table = await self._resolve_table(company_id, data.table_id, data.branch_id)
             table_id = table.id
             table_number = str(table.number)
-        order_number = await self._generate_daily_number(company_id, data.branch_id)
+            # ORDERS-TRUTH-01: freeze the hall NAME at creation. Read once here,
+            # never re-resolved by the report — a later rename/archival can't
+            # alter this historical value.
+            hall_name_snapshot = await self._resolve_hall_name(table.hall_id)
+        # ORDERS-TRUTH-01 numbering: plain 1..N per company+branch+local day.
+        order_number, order_local_date = await self._generate_order_number(company_id, data.branch_id)
+        public_id = await self._next_public_id(company_id)
 
         order = Order(
             company_id=company_id,
             waiter_id=waiter_id,
+            public_id=public_id,
             order_number=order_number,
+            order_local_date=order_local_date,
             branch_id=data.branch_id,
             terminal_id=data.terminal_id,
             customer_id=data.customer_id,
             order_type=data.order_type,
             table_id=table_id,
             table_number=table_number,
+            hall_name_snapshot=hall_name_snapshot,
             persons_count=data.persons_count,
             note=data.note,
         )
@@ -328,10 +340,18 @@ class OrderService:
         if table_id_provided:
             if data.table_id is None:
                 order.table_id = None
+                # Detaching the table clears the hall snapshot — the order no
+                # longer belongs to any hall. (The table_number snapshot follows
+                # its existing retain-unless-explicitly-changed semantics below.)
+                order.hall_name_snapshot = None
             else:
                 table = await self._resolve_table(company_id, data.table_id, order.branch_id)
                 order.table_id = table.id
                 order.table_number = str(table.number)
+                # Keep the place snapshot consistent with the table the order is
+                # now linked to (same re-stamp semantics as table_number above).
+                # A later hall RENAME still never mutates this frozen value.
+                order.hall_name_snapshot = await self._resolve_hall_name(table.hall_id)
         if data.persons_count is not None:
             order.persons_count = data.persons_count
 
@@ -368,38 +388,94 @@ class OrderService:
 
         order.total_amount = _quantize(after_discount + order.tax_amount + order.service_fee)
 
-    async def _generate_daily_number(self, company_id: UUID, branch_id: UUID) -> str:
-        """Generate daily order number: YYYYMMDD-NNNN (serialized via advisory lock)."""
+    async def _company_local_today(self, company_id: UUID) -> date:
+        """The company-local calendar date right now (default Asia/Tashkent)."""
         tz_str = await self._get_company_timezone(company_id)
         try:
             tz = ZoneInfo(tz_str)
         except (ZoneInfoNotFoundError, KeyError):
             tz = ZoneInfo("Asia/Tashkent")
+        return datetime.now(tz).date()
 
-        now_local = datetime.now(tz)
-        today_local = now_local.date()
+    async def _generate_order_number(self, company_id: UUID, branch_id: UUID) -> tuple[str, date]:
+        """ORDERS-TRUTH-01 human order number: plain "1","2","3"…, resetting every
+        company-local calendar day, scoped per company + branch. Each branch numbers
+        independently; the next local day starts again at 1.
 
-        # Serialize concurrent requests for the same company/branch/day
+        Concurrency-safe by construction: a pg_advisory_xact_lock keyed on
+        company:branch:local_date serializes the read-modify-write of the durable
+        OrderNumberCounter row (SQLite tests run single-connection and stub the lock
+        as a no-op). The counter's composite unique + the Order partial-unique
+        backstop guarantee no duplicate survives even if the lock is bypassed. This
+        replaces the old COUNT(*)+1 scheme (which double-counted on deletes and had
+        no durable state).
+        """
+        today_local = await self._company_local_today(company_id)
+
+        # Serialize same company/branch/day generation (no-op stub on SQLite).
         lock_key = int.from_bytes(
             hashlib.sha256(f"{company_id}:{branch_id}:{today_local}".encode()).digest()[:8],
             "big", signed=True,
         )
         await self.db.execute(text("SELECT pg_advisory_xact_lock(:k)").bindparams(k=lock_key))
 
-        # Count in UTC range that corresponds to local calendar day
-        day_start = datetime.combine(today_local, datetime.min.time()).replace(tzinfo=tz).astimezone(timezone.utc)
-        day_end   = datetime.combine(today_local + timedelta(days=1), datetime.min.time()).replace(tzinfo=tz).astimezone(timezone.utc)
-
-        result = await self.db.execute(
-            select(func.count(Order.id)).where(
-                Order.company_id == company_id,
-                Order.branch_id == branch_id,
-                Order.created_at >= day_start,
-                Order.created_at < day_end,
+        counter = (
+            await self.db.execute(
+                select(OrderNumberCounter).where(
+                    OrderNumberCounter.company_id == company_id,
+                    OrderNumberCounter.branch_id == branch_id,
+                    OrderNumberCounter.local_date == today_local,
+                )
             )
+        ).scalar_one_or_none()
+        if counter is None:
+            counter = OrderNumberCounter(
+                company_id=company_id, branch_id=branch_id,
+                local_date=today_local, last_value=1,
+            )
+            self.db.add(counter)
+        else:
+            counter.last_value += 1
+        await self.db.flush()
+        return str(counter.last_value), today_local
+
+    async def _next_public_id(self, company_id: UUID) -> int:
+        """ORDERS-TRUTH-01 stable PER-COMPANY public numeric id (target 8 digits).
+
+        Each company numbers independently from 10000000 (counter seeded at
+        9999999, first value 10000000; grows to 9+ digits rather than reuse a
+        value). Sourced from the durable per-company OrderPublicIdCounter via an
+        atomic read-modify-write serialized by a pg_advisory_xact_lock on the
+        company (SQLite tests run single-connection and stub the lock as a
+        no-op). The composite UNIQUE(company_id, public_id) on orders is the hard
+        backstop. Never global, never derived from the UUID.
+        """
+        # Serialize same-company generation (no-op stub on SQLite). A dedicated
+        # lock namespace keyed on the company id keeps it independent of the
+        # order-number lock.
+        lock_key = int.from_bytes(
+            hashlib.sha256(f"public_id:{company_id}".encode()).digest()[:8],
+            "big", signed=True,
         )
-        count = result.scalar_one()
-        return f"{today_local.strftime('%Y%m%d')}-{str(count + 1).zfill(4)}"
+        await self.db.execute(text("SELECT pg_advisory_xact_lock(:k)").bindparams(k=lock_key))
+
+        counter = (
+            await self.db.execute(
+                select(OrderPublicIdCounter).where(OrderPublicIdCounter.company_id == company_id)
+            )
+        ).scalar_one_or_none()
+        if counter is None:
+            counter = OrderPublicIdCounter(company_id=company_id, last_value=10_000_000)
+            self.db.add(counter)
+        else:
+            counter.last_value += 1
+        await self.db.flush()
+        return int(counter.last_value)
+
+    async def _resolve_hall_name(self, hall_id: UUID) -> str | None:
+        return (
+            await self.db.execute(select(Hall.name).where(Hall.id == hall_id))
+        ).scalar_one_or_none()
 
     async def _get_company_timezone(self, company_id: UUID) -> str:
         result = await self.db.execute(

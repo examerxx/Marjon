@@ -7,10 +7,19 @@ from pydantic import BaseModel
 
 class OrderReportRow(BaseModel):
     order_id: UUID
+    # ORDERS-TRUTH-01 additive identity. order_id (UUID) is unchanged and remains
+    # the canonical internal/API key. public_id is the stable sequence-backed
+    # numeric business id for display (null only for any un-backfilled legacy row).
+    public_id: int | None = None
     order_number: str
     created_at: datetime
     status: str
     table_number: str | None
+    # ORDERS-TRUTH-01 historical place snapshot (Order.hall_name_snapshot), NOT a
+    # live join — a later hall rename/archival never changes it. Null for tableless
+    # orders and legacy rows whose table_id no longer resolved at backfill. The
+    # frontend composes "<hall_name>, стол <table_number>".
+    hall_name: str | None = None
     waiter_name: str | None
     items_count: int
     total_amount: Decimal
