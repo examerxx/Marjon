@@ -23,6 +23,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from app.modules.admin_reports.schemas import OrderReportRow
 from app.modules.admin_reports.service import AdminReportService
 from app.modules.auth.models import User
 from app.modules.companies.models import Branch
@@ -328,3 +329,53 @@ async def test_legacy_order_number_still_readable_in_report(client, db_engine):
         rows = await AdminReportService(db).orders_report(ctx["company_id"], None, None)
     numbers = {r.order_number for r in rows}
     assert "20260918-0007" in numbers
+
+
+# ── ORDERS-TRUTH-01 API schema parity: public_id is REQUIRED / non-null ──────
+# The ORM column is nullable=False, the canonical DB is NOT NULL (migration
+# backfilled every row), and the sole producer maps it straight from that
+# column — so the report response schema must declare public_id required, not
+# `int | None`. These tests lock that parity (and prove OpenAPI matches).
+
+
+def test_order_report_row_requires_public_id():
+    import pytest as _pytest
+    from pydantic import ValidationError
+    # Constructing without public_id must fail — it is a required field.
+    with _pytest.raises(ValidationError):
+        OrderReportRow(
+            order_id=uuid4(), order_number="1", created_at="2026-09-20T10:00:00",
+            status="new", table_number=None, hall_name=None, waiter_name=None,
+            items_count=0, total_amount="0", order_type="dine_in", service_fee="0",
+        )
+
+
+def test_order_report_row_public_id_schema_is_required_non_null():
+    schema = OrderReportRow.model_json_schema()
+    # Required (not optional-with-default).
+    assert "public_id" in schema["required"]
+    prop = schema["properties"]["public_id"]
+    # Plain integer — no anyOf/null union.
+    assert prop.get("type") == "integer", prop
+    assert "anyOf" not in prop
+
+
+def test_openapi_orders_report_public_id_not_nullable():
+    # Authoritative: the schema FastAPI actually serves for the Orders report.
+    from app.main import app
+    spec = app.openapi()
+    prop = spec["components"]["schemas"]["OrderReportRow"]["properties"]["public_id"]
+    assert prop.get("type") == "integer", prop
+    assert "anyOf" not in prop
+    assert "public_id" in spec["components"]["schemas"]["OrderReportRow"]["required"]
+
+
+def test_order_report_row_contract_fields_intact():
+    # Full additive contract remains present (no field dropped by the fix).
+    props = set(OrderReportRow.model_json_schema()["properties"])
+    for f in [
+        "order_id", "public_id", "order_number", "created_at", "order_type",
+        "hall_name", "table_number", "waiter_name", "cashier_names",
+        "service_fee", "total_amount", "payment_methods", "status",
+    ]:
+        assert f in props, f

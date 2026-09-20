@@ -8,9 +8,12 @@ from pydantic import BaseModel
 class OrderReportRow(BaseModel):
     order_id: UUID
     # ORDERS-TRUTH-01 additive identity. order_id (UUID) is unchanged and remains
-    # the canonical internal/API key. public_id is the stable sequence-backed
-    # numeric business id for display (null only for any un-backfilled legacy row).
-    public_id: int | None = None
+    # the canonical internal/API key. public_id is the stable per-company numeric
+    # business id — REQUIRED / non-null: the ORM column is nullable=False, the
+    # canonical DB is NOT NULL (migration backfilled every existing row), and the
+    # sole producer (orders_report) maps it straight from that column. There is
+    # no path that yields a null public_id, so the API contract matches truth.
+    public_id: int
     order_number: str
     created_at: datetime
     status: str
