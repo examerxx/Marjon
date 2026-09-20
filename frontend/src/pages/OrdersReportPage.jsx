@@ -9,6 +9,7 @@ import { formatDateLabel, todayInputValue } from "../utils/date";
 import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/useAsyncSafety";
 import { toApiDate } from "./reports/reportPeriod";
 import { formatMoney } from "./reports/reportMoney";
+import { paymentMethodLabel } from "./dashboard/analyticsData";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -76,6 +77,58 @@ const ORDER_TYPE_ROWS = [
 
 function curateOrderTypes() {
   return ORDER_TYPE_ROWS;
+}
+
+// REPORTS-EXCEL-02 display resolvers. order_type reuses this page's canonical
+// ORDER_TYPE_ROWS map; unknown future raw values fall back to the raw value
+// (never hidden, never blank). Status reuses the OWNER oracle wording shared
+// with Tables/Cancelled; payment methods reuse the dashboard PaymentType
+// resolver (paymentMethodLabel) with raw-value fallback — never lost.
+function orderTypeLabel(value) {
+  if (value === null || value === undefined || value === "") return "—";
+  return ORDER_TYPE_ROWS.find((row) => row.value === value)?.label || String(value);
+}
+
+const ORDER_STATUS_LABELS = {
+  new: "Новый",
+  accepted: "Принят",
+  cooking: "Готовится",
+  ready: "Готов",
+  completed: "Завершён",
+  cancelled: "Отменён",
+};
+
+function orderStatusLabel(value) {
+  if (value === null || value === undefined || value === "") return "—";
+  return ORDER_STATUS_LABELS[value] || String(value);
+}
+
+function formatCashierNames(names) {
+  const list = (names || []).map((name) => String(name ?? "").trim()).filter(Boolean);
+  return list.length ? list.join(", ") : "—";
+}
+
+function joinPaymentMethods(methods) {
+  const list = (methods || []).map((method) => String(method ?? "").trim()).filter(Boolean);
+  return list.map((method) => paymentMethodLabel(method)).join(", ");
+}
+
+// ORDERS-FRONTEND-TRUTH-01 canonical "Место" formatter — the SINGLE mapping
+// shared by the on-page table cell and the Excel export so UI and workbook
+// cannot drift. Composes ONLY canonical backend values: the historical
+// hall_name snapshot + table_number. Graceful partial states:
+//   both      -> "Основной зал, стол 12"
+//   hall only -> "Основной зал"
+//   table only-> "стол 12"
+//   neither   -> "" (callers apply the report's own empty convention, e.g. "—")
+// Never reconstructs place from live Hall/Table frontend data.
+export function formatPlace(hallName, tableNumber) {
+  const hall = String(hallName ?? "").trim();
+  const table = String(tableNumber ?? "").trim();
+  if (hall && table) return `${hall}, стол ${table}`;
+  if (hall) return hall;
+  if (table) return `стол ${table}`;
+  return "";
 }
 
 function optionLabel(key, value, options) {
@@ -306,14 +359,26 @@ export default function OrdersReportPage() {
         if (!Array.isArray(data)) throw new Error("Invalid orders report response");
         const items = data;
         setRows(items.map((item) => ({
+          // ORDERS-FRONTEND-TRUTH-01: `id` (UUID) stays the internal React key
+          // ONLY. `publicId` is the canonical human-facing order id shown in the
+          // ID column / drawer / Excel — consumed straight from the backend
+          // (integer, per-company, required), never derived from the UUID.
           id: String(item.order_id),
+          publicId: item.public_id,
           orderNumber: String(item.order_number),
           createdAt: item.created_at,
           status: item.status,
           tableNumber: item.table_number,
+          // Canonical historical place snapshot from the backend — never
+          // reconstructed from live Hall/Table data on the frontend.
+          hallName: item.hall_name ?? null,
           waiterName: item.waiter_name,
           itemsCount: Number(item.items_count),
           totalAmount: Number(item.total_amount),
+          orderType: item.order_type ?? null,
+          cashierNames: Array.isArray(item.cashier_names) ? item.cashier_names.map(String) : [],
+          serviceFee: Number(item.service_fee ?? 0),
+          paymentMethods: Array.isArray(item.payment_methods) ? item.payment_methods.map(String) : [],
         })));
       })
       .catch((err) => {
@@ -407,17 +472,71 @@ export default function OrdersReportPage() {
     };
   }
 
+  // Compact Excel metadata labels (the on-page chips keep filterNames).
+  // Only dimensions actually supported by this page appear here.
+  const excelMetadataNames = {
+    orderNumber: "Номер заказа",
+    waiterId: "Официант",
+    cashierId: "Кассир",
+    productId: "Блюда",
+    orderType: "Тип",
+    orderStatus: "Статус",
+    paymentMethod: "Тип оплаты",
+  };
+
+  // REPORTS-EXCEL-02 final contract: the visible UI stays 8 business columns,
+  // while Excel is intentionally richer (11 columns: canonical order_id,
+  // service_fee, payment_methods). Export population = visibleRows, i.e. ALL
+  // applied-filter result rows (this page has no pagination) — never a page
+  // slice, never pending draft state. Totals sum EXACTLY the exported rows;
+  // service_fee is already a component of total_amount, so the two totals are
+  // separate metrics and are never added together.
   function downloadExcel() {
-    exportToExcel(visibleRows, [
-      { key: "id", label: "ID заказа" },
-      { key: "orderNumber", label: "Номер заказа" },
-      { key: "createdAt", label: "Дата" },
-      { key: "status", label: "Статус" },
-      { key: "tableNumber", label: "Номер стола" },
-      { key: "waiterName", label: "Официант" },
-      { key: "itemsCount", label: "Количество позиций" },
-      { key: "totalAmount", label: "Итоговая сумма" },
-    ], "orders-report");
+    const exportRows = visibleRows.map((row) => {
+      const cashierDisplay = formatCashierNames(row.cashierNames);
+      return {
+        // ID column = canonical public_id (not the UUID). Same shared formatter
+        // family as the UI so the two surfaces cannot diverge.
+        id: row.publicId,
+        orderNumber: row.orderNumber,
+        createdAt: row.createdAt,
+        orderType: orderTypeLabel(row.orderType),
+        place: formatPlace(row.hallName, row.tableNumber),
+        waiterName: row.waiterName ?? "",
+        cashiers: cashierDisplay === "—" ? "" : cashierDisplay,
+        serviceFee: row.serviceFee,
+        totalAmount: row.totalAmount,
+        payments: joinPaymentMethods(row.paymentMethods),
+        status: orderStatusLabel(row.status),
+      };
+    });
+    const serviceFeeTotal = exportRows.reduce((sum, row) => sum + (Number(row.serviceFee) || 0), 0);
+    const totalAmountTotal = exportRows.reduce((sum, row) => sum + (Number(row.totalAmount) || 0), 0);
+    exportToExcel(exportRows, [
+      { key: "id", label: "ID", width: 14 },
+      { key: "orderNumber", label: "Номер заказа", width: 16 },
+      { key: "createdAt", label: "Дата", type: "date", format: "dd.mm.yyyy hh:mm", width: 18 },
+      { key: "orderType", label: "Тип", width: 13 },
+      { key: "place", label: "Место", width: 22 },
+      { key: "waiterName", label: "Официант", width: 18 },
+      { key: "cashiers", label: "Кассир", width: 24 },
+      { key: "serviceFee", label: "Цена обслуживания", type: "number", format: "#,##0", width: 20 },
+      { key: "totalAmount", label: "Цена всего", type: "number", format: "#,##0", width: 16 },
+      { key: "payments", label: "Тип оплаты", width: 20 },
+      { key: "status", label: "Статус", width: 14, statusColors: true },
+    ], "orders-report", {
+      sheetName: "Отчёт по заказам",
+      autofilter: true,
+      // VISUAL FIX 01: the exported Orders workbook no longer renders the
+      // applied-filter metadata block — the sheet begins directly with the
+      // business header at row 1. The filters below still BUILD the exported
+      // population (appliedFilters drives the request); only the visible
+      // metadata rows are omitted from the workbook.
+      totals: {
+        label: "Итого:",
+        values: { serviceFee: serviceFeeTotal, totalAmount: totalAmountTotal },
+      },
+    });
   }
 
   // No full-page loader: the shell (title/controls/table header) renders
@@ -483,7 +602,7 @@ export default function OrdersReportPage() {
 
         <div className="report-table-wrapper owner-report-table-scroll" aria-busy={loading ? "true" : "false"}>
           <table className="report-table owner-report-table" aria-label="Отчёт по заказам">
-            <thead><tr><th>ID заказа</th><th>Номер заказа</th><th>Дата</th><th>Статус</th><th>Номер стола</th><th>Официант</th><th>Количество позиций</th><th>Итоговая сумма</th></tr></thead>
+            <thead><tr><th>Номер заказа</th><th>Тип</th><th>Дата</th><th>Место</th><th>Цена всего</th><th>Официант</th><th>Кассир</th><th>Статус</th></tr></thead>
             <tbody>
               {visibleRows.map((row) => (
                 <tr
@@ -500,7 +619,7 @@ export default function OrdersReportPage() {
                     }
                   }}
                 >
-                  <td><strong>{row.id}</strong></td><td>{row.orderNumber}</td><td>{formatDate(row.createdAt)}</td><td>{row.status}</td><td>{row.tableNumber ?? "—"}</td><td>{row.waiterName ?? "—"}</td><td>{row.itemsCount}</td><td className="report-total-price">{formatMoney(row.totalAmount)}</td>
+                  <td><strong>{row.orderNumber}</strong></td><td>{orderTypeLabel(row.orderType)}</td><td>{formatDate(row.createdAt)}</td><td>{formatPlace(row.hallName, row.tableNumber) || "—"}</td><td className="report-total-price">{formatMoney(row.totalAmount)}</td><td>{row.waiterName ?? "—"}</td><td>{formatCashierNames(row.cashierNames)}</td><td>{row.status}</td>
                 </tr>
               ))}
               {!visibleRows.length ? <tr className="report-empty-row" aria-hidden={loading || undefined}><td colSpan={8}><ReportEmptyState title="Заказов не найдено" hidden={loading} /></td></tr> : null}
@@ -515,7 +634,7 @@ export default function OrdersReportPage() {
           <aside className="order-details-drawer__panel">
             <div className="order-details-drawer__head"><div><span>Заказ</span><h3>{selectedOrder.orderNumber}</h3></div><button type="button" ref={drawerCloseRef} onClick={() => setSelectedOrder(null)} aria-label="Закрыть"><Icon name="bi-x-lg" size={18} /></button></div>
             <div className="order-details-drawer__grid">
-              <div><span>ID</span><strong>{selectedOrder.id}</strong></div><div><span>Дата</span><strong>{formatDate(selectedOrder.createdAt)}</strong></div><div><span>Статус</span><strong>{selectedOrder.status}</strong></div><div><span>Стол</span><strong>{selectedOrder.tableNumber ?? "—"}</strong></div><div><span>Официант</span><strong>{selectedOrder.waiterName ?? "—"}</strong></div><div><span>Позиций</span><strong>{selectedOrder.itemsCount}</strong></div><div><span>Итоговая сумма</span><strong>{formatMoney(selectedOrder.totalAmount)}</strong></div>
+              <div><span>ID</span><strong>{selectedOrder.publicId}</strong></div><div><span>Дата</span><strong>{formatDate(selectedOrder.createdAt)}</strong></div><div><span>Тип</span><strong>{orderTypeLabel(selectedOrder.orderType)}</strong></div><div><span>Статус</span><strong>{selectedOrder.status}</strong></div><div><span>Стол</span><strong>{selectedOrder.tableNumber ?? "—"}</strong></div><div><span>Официант</span><strong>{selectedOrder.waiterName ?? "—"}</strong></div><div><span>Кассир</span><strong>{formatCashierNames(selectedOrder.cashierNames)}</strong></div><div><span>Позиций</span><strong>{selectedOrder.itemsCount}</strong></div><div><span>Итоговая сумма</span><strong>{formatMoney(selectedOrder.totalAmount)}</strong></div>
             </div>
           </aside>
         </div>

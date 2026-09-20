@@ -1,38 +1,40 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as XLSX from "xlsx";
-import { exportToExcel } from "./excel";
+import { describe, expect, it } from "vitest";
+import ExcelJS from "exceljs";
+import { reportWorkbookBuffer } from "./excel";
 
-vi.mock("xlsx", () => ({
-  utils: {
-    aoa_to_sheet: vi.fn(() => ({ sheet: true })),
-    book_new: vi.fn(() => ({ workbook: true })),
-    book_append_sheet: vi.fn(),
-  },
-  writeFile: vi.fn(),
-}));
+// REPORTS-EXCEL-04: layout behavior proven against the REAL ExcelJS writer
+// (was previously asserted against SheetJS aoa_to_sheet mocks — obsolete now
+// that the production writer is ExcelJS). Same intent: metadata block, one
+// blank spacer, business header, then data rows, in that order.
+async function load(data, columns, options) {
+  const buffer = await reportWorkbookBuffer(data, columns, options);
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buffer);
+  return wb.worksheets[0];
+}
 
-describe("exportToExcel", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("keeps the existing tabular export when metadata is omitted", () => {
-    exportToExcel([{ amount: 10 }], [{ key: "amount", label: "Сумма" }], "plain");
-    expect(XLSX.utils.aoa_to_sheet).toHaveBeenCalledWith([["Сумма"], [10]]);
-    expect(XLSX.writeFile).toHaveBeenCalledWith({ workbook: true }, "plain.xlsx");
+describe("exportToExcel layout (ExcelJS)", () => {
+  it("keeps a plain header+data table when metadata is omitted", async () => {
+    const ws = await load([{ amount: 10 }], [{ key: "amount", label: "Сумма" }], {});
+    expect(ws.getCell(1, 1).value).toBe("Сумма"); // header row 1
+    expect(ws.getCell(2, 1).value).toBe(10);      // data row 2
   });
 
-  it("writes report metadata before the current-state table", () => {
-    exportToExcel(
+  it("writes the metadata block before the table, separated by one blank row", async () => {
+    const ws = await load(
       [{ name: "Алишер", amount: 10 }, { name: "Всего", amount: 10 }],
       [{ key: "name", label: "Имя" }, { key: "amount", label: "Сумма" }],
-      "waiters-report",
       { metadata: [{ label: "Период", value: "01.09.2026 – 12.09.2026" }] },
     );
-    expect(XLSX.utils.aoa_to_sheet).toHaveBeenCalledWith([
-      ["Период", "01.09.2026 – 12.09.2026"],
-      [],
-      ["Имя", "Сумма"],
-      ["Алишер", 10],
-      ["Всего", 10],
-    ]);
+    // Row 1: metadata. Row 2: blank spacer. Row 3: header. Rows 4-5: data.
+    expect(ws.getCell(1, 1).value).toBe("Период");
+    expect(ws.getCell(1, 2).value).toBe("01.09.2026 – 12.09.2026");
+    expect(ws.getCell(2, 1).value).toBeNull();
+    expect(ws.getCell(3, 1).value).toBe("Имя");
+    expect(ws.getCell(3, 2).value).toBe("Сумма");
+    expect(ws.getCell(4, 1).value).toBe("Алишер");
+    expect(ws.getCell(4, 2).value).toBe(10);
+    expect(ws.getCell(5, 1).value).toBe("Всего");
+    expect(ws.getCell(5, 2).value).toBe(10);
   });
 });

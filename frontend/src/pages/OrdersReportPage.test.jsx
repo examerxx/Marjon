@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { reportsService } from "../api/reports";
+import { exportToExcel } from "../utils/excel";
 import { formatDateLabel, shiftDate, todayInputValue } from "../utils/date";
-import OrdersReportPage, { currentOrdersDateRange } from "./OrdersReportPage";
+import OrdersReportPage, { currentOrdersDateRange, formatPlace } from "./OrdersReportPage";
 
 vi.mock("../api/reports", () => ({
   reportsService: { listOrders: vi.fn(), getOrdersFilters: vi.fn() },
@@ -83,9 +84,12 @@ describe("OrdersReportPage filters", () => {
     vi.clearAllMocks();
     reportsService.listOrders.mockResolvedValue({
       data: [{
-        order_id: "order-1", order_number: "42", created_at: "2026-08-25T10:00:00Z",
-        status: "completed", table_number: "7", waiter_name: "Официант 1",
-        items_count: 2, total_amount: 100000,
+        order_id: "11111111-1111-4111-8111-111111111111", public_id: 10000000,
+        order_number: "42", created_at: "2026-08-25T10:00:00Z",
+        status: "completed", table_number: "7", hall_name: "Основной зал",
+        waiter_name: "Официант 1",
+        items_count: 2, total_amount: 100000, order_type: "dine_in",
+        cashier_names: ["Кассир 1"], service_fee: 9300, payment_methods: ["cash"],
       }],
     });
     reportsService.getOrdersFilters.mockResolvedValue({ data: options });
@@ -557,18 +561,21 @@ describe("OrdersReportPage filters", () => {
     expect(screen.queryByText(/демо|demo/i)).not.toBeInTheDocument();
   });
 
-  it("renders '—' for null table/waiter instead of fabricating a value", async () => {
+  it("renders '—' for null table/waiter/cashier instead of fabricating a value", async () => {
     reportsService.listOrders.mockResolvedValueOnce({
       data: [{
         order_id: "order-2", order_number: "77", created_at: "2026-08-26T09:00:00Z",
         status: "new", table_number: null, waiter_name: null, items_count: 1, total_amount: 5000,
+        order_type: "takeaway", cashier_names: [], service_fee: 0, payment_methods: [],
       }],
     });
     render(<OrdersReportPage />);
     const row = (await screen.findByText("77")).closest("tr");
     const cells = row.querySelectorAll("td");
-    expect(cells[4]).toHaveTextContent("—");
+    expect(cells).toHaveLength(8);
+    expect(cells[3]).toHaveTextContent("—");
     expect(cells[5]).toHaveTextContent("—");
+    expect(cells[6]).toHaveTextContent("—");
   });
 
   it("details drawer opens by keyboard (Enter) and closes on Escape", async () => {
@@ -605,5 +612,298 @@ describe("OrdersReportPage filters", () => {
     expect(image?.tagName).toBe("IMG");
     expect(image).toHaveAttribute("alt", "");
     expect(container.querySelector(".owner-report-empty__icon")).toBeNull();
+  });
+
+  // REPORTS-EXCEL-02 FINAL business structure: the visible UI carries
+  // EXACTLY eight business columns in requested order. ID, service_fee and
+  // payment_methods stay out of the visible table (Excel-only richness);
+  // the row itself remains the clickable/keyboard details action.
+  it("renders exactly the eight final business columns", async () => {
+    render(<OrdersReportPage />);
+    await screen.findByText("42");
+    expect(screen.getAllByRole("columnheader").map((th) => th.textContent)).toEqual([
+      "Номер заказа", "Тип", "Дата", "Место", "Цена всего", "Официант", "Кассир", "Статус",
+    ]);
+    expect(screen.queryByRole("columnheader", { name: "ID" })).toBeNull();
+    expect(screen.queryByRole("columnheader", { name: "ID заказа" })).toBeNull();
+    expect(screen.queryByRole("columnheader", { name: "Количество позиций" })).toBeNull();
+    expect(screen.queryByRole("columnheader", { name: "Цена обслуживания" })).toBeNull();
+    expect(screen.queryByRole("columnheader", { name: "Тип оплаты" })).toBeNull();
+    const row = screen.getByText("42").closest("tr");
+    const cells = row.querySelectorAll("td");
+    expect(cells).toHaveLength(8);
+    expect(cells[0]).toHaveTextContent("42");
+    expect(cells[1]).toHaveTextContent("На стол");
+    expect(cells[3]).toHaveTextContent("7");
+    expect(cells[4]).toHaveTextContent("UZS");
+    expect(cells[5]).toHaveTextContent("Официант 1");
+    expect(cells[6]).toHaveTextContent("Кассир 1");
+    expect(cells[7]).toHaveTextContent("completed");
+  });
+
+  it("labels order_type via the existing map and falls back to raw values", async () => {
+    reportsService.listOrders.mockResolvedValueOnce({
+      data: [
+        {
+          order_id: "order-t1", order_number: "T1", created_at: "2026-08-25T10:00:00Z",
+          status: "completed", table_number: "7", waiter_name: "Официант 1",
+          items_count: 1, total_amount: 10000, order_type: "delivery",
+          cashier_names: [], service_fee: 0, payment_methods: [],
+        },
+        {
+          order_id: "order-t2", order_number: "T2", created_at: "2026-08-25T11:00:00Z",
+          status: "completed", table_number: "7", waiter_name: "Официант 1",
+          items_count: 1, total_amount: 10000, order_type: "qr_future_type",
+          cashier_names: [], service_fee: 0, payment_methods: [],
+        },
+      ],
+    });
+    render(<OrdersReportPage />);
+    expect((await screen.findByText("T1")).closest("tr").querySelectorAll("td")[1]).toHaveTextContent("Доставка");
+    // Unknown future raw values stay visible — never hidden, never blank.
+    expect((await screen.findByText("T2")).closest("tr").querySelectorAll("td")[1]).toHaveTextContent("qr_future_type");
+  });
+
+  it("shows every cashier and never substitutes the waiter", async () => {
+    reportsService.listOrders.mockResolvedValueOnce({
+      data: [{
+        order_id: "order-c1", order_number: "C1", created_at: "2026-08-25T10:00:00Z",
+        status: "completed", table_number: "7", waiter_name: "Официант 1",
+        items_count: 1, total_amount: 10000, order_type: "dine_in",
+        cashier_names: ["Яков", "Алишер"], service_fee: 0, payment_methods: [],
+      }],
+    });
+    render(<OrdersReportPage />);
+    const cells = (await screen.findByText("C1")).closest("tr").querySelectorAll("td");
+    expect(cells[5]).toHaveTextContent("Официант 1");
+    expect(cells[6]).toHaveTextContent("Яков, Алишер");
+  });
+
+  it("keeps row-click details working on internal order identity", async () => {
+    render(<OrdersReportPage />);
+    await screen.findByText("42");
+    fireEvent.click(screen.getByRole("button", { name: "Детали заказа 42" }));
+    const drawer = await screen.findByRole("dialog", { name: "Детали заказа" });
+    expect(drawer).toBeInTheDocument();
+  });
+
+  it("exports the final eleven Excel columns with typed money/date cells", async () => {
+    render(<OrdersReportPage />);
+    await screen.findByText("42");
+    fireEvent.click(screen.getByRole("button", { name: "Скачать Excel" }));
+    expect(exportToExcel).toHaveBeenCalledTimes(1);
+    const [rows, cols, filename, callOptions] = exportToExcel.mock.calls[0];
+    expect(filename).toBe("orders-report");
+    expect(cols.map((col) => col.label)).toEqual([
+      "ID", "Номер заказа", "Дата", "Тип", "Место", "Официант", "Кассир",
+      "Цена обслуживания", "Цена всего", "Тип оплаты", "Статус",
+    ]);
+    expect(cols.map((col) => col.key)).toEqual([
+      "id", "orderNumber", "createdAt", "orderType", "place", "waiterName",
+      "cashiers", "serviceFee", "totalAmount", "payments", "status",
+    ]);
+    expect(cols.find((col) => col.key === "serviceFee")).toMatchObject({ type: "number", format: "#,##0" });
+    expect(cols.find((col) => col.key === "totalAmount")).toMatchObject({ type: "number", format: "#,##0" });
+    expect(cols.find((col) => col.key === "createdAt")).toMatchObject({ type: "date", format: "dd.mm.yyyy hh:mm" });
+    expect(cols.some((col) => /action|eye|itemsCount/i.test(col.key || ""))).toBe(false);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      // ID = canonical public_id (integer), NOT the UUID / a truncated UUID.
+      id: 10000000,
+      orderNumber: "42",
+      orderType: "На стол",
+      // Место = canonical hall_name + table_number via the shared formatter.
+      place: "Основной зал, стол 7",
+      waiterName: "Официант 1",
+      cashiers: "Кассир 1",
+      serviceFee: 9300,
+      totalAmount: 100000,
+      payments: "Наличные",
+      status: "Завершён",
+    });
+    expect(rows[0].id).not.toBe("11111111-1111-4111-8111-111111111111"); // never the UUID
+    expect(JSON.stringify(rows)).not.toContain("Детали заказа");
+    // VISUAL FIX 01: the exported Orders workbook no longer carries a metadata
+    // block. OLD: callOptions.metadata held a "Период" string. NEW approved
+    // decision: no metadata is passed at all (sheet starts at the row-1 header).
+    // Strengthened to assert the metadata option is genuinely absent.
+    expect(callOptions.metadata).toBeUndefined();
+  });
+
+  it("preserves multiple cashiers and payment methods in Excel cells", async () => {
+    reportsService.listOrders.mockResolvedValueOnce({
+      data: [{
+        order_id: "order-m1", public_id: 10000005, order_number: "M1",
+        created_at: "2026-08-25T10:00:00Z",
+        status: "ready", table_number: null, hall_name: null, waiter_name: null,
+        items_count: 1, total_amount: 50000, order_type: "dine_in",
+        cashier_names: ["Яков", "Алишер"], service_fee: 0, payment_methods: ["cash", "payme"],
+      }],
+    });
+    render(<OrdersReportPage />);
+    await screen.findByText("M1");
+    fireEvent.click(screen.getByRole("button", { name: "Скачать Excel" }));
+    const [rows] = exportToExcel.mock.calls[0];
+    expect(rows[0]).toMatchObject({
+      id: 10000005,
+      cashiers: "Яков, Алишер",
+      payments: "Наличные, Pay me",
+      // Tableless order → hall_name + table_number both absent → "".
+      place: "",
+      waiterName: "",
+      serviceFee: 0,
+    });
+  });
+
+  // VISUAL FIX 01 reframes this test. OLD product expectation: applied filters
+  // were echoed into the workbook's METADATA block, and unapplied drafts were
+  // not. NEW approved decision: the workbook carries NO metadata block at all.
+  // The underlying business truth is unchanged and still asserted here via the
+  // authoritative observable — the REQUEST: applied filters build the exported
+  // population (drive listOrders), while an unapplied draft does not. The
+  // no-metadata guarantee is asserted in both the draft and applied states.
+  it("builds the exported population from applied filters, not unapplied drafts (no metadata block)", async () => {
+    render(<OrdersReportPage />);
+    await screen.findByText("42");
+    await waitFor(() => expect(reportsService.listOrders).toHaveBeenCalledTimes(1));
+    fireEvent.click(toggleBtn());
+    // Draft only: toggled but NOT applied via «Фильтровать».
+    openFilter("Официант");
+    check("Официант", "Официант 2");
+    fireEvent.click(screen.getByRole("button", { name: "Скачать Excel" }));
+    // Draft did not fire a new request (population unchanged)...
+    expect(reportsService.listOrders).toHaveBeenCalledTimes(1);
+    // ...and the workbook carries no metadata block.
+    expect(exportToExcel.mock.calls[0][3].metadata).toBeUndefined();
+
+    // Close the still-open draft panel before building the applied selection.
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "Официант" }).closest(".orders-filter-select"), { key: "Escape" });
+    const closingDraft = document.querySelector(".orders-filter-select__panel.is-closing");
+    if (closingDraft) fireEvent(closingDraft, new Event("webkitAnimationEnd", { bubbles: true }));
+
+    // Now apply: both waiters selected, plus cashier + payment + type + status.
+    openFilter("Официант");
+    check("Официант", "Официант 1");
+    openFilter("Кассир");
+    check("Кассир", "Кассир 1");
+    check("Кассир", "Кассир 2");
+    openFilter("Тип оплаты");
+    check("Тип оплаты", "Наличные");
+    check("Тип оплаты", "Карта");
+    openFilter("Тип заказа");
+    check("Тип заказа", "Доставка");
+    openFilter("Статус заказа");
+    check("Статус заказа", "Завершён");
+    fireEvent.click(applyBtn());
+    await waitFor(() => expect(reportsService.listOrders).toHaveBeenCalledTimes(2));
+
+    // The applied filters (not the earlier draft) drive the request that BUILDS
+    // the exported population — this is the business truth the metadata block
+    // used to surface. Assert the request carried exactly the applied selection.
+    const appliedCall = reportsService.listOrders.mock.calls[1];
+    const appliedFilters = appliedCall[2].filters;
+    expect(appliedFilters.waiterId).toEqual(["waiter-2", "waiter-1"]);
+    expect(appliedFilters.cashierId).toEqual(["cashier-1", "cashier-2"]);
+    expect(appliedFilters.paymentMethod).toEqual(["cash", "card"]);
+    expect(appliedFilters.orderType).toEqual(["delivery"]);
+    expect(appliedFilters.orderStatus).toEqual(["completed"]);
+    // Untouched dimensions stay empty (never fabricated).
+    expect(appliedFilters.orderNumber).toBe("");
+    expect(appliedFilters.productId).toEqual([]);
+
+    exportToExcel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Скачать Excel" }));
+    // Still no metadata block in the applied-filter export.
+    expect(exportToExcel.mock.calls[0][3].metadata).toBeUndefined();
+  });
+
+  it("adds numeric totals over exactly the exported rows without double counting", async () => {
+    reportsService.listOrders.mockResolvedValueOnce({
+      data: [
+        {
+          order_id: "order-s1", order_number: "S1", created_at: "2026-08-25T10:00:00Z",
+          status: "completed", table_number: "1", waiter_name: "Официант 1",
+          items_count: 1, total_amount: 100000, order_type: "dine_in",
+          cashier_names: ["Кассир 1"], service_fee: 9300, payment_methods: ["cash"],
+        },
+        {
+          order_id: "order-s2", order_number: "S2", created_at: "2026-08-25T11:00:00Z",
+          status: "completed", table_number: "2", waiter_name: "Официант 1",
+          items_count: 1, total_amount: 80000, order_type: "takeaway",
+          cashier_names: [], service_fee: 8400, payment_methods: ["card"],
+        },
+        {
+          order_id: "order-s3", order_number: "S3", created_at: "2026-08-25T12:00:00Z",
+          status: "completed", table_number: "3", waiter_name: "Официант 2",
+          items_count: 2, total_amount: 120000, order_type: "delivery",
+          cashier_names: ["Кассир 2"], service_fee: 11200, payment_methods: ["cash", "payme"],
+        },
+      ],
+    });
+    render(<OrdersReportPage />);
+    await screen.findByText("S3");
+    fireEvent.click(screen.getByRole("button", { name: "Скачать Excel" }));
+    const [rows, , , callOptions] = exportToExcel.mock.calls[0];
+    expect(rows).toHaveLength(3);
+    expect(callOptions.totals).toMatchObject({
+      label: "Итого:",
+      values: { serviceFee: 9300 + 8400 + 11200, totalAmount: 100000 + 80000 + 120000 },
+    });
+    // Two separate metrics — service is already inside total, never re-added.
+    expect(callOptions.totals.values.serviceFee).toBe(28900);
+    expect(callOptions.totals.values.totalAmount).toBe(300000);
+    expect(callOptions.totals.values.totalAmount).not.toBe(300000 + 28900);
+  });
+});
+
+
+// ── ORDERS-FRONTEND-TRUTH-01: canonical ID / order_number / place mapping ────
+describe("ORDERS-FRONTEND-TRUTH-01 canonical mapping", () => {
+  const CONTRACT_ROW = {
+    order_id: "3f2504e0-4f89-41d3-9a0c-0305e82c3301", public_id: 10000000,
+    order_number: "7", created_at: "2026-09-18T14:05:00Z", status: "completed",
+    table_number: "12", hall_name: "Основной зал", waiter_name: "Алишер",
+    items_count: 1, total_amount: 33000, order_type: "dine_in",
+    cashier_names: ["Яков"], service_fee: 9300, payment_methods: ["cash"],
+  };
+
+  it("UI table shows public_id order number and hall+table place from backend truth", async () => {
+    reportsService.listOrders.mockResolvedValue({ data: [CONTRACT_ROW] });
+    reportsService.getOrdersFilters.mockResolvedValue({ data: options });
+    render(<OrdersReportPage />);
+    // Номер заказа cell = canonical order_number (7), never a row index.
+    await screen.findByText("7");
+    // Место cell = canonical hall_name + table_number (never live-Hall derived).
+    expect(screen.getByText("Основной зал, стол 12")).toBeInTheDocument();
+    // The raw UUID must not appear anywhere in the visible table.
+    expect(screen.queryByText(CONTRACT_ROW.order_id)).toBeNull();
+  });
+
+  it("Excel export maps ID->public_id, Номер заказа->order_number, Место->hall+table", async () => {
+    reportsService.listOrders.mockResolvedValue({ data: [CONTRACT_ROW] });
+    reportsService.getOrdersFilters.mockResolvedValue({ data: options });
+    render(<OrdersReportPage />);
+    await screen.findByText("7");
+    fireEvent.click(screen.getByRole("button", { name: "Скачать Excel" }));
+    const [rows, cols] = exportToExcel.mock.calls[0];
+    // ID column carries the integer public_id, not the UUID / a truncation of it.
+    expect(rows[0].id).toBe(10000000);
+    expect(rows[0].id).not.toBe(CONTRACT_ROW.order_id);
+    expect(String(rows[0].id)).not.toBe(CONTRACT_ROW.order_id.slice(0, 8));
+    // Номер заказа is the backend value verbatim (not derived from index/date/UUID).
+    expect(rows[0].orderNumber).toBe("7");
+    // Место = canonical hall_name + table_number via the shared formatter.
+    expect(rows[0].place).toBe("Основной зал, стол 12");
+    // The ID column label/key is preserved; place column keyed "place".
+    expect(cols.find((c) => c.label === "ID").key).toBe("id");
+    expect(cols.find((c) => c.label === "Место").key).toBe("place");
+  });
+
+  it("formatPlace composes canonical values and handles partial states", () => {
+    expect(formatPlace("Основной зал", "12")).toBe("Основной зал, стол 12");
+    expect(formatPlace("Терраса", null)).toBe("Терраса");   // hall only
+    expect(formatPlace(null, "5")).toBe("стол 5");           // table only
+    expect(formatPlace(null, null)).toBe("");                // neither → empty (UI adds "—")
+    expect(formatPlace("", "")).toBe("");
   });
 });
