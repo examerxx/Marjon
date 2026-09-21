@@ -245,6 +245,12 @@ async def test_dishes_filters_preserve_tenant_scope_and_payment_aggregation(clie
         str(ids["product_a"]), str(ids["product_a_other"]),
     }
     assert "Company B Secret" not in unfiltered.text
+    # DISHES-CATEGORY-01: every row carries its product's canonical category
+    # dimension (both products are in Category A) — two distinct product rows,
+    # same category, never collapsed into one category row.
+    for row in unfiltered.json()["rows"]:
+        assert row["category_id"] == str(ids["category_a"])
+        assert row["category_name"] == "Category A"
 
     filtered = await client.get(
         "/reports/dishes",
@@ -1056,3 +1062,109 @@ async def test_dishes_multi_select_or_within_and_across_dimensions(client, db_en
     assert Decimal(combo_rows[str(ids["p1"])]["amount"]) == Decimal("200")
     assert Decimal(combo["totals"]["quantity"]) == Decimal("2")
     assert Decimal(combo["totals"]["amount"]) == Decimal("200")
+
+
+@pytest.mark.asyncio
+async def test_dishes_report_category_dimension_ordering_and_uncategorized(client, db_engine):
+    """DISHES-CATEGORY-01: rows carry the canonical primary category, are ordered
+    by Category.sort_order (uncategorized last with null category), and the
+    grand totals are unchanged by the category join."""
+    suffix = uuid4().hex[:8]
+    headers, _ = await register_company(client, slug=f"dish-cat-{suffix}", email=f"dish-cat-{suffix}@example.com")
+    company = UUID((await client.get("/auth/me", headers=headers)).json()["company_id"])
+    ids = {n: uuid4() for n in (
+        "branch", "cat_first", "cat_second",
+        "p_first", "p_second", "p_uncat",
+        "o_first", "o_second", "o_uncat",
+    )}
+    sessions = async_sessionmaker(db_engine, expire_on_commit=False)
+    async with sessions() as db:
+        db.add_all([
+            Branch(id=ids["branch"], company_id=company, name="Main"),
+            # sort_order proves ordering is canonical, not insertion/alphabetical:
+            # "Вторая" (sort 1) must precede "Первая" (sort 2).
+            Category(id=ids["cat_first"], company_id=company, name="Вторая", slug=f"v-{suffix}", sort_order=1),
+            Category(id=ids["cat_second"], company_id=company, name="Первая", slug=f"p-{suffix}", sort_order=2),
+        ])
+        await db.flush()
+        db.add_all([
+            Product(id=ids["p_first"], company_id=company, category_id=ids["cat_first"], name="Dish In Second-sorted", price=Decimal("100")),
+            Product(id=ids["p_second"], company_id=company, category_id=ids["cat_second"], name="Dish In First-sorted", price=Decimal("100")),
+            # Uncategorized product (category_id NULL) — must survive, sink last.
+            Product(id=ids["p_uncat"], company_id=company, category_id=None, name="Dish No Category", price=Decimal("100")),
+        ])
+        await db.flush()
+        for oid, num, total in (
+            (ids["o_first"], "C1", "300"), (ids["o_second"], "C2", "200"), (ids["o_uncat"], "C3", "100"),
+        ):
+            db.add(Order(id=oid, company_id=company, branch_id=ids["branch"], order_number=num,
+                         order_type="dine_in", status="completed", subtotal=Decimal(total), total_amount=Decimal(total)))
+        await db.flush()
+        db.add_all([
+            OrderItem(order_id=ids["o_first"], product_id=ids["p_first"], name="Dish In Second-sorted",
+                      price=Decimal("100"), quantity=Decimal("3"), total=Decimal("300")),
+            OrderItem(order_id=ids["o_second"], product_id=ids["p_second"], name="Dish In First-sorted",
+                      price=Decimal("100"), quantity=Decimal("2"), total=Decimal("200")),
+            OrderItem(order_id=ids["o_uncat"], product_id=ids["p_uncat"], name="Dish No Category",
+                      price=Decimal("100"), quantity=Decimal("1"), total=Decimal("100")),
+        ])
+        await db.commit()
+
+    resp = await client.get("/reports/dishes", headers=headers)
+    assert resp.status_code == 200, resp.text
+    rows = resp.json()["rows"]
+    assert len(rows) == 3
+    # Ordered by sort_order asc (Вторая=1 before Первая=2), uncategorized NULLS LAST.
+    assert [r["category_name"] for r in rows] == ["Вторая", "Первая", None]
+    assert rows[0]["category_id"] == str(ids["cat_first"])
+    assert rows[1]["category_id"] == str(ids["cat_second"])
+    # Uncategorized row: truthful null, never a fabricated category, not dropped.
+    assert rows[2]["category_id"] is None
+    assert rows[2]["category_name"] is None
+    assert rows[2]["product_id"] == str(ids["p_uncat"])
+    # Grand totals unchanged by the join: 3+2+1 qty, 300+200+100 amount.
+    assert Decimal(resp.json()["totals"]["quantity"]) == Decimal("6")
+    assert Decimal(resp.json()["totals"]["amount"]) == Decimal("600.00")
+
+
+@pytest.mark.asyncio
+async def test_dishes_report_category_filter_excludes_uncategorized(client, db_engine):
+    """Category filter parity: filtering by a category returns only its rows;
+    uncategorized products are excluded (unchanged filter semantics)."""
+    suffix = uuid4().hex[:8]
+    headers, _ = await register_company(client, slug=f"dish-catf-{suffix}", email=f"dish-catf-{suffix}@example.com")
+    company = UUID((await client.get("/auth/me", headers=headers)).json()["company_id"])
+    ids = {n: uuid4() for n in ("branch", "cat", "p_in", "p_uncat", "o_in", "o_uncat")}
+    sessions = async_sessionmaker(db_engine, expire_on_commit=False)
+    async with sessions() as db:
+        db.add_all([
+            Branch(id=ids["branch"], company_id=company, name="Main"),
+            Category(id=ids["cat"], company_id=company, name="Салаты", slug=f"s-{suffix}", sort_order=1),
+        ])
+        await db.flush()
+        db.add_all([
+            Product(id=ids["p_in"], company_id=company, category_id=ids["cat"], name="Салат", price=Decimal("50")),
+            Product(id=ids["p_uncat"], company_id=company, category_id=None, name="Без категории", price=Decimal("50")),
+        ])
+        await db.flush()
+        db.add_all([
+            Order(id=ids["o_in"], company_id=company, branch_id=ids["branch"], order_number="F1",
+                  order_type="dine_in", status="completed", subtotal=Decimal("50"), total_amount=Decimal("50")),
+            Order(id=ids["o_uncat"], company_id=company, branch_id=ids["branch"], order_number="F2",
+                  order_type="dine_in", status="completed", subtotal=Decimal("50"), total_amount=Decimal("50")),
+        ])
+        await db.flush()
+        db.add_all([
+            OrderItem(order_id=ids["o_in"], product_id=ids["p_in"], name="Салат",
+                      price=Decimal("50"), quantity=Decimal("1"), total=Decimal("50")),
+            OrderItem(order_id=ids["o_uncat"], product_id=ids["p_uncat"], name="Без категории",
+                      price=Decimal("50"), quantity=Decimal("1"), total=Decimal("50")),
+        ])
+        await db.commit()
+
+    resp = await client.get("/reports/dishes", headers=headers, params={"category_id": str(ids["cat"])})
+    assert resp.status_code == 200, resp.text
+    rows = resp.json()["rows"]
+    assert len(rows) == 1
+    assert rows[0]["product_id"] == str(ids["p_in"])
+    assert rows[0]["category_name"] == "Салаты"

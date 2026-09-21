@@ -921,19 +921,41 @@ class AdminReportService:
         category_id: Sequence[UUID] | None = None,
         payment_method: Sequence[str] | None = None,
     ) -> DishReportResponse:
+        # DISHES-CATEGORY-01: LEFT JOIN the primary category so uncategorized
+        # products still appear (category_id/name = NULL), scoped to the same
+        # company. Category is added to SELECT + GROUP BY only — it never splits
+        # a product into duplicate rows (each product has exactly one
+        # category_id) and does not touch the qty/price/amount math. Rows are
+        # ordered by canonical category sort_order (NULLS LAST so uncategorized
+        # sink to the end), then the existing revenue-DESC business ordering
+        # within each category.
         report_query = (
             select(
                 OrderItem.product_id,
                 OrderItem.name,
                 Product.unit,
+                Product.category_id,
+                Category.name.label("category_name"),
+                Category.sort_order.label("category_sort"),
                 func.sum(OrderItem.quantity).label("qty"),
                 func.sum(OrderItem.total).label("total"),
             )
             .join(Order, Order.id == OrderItem.order_id)
             .join(Product, Product.id == OrderItem.product_id)
+            .outerjoin(
+                Category,
+                and_(Category.id == Product.category_id, Category.company_id == company_id),
+            )
             .where(Order.company_id == company_id, Product.company_id == company_id)
-            .group_by(OrderItem.product_id, OrderItem.name, Product.unit)
-            .order_by(func.sum(OrderItem.total).desc())
+            .group_by(
+                OrderItem.product_id, OrderItem.name, Product.unit,
+                Product.category_id, Category.name, Category.sort_order,
+            )
+            .order_by(
+                Category.sort_order.asc().nulls_last(),
+                Category.name.asc().nulls_last(),
+                func.sum(OrderItem.total).desc(),
+            )
         )
         if order_status:
             report_query = report_query.where(Order.status.in_(list(order_status)))
@@ -988,6 +1010,7 @@ class AdminReportService:
             total_amount += amount
             report_rows.append(DishReportRow(
                 product_id=r.product_id, name=r.name, unit=r.unit,
+                category_id=r.category_id, category_name=r.category_name,
                 quantity=qty, price=price, amount=amount,
             ))
         return DishReportResponse(

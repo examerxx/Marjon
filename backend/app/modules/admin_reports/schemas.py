@@ -113,6 +113,14 @@ class DishReportRow(BaseModel):
     # never a hardcoded fallback. Cost/profit are intentionally absent in
     # Phase 1: no truthful historical cost exists (no sale-time snapshot).
     unit: str | None
+    # DISHES-CATEGORY-01: the product's PRIMARY category (Product.category_id →
+    # Category.name), consistent with the existing category_id filter which
+    # matches category_id OR subcategory_id. LIVE dimension (not a sale-time
+    # snapshot) — a later recategorization retroactively regroups history, the
+    # same accepted tradeoff as `unit`. Null for uncategorized products (never a
+    # fabricated "Без категории" row); the frontend chooses any display label.
+    category_id: UUID | None = None
+    category_name: str | None = None
     quantity: Decimal
     # Weighted price (amount/quantity), NOT AVG(price): preserves
     # amount == quantity * price per row. Decimal(0) when quantity is 0.
