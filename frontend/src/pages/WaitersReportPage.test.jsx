@@ -494,7 +494,7 @@ describe("WaitersReportPage", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("exports the current immediate report state, total row and metadata", async () => {
+  it("exports the WAITERS-EXCEL-01 contract: 5 columns, no metadata, numeric totals row", async () => {
     await renderLoaded();
     openWaiter();
     fireEvent.click(within(screen.getByRole("listbox", { name: "Официант" })).getByRole("option", { name: "Алишер" }));
@@ -508,16 +508,28 @@ describe("WaitersReportPage", () => {
 
     expect(exportToExcel).toHaveBeenCalledTimes(1);
     const [data, columns, filename, options] = exportToExcel.mock.calls[0];
-    expect(data.at(-1)).toMatchObject({ name: "Всего", waiterServiceTotal: 15 });
-    expect(columns.map((column) => column.label)).toEqual([
-      "Имя", "Сумма заказов", "Самовывоз и доставка", "Сумма услуги", "Обслуживание официанта", "Блюда",
+    // Exactly the 5 reference columns, reference wording (no "Самовывоз и
+    // доставка", no "Обслуживание официанта", no "Блюда").
+    expect(columns.map((c) => c.label)).toEqual([
+      "Имя", "Сумма заказов", "Сумма заказов на вынос", "Сумма услуги", "Обслуга официанта",
     ]);
+    expect(columns.map((c) => c.key)).toEqual([
+      "name", "ordersTotal", "takeawayDeliveryTotal", "serviceTotal", "waiterServiceTotal",
+    ]);
+    // Money columns are numeric-typed (never stringified).
+    ["ordersTotal", "takeawayDeliveryTotal", "serviceTotal", "waiterServiceTotal"].forEach((k) => {
+      expect(columns.find((c) => c.key === k)).toMatchObject({ type: "number", format: "#,##0" });
+    });
+    // data = waiter rows ONLY (no embedded "Всего" row; totals go via option).
+    expect(data.every((r) => r.name !== "Всего")).toBe(true);
     expect(filename).toBe("waiters-report");
-    expect(options.metadata).toEqual(expect.arrayContaining([
-      { label: "Официант", value: "Алишер" },
-      { label: "Процент обслуживания", value: "12%" },
-      { label: "База расчёта", value: "Сумма заказов, Сумма услуги" },
-    ]));
+    // No metadata block above the header.
+    expect(options.metadata).toBeUndefined();
+    // Итого row supplied as canonical numeric totals (backend-provided).
+    expect(options.totals.label).toBe("Итого:");
+    expect(options.totals.values).toMatchObject({
+      ordersTotal: 1500, takeawayDeliveryTotal: 300, serviceTotal: 170, waiterServiceTotal: 15,
+    });
   });
 
   it("keeps the report structure and a zero total row when waiter rows are empty", async () => {

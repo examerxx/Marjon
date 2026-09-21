@@ -323,3 +323,79 @@ describe("REPORTS-EXCEL-04 backwards-safe defaults", () => {
     expect(ws.autoFilter).toBeUndefined();
   });
 });
+
+
+// ── WAITERS-EXCEL-01: 5-column contract, numeric money, percent-dependent E ──
+describe("WAITERS-EXCEL-01 Waiters export", () => {
+  const columns = [
+    { key: "name", label: "Имя", width: 24 },
+    { key: "ordersTotal", label: "Сумма заказов", type: "number", format: "#,##0", width: 20 },
+    { key: "takeawayDeliveryTotal", label: "Сумма заказов на вынос", type: "number", format: "#,##0", width: 24 },
+    { key: "serviceTotal", label: "Сумма услуги", type: "number", format: "#,##0", width: 18 },
+    { key: "waiterServiceTotal", label: "Обслуга официанта", type: "number", format: "#,##0", width: 20 },
+  ];
+  // Backend-parameterized rows: waiter_service_total already reflects the chosen
+  // percent (canonical). We simulate the two backend responses (10% vs 20%).
+  const rowsFor = (pct) => [
+    { name: "Алишер", ordersTotal: 500006576000, takeawayDeliveryTotal: 32000, serviceTotal: 2298000, waiterServiceTotal: Math.round(2298000 * pct / 100) },
+    { name: "Эльёр", ordersTotal: 2298000, takeawayDeliveryTotal: 0, serviceTotal: 205000, waiterServiceTotal: Math.round(205000 * pct / 100) },
+  ];
+  const totalsFor = (rows) => ({
+    label: "Итого:",
+    values: {
+      ordersTotal: rows.reduce((a, r) => a + r.ordersTotal, 0),
+      takeawayDeliveryTotal: rows.reduce((a, r) => a + r.takeawayDeliveryTotal, 0),
+      serviceTotal: rows.reduce((a, r) => a + r.serviceTotal, 0),
+      waiterServiceTotal: rows.reduce((a, r) => a + r.waiterServiceTotal, 0),
+    },
+  });
+
+  it("has exactly 5 reference-worded headers at row 1, no metadata, no col F", async () => {
+    const { ws } = await roundtrip(rowsFor(10), columns, { sheetName: "Отчёт по официантам", totals: totalsFor(rowsFor(10)) });
+    expect([1,2,3,4,5].map((c) => ws.getCell(1, c).value)).toEqual([
+      "Имя", "Сумма заказов", "Сумма заказов на вынос", "Сумма услуги", "Обслуга официанта",
+    ]);
+    expect(ws.getCell(1, 6).value).toBeNull();       // no "Блюда"/6th col
+    expect(ws.getCell(1, 1).value).not.toBe("Период"); // no metadata block above
+  });
+
+  it("keeps money numeric (big values, never stringified)", async () => {
+    const { ws } = await roundtrip(rowsFor(10), columns, { sheetName: "Отчёт по официантам", totals: totalsFor(rowsFor(10)) });
+    expect(typeof ws.getCell(2, 1).value).toBe("string");     // name
+    expect(ws.getCell(2, 2).value).toBe(500006576000);        // big order sum
+    expect(typeof ws.getCell(2, 2).value).toBe("number");
+    expect(ws.getCell(2, 2).numFmt).toBe("#,##0");
+  });
+
+  it("totals row follows data immediately with numeric totals", async () => {
+    const rows = rowsFor(10);
+    const { ws } = await roundtrip(rows, columns, { sheetName: "Отчёт по официантам", totals: totalsFor(rows) });
+    // rows 2-3 data, row 4 totals.
+    expect(ws.getCell(4, 1).value).toBe("Итого:");
+    expect(ws.getCell(4, 2).value).toBe(500008874000);        // sum of orders
+    expect(typeof ws.getCell(4, 5).value).toBe("number");     // total Обслуга numeric
+  });
+
+  it("Обслуга официанта (E) changes with the service percent; other columns do not", async () => {
+    const r10 = rowsFor(10), r20 = rowsFor(20);
+    const a = await roundtrip(r10, columns, { sheetName: "Отчёт по официантам", totals: totalsFor(r10) });
+    const b = await roundtrip(r20, columns, { sheetName: "Отчёт по официантам", totals: totalsFor(r20) });
+    // Row-level E doubles from 10% to 20%.
+    expect(a.ws.getCell(2, 5).value).toBe(229800);
+    expect(b.ws.getCell(2, 5).value).toBe(459600);
+    expect(a.ws.getCell(2, 5).value).not.toBe(b.ws.getCell(2, 5).value);
+    // Totals E changes consistently (2x).
+    expect(b.ws.getCell(4, 5).value).toBe(a.ws.getCell(4, 5).value * 2);
+    // Non-percent columns (orders sum) unchanged across percent.
+    expect(a.ws.getCell(4, 2).value).toBe(b.ws.getCell(4, 2).value);
+  });
+
+  it("zero-data: headers row 1 + Итого row 2 with numeric zeros", async () => {
+    const zeros = { label: "Итого:", values: { ordersTotal: 0, takeawayDeliveryTotal: 0, serviceTotal: 0, waiterServiceTotal: 0 } };
+    const { ws } = await roundtrip([], columns, { sheetName: "Отчёт по официантам", totals: zeros });
+    expect(ws.getCell(1, 1).value).toBe("Имя");
+    expect(ws.getCell(2, 1).value).toBe("Итого:");
+    expect(ws.getCell(2, 2).value).toBe(0);
+    expect(typeof ws.getCell(2, 5).value).toBe("number");
+  });
+});

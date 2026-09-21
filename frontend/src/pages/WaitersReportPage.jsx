@@ -373,30 +373,35 @@ export default function WaitersReportPage() {
     updateFilter("servicePercent", next);
   }
 
-  const selectedWaiterLabel = waiterOptions.find((option) => option.value === filters.waiterId)?.label || "Все официанты";
-  const enabledDimensions = calculationOptions.filter((option) => filters[option.key]).map((option) => option.label);
 
   function downloadExcel() {
     const validatedPercent = normalizeServicePercent(filters.servicePercent);
     if (validatedPercent.error) { setPercentError(validatedPercent.error); return; }
-    const exportRows = [...rows, {
-      name: "Всего", ordersTotal: totals.ordersTotal,
-      takeawayDeliveryTotal: totals.takeawayDeliveryTotal, serviceTotal: totals.serviceTotal,
-      waiterServiceTotal: totals.waiterServiceTotal, dishesCount: totals.dishesCount,
-    }];
-    exportToExcel(exportRows, [
-      { key: "name", label: "Имя" },
-      { key: "ordersTotal", label: "Сумма заказов" },
-      { key: "takeawayDeliveryTotal", label: "Самовывоз и доставка" },
-      { key: "serviceTotal", label: "Сумма услуги" },
-      { key: "waiterServiceTotal", label: "Обслуживание официанта" },
-      { key: "dishesCount", label: "Блюда" },
-    ], "waiters-report", { metadata: [
-      { label: "Период", value: dateRange.start === dateRange.end ? dateRange.start : `${dateRange.start} – ${dateRange.end}` },
-      { label: "Официант", value: selectedWaiterLabel },
-      { label: "Процент обслуживания", value: `${validatedPercent.value}%` },
-      { label: "База расчёта", value: enabledDimensions.length ? enabledDimensions.join(", ") : "Не выбрана" },
-    ] });
+    // WAITERS-EXCEL-01: the workbook begins directly with the business header at
+    // row 1 (no Период/Официант/Процент/База metadata block — those stay in the
+    // browser UI, and the selected percent already drives the canonical request
+    // so the exported waiter_service_total reflects it). Exactly 5 reference
+    // columns; "Блюда" is intentionally UI-only. All money stays numeric; the
+    // shared `totals` option renders the Итого row directly after the data
+    // (numeric totals, never summed together).
+    exportToExcel(rows, [
+      { key: "name", label: "Имя", width: 24 },
+      { key: "ordersTotal", label: "Сумма заказов", type: "number", format: "#,##0", width: 20 },
+      { key: "takeawayDeliveryTotal", label: "Сумма заказов на вынос", type: "number", format: "#,##0", width: 24 },
+      { key: "serviceTotal", label: "Сумма услуги", type: "number", format: "#,##0", width: 18 },
+      { key: "waiterServiceTotal", label: "Обслуга официанта", type: "number", format: "#,##0", width: 20 },
+    ], "waiters-report", {
+      sheetName: "Отчёт по официантам",
+      totals: {
+        label: "Итого:",
+        values: {
+          ordersTotal: totals.ordersTotal,
+          takeawayDeliveryTotal: totals.takeawayDeliveryTotal,
+          serviceTotal: totals.serviceTotal,
+          waiterServiceTotal: totals.waiterServiceTotal,
+        },
+      },
+    });
   }
 
   // No full-page loader: the shell (title/controls/table header/totals row)
