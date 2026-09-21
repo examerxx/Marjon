@@ -163,9 +163,9 @@ class AuthService:
     async def create_company_user(
         self,
         company_id: UUID | None,
-        email: str,
         password: str,
         role_slug: str,
+        email: str | None = None,
         name: str | None = None,
         phone: str | None = None,
         assignable_role_slugs: frozenset[str] | None = None,
@@ -173,7 +173,9 @@ class AuthService:
         if not company_id:
             raise ValidationError("Current user is not assigned to a company")
 
-        if await self.user_repo.get_by_email(email):
+        # CASHIER-EMAIL-OPTIONAL-01: uniqueness is enforced only for a
+        # provided address; any number of emailless staff accounts may exist.
+        if email is not None and await self.user_repo.get_by_email(email):
             raise ConflictError("Email already registered")
         if phone and await self.user_repo.get_by_phone(phone):
             # get_by_login() resolves email/username/phone with .limit(1) —

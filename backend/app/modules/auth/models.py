@@ -17,7 +17,11 @@ class User(TimeStampedModel):
     company_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    # CASHIER-EMAIL-OPTIONAL-01: staff accounts (e.g. cashiers created without
+    # an address) may have NULL email. Non-null addresses stay globally unique
+    # (PostgreSQL treats NULL as distinct in UNIQUE constraints); Owner/Admin
+    # registration and login still require a real address at their own layer.
+    email: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
     # Аккаунты главной админки: логин по username (ТЗ админ-панели §4.1)
     username: Mapped[str | None] = mapped_column(String(150), unique=True, index=True)
     name: Mapped[str | None] = mapped_column(String(255))

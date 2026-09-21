@@ -32,7 +32,9 @@ class RegisterRequest(BaseSchema):
 class CompanyUserCreate(BaseSchema):
     model_config = {"from_attributes": True, "extra": "forbid"}
 
-    email: EmailStr
+    # CASHIER-EMAIL-OPTIONAL-01: staff creation accepts no address.
+    # Owner/Admin registration (RegisterRequest) still requires one.
+    email: EmailStr | None = None
     password: str
     phone: str | None = None
     role_slug: str
@@ -90,7 +92,8 @@ class TokenResponse(BaseSchema):
 
 
 class UserResponse(BaseResponseSchema):
-    email: str
+    # CASHIER-EMAIL-OPTIONAL-01: staff accounts may carry email None.
+    email: str | None
     name: str | None = None
     phone: str | None = None
     is_active: bool

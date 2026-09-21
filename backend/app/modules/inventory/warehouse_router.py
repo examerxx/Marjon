@@ -41,7 +41,9 @@ def _user_display(user: User) -> str:
     name = getattr(user, "name", None) or ""
     if name:
         return name
-    return str(user.email).split("@")[0].upper()
+    # CASHIER-EMAIL-OPTIONAL-01: staff accounts may carry email None.
+    local = (getattr(user, "email", None) or "").split("@")[0]
+    return local.upper() if local else "—"
 
 
 async def _next_doc_number(db: AsyncSession, company_id: UUID, model) -> int:
