@@ -77,3 +77,35 @@ export const normalizePhone = (value = "", countryKey = "UZ") => {
 
   return parts[1] ? parts.join("") : "";
 };
+
+// Display-only UZ local formatter: raw digits → (XX) XXX-XX-XX, progressive.
+// Never stored: submit keeps normalizePhone() digits. First 9 digits take the
+// pattern, any remainder (non-UZ lengths) appends plainly.
+export const formatLocalUZ = (value = "") => {
+  const digits = String(value).replace(/\D/g, "");
+  const head = digits.slice(0, 9);
+  const rest = digits.slice(9);
+  if (!head) return "";
+
+  let out = `(${head.slice(0, 2)}`;
+  if (head.length < 2) return out;
+  out += ")";
+  if (head.length === 2) return out + rest;
+  out += ` ${head.slice(2, 5)}`;
+  if (head.length <= 5) return out + rest;
+  out += `-${head.slice(5, 7)}`;
+  if (head.length <= 7) return out + rest;
+  return `${out}-${head.slice(7, 9)}${rest}`;
+};
+
+// Map a digit-count caret through the formatted representation.
+export const caretForDigitCount = (digitsBeforeCaret, digits = "") => {
+  if (digitsBeforeCaret <= 0) return 0;
+  const formatted = formatLocalUZ(digits);
+  let seen = 0;
+  for (let index = 0; index < formatted.length; index += 1) {
+    if (/\d/.test(formatted[index])) seen += 1;
+    if (seen === digitsBeforeCaret) return index + 1;
+  }
+  return formatted.length;
+};

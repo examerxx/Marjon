@@ -499,9 +499,12 @@
       .staff-filter-buttons {
           grid-column: 1 / -1;
       }
-  }
+    }
 
-  @media (max-width: 768px) {
+/* (Cashier entity-status rules live unlayered at the end of this file so they
+   win over same-specificity layered overrides.) */
+
+@media (max-width: 768px) {
       .dashboard-content--staff {
           padding: 8px;
       }
@@ -545,4 +548,600 @@
       }
   }
 
+  /* CASHIER-FE-01: cashier-only geometry + form. Other roles keep legacy rules above.
+     Geometry-critical padding/radius additionally ship unlayered at the end of
+     this file so they win over unlayered shell rules. */
+  .staff-page--cashier {
+      min-width: 0;
+  }
+
+  .staff-card--cashier .staff-header h1 {
+      font-size: 25px;
+      font-weight: 700;
+      line-height: 1.15;
+  }
+
+  /* Waiters-report section-indicator language: 8px wide, 44px tall,
+     999px radius, #16c6c8, 14px text gap. */
+  .staff-card--cashier .staff-header__title {
+      gap: 14px;
+  }
+
+  .staff-card--cashier .staff-header__accent {
+      width: 8px;
+      min-width: 8px;
+      height: 44px;
+      margin: 0;
+      border-radius: 999px;
+      background: #16c6c8;
+      box-shadow: 0 8px 17px rgba(37, 99, 235, 0.154);
+  }
+
+  .staff-card--cashier .staff-table-wrapper {
+      border-radius: 18px;
+  }
+
+  .staff-card--cashier .staff-table {
+      min-width: 960px;
+  }
+
+  .staff-card--cashier .staff-table th {
+      padding: 12px 14px;
+  }
+
+  .staff-card--cashier .staff-table td {
+      padding: 12px 14px;
+  }
+
+  /* Cashier avatar follows the MARJON logo-mark geometry (≈30% radius):
+     47px wide, 105% height, 1px white border. Photo keeps object-fit: cover,
+     initials fallback stays centered via place-items. */
+  .staff-card--cashier .staff-table .staff-avatar {
+      width: 47px;
+      height: 49px;
+      border: 1px solid #fff;
+      border-radius: 14px;
+  }
+
+  .staff-form--cashier .cashier-photo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px dashed var(--blue-100);
+      border-radius: 14px;
+      background: rgba(248, 251, 255, .86);
+  }
+
+  .staff-form--cashier .cashier-photo__body {
+      display: grid;
+      gap: 4px;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 500;
+  }
+
+  .staff-form--cashier .cashier-photo__body > span {
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 500;
+  }
+
+  .staff-form--cashier .cashier-photo__body .muted {
+      margin: 0;
+  }
+
+  .staff-form--cashier .cashier-photo__upload {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      width: fit-content;
+      padding: 0 16px;
+      border: 1px solid rgba(14, 165, 233, .42);
+      border-radius: 14px;
+      background: #fff;
+      color: #0e7490;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+  }
+
+  .staff-form--cashier .cashier-photo__upload input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+  }
+
+  .staff-form--cashier .cashier-permissions {
+      display: grid;
+      gap: 12px;
+      padding-top: 16px;
+      /* Same content line as the field grid above (margin-inline: 24px). */
+      margin-inline: 24px;
+      border-top: 1px solid rgba(218, 228, 239, .95);
+  }
+
+  .staff-form--cashier .cashier-permissions h3 {
+      margin: 0;
+      color: var(--neutral-950);
+      font-size: 15px;
+      font-weight: 800;
+  }
+
+  .staff-form--cashier .cashier-permission-switches {
+      display: grid;
+      gap: 10px;
+  }
+
+  /* Matrix rows keep the original layout: toggle left, label right. */
+  .staff-form--cashier .staff-access-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 12px;
+      width: 100%;
+  }
+
+  .staff-form--cashier .cashier-permissions .muted {
+      margin: 0;
+  }
+
+  .staff-form--cashier .staff-permission-switch[disabled] {
+      opacity: .65;
+      cursor: not-allowed;
+  }
+
+  .staff-form--cashier .staff-form__grid small.muted {
+      color: #64748b;
+      font-size: 12px;
+  }
+
+}
+
+/* CASHIER-FE-01 unlayered: cashier-only outer geometry. Unlayered styles beat
+   layered ones, so these live outside @layer marjon-base to reliably apply the
+   Reports-style rhythm (visible gaps around the white panel) without touching
+   the global Sidebar/Topbar/shell. Other roles are unaffected (scoped). */
+.dashboard-content--staff:has(.staff-card--cashier) {
+    padding: 14px 16px 16px;
+}
+
+.dashboard-content--staff .staff-card--cashier {
+    /* Content-fit: cancel the viewport min-height, the flex:1 growth AND the
+       cross-axis stretch from the row-flex staff page that fills the shell
+       height with empty white. Card hugs header + table; 22px bottom pad. */
+    flex: none;
+    align-self: flex-start;
+    min-height: 0;
+    padding: 22px;
+    border: 1px solid rgba(15, 35, 60, 0.09);
+    border-radius: 18px;
+    background: var(--color-card, #ffffff);
+    box-shadow: 0 3px 12px rgba(15, 35, 60, 0.055);
+}
+
+/* CASHIER-FE-03 unlayered, cashier-scoped only: header action group aligned
+   with the Reports action family (43px controls, 10px radius/gaps).
+   FE-02 toolbar-row + centered dialog removed; FE-01 drawer shell restored.
+   No global overrides, no Reports touched. */
+.staff-header--cashier .staff-header__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    min-width: 0;
+    flex-wrap: nowrap;
+}
+
+.staff-header--cashier .staff-tabs {
+    margin-bottom: 0;
+    padding: 4px;
+    border-radius: 22px;
+}
+
+.staff-header--cashier .staff-tabs button {
+    min-height: 33px;
+    padding: 0 12px;
+    border-radius: 22px;
+    font-size: 13px;
+    transition: background-color 240ms ease, border-color 240ms ease,
+      color 240ms ease, box-shadow 240ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .staff-header--cashier .staff-tabs button,
+    .staff-header--cashier .staff-tabs__indicator,
+    .staff-add-button--cashier {
+        transition-duration: 0.01ms;
+    }
+}
+
+.staff-add-button--cashier {
+    flex-shrink: 0;
+    min-height: 43px;
+    padding: 0 16px;
+    border-radius: 22px;
+    background: #1FC9C9;
+    box-shadow: 0 8px 18px rgba(31, 201, 201, 0.28);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    transition: background-color 200ms ease, box-shadow 200ms ease;
+}
+
+.staff-add-button--cashier:hover:not(:disabled) {
+    background: #1AB5B5;
+}
+
+.staff-add-button--cashier:active:not(:disabled) {
+    background: #159898;
+}
+
+.staff-add-button--cashier:focus-visible {
+    outline: 2px solid #1FC9C9;
+    outline-offset: 2px;
+}
+
+.staff-add-button--cashier:disabled {
+    background: #9adede;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .staff-header--cashier .staff-header__actions {
+        flex-wrap: wrap;
+    }
+
+    .staff-header--cashier .staff-add-button--cashier {
+        width: 100%;
+    }
+}
+
+/* Cashier overlay covers sidebar + topbar like the reference: the modal is
+   portaled to document.body (page stacking contexts trap in-tree modals),
+   and the legacy 84px top offset is removed for the full-height drawer. */
+body.dashboard-body:has(.staff-modal--cashier-full) .staff-modal.staff-modal--cashier-full {
+    padding: 0;
+}
+
+body.dashboard-body:has(.staff-modal--cashier-full) .staff-modal.staff-modal--cashier-full .staff-form {
+    height: 100vh;
+    max-height: 100vh;
+}
+
+/* Cashier overlay experiment (revert if disliked): drawer +20% wider and
+   darker backdrop like the reference. Cashier-scoped only. */
+.staff-modal--cashier-full .staff-form--cashier {
+    width: min(693px, 100%);
+}
+
+.staff-modal--cashier-full .staff-modal__backdrop {
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+/* Unified switch geometry for cashier: middle between .staff-switch (52x30,
+   knob 24) and .staff-mini-switch (34x20, knob 14) => 43x25, knob 19.
+   Cashier-scoped only; on/off colors untouched. */
+.staff-form--cashier .staff-switch,
+.staff-form--cashier .staff-mini-switch {
+    width: 43px;
+    min-width: 43px;
+    height: 25px;
+    flex: 0 0 auto;
+}
+
+/* The legacy 34x20 button frame must fit the unified 43x25 switch. */
+.staff-form--cashier .staff-switch-button {
+    width: auto;
+    height: auto;
+}
+
+.staff-form--cashier .staff-switch::after,
+.staff-form--cashier .staff-mini-switch::after {
+    left: 3px;
+    top: 3px;
+    width: 19px;
+    height: 19px;
+}
+
+.staff-form--cashier .staff-permission-switch.is-on .staff-switch::after {
+    transform: translateX(18px);
+}
+
+.staff-form--cashier .staff-switch-button.is-on .staff-mini-switch::after,
+.staff-form--cashier .staff-access-action.is-on .staff-mini-switch::after {
+    transform: translateX(18px);
+}
+
+/* Cashier drawer footer: 22px pill family. Add = turquoise solid,
+   Cancel = white with red text/border (never filled red). */
+.staff-modal--cashier-full .staff-form--cashier .staff-form__footer button[type="button"] {
+    min-height: 43px;
+    border: 1px solid #EF4444;
+    border-radius: 22px;
+    background: #fff;
+    color: #EF4444;
+}
+
+.staff-modal--cashier-full .staff-form--cashier .staff-form__footer button[type="button"]:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.06);
+}
+
+.staff-modal--cashier-full .staff-form--cashier .staff-form__footer button[type="button"]:focus-visible {
+    outline: 2px solid #EF4444;
+    outline-offset: 2px;
+}
+
+.staff-modal--cashier-full .staff-form--cashier .staff-form__footer button[type="button"]:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.staff-modal--cashier-full .staff-form--cashier .staff-form__footer button[type="submit"] {
+    min-height: 43px;
+    border: 0;
+    border-radius: 22px;
+    background: #1FC9C9;
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(31, 201, 201, 0.28);
+}
+
+.staff-modal--cashier-full .staff-form--cashier .staff-form__footer button[type="submit"]:hover:not(:disabled) {
+    background: #1AB5B5;
+}
+
+.staff-modal--cashier-full .staff-form--cashier .staff-form__footer button[type="submit"]:active:not(:disabled) {
+    background: #159898;
+}
+
+.staff-modal--cashier-full .staff-form--cashier .staff-form__footer button[type="submit"]:focus-visible {
+    outline: 2px solid #1FC9C9;
+    outline-offset: 2px;
+}
+
+.staff-modal--cashier-full .staff-form--cashier .staff-form__footer button[type="submit"]:disabled {
+    opacity: 0.6;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+/* Cashier drawer entrance: overlay fades, panel slides right → left.
+   Exit reverses via .is-closing before unmount. */
+.staff-modal--cashier-full .staff-modal__backdrop {
+    animation: cashier-overlay-in 240ms ease;
+}
+
+.staff-modal--cashier-full .staff-form--cashier {
+    animation: cashier-drawer-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.staff-modal--cashier-full.is-closing .staff-modal__backdrop {
+    animation: cashier-overlay-out 220ms ease forwards;
+}
+
+.staff-modal--cashier-full.is-closing .staff-form--cashier {
+    animation: cashier-drawer-out 240ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes cashier-overlay-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes cashier-overlay-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes cashier-drawer-in {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+@keyframes cashier-drawer-out {
+    from { transform: translateX(0); }
+    to { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .staff-modal--cashier-full .staff-modal__backdrop,
+    .staff-modal--cashier-full .staff-form--cashier,
+    .staff-modal--cashier-full.is-closing .staff-modal__backdrop,
+    .staff-modal--cashier-full.is-closing .staff-form--cashier {
+        animation: none;
+    }
+}
+
+/* Split phone: the country trigger is a compact static pill (flag + code +
+   chevron); digits flow in a borderless input. The base absolute-position
+   trigger variant would float out of this flex row, so it is reset here. */
+.staff-form--cashier .staff-phone-country--pill {
+    position: static;
+    transform: none;
+    width: auto;
+    height: 34px;
+    gap: 6px;
+    padding: 0 10px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 10px;
+    background: #f1f5f9;
+    color: var(--neutral-800, #1e293b);
+    font-size: 13px;
+    font-weight: 600;
+    flex: 0 0 auto;
+}
+
+.staff-form--cashier .staff-phone-country--pill img {
+    width: 22px;
+    height: 15px;
+    border-radius: 3px;
+}
+
+.staff-form--cashier .staff-phone-country--pill svg {
+    width: 11px;
+    height: 11px;
+}
+
+/* One bordered control: country button + prefix + digits share a single
+   46px box that matches sibling fields (the base input border/padding for
+   the absolute-flag variant would otherwise break the row apart). */
+.staff-form--cashier .staff-phone-field--split {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 0 14px 0 8px;
+    border: 1px solid var(--blue-100);
+    border-radius: 14px;
+    background: #fff;
+}
+
+.staff-form--cashier .staff-phone-field--split input {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.staff-form--cashier .staff-phone-field--split input:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.staff-form--cashier .staff-phone-field--split:focus-within {
+    border-color: rgba(29, 181, 181, 0.62);
+    box-shadow: 0 0 0 3px rgba(29, 181, 181, 0.12);
+}
+
+/* Permission rows: neutral dark labels; state carried by the left dot
+   (green on / red off) + switch position. Dots update live via .is-on.
+   Spans carry explicit colors so base button :hover can never recolor them. */
+.staff-form--cashier .staff-permission-switch {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.staff-form--cashier .staff-permission-switch span,
+.staff-form--cashier .staff-permission-switch i {
+    color: var(--neutral-800, #1e293b);
+}
+
+.staff-form--cashier .staff-permission-state-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    border-radius: 50%;
+    background: #EF4444;
+}
+
+.staff-form--cashier .staff-permission-switch.is-on .staff-permission-state-dot {
+    background: #00DC3B;
+}
+
+/* Sliding segmented pill: one measured indicator travels horizontally under
+   the active segment (transform + width, 250ms MARJON ease). Labels/icons sit
+   above it on transparent buttons; the pill carries the selected chrome. */
+.staff-header--cashier .staff-tabs--slider {
+    position: relative;
+}
+
+.staff-header--cashier .staff-tabs__indicator {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    border: 1px solid rgba(14, 165, 233, .20);
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 6px 13px rgba(15, 23, 42, 0.056);
+    transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1),
+      width 250ms cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+}
+
+.staff-header--cashier .staff-tabs--slider button {
+    position: relative;
+    z-index: 1;
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.staff-header--cashier .staff-tabs--slider button.is-active {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    color: #0e7490;
+}
+
+/* Cashier table alignment: every body content box already starts exactly at
+   its header content left edge (measured delta 0 on all 8 columns), except
+   Фото where the 47px avatar overhangs the 36px label. Center the Фото
+   heading text and the avatar within the column; all other columns keep
+   the shared left geometry untouched. */
+.staff-card--cashier .staff-table th:nth-child(2) {
+    text-align: center;
+}
+
+.staff-card--cashier .staff-table td:nth-child(2) .staff-avatar {
+    margin-inline: auto;
+}
+
+/* Visual-axis alignment: badge/group columns center header text and body
+   content as whole units so their centers coincide; textual ID/ФИО/phone
+   columns stay left-aligned. Widths untouched — only wrapper alignment. */
+.staff-card--cashier .staff-table th:nth-child(5),
+.staff-card--cashier .staff-table th:nth-child(6),
+.staff-card--cashier .staff-table th:nth-child(7),
+.staff-card--cashier .staff-table th:nth-child(8) {
+    text-align: center;
+}
+
+.staff-card--cashier .staff-table td:nth-child(5),
+.staff-card--cashier .staff-table td:nth-child(6),
+.staff-card--cashier .staff-table td:nth-child(7) {
+    text-align: center;
+}
+
+.staff-card--cashier .staff-table td:nth-child(8) .staff-actions {
+    justify-content: center;
+}
+
+/* Cashier entity status follows the Settings → Place language exactly:
+   8px currentColor dot + 7px gap, no border/background chrome.
+   Active #00dc3b, inactive var(--color-danger, #ef4444). Cashier-scoped only.
+   Unlayered (past the @layer marjon-base close) so it wins over
+   same-specificity layered overrides. */
+.staff-card--cashier .staff-table .staff-status-badge:not(.is-archived) {
+    gap: 7px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #00dc3b;
+}
+
+.staff-card--cashier .staff-table .staff-status-badge.is-archived {
+    gap: 7px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-danger, #ef4444);
+}
+
+.staff-card--cashier .staff-status-badge__dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    border-radius: 50%;
+    background: currentColor;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { staffService } from "../api/staff";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../hooks/useAsyncSafety";
 import {
@@ -18,6 +18,8 @@ import StaffFormModal from "./staff/StaffFormModal";
 // staffService (FE-05); безопасность запросов/мутаций сохранена (FE-06).
 function StaffRolePage({ role = "all" }) {
   const routeRole = roleMap[role] ? role : "all";
+  // CASHIER-FE-01: cashier route is the visual/UX reference; other roles keep legacy UI.
+  const isCashierView = routeRole === "cashier";
   const pageTitle =
     routeRole === "all" ? "Список сотрудников" : `Список сотрудников: ${roleMap[routeRole].title}`;
 
@@ -57,6 +59,10 @@ function StaffRolePage({ role = "all" }) {
   const [draftFilters, setDraftFilters] = useState(defaultFilters);
   const [filters, setFilters] = useState(defaultFilters);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalClosing, setModalClosing] = useState(false);
+  // Cashier drawer inline submit error (no browser-native popups).
+  const [saveError, setSaveError] = useState("");
+  const closeTimer = useRef(null);
   const [editingId, setEditingId] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [phoneCountryOpen, setPhoneCountryOpen] = useState(false);
@@ -86,31 +92,73 @@ function StaffRolePage({ role = "all" }) {
     });
   }, [activeTab, filters, routeRole, staff]);
 
+  useEffect(() => () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }, []);
+
+  const cancelPendingClose = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    setModalClosing(false);
+  };
+
   const openAddModal = () => {
+    cancelPendingClose();
     setEditingId(null);
     setShowPassword(false);
     setPhoneCountryOpen(false);
     setForm({
       ...emptyForm,
       phoneCountry: "UZ",
+      printerIp: "",
       roleKey: routeRole === "all" ? "cashier" : routeRole,
     });
     setModalOpen(true);
   };
 
   const openEditModal = (employee) => {
+    cancelPendingClose();
     setEditingId(employee.id);
     setShowPassword(false);
     setPhoneCountryOpen(false);
-    setForm({ ...emptyForm, ...employee, phoneCountry: employee.phoneCountry || inferPhoneCountry(employee.phone) });
+    setForm({ ...emptyForm, ...employee, printerIp: "", phoneCountry: employee.phoneCountry || inferPhoneCountry(employee.phone) });
     setModalOpen(true);
   };
 
   const closeModal = () => {
+    // Cashier drawer plays a right-exit animation before unmounting.
+    if (isCashierView && modalOpen && !modalClosing) {
+      setModalClosing(true);
+      cancelPendingCloseTimerOnly();
+      closeTimer.current = window.setTimeout(() => {
+        closeTimer.current = null;
+        setModalClosing(false);
+        resetModalState();
+      }, 260);
+      return;
+    }
+    cancelPendingClose();
+    resetModalState();
+  };
+
+  const cancelPendingCloseTimerOnly = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+
+  const resetModalState = () => {
     setModalOpen(false);
     setEditingId(null);
     setShowPassword(false);
     setPhoneCountryOpen(false);
+    setSaveError("");
   };
 
   const updateForm = (field, value) => {
@@ -156,10 +204,99 @@ function StaffRolePage({ role = "all" }) {
     reader.readAsDataURL(file);
   };
 
+  // Cashier submit errors surface as drawer inline text. Backend detail can
+  // be a string, a list of validation dicts, or absent — always reduce to a
+  // human-readable string so React never renders [object Object].
+  const toCashierSaveError = (err) => {
+    const data = err.response?.data;
+    if (!data || typeof data !== "object") {
+      return typeof err.message === "string" && err.message
+        ? err.message
+        : "Ошибка сохранения";
+    }
+    if (typeof data.detail === "string" && data.detail) return data.detail;
+    if (Array.isArray(data.detail)) {
+      const first = data.detail.find((entry) => entry && typeof entry.msg === "string");
+      if (first) return first.msg;
+    }
+    if (typeof data.message === "string" && data.message) {
+      const fields = data.field_errors;
+      if (fields && typeof fields === "object") {
+        const firstField = Object.values(fields).find(
+          (value) => typeof value === "string" && value,
+        );
+        if (firstField) return `${data.message}: ${firstField}`;
+      }
+      return data.message;
+    }
+    return "Ошибка сохранения";
+  };
+
   const saveStaff = async (event) => {
     event.preventDefault();
     if (!mutationLocks.acquire("staff-save")) return;
     const phone = normalizePhone(form.phone, form.phoneCountry);
+    // CASHIER: cashier form has no Email input by product contract; the
+    // canonical POST /auth/users accepts no address (nullable email).
+    // Never fake an email. Edit path unchanged.
+    if (isCashierView) {
+      const cashierName = form.fullName.trim();
+      if (!cashierName || !phone) {
+        setSaveError("Укажите имя и номер телефона кассира.");
+        mutationLocks.release("staff-save");
+        return;
+      }
+      if ((!editingId || form.password) && (form.password.length < 8 || !/[A-Za-z]/.test(form.password) || !/\d/.test(form.password))) {
+        setSaveError("Пароль должен содержать минимум 8 символов, букву и цифру.");
+        mutationLocks.release("staff-save");
+        return;
+      }
+      setSaveError("");
+      setSaving(true);
+      try {
+        // printerIp and photo are visual-only in this phase: never sent.
+        // No email key is sent at all — backend persists email NULL.
+        let confirmedUser;
+        if (!editingId) {
+          const { data: createdUser } = await staffService.createCompanyUser({
+            password: form.password,
+            phone: phone || null,
+            role_slug: "cashier",
+            role_name: cashierName,
+          });
+          confirmedUser = createdUser;
+          if (form.status === "archived") {
+            const { data } = await staffService.updateCompanyUser(createdUser.id, {
+              is_active: false,
+            });
+            confirmedUser = data;
+          }
+        } else {
+          const { data: updatedUser } = await staffService.updateCompanyUser(editingId, {
+            name: cashierName,
+            password: form.password || undefined,
+            phone: phone || null,
+            role_slug: "cashier",
+            is_active: form.status !== "archived",
+          });
+          confirmedUser = updatedUser;
+        }
+        setStaff((current) => {
+          const mapped = mapStaffUser(confirmedUser);
+          return editingId
+            ? current.map((emp) => emp.id === editingId ? mapped : emp)
+            : [mapped, ...current.filter((emp) => emp.id !== mapped.id)];
+        });
+        closeModal();
+      } catch (err) {
+        console.error("Ошибка сохранения:", err.response?.data?.detail || err.message);
+        setSaveError(toCashierSaveError(err));
+      } finally {
+        setSaving(false);
+        mutationLocks.release("staff-save");
+      }
+      return;
+    }
     const email = form.email.trim();
     const roleKey = form.roleKey || "cashier";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !roleOptions.some((option) => option.key === roleKey)) {
@@ -276,8 +413,8 @@ function StaffRolePage({ role = "all" }) {
   };
 
   return (
-    <div className="staff-page">
-      <section className="staff-card">
+    <div className={`staff-page${isCashierView ? " staff-page--cashier" : ""}`}>
+      <section className={`staff-card${isCashierView ? " staff-card--cashier" : ""}`}>
         <StaffToolbar
           pageTitle={pageTitle}
           openAddModal={openAddModal}
@@ -288,6 +425,7 @@ function StaffRolePage({ role = "all" }) {
           routeRole={routeRole}
           applyFilters={applyFilters}
           clearFilters={clearFilters}
+          hideFilters={isCashierView}
         />
 
         <StaffTable
@@ -298,6 +436,7 @@ function StaffRolePage({ role = "all" }) {
           openEditModal={openEditModal}
           archiveStaff={archiveStaff}
           restoreStaff={restoreStaff}
+          isCashier={isCashierView}
         />
       </section>
 
@@ -317,6 +456,9 @@ function StaffRolePage({ role = "all" }) {
           setShowPassword={setShowPassword}
           phoneCountryOpen={phoneCountryOpen}
           setPhoneCountryOpen={setPhoneCountryOpen}
+          isCashier={isCashierView}
+          closing={modalClosing}
+          saveError={saveError}
         />
       )}
     </div>

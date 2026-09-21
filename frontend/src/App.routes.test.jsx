@@ -147,11 +147,11 @@ describe("Web Launch V1 route surfaces", () => {
       { id: "waiter-1", email: "waiter1@marjon.test", name: "Waiter One", role_slug: "waiter", role_slugs: ["waiter"], is_active: true },
     ];
     mockAuthenticatedUser(users.owner, staffUsers);
-    renderAt("/users/cashier");
+    renderAt("/users");
 
-    await waitForPath("/users/cashier");
+    await waitForPath("/users");
     await waitFor(() => expect(document.body).toHaveTextContent("Cashier One"));
-    expect(document.body).not.toHaveTextContent("Waiter One");
+    expect(document.body).toHaveTextContent("Waiter One");
 
     const roleFilter = document.querySelector(".staff-filters select");
     const roleValues = Array.from(roleFilter.options).map((option) => option.value);
@@ -165,5 +165,20 @@ describe("Web Launch V1 route surfaces", () => {
       "manager",
       "warehouse",
     ]);
+  });
+
+  it("removes the filter panel on the cashier page but keeps route filtering", async () => {
+    const staffUsers = [
+      { id: "cashier-1", email: "cashier1@marjon.test", name: "Cashier One", role_slug: "cashier", role_slugs: ["cashier"], is_active: true },
+      { id: "waiter-1", email: "waiter1@marjon.test", name: "Waiter One", role_slug: "waiter", role_slugs: ["waiter"], is_active: true },
+    ];
+    mockAuthenticatedUser(users.owner, staffUsers);
+    renderAt("/users/cashier");
+
+    await waitForPath("/users/cashier");
+    await waitFor(() => expect(document.body).toHaveTextContent("Cashier One"));
+    expect(document.body).not.toHaveTextContent("Waiter One");
+
+    expect(document.querySelector(".staff-filters")).toBeNull();
   });
 });

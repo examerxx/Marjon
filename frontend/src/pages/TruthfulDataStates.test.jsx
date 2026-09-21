@@ -265,7 +265,9 @@ describe("truthful production data states", () => {
 
     render(<StaffRolePage />);
     expect(await screen.findByText("Backend Employee")).toBeInTheDocument();
-    expect(screen.getByText("Недоступно до BI-06")).toBeInTheDocument();
+    // Honest generic rights display — detailed per-permission persistence is
+    // deferred to the backend handoff, so the table never fabricates rights.
+    expect(screen.getByText("Базовый доступ")).toBeInTheDocument();
 
     fireEvent.click(screen.getByTitle("Archive"));
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith("/auth/users/staff-uuid"));

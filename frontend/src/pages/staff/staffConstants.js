@@ -25,6 +25,8 @@ export const emptyForm = {
   roleKey: "",
   pin: "",
   password: "",
+  // CASHIER-FE-01: visual-only field, never sent to backend (printer_ip handoff).
+  printerIp: "",
   status: "active",
   photo: "",
 };

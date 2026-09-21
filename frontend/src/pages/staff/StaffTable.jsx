@@ -1,10 +1,13 @@
 import Icon from "../../components/Icon";
-import { roleMap } from "./staffConstants";
+import staffDefaultAvatar from "../../assets/staff/staff-default-avatar.png";
+import { getPermissionSummary, roleMap } from "./staffConstants";
 import { formatPhone, inferPhoneCountry } from "./staffPhone";
 
 // Индикаторы загрузки/ошибки и таблица сотрудников OWNER.
 // Вынесено из StaffRolePage.jsx (FE-07B). Разметка, классы и текст сохранены 1:1;
 // данные и обработчики действий принадлежат оркестратору и приходят пропсами.
+// Cashier получает presentation-фолбэк staff-default-avatar.png вместо инициалов;
+// остальные роли сохраняют инициалы.
 export default function StaffTable({
   staffLoading,
   staffError,
@@ -13,6 +16,7 @@ export default function StaffTable({
   openEditModal,
   archiveStaff,
   restoreStaff,
+  isCashier = false,
 }) {
   return (
     <>
@@ -27,7 +31,7 @@ export default function StaffTable({
               <th>ФИО</th>
               <th>Номер телефона</th>
               <th>Роль</th>
-              <th>Доступ RBAC</th>
+              <th>Права доступа</th>
               <th>Статус</th>
               <th>Действия</th>
             </tr>
@@ -40,6 +44,8 @@ export default function StaffTable({
                   <div className="staff-avatar">
                     {employee.photo ? (
                       <img src={employee.photo} alt={employee.fullName} />
+                    ) : isCashier ? (
+                      <img src={staffDefaultAvatar} alt={employee.fullName} />
                     ) : (
                       <span>{employee.fullName.slice(0, 2).toUpperCase()}</span>
                     )}
@@ -55,17 +61,28 @@ export default function StaffTable({
                 <td>
                   <span className="staff-permission">
                     <span className="staff-permission-dot" aria-hidden="true" />
-                    Недоступно до BI-06
+                    {getPermissionSummary(employee)}
                   </span>
                 </td>
                 <td>
-                  <span
-                    className={`staff-status-badge ${
-                      employee.status === "archived" ? "is-archived" : ""
-                    }`}
-                  >
-                    {employee.status === "archived" ? "#архив" : "#активно"}
-                  </span>
+                  {isCashier ? (
+                    <span
+                      className={`staff-status-badge ${
+                        employee.status === "archived" ? "is-archived" : ""
+                      }`}
+                    >
+                      <span className="staff-status-badge__dot" aria-hidden="true" />
+                      {employee.status === "archived" ? "Неактивен" : "Активен"}
+                    </span>
+                  ) : (
+                    <span
+                      className={`staff-status-badge ${
+                        employee.status === "archived" ? "is-archived" : ""
+                      }`}
+                    >
+                      {employee.status === "archived" ? "#архив" : "#активно"}
+                    </span>
+                  )}
                 </td>
                 <td>
                   <div className="staff-actions">
