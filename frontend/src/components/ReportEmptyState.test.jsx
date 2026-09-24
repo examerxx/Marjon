@@ -28,4 +28,17 @@ describe("ReportEmptyState shared illustration", () => {
     rerender(<ReportEmptyState title="T" hidden={false} />);
     expect(container.querySelector('[role="status"]')).not.toHaveStyle({ visibility: "hidden" });
   });
+
+  it("shows a truthful loading treatment (no PNG, no title) while loading", () => {
+    const { container, rerender } = render(<ReportEmptyState title="Заказов не найдено" loading />);
+    // No empty PNG or business title is shown before the backend confirms empty.
+    expect(container.querySelector(".owner-report-empty-image")).toBeNull();
+    expect(screen.queryByText("Заказов не найдено")).toBeNull();
+    expect(container.querySelector(".owner-report-empty--loading")).not.toBeNull();
+    expect(screen.getByText("Загрузка…")).toBeInTheDocument();
+    // Once confirmed empty, the canonical PNG + title replace the loading state.
+    rerender(<ReportEmptyState title="Заказов не найдено" loading={false} />);
+    expect(container.querySelector(".owner-report-empty-image")).not.toBeNull();
+    expect(screen.getByText("Заказов не найдено")).toBeInTheDocument();
+  });
 });

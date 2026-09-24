@@ -4,6 +4,7 @@ import { ordersService } from "../api/orders";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
 import ReportEmptyState from "../components/ReportEmptyState";
+import { reportCacheKey, readReportCache, writeReportCache } from "./reports/reportResultCache";
 import ReportMultiSelect from "../components/ReportMultiSelect";
 import { exportToExcel, excelLocalDateTime, excelAmountNumber } from "../utils/excel";
 import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/useAsyncSafety";
@@ -252,13 +253,26 @@ export default function CancelledDishesReportPage() {
 
   useEffect(() => {
     const request = beginRequest();
-    setLoading(true);
     setError("");
     if (!isOrderedDateRange(appliedFilters.from, appliedFilters.to)) {
       setRows([]);
       setError("Дата начала периода не может быть позже даты окончания.");
       setLoading(false);
       return;
+    }
+    const cacheKey = reportCacheKey("cancelled-dishes", {
+      from: appliedFilters.from,
+      to: appliedFilters.to,
+      orderNumber: appliedFilters.orderNumber,
+      authorId: appliedFilters.authorId,
+      dishName: appliedFilters.dishName,
+    });
+    const cached = readReportCache(cacheKey);
+    if (cached) {
+      setRows(cached.rows);
+      setLoading(false);
+    } else {
+      setLoading(true);
     }
     reportsService.listCancelledDishes(appliedFilters.from, appliedFilters.to, {
       filters: {
@@ -270,7 +284,9 @@ export default function CancelledDishesReportPage() {
     })
       .then(({ data }) => {
         if (!request.isCurrent()) return;
-        setRows(normalizeCancelledReportResponse(data));
+        const mapped = normalizeCancelledReportResponse(data);
+        writeReportCache(cacheKey, { rows: mapped });
+        setRows(mapped);
       })
       .catch((err) => {
         if (!request.isCurrent() || isAbortError(err)) return;
@@ -551,9 +567,9 @@ export default function CancelledDishesReportPage() {
                 </tr>
               ))}
               {!filteredRows.length ? (
-                <tr className="cancelled-empty-row" aria-hidden={loading || undefined}>
+                <tr className="cancelled-empty-row">
                   <td colSpan={10}>
-                    <ReportEmptyState title="Отменённых блюд нет" hidden={loading} />
+                    <ReportEmptyState title="Отменённых блюд нет" loading={loading} />
                   </td>
                 </tr>
               ) : null}

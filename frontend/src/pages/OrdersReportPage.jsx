@@ -3,6 +3,7 @@ import { reportsService } from "../api/reports";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
 import ReportEmptyState from "../components/ReportEmptyState";
+import { reportCacheKey, readReportCache, writeReportCache } from "./reports/reportResultCache";
 import { exportToExcel } from "../utils/excel";
 import { formatSelectedLabels } from "../components/ReportMultiSelect";
 import { formatDateLabel, todayInputValue } from "../utils/date";
@@ -345,7 +346,6 @@ export default function OrdersReportPage() {
     const request = beginRequest();
     const dateFrom = toApiDate(dateRange.start);
     const dateTo = toApiDate(dateRange.end);
-    setLoading(true);
     setError("");
     if (!isOrderedDateRange(dateFrom, dateTo)) {
       setRows([]);
@@ -353,12 +353,20 @@ export default function OrdersReportPage() {
       setLoading(false);
       return;
     }
+    const cacheKey = reportCacheKey("orders", { dateFrom, dateTo, filters: appliedFilters });
+    const cached = readReportCache(cacheKey);
+    if (cached) {
+      setRows(cached.rows);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     reportsService.listOrders(dateFrom, dateTo, { filters: appliedFilters, signal: request.signal })
       .then(({ data }) => {
         if (!request.isCurrent()) return;
         if (!Array.isArray(data)) throw new Error("Invalid orders report response");
         const items = data;
-        setRows(items.map((item) => ({
+        const mapped = items.map((item) => ({
           // ORDERS-FRONTEND-TRUTH-01: `id` (UUID) stays the internal React key
           // ONLY. `publicId` is the canonical human-facing order id shown in the
           // ID column / drawer / Excel — consumed straight from the backend
@@ -379,7 +387,9 @@ export default function OrdersReportPage() {
           cashierNames: Array.isArray(item.cashier_names) ? item.cashier_names.map(String) : [],
           serviceFee: Number(item.service_fee ?? 0),
           paymentMethods: Array.isArray(item.payment_methods) ? item.payment_methods.map(String) : [],
-        })));
+        }));
+        writeReportCache(cacheKey, { rows: mapped });
+        setRows(mapped);
       })
       .catch((err) => {
         if (!request.isCurrent() || isAbortError(err)) return;
@@ -622,7 +632,7 @@ export default function OrdersReportPage() {
                   <td><strong>{row.orderNumber}</strong></td><td>{orderTypeLabel(row.orderType)}</td><td>{formatDate(row.createdAt)}</td><td>{formatPlace(row.hallName, row.tableNumber) || "—"}</td><td className="report-total-price">{formatMoney(row.totalAmount)}</td><td>{row.waiterName ?? "—"}</td><td>{formatCashierNames(row.cashierNames)}</td><td>{row.status}</td>
                 </tr>
               ))}
-              {!visibleRows.length ? <tr className="report-empty-row" aria-hidden={loading || undefined}><td colSpan={8}><ReportEmptyState title="Заказов не найдено" hidden={loading} /></td></tr> : null}
+              {!visibleRows.length ? <tr className="report-empty-row"><td colSpan={8}><ReportEmptyState title="Заказов не найдено" loading={loading} /></td></tr> : null}
             </tbody>
           </table>
         </div>

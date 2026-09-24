@@ -2143,6 +2143,19 @@
   text-align: left;
 }
 
+/* Truthful loading treatment: same footprint as the illustrated empty state so
+   the tbody never goes blank and there is no layout shift when the real empty
+   PNG/title replaces it after the GET confirms zero rows. */
+.owner-report-empty--loading {
+  flex-direction: column;
+  min-height: 270px;
+}
+.owner-report-empty-loading {
+  color: var(--neutral-500, #64748b);
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .owner-report-empty__icon {
   display: inline-flex;
   align-items: center;

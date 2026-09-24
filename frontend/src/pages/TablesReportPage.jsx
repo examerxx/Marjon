@@ -5,6 +5,7 @@ import { paymentsService } from "../api/payments";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
 import ReportEmptyState from "../components/ReportEmptyState";
+import { reportCacheKey, readReportCache, writeReportCache } from "./reports/reportResultCache";
 import ReportMultiSelect from "../components/ReportMultiSelect";
 import { exportToExcel } from "../utils/excel";
 import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/useAsyncSafety";
@@ -174,7 +175,6 @@ export default function TablesReportPage() {
     const request = beginRequest();
     const dateFrom = toApiDate(dateRange.start);
     const dateTo = toApiDate(dateRange.end);
-    setLoading(true);
     setError("");
     if (!isOrderedDateRange(dateFrom, dateTo)) {
       setRows([]);
@@ -182,11 +182,22 @@ export default function TablesReportPage() {
       setLoading(false);
       return;
     }
+    // Instant render of the last successful REAL result for this exact request
+    // identity (session memory), then silent background revalidation. A never-
+    // loaded identity is a cache miss → truthful loading state.
+    const cacheKey = reportCacheKey("tables", { dateFrom, dateTo, filters: appliedFilters });
+    const cached = readReportCache(cacheKey);
+    if (cached) {
+      setRows(cached.rows);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     reportsService.listTables(dateFrom, dateTo, { filters: appliedFilters, signal: request.signal })
       .then(({ data }) => {
         if (!request.isCurrent()) return;
         if (!Array.isArray(data)) throw new Error("Invalid tables report response");
-        setRows(data.map((item) => ({
+        const mapped = data.map((item) => ({
           // Stable identity: canonical table_id, else the legacy number bucket.
           id: String(item.table_id || `legacy-${item.table_number}`),
           tableId: item.table_id || null,
@@ -211,7 +222,9 @@ export default function TablesReportPage() {
             placeFeeAmount: toNullableNumber(order.place_fee_amount),
             subtotal: toNullableNumber(order.subtotal),
           })),
-        })));
+        }));
+        writeReportCache(cacheKey, { rows: mapped });
+        setRows(mapped);
       })
       .catch((err) => {
         if (!request.isCurrent() || isAbortError(err)) return;
@@ -456,7 +469,7 @@ export default function TablesReportPage() {
                   </td>
                 </tr>
               ))}
-              {!filteredRows.length ? <tr className="report-empty-row" aria-hidden={loading || undefined}><td colSpan={4}><ReportEmptyState title="Столы не найдены" hidden={loading} /></td></tr> : null}
+              {!filteredRows.length ? <tr className="report-empty-row"><td colSpan={4}><ReportEmptyState title="Столы не найдены" loading={loading} /></td></tr> : null}
             </tbody>
           </table>
         </div>
