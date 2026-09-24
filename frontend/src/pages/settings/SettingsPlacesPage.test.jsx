@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import { settingsService } from "../../api/settings";
 import SettingsPlacesPage, { applyBranchOrder } from "./SettingsPlacesPage";
 
@@ -1419,5 +1420,162 @@ describe("SettingsPlacesPage — delete confirmation modal", () => {
     expect(css).toMatch(/\.settings-confirm \.settings-form__body \{\s*gap:\s*0/);
     // The animation family is untouched.
     expect(confirm[0]).not.toMatch(/animation/);
+  });
+});
+
+describe("SettingsPlacesPage — subtle view transition (fade, no morph overlay)", () => {
+  it("row click navigates immediately with a fade wrapper and no overlay", async () => {
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Открыть столы: Зал" }));
+    // Immediate URL truth (no staged delay) + destination heading…
+    await screen.findByRole("heading", { name: "Зал" });
+    expect(screen.getByTestId("location-search")).toHaveTextContent("?hall_id=h-zal");
+    // …inside the keyed fade container; no morph overlay exists anywhere.
+    expect(document.querySelector(".settings-view-fade")).not.toBeNull();
+    expect(document.querySelector(".settings-morph-layer")).toBeNull();
+    expect(document.querySelector("[class*='is-morph']")).toBeNull();
+  });
+
+  it("back navigation replays the same fade wrapper", async () => {
+    render(
+      <MemoryRouter initialEntries={["/settings/places?hall_id=h-zal"]}>
+        <SettingsPlacesPage />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", { name: "Зал" });
+    expect(document.querySelector(".settings-view-fade")).not.toBeNull();
+  });
+
+  it("edit, delete and drag-grip clicks do not navigate", async () => {
+    renderPage();
+    await screen.findByRole("button", { name: "Открыть столы: Зал" });
+    const probe = () => screen.getByTestId("location-search").textContent;
+    expect(probe()).toBe("");
+    fireEvent.click(screen.getAllByRole("button", { name: "Редактировать" })[0]);
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(probe()).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    fireEvent.click(screen.getAllByRole("button", { name: "Удалить место" })[0]);
+    expect(await screen.findByText("Удалить место?")).toBeInTheDocument();
+    expect(probe()).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "Отмена" }));
+    fireEvent.click(screen.getAllByRole("button", { name: /Переместить место/ })[0]);
+    expect(probe()).toBe("");
+  });
+
+  it("reduced motion keeps direct navigation (fade disabled via CSS)", async () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn(),
+    });
+    try {
+      renderPage();
+      fireEvent.click(await screen.findByRole("button", { name: "Открыть столы: Зал" }));
+      await screen.findByRole("heading", { name: "Зал" });
+      expect(screen.getByTestId("location-search")).toHaveTextContent("?hall_id=h-zal");
+      expect(document.querySelector(".settings-morph-layer")).toBeNull();
+    } finally {
+      if (originalMatchMedia) window.matchMedia = originalMatchMedia;
+      else delete window.matchMedia;
+    }
+  });
+
+  it("direct ?hall_id URL works with the fade wrapper and no overlay", async () => {
+    render(
+      <MemoryRouter initialEntries={["/settings/places?hall_id=h-bar"]}>
+        <SettingsPlacesPage />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", { name: "Бар" });
+    expect(document.querySelector(".settings-view-fade")).not.toBeNull();
+    expect(document.querySelector(".settings-morph-layer")).toBeNull();
+  });
+
+  it("navigates into an empty tables view with the canonical PNG state", async () => {
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Открыть столы: Балкон" }));
+    await screen.findByRole("heading", { name: "Балкон" });
+    expect(await screen.findByText("Столов пока нет")).toBeInTheDocument();
+    expect(document.querySelector(".owner-report-empty-image")).not.toBeNull();
+  });
+});
+
+describe("SettingsPlacesPage — canonical PNG empty states", () => {
+  it("zero halls render the PNG state with guidance and header CTA", async () => {
+    mockList([]);
+    renderPage();
+    expect(await screen.findByText("Мест пока нет")).toBeInTheDocument();
+    expect(document.querySelector(".owner-report-empty-image")).not.toBeNull();
+    expect(screen.getByText("Добавьте первое место, чтобы начать работу со столами.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Добавить место" })).toBeInTheDocument();
+    expect(screen.queryByText("Загрузка...")).not.toBeInTheDocument();
+  });
+
+  it("loading never shows the PNG empty state", async () => {
+    let resolveGet;
+    settingsService.listPlaces.mockImplementation(() => new Promise((resolve) => { resolveGet = resolve; }));
+    renderPage();
+    expect(await screen.findByText("Загрузка...")).toBeInTheDocument();
+    expect(document.querySelector(".owner-report-empty-image")).toBeNull();
+    resolveGet({ data: [] });
+    expect(await screen.findByText("Мест пока нет")).toBeInTheDocument();
+  });
+
+  it("request failure shows error + retry, never the PNG state", async () => {
+    settingsService.listPlaces.mockRejectedValueOnce(new Error("boom"));
+    renderPage();
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Повторить" })).toBeInTheDocument();
+    expect(document.querySelector(".owner-report-empty-image")).toBeNull();
+    expect(screen.queryByText("Мест пока нет")).toBeNull();
+  });
+});
+
+describe("SettingsPlacesPage — compact empty panel (scoped, populated frozen)", () => {
+  it("locks the scoped content-driven empty block", () => {
+    const css = readFileSync(
+      `${process.cwd()}/src/styles/owner/settings.css`,
+      "utf8",
+    );
+    const block = css.match(
+      /\.settings-places-page \.settings-places-empty \{[^}]*\}/,
+    );
+    expect(block).not.toBeNull();
+    expect(block[0]).toContain("min-height: 0");
+    expect(block[0]).toContain("padding: 28px 16px");
+    expect(block[0]).toContain("gap: 4px");
+    expect(block[0]).not.toContain("!imp");
+    // Shared illustration wrapper floor released in Places scope only…
+    expect(css).toMatch(/\.settings-places-page \.settings-places-empty \.owner-report-empty \{[^}]*min-height: 0[^}]*\}/);
+    // …while populated directory and the shared base floors stay intact.
+    expect(css).toMatch(/\.settings-card \{[^}]*min-height: calc\(100vh - 140px\)[^}]*\}/);
+    expect(css).toMatch(/\.settings-owner-view \.settings-places-empty \{[^}]*min-height: 240px[^}]*\}/);
+  });
+
+  it("locks the subtle fade transition (no morph overlay, reduced motion safe)", () => {
+    const css = readFileSync(
+      `${process.cwd()}/src/styles/owner/settings.css`,
+      "utf8",
+    );
+    expect(css).toMatch(/\.settings-view-fade \{[^}]*animation: settings-view-in \.16s ease-out both[^}]*\}/);
+    expect(css).toMatch(/@keyframes settings-view-in \{[^}]*opacity: 0[^}]*\}/);
+    expect(css).not.toContain("settings-morph-expand");
+    expect(css).not.toContain("settings-morph-layer");
+    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+  });
+
+  it("locks Places add-buttons on the OWNER teal accent", () => {
+    const css = readFileSync(
+      `${process.cwd()}/src/styles/owner/settings.css`,
+      "utf8",
+    );
+    const block = css.match(
+      /\.settings-places-page \.settings-actions button \{[^}]*\}/,
+    );
+    expect(block).not.toBeNull();
+    expect(block[0]).toContain("background: #1FC9C9");
+    expect(css).toMatch(/\.settings-places-page \.settings-actions button:hover:not\(:disabled\) \{[^}]*background: #1AB5B5[^}]*\}/);
   });
 });

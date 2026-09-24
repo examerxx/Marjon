@@ -893,7 +893,6 @@
   }
   .settings-place__edit:hover { border-color: rgba(22, 198, 200, .6); }
   .settings-places-empty { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; padding: 40px 16px; }
-  .settings-places-empty__icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 14px; background: rgba(22, 198, 200, .12); color: #0f99b8; margin-bottom: 4px; }
   .settings-places-retry { margin-left: 8px; }
   .settings-tbl { display: flex; flex-direction: column; gap: 8px; }
   .settings-tbl__row {
@@ -1274,4 +1273,58 @@
 .dashboard-content:has(.settings-owner-view) {
   padding-top: 14px;
   padding-inline: 16px;
+}
+
+/* VIEW-FADE-01: subtle transition between Places list and Tables view.
+   The view container remounts on view switch (React key), replaying a short
+   fade+rise — no geometry measurement, no overlay, no timers, no listeners.
+   Same animation both directions; reduced motion disables it. Compositor-
+   friendly opacity/transform only. */
+.settings-view-fade {
+  animation: settings-view-in .16s ease-out both;
+}
+@keyframes settings-view-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-view-fade {
+    animation: none;
+  }
+}
+
+/* ADD-BUTTON-01: Places add-buttons use the OWNER teal accent #1FC9C9
+   (same family as the Staff add-button). Scoped to this page only; other
+   Settings pages keep their accepted button treatment. */
+.settings-places-page .settings-actions button {
+  background: #1FC9C9;
+  box-shadow: 0 8px 18px rgba(31, 201, 201, .28);
+}
+.settings-places-page .settings-actions button:hover:not(:disabled) {
+  background: #1AB5B5;
+}
+.settings-places-page .settings-actions button:active:not(:disabled) {
+  background: #159898;
+}
+
+/* EMPTY-PANEL-01: the Places empty states get a compact content-driven
+   block instead of the breathing 240px floor. Scoped to the Places page
+   empty container ONLY (loading/error use plain .settings-empty-state;
+   populated rows never carry this class), so populated views are untouched.
+   The shared illustration component keeps its PNG/title/guidance sizes —
+   only the wrapper floors are released. Unlayered so it wins
+   without !important. */
+.settings-places-page .settings-places-empty {
+  min-height: 0;
+  padding: 28px 16px;
+  gap: 4px;
+}
+.settings-places-page .settings-places-empty .owner-report-empty {
+  min-height: 0;
 }
