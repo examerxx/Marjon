@@ -145,6 +145,17 @@ export function applyBranchOrder(list, branchId, branchHalls) {
   return result;
 }
 
+// Session-only snapshot of the last SUCCESSFUL real Places GET result (halls
+// with nested tables + branches, rows or confirmed empty). Memory only —
+// never localStorage/sessionStorage, never fake halls/tables. Tables are
+// nested inside halls, so caching the halls array inherently caches each
+// hall's tables keyed by its real hall id via lookup (no cross-hall leakage).
+// Null = never loaded successfully.
+let cachedPlaces = null;
+export function resetPlacesCacheForTest() {
+  cachedPlaces = null;
+}
+
 function StatusBadge({ active }) {
   return (
     <span className={`settings-status-badge ${active ? "is-active" : "is-inactive"}`}>
@@ -399,9 +410,11 @@ function PlaceBranchGroup({ branchId, halls, reducedMotion, disabled, onReorder,
 
 // COMPONENT
 export default function SettingsPlacesPage() {
-  const [halls, setHalls] = useState([]);
-  const [branches, setBranches] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Lazy init from the session cache so a return visit renders real content
+  // on the very first paint (no one-frame Загрузка... before the effect).
+  const [halls, setHalls] = useState(() => cachedPlaces?.halls ?? []);
+  const [branches, setBranches] = useState(() => cachedPlaces?.branches ?? []);
+  const [loading, setLoading] = useState(() => cachedPlaces === null);
   const [error, setError] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
   const [hallDrawer, setHallDrawer] = useState(null);
@@ -464,6 +477,18 @@ export default function SettingsPlacesPage() {
   );
   const inTablesView = Boolean(selectedHallId && selectedHall);
   const hallIsActive = selectedHall?.is_active !== false;
+  // Route-entry must be instant: the subtle view fade replays ONLY on
+  // internal Places ↔ Tables switches, never on sidebar route mount (the
+  // keyed wrapper below remounts in both cases). No timers involved.
+  const hallIdParam = searchParams.get("hall_id");
+  const prevHallIdRef = useRef(hallIdParam);
+  const [viewSwitched, setViewSwitched] = useState(false);
+  useEffect(() => {
+    if (prevHallIdRef.current !== hallIdParam) {
+      prevHallIdRef.current = hallIdParam;
+      setViewSwitched(true);
+    }
+  }, [hallIdParam]);
   // Phase 5C-1: a hall is created under the sole ACTIVE branch automatically, so
   // the selector only appears when the choice is genuinely ambiguous (>1). Never
   // a silent branches[0] pick.
@@ -498,9 +523,12 @@ export default function SettingsPlacesPage() {
     return branches.find((b) => String(b.id) === String(branchId))?.name || "Филиал";
   }
 
-  function load() {
+  function load(options = {}) {
     const request = beginRequest();
-    setLoading(true);
+    // Background revalidation (return visit with cached truth) must never
+    // flash loading nor blank cached halls/tables: it reconciles silently.
+    const background = Boolean(options.background) && cachedPlaces !== null;
+    if (!background) setLoading(true);
     setError("");
     setOrderError("");
     // Phase 5C-4: Settings is an administrative directory, so it asks for the
@@ -513,19 +541,40 @@ export default function SettingsPlacesPage() {
       .then(([placesResponse, branchesResponse]) => {
         if (!request.isCurrent()) return;
         const places = placesResponse?.data;
-        setHalls(Array.isArray(places) ? places : places?.items || []);
+        const hallsData = Array.isArray(places) ? places : places?.items || [];
         const rows = branchesResponse?.data;
-        setBranches(Array.isArray(rows) ? rows : rows?.items || []);
+        const branchesData = Array.isArray(rows) ? rows : rows?.items || [];
+        cachedPlaces = { halls: hallsData, branches: branchesData };
+        setHalls(hallsData);
+        setBranches(branchesData);
       })
       .catch((err) => {
         if (!request.isCurrent() || isAbortError(err)) return;
+        if (background) {
+          // Keep the last successful real content visible; surface a
+          // restrained refresh error instead of blanking the page.
+          setError(apiErrorMessage(err, "Не удалось обновить места."));
+          return;
+        }
         setHalls([]);
         setError(apiErrorMessage(err, "Не удалось загрузить места."));
       })
-      .finally(() => { if (request.isCurrent()) setLoading(false); });
+      .finally(() => { if (request.isCurrent() && !background) setLoading(false); });
   }
 
-  useEffect(() => { load(); }, [beginRequest]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (cachedPlaces !== null) {
+      // Return visit: render last successful real result instantly (halls or
+      // confirmed empty; tables resolve via hall_id lookup), then revalidate
+      // in background. First visit (null): truthful loading.
+      setHalls(cachedPlaces.halls);
+      setBranches(cachedPlaces.branches);
+      setLoading(false);
+      load({ background: true });
+      return undefined;
+    }
+    load();
+  }, [beginRequest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Stale/invalid ?hall_id (e.g. after a hall is deactivated) → drop it and
   // fall back to the Places list rather than showing "Столы — undefined".
@@ -777,15 +826,19 @@ export default function SettingsPlacesPage() {
         </header>
         {loading ? (
           <div className="settings-empty-state" role="status">Загрузка...</div>
-        ) : error ? (
+        ) : error && halls.length === 0 && cachedPlaces === null ? (
           <div className="settings-empty-state" role="alert">{error} <button type="button" className="settings-places-retry" onClick={load}>Повторить</button></div>
         ) : !halls.length ? (
-          <div className="settings-empty-state settings-places-empty" role="status">
-            <ReportEmptyState title="Мест пока нет" />
-            <span>Добавьте первое место, чтобы начать работу со столами.</span>
-          </div>
+          <>
+            {error ? <p className="settings-form__error" role="alert">{error}</p> : null}
+            <div className="settings-empty-state settings-places-empty" role="status">
+              <ReportEmptyState title="Мест пока нет" />
+              <span>Добавьте первое место, чтобы начать работу со столами.</span>
+            </div>
+          </>
         ) : (
           <div className="settings-places-groups">
+            {error ? <p className="settings-form__error" role="alert">{error}</p> : null}
             {orderError ? <p className="settings-form__error settings-places-order-error" role="alert">{orderError}</p> : null}
             {placeGroups.map((group) => (
               <div className="settings-places-group" key={group.branchId}>
@@ -819,6 +872,9 @@ export default function SettingsPlacesPage() {
   function renderTablesView() {
     // Phase 5C-4: the archive is part of the management view, so archived
     // tables stay listed and individually reactivatable.
+    // Tables come from the cached halls array via real hall_id lookup, so a
+    // return visit renders the correct hall's cached tables instantly with no
+    // cross-hall leakage while a background revalidate reconciles.
     const tables = allTables(selectedHall);
     return (
       <>
@@ -841,6 +897,7 @@ export default function SettingsPlacesPage() {
             </button>
           </div>
         </header>
+        {error && cachedPlaces !== null ? <p className="settings-form__error" role="alert">{error}</p> : null}
         {tables.length ? (
           <div className="settings-tbl">
             <div className="settings-tbl__row settings-tbl__head" aria-hidden="true">
@@ -891,7 +948,7 @@ export default function SettingsPlacesPage() {
   return (
     <div className="settings-page settings-places-page settings-owner-view">
       <section className="settings-card">
-        <div key={inTablesView ? "tables" : "places"} className="settings-view-fade">
+        <div key={inTablesView ? "tables" : "places"} className={viewSwitched ? "settings-view-fade" : undefined}>
           {inTablesView ? renderTablesView() : renderPlaces()}
         </div>
       </section>

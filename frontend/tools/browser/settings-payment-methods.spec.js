@@ -6,7 +6,7 @@ import path from "node:path";
 // pass). Runs against the review runtime on :5277 and route-mocks auth/shell +
 // the /finance/payment-types dictionary, so it needs no backend and touches no
 // database. Screenshots + computed-colour proof land outside the repository.
-test.use({ baseURL: "http://127.0.0.1:5277" });
+test.use({ baseURL: "http://127.0.0.1:5279" });
 
 const SHOTS = "C:\\Users\\zahongir\\Marjon-visual\\payment-methods";
 const OWNER_ACCENT = "rgb(31, 201, 201)"; // #1FC9C9
@@ -70,16 +70,21 @@ test.describe("Settings → Способ оплаты — visual realignment", (
     await page.locator(".payment-methods-page").waitFor({ state: "visible", timeout: 30000 });
   }
 
-  test("CASE 1 — empty page: header + compact card, title only, no controls", async () => {
+  test("CASE 1 — empty table: header visible, PNG/title inside table body", async () => {
     methods = [];
     await open();
     await expect(page.getByText("Способов оплаты пока нет")).toBeVisible();
-    // Guidance line removed (Reports-style: title only).
+    // Staff-family empty table: real header row stays visible (rendered
+    // uppercase via CSS text-transform — compare case-insensitively)…
+    const headers = await page.locator(".payment-methods-page .settings-table thead th").allInnerTexts();
+    expect(headers.map((t) => t.trim().toLowerCase())).toEqual(["сорт", "название", "тип", "статус", "действия"]);
+    // …PNG/title live inside the table body cell spanning all columns…
+    const emptyCell = page.locator(".payment-methods-page td.pm-empty-cell");
+    await expect(emptyCell).toBeVisible();
+    expect(await emptyCell.getAttribute("colspan")).toBe("5");
+    await expect(emptyCell.locator(".owner-report-empty-image")).toBeVisible();
+    // …no guidance, no duplicate CTA, only the header Add button.
     await expect(page.getByText(/Добавьте первый способ оплаты/)).toHaveCount(0);
-    // No search / type-filter controls inside the payment-methods card.
-    await expect(page.locator(".payment-methods-page").getByPlaceholder("Поиск")).toHaveCount(0);
-    await expect(page.locator(".payment-methods-page select")).toHaveCount(0);
-    // Only the header Add button — no second central CTA in the panel.
     await expect(page.getByRole("button", { name: "Добавить способ оплаты" })).toHaveCount(1);
     const cardBox = await page.locator(".payment-methods-page .settings-card").boundingBox();
     fs.writeFileSync(path.join(SHOTS, "_empty-card-height.txt"), `empty card height=${Math.round(cardBox.height)}px`);
