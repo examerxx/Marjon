@@ -92,7 +92,7 @@ export default function StopListPanel({ user, onClose }) {
         <div className="modal__header">
           <h2 className="stop-title">
             {selected ? (
-              <button className="icon-btn" onClick={() => setSelectedId(null)} title={t('back')}><ArrowLeft size={22} /></button>
+              <button className="icon-btn" onClick={() => setSelectedId(null)} title={t('back')}><ArrowLeft size={26} /></button>
             ) : (
               <Ban size={20} />
             )}

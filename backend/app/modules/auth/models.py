@@ -2,10 +2,15 @@ from __future__ import annotations
 from uuid import UUID
 from datetime import datetime
 from typing import TYPE_CHECKING
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Integer
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Integer, JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
 from app.shared.base_model import TimeStampedModel
+
+# Cross-СУБД JSON: JSONB на Postgres, обычный JSON на SQLite — тот же приём,
+# что в app/modules/organizations/models.py (JsonType).
+_JSON = JSON().with_variant(JSONB(), "postgresql")
 
 if TYPE_CHECKING:
     from app.modules.companies.models import Company
@@ -37,6 +42,12 @@ class User(TimeStampedModel):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superadmin: Mapped[bool] = mapped_column(Boolean, default=False)
     avatar_url: Mapped[str | None] = mapped_column(String(500))
+    # RBAC (app.modules.rbac) — основной механизм прав. Эта колонка —
+    # опциональный легаси-слой пер-юзерных тумблеров (can_view_z_report,
+    # can_view_finance, can_view_past_periods…), восстановленный из premerge:
+    # его читает auth.dependencies._legacy_permission через getattr, он НЕ
+    # отдаётся в UserResponse и по умолчанию NULL — RBAC-путь не меняется.
+    permissions: Mapped[dict | None] = mapped_column(_JSON, nullable=True)
 
     company: Mapped[Company | None] = relationship("Company", back_populates="users")
     refresh_tokens: Mapped[list[RefreshToken]] = relationship(back_populates="user", cascade="all, delete-orphan")

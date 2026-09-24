@@ -1,20 +1,20 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Boxes, Plus, Trash2, ArrowLeft } from 'lucide-react'
+import { X, Boxes, Plus, Trash2, ArrowLeft } from 'lucide-react'
 import { warehouse } from '../shared/api'
 import { t } from '../shared/i18n'
 import { toast } from './Toast'
+import CustomSelect from './CustomSelect'
 
 const UNITS = ['кг', 'г', 'л', 'мл', 'шт', 'уп']
 const num = (v) => { const n = Number(String(v).replace(',', '.')); return Number.isFinite(n) && n >= 0 ? n : 0 }
 const EMPTY_ITEM = { name: '', quantity: '', unit: 'кг', cost_price: '' }
 
 /**
- * WarehouseWritePanel — складские записи из режима разработчика:
- * приход (с позициями), списание, инвентаризация. Встраивается в рабочее
- * пространство DeveloperPanel (без своей модалки). Перемещения между складами
+ * WarehouseWritePanel — складские записи (открывается из меню «…»):
+ * приход (с позициями), списание, инвентаризация. Перемещения между складами
  * и создание самих складов остаются за владельцем/админом (не здесь).
  */
-export default function WarehouseWritePanel() {
+export default function WarehouseWritePanel({ onClose }) {
   const [tab, setTab] = useState('purchase')  // purchase | writeoff | inventory
   const [saving, setSaving] = useState(false)
   const [recent, setRecent] = useState([])
@@ -87,10 +87,17 @@ export default function WarehouseWritePanel() {
   ]
 
   return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal__header">
+          <h2><Boxes size={20} /> {t('dev_warehouse')}</h2>
+          <button className="icon-btn" onClick={onClose}><X size={24} /></button>
+        </div>
+        <div className="modal__body">
     <div className="dev-screen">
       <div className="dev-screen__head">
         {adding && (
-          <button className="icon-btn" onClick={() => setAdding(false)}><ArrowLeft size={22} /></button>
+          <button className="icon-btn" onClick={() => setAdding(false)}><ArrowLeft size={26} /></button>
         )}
         <h3><Boxes size={20} /> {adding ? (TABS.find(([k]) => k === tab)?.[1] || t('dev_warehouse')) : t('dev_warehouse')}</h3>
         {!adding && (
@@ -134,9 +141,9 @@ export default function WarehouseWritePanel() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <label>{t('wh_unit')}</label>
-                      <select className="input" value={it.unit} onChange={setPurItem(i, 'unit')}>
-                        {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                      </select>
+                      <CustomSelect className="cselect--block" value={it.unit}
+                        onChange={(v) => setPur((s) => ({ ...s, items: s.items.map((row, idx) => (idx === i ? { ...row, unit: v } : row)) }))}
+                        options={UNITS} />
                     </div>
                     <div style={{ flex: 1 }}>
                       <label>{t('wh_cost')}</label>
@@ -218,6 +225,9 @@ export default function WarehouseWritePanel() {
           ) : (
             <p className="settings-hint">{t('emp_empty')}</p>
           ))}
+    </div>
+        </div>
+      </div>
     </div>
   )
 }

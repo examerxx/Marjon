@@ -30,6 +30,10 @@ export default function EmployeeSelector({ branch, onSelect, onBack }) {
         const empRole = (u) => String(u.role_slug || u.role_slugs?.[0] || '').toLowerCase()
         const list = (Array.isArray(data) ? data : data?.items || [])
           .filter((u) => u.is_active !== false && !HIDDEN_ROLES.includes(empRole(u)))
+          // Кассиры всегда идут первыми; порядок сотрудников внутри роли сохраняется.
+          .map((u, index) => ({ u, index }))
+          .sort((a, b) => Number(empRole(b.u) === 'cashier') - Number(empRole(a.u) === 'cashier') || a.index - b.index)
+          .map(({ u }) => u)
         // Пустой реальный список — это валидное состояние (сотрудников ещё нет),
         // показываем подсказку, а не демо-заглушку. DEMO_STAFF — только при ошибке связи.
         setStaff(list)
@@ -53,7 +57,7 @@ export default function EmployeeSelector({ branch, onSelect, onBack }) {
     <div className="emp-screen">
       <div className="emp-screen__panel">
         <header className="emp-screen__header">
-          <button className="icon-btn" onClick={onBack} title={t('back')}><ArrowLeft size={22} /></button>
+          <button className="icon-btn" onClick={onBack} title={t('back')}><ArrowLeft size={26} /></button>
           <div className="emp-screen__titles">
             <h1>{t('choose_employee')}</h1>
             <p>{branch?.name || t('branch')}</p>

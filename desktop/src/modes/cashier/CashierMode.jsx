@@ -2,9 +2,9 @@ import { useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Search, Plus, Minus, Trash2, Utensils,
-  LayoutGrid, Armchair, DoorClosed, Sun, Wine, CalendarClock, ArrowLeft, Users, Clock, Wallet, History, BarChart3, Ban, ShoppingBag, Bike,
+  LayoutGrid, Armchair, DoorClosed, Sun, Wine, CalendarClock, ArrowLeft, Users, Clock, Wallet, History, BarChart3, Ban, ShoppingBag, Bike, Boxes, Printer,
 } from 'lucide-react'
-import { orders, menu, halls as hallsApi, printers as printersApi, customers as customersApi, auth as authApi } from '../../shared/api'
+import { orders, menu, halls as hallsApi, printers as printersApi, customers as customersApi, auth as authApi, finance as financeApi } from '../../shared/api'
 import { onPrintJob } from '../../shared/ws'
 import DishModal from '../../components/DishModal'
 import FinancePanel from '../../components/FinancePanel'
@@ -12,6 +12,9 @@ import HistoryPanel from '../../components/HistoryPanel'
 import ReportsPanel from '../../components/ReportsPanel'
 import StopListPanel from '../../components/StopListPanel'
 import AttendancePanel from '../../components/AttendancePanel'
+import StaffManagerPanel from '../../components/StaffManagerPanel'
+import WarehouseWritePanel from '../../components/WarehouseWritePanel'
+import BatchPrintPanel from '../../components/BatchPrintPanel'
 import PaymentModal from '../../components/PaymentModal'
 import InputPromptModal from '../../components/InputPromptModal'
 import HeaderMenu from '../../components/HeaderMenu'
@@ -62,6 +65,9 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   const [repOpen, setRepOpen] = useState(false)
   const [stopOpen, setStopOpen] = useState(false)
   const [attOpen, setAttOpen] = useState(false)
+  const [staffOpen, setStaffOpen] = useState(false)   // Сотрудники (меню «…», право can_manage_staff)
+  const [whOpen, setWhOpen] = useState(false)         // Складские записи (меню «…», право can_manage_staff)
+  const [printOpen, setPrintOpen] = useState(false)   // Пакетная печать (меню «…», всем)
   const [payExisting, setPayExisting] = useState(null)   // существующий заказ на оплату/закрытие
   const [promptCfg, setPromptCfg] = useState(null)        // модалка ввода (пароль отмены / новый стол)
   const [creating, setCreating] = useState(false)         // создание заказа (лоадер кнопки)
@@ -100,7 +106,24 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
         setProducts(prods.items ?? prods ?? [])
         const map = {}; (pl.items ?? pl ?? []).forEach((p) => { map[p.id] = p }); setPrinterMap(map)
       })
-    authApi.staffUsers(user.branch_id).then((d) => setStaff(Array.isArray(d) ? d : d?.items || [])).catch(() => {})
+    // Сотрудники для смены официанта. Тот же фильтр, что в экране выбора сотрудника
+    // (EmployeeSelector) и панели посещаемости: владелец/менеджер/кладовщик столы на
+    // кассе не обслуживают — прячем их, чтобы оба селекта в модалке оплаты (официант
+    // стола и официант блюда) показывали ровно веб-персонал филиала, кассир первым,
+    // а не «кашу» из всех ролей. Иначе список тут расходится с экраном входа.
+    authApi.staffUsers(user.branch_id)
+      .then((d) => {
+        const HIDDEN_ROLES = ['owner', 'manager', 'warehouse']
+        const empRole = (u) => String(u.role_slug || u.role_slugs?.[0] || '').toLowerCase()
+        const list = (Array.isArray(d) ? d : d?.items || [])
+          .filter((u) => u.is_active !== false && !HIDDEN_ROLES.includes(empRole(u)))
+          // Кассиры всегда первыми; порядок внутри роли сохраняется.
+          .map((u, index) => ({ u, index }))
+          .sort((a, b) => Number(empRole(b.u) === 'cashier') - Number(empRole(a.u) === 'cashier') || a.index - b.index)
+          .map(({ u }) => u)
+        setStaff(list)
+      })
+      .catch(() => {})
   }, [user.branch_id])
 
   useEffect(() => {
@@ -193,10 +216,27 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   }
   // Закрыть заказ (оплата подтверждена кассиром). Способ оплаты фиксируется вручную —
   // платёжку интегрируем позже; сейчас просто переводим заказ в completed.
-  async function completeExistingOrder(order /* , method */) {
-    try { await orders.updateStatus(order.id, 'completed'); toast(t('order_closed')) } catch (e) { toast(t('close_order_error') + (e?.response?.data?.detail ? ': ' + e.response.data.detail : ''), 'error') }
+  // Долг (method === 'debt'): фактически полученные наличные пишем приходом в финансы
+  // best-effort — без права на финансы или офлайн запись тихо пропускается,
+  // заказ при этом всё равно закрывается.
+  async function completeExistingOrder(order, method, detail) {
+    try {
+      await orders.updateStatus(order.id, 'completed')
+      if (method === 'debt' && detail && Number(detail.cash) > 0) {
+        const fmtSum = (n) => Number(n || 0).toLocaleString('ru-RU')
+        const comment = `Долг: заказ #${order.order_number ?? ''}, получено ${fmtSum(detail.cash)}, остаток ${fmtSum(detail.debt)}${detail.client_name ? `, клиент: ${detail.client_name}` : ''}${detail.client_phone ? `, тел: ${detail.client_phone}` : ''}`
+        try { await financeApi.addIncome({ amount: Number(detail.cash), comment }) } catch { /* тихо: нет прав или офлайн */ }
+      }
+      toast(t('order_closed'))
+    } catch (e) { toast(t('close_order_error') + (e?.response?.data?.detail ? ': ' + e.response.data.detail : ''), 'error') }
     setPayExisting(null)
     loadFloor()
+  }
+  // Живой пересчёт итога: пока кассир вводит наличные в модалке оплаты — подтягиваем
+  // заказ с сервера (скидки, дозаказы). Ошибка тихая: остаёмся на локальных данных.
+  async function refreshPayOrder(order) {
+    if (!order?.id) return
+    try { const upd = await orders.get(order.id); setPayExisting(upd) } catch { /* тихо */ }
   }
   // Отмена заказа — со спец-паролем (проверяется на бэкенде) + комментарий причины.
   // window.prompt в Electron не работает — спрашиваем пароль в своей модалке.
@@ -225,6 +265,26 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
     try { const upd = await orders.setItemWaiter(order.id, item.id, waiterId); setPayExisting(upd); loadFloor() }
     catch (e) { toast(e?.response?.data?.detail || e.message) }
   }
+  // Отмена выбранных позиций: одна обязательная причина сохраняется в аудите
+  // каждой позиции. API удаляет по одной позиции, поэтому применяем их по порядку.
+  function removeSelectedItems(order, itemIds, onDone) {
+    setPromptCfg({
+      title: t('cancel_selected_dishes'),
+      hint: t('delete_reason'),
+      placeholder: t('delete_reason_ph'),
+      submitLabel: t('cancel_selected_dishes'),
+      onSubmit: async (reason) => {
+        let updated = order
+        for (const itemId of itemIds) {
+          updated = await orders.removeItem(order.id, itemId, reason)
+          setPayExisting(updated)
+        }
+        setPromptCfg(null)
+        onDone?.()
+        loadFloor()
+      },
+    })
+  }
   // Скидка на существующий заказ — применяется в модалке оплаты (сервер пересчитывает итог)
   async function applyOrderDiscount(order, amount) {
     const upd = await orders.update(order.id, { discount_amount: amount })
@@ -235,7 +295,10 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
     setPromptCfg({
       title: t('move_table'),
       hint: t('move_to_table'),
-      type: 'number',
+      options: allTables.map((table) => ({
+        value: String(table.number),
+        label: `${t('table')} ${table.number}`,
+      })),
       initial: order.table_number || '',
       extra: { label: t('move_reason'), placeholder: t('move_reason_ph') },
       submitLabel: t('save'),
@@ -256,9 +319,9 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
     if (product.is_available === false || product.in_stop_list) return // в стоп-листе
     setCart((prev) => [...prev, { lineId: `${Date.now()}-${Math.random()}`, product, name: product.name, price: Number(product.price) || 0, qty: 1, note: '', takeaway: courier }])
   }
-  // Правка позиции В ЗАКАЗЕ (кол-во/цена/комментарий)
-  function saveEdit({ quantity, price, note, takeaway }) {
-    setCart((prev) => prev.map((i) => i.lineId === editLine.lineId ? { ...i, qty: quantity, price, note, takeaway } : i))
+  // Правка позиции В ЗАКАЗЕ (кол-во/цена/комментарий/добавки)
+  function saveEdit({ quantity, price, note, takeaway, modifiers }) {
+    setCart((prev) => prev.map((i) => i.lineId === editLine.lineId ? { ...i, qty: quantity, price, note, takeaway, modifiers: modifiers || [] } : i))
     setEditLine(null)
   }
   function updateQty(lineId, d) { setCart((prev) => prev.map((i) => i.lineId === lineId ? { ...i, qty: i.qty + d } : i).filter((i) => i.qty > 0)) }
@@ -282,7 +345,7 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
         // отдельный updateStatus('cooking') не нужен — и ломал дозаказ в уже готовящийся стол
         // (переход cooking→cooking запрещён state-machine → «нельзя добавить»).
         for (const i of cart) {
-          await orders.addItem(addToOrderId, { product_id: i.product.id, quantity: i.qty, note: i.note || null, takeaway: !!i.takeaway })
+          await orders.addItem(addToOrderId, { product_id: i.product.id, quantity: i.qty, note: i.note || null, takeaway: !!i.takeaway, modifiers: i.modifiers || [] })
         }
         // Освежаем снимок заказа: после «Назад»/возврата счёт показывает новые позиции и сумму
         try { const fresh = await orders.get(addToOrderId); if (fresh) setPayExisting(fresh) }
@@ -298,7 +361,7 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
           customer_phone: orderType === 'delivery' ? (fullPhone(deliveryPhone) || undefined) : undefined,
           customer_address: orderType === 'delivery' ? (deliveryAddress || undefined) : undefined,
           // Курьер: все позиции всегда «с собой» → бэкенд не начисляет сервисный сбор.
-          items: cart.map((i) => ({ product_id: i.product.id, quantity: i.qty, note: i.note || null, takeaway: courier ? true : !!i.takeaway })),
+          items: cart.map((i) => ({ product_id: i.product.id, quantity: i.qty, note: i.note || null, takeaway: courier ? true : !!i.takeaway, modifiers: i.modifiers || [] })),
         })
       }
       // Курьер: экрана успеха нет — уходим на доску доставки, там виден новый заказ.
@@ -421,15 +484,21 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
               ...(must(user, 'can_approve_attendance') ? [{ id: 'att', label: t('attendance_page'), Icon: Clock, onClick: () => setAttOpen(true) }] : []),
               ...(can(user, 'can_view_closed_orders') ? [{ id: 'hist', label: t('history'), Icon: History, onClick: () => setHistOpen(true) }] : []),
               { id: 'rep', label: t('reports'), Icon: BarChart3, onClick: () => setRepOpen(true) },
+              ...(must(user, 'can_manage_staff') ? [{ id: 'staff', label: t('dev_staff'), Icon: Users, onClick: () => setStaffOpen(true) }] : []),
+              ...(must(user, 'can_manage_staff') ? [{ id: 'wh', label: t('dev_warehouse'), Icon: Boxes, onClick: () => setWhOpen(true) }] : []),
+              { id: 'print', label: t('print'), Icon: Printer, onClick: () => setPrintOpen(true) },
             ]}
           />,
           hdrActionsSlot,
         )}
         {finOpen && <FinancePanel branch={{ id: user.branch_id }} user={user} onClose={() => setFinOpen(false)} />}
         {histOpen && <HistoryPanel branch={{ id: user.branch_id }} onClose={() => setHistOpen(false)} />}
-        {repOpen && <ReportsPanel branch={{ id: user.branch_id }} onClose={() => setRepOpen(false)} />}
+        {repOpen && <ReportsPanel branch={{ id: user.branch_id }} user={user} onClose={() => setRepOpen(false)} />}
         {stopOpen && <StopListPanel user={user} onClose={() => setStopOpen(false)} />}
         {attOpen && <AttendancePanel user={user} onClose={() => setAttOpen(false)} />}
+        {staffOpen && <StaffManagerPanel onClose={() => setStaffOpen(false)} />}
+        {whOpen && <WarehouseWritePanel onClose={() => setWhOpen(false)} />}
+        {printOpen && <BatchPrintPanel branch={{ id: user.branch_id }} onClose={() => setPrintOpen(false)} />}
         {payExisting && (
           <PaymentModal
             order={payExisting}
@@ -442,7 +511,9 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
             staff={staff}
             onSetWaiter={setOrderWaiter}
             onSetItemWaiter={setItemWaiter}
+            onRemoveItems={must(user, 'can_manage_orders') ? removeSelectedItems : undefined}
             onApplyDiscount={applyOrderDiscount}
+            onRefreshOrder={refreshPayOrder}
             canClose={can(user, 'can_close_bill')}
             onClose={() => setPayExisting(null)}
           />

@@ -185,6 +185,7 @@ async def update_company_user(
         password=data.password,
         role_slug=data.role_slug,
         is_active=data.is_active,
+        permissions=data.permissions,
         assignable_role_slugs=OWNER_ASSIGNABLE_ROLE_SLUGS,
         actor_user_id=current_user.id,
     )

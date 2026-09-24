@@ -27,7 +27,7 @@ from app.shared.base_model import Base
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 VERSIONS_DIR = BACKEND_ROOT / "migrations" / "versions"
-EXPECTED_HEAD = "bi08dcs01"
+EXPECTED_HEAD = "c6d7ftrs10"
 EXPECTED_NULLABLE_COLUMN_COUNT = 262
 EXPECTED_PARITY_OPERATIONS = {"remove_index", "remove_table_comment"}
 FIXTURES_DIR = BACKEND_ROOT / "tests" / "fixtures"
@@ -136,7 +136,10 @@ def test_revision_graph_is_linear_complete_and_has_one_head() -> None:
         visited.add(cursor)
         cursor = revisions[cursor][0]
     assert visited == set(revisions)
-    assert len(revisions) == 53
+    # 53 (upstream head bi08dcs01) + 3 restored on top: a4b5daystart08
+    # (companies.day_start_hour), b5c6modpos09 (modifier_groups.show_in_pos),
+    # c6d7ftrs10 (premerge POS/inventory feature columns) → head c6d7ftrs10.
+    assert len(revisions) == 56
 
     nullable_columns = _bi02_nullable_columns()
     assert len(nullable_columns) == EXPECTED_NULLABLE_COLUMN_COUNT

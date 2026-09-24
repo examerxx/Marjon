@@ -101,6 +101,16 @@ class Order(TimeStampedModel):
     note: Mapped[str | None] = mapped_column(Text)
     # pos | qr | delivery_app
     source: Mapped[str] = mapped_column(String(50), default="pos")
+    # Доставка/самовывоз: контакты клиента (снимок на момент заказа). Nullable —
+    # для dine_in обычно пусто. Восстановлено из premerge-линии (decision A).
+    customer_phone: Mapped[str | None] = mapped_column(String(30))
+    customer_address: Mapped[str | None] = mapped_column(Text)
+    # Чек напечатан → стол «ожидает оплату» (зелёный). Сбрасывается при дозаказе
+    # (add_item выставляет обратно в NULL). Восстановлено из premerge (decision A).
+    receipt_printed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Комментарий при отмене заказа (почему отменили) — отдельно от Phase 1A
+    # cancelled_by_id/cancelled_at. Восстановлено из premerge (decision A).
+    cancel_comment: Mapped[str | None] = mapped_column(Text)
     # Phase 1A cancellation truth: when/who cancelled the whole order.
     # Nullable, never backfilled — NULL means unknown/legacy or not cancelled.
     # cancelled_by_id is NULL for system/webhook cancellations with no
@@ -137,6 +147,12 @@ class OrderItem(TimeStampedModel):
     note: Mapped[str | None] = mapped_column(Text)
     modifiers: Mapped[dict] = mapped_column(JSON, default=list)
     course: Mapped[int] = mapped_column(Integer, default=1)
+    # Позиция «с собой» — не облагается сервисным сбором (см. _service_base_q,
+    # который уже ссылается на этот столбец). Восстановлено из premerge (A).
+    takeaway: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 9.4 — кто добавил позицию (для модалки оплаты: время добавления =
+    # created_at, кем = added_by). Восстановлено из premerge (decision A).
+    added_by: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id"), nullable=True)
     # Phase 1A cancellation truth: when/who cancelled this item.
     # Nullable, never backfilled — NULL means unknown/legacy or not cancelled.
     # cancelled_by_id is NULL for system cancellations with no authenticated

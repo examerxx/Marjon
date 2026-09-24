@@ -1,5 +1,5 @@
 from __future__ import annotations
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
@@ -18,11 +18,30 @@ from app.modules.admin_reports.schemas import (
     WaiterReportFiltersResponse, WaiterReportResponse,
 )
 from app.modules.admin_reports.service import AdminReportService, xlsx_response
-from app.modules.auth.dependencies import require_hq_admin, require_web_owner
+from app.modules.auth.dependencies import (
+    require_hq_admin, require_permission_or_admin, user_can_view_past_periods,
+)
 from app.modules.auth.models import User
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 admin_reports_router = APIRouter(prefix="/admin-reports", tags=["admin-reports"])
+
+# Отчёты доступны владельцу/админу компании либо сотруднику, которому владелец
+# выдал permissions.can_view_finance (тумблер «Финансы» в карточке сотрудника).
+# Без can_view_past_periods — только сегодняшний день (как в финансах): иначе
+# ограничение обходилось бы прямым вызовом API.
+require_reports_access = require_permission_or_admin("can_view_finance")
+
+
+async def _clamp_period(
+    user: User, db: AsyncSession,
+    date_from: date | None, date_to: date | None,
+) -> tuple[date | None, date | None]:
+    if await user_can_view_past_periods(user, db):
+        return date_from, date_to
+    today = datetime.now(timezone.utc).date()
+    return today, today
+
 
 # REPORT-04: the Orders report filters accept MULTIPLE values per dimension using
 # this project's existing repeated-query-param pattern — the same shape
@@ -46,10 +65,11 @@ async def products_report(
     date_to: date | None = Query(None),
     branch_id: UUID | None = Query(None),
     export: str | None = Query(None, description="excel — выгрузка в .xlsx"),
-    user: User = Depends(require_web_owner),
+    user: User = Depends(require_reports_access),
     db: AsyncSession = Depends(get_db),
 ):
     assert user.company_id is not None
+    date_from, date_to = await _clamp_period(user, db, date_from, date_to)
     rows = await AdminReportService(db).products(
         user.company_id, date_from, date_to, branch_id
     )
@@ -72,10 +92,11 @@ async def products_count_report(
     date_to: date | None = Query(None),
     branch_id: UUID | None = Query(None),
     export: str | None = Query(None),
-    user: User = Depends(require_web_owner),
+    user: User = Depends(require_reports_access),
     db: AsyncSession = Depends(get_db),
 ):
     assert user.company_id is not None
+    date_from, date_to = await _clamp_period(user, db, date_from, date_to)
     rows = await AdminReportService(db).products_count(
         user.company_id, date_from, date_to, branch_id
     )
@@ -98,10 +119,11 @@ async def debt_credit_report(
     date_to: date | None = Query(None),
     counterparty_id: UUID | None = Query(None),
     export: str | None = Query(None),
-    user: User = Depends(require_web_owner),
+    user: User = Depends(require_reports_access),
     db: AsyncSession = Depends(get_db),
 ):
     assert user.company_id is not None
+    date_from, date_to = await _clamp_period(user, db, date_from, date_to)
     rows = await AdminReportService(db).debt_credit(
         user.company_id, date_from, date_to, counterparty_id
     )
@@ -125,10 +147,11 @@ async def orders_report(
     order_type: list[OrderFilterValue] | None = Query(None),
     order_status: list[OrderFilterValue] | None = Query(None),
     payment_method: list[OrderFilterValue] | None = Query(None),
-    user: User = Depends(require_web_owner),
+    user: User = Depends(require_reports_access),
     db: AsyncSession = Depends(get_db),
 ):
     assert user.company_id is not None
+    date_from, date_to = await _clamp_period(user, db, date_from, date_to)
     return await AdminReportService(db).orders_report(
         user.company_id,
         date_from,
@@ -145,7 +168,7 @@ async def orders_report(
 
 @router.get("/orders/filters", response_model=OrderReportFiltersResponse)
 async def orders_report_filters(
-    user: User = Depends(require_web_owner),
+    user: User = Depends(require_reports_access),
     db: AsyncSession = Depends(get_db),
 ):
     assert user.company_id is not None
@@ -161,10 +184,11 @@ async def tables_report(
     payment_method: list[OrderFilterValue] | None = Query(None),
     cashier_id: list[UUID] | None = Query(None),
     hall_id: list[UUID] | None = Query(None),
-    user: User = Depends(require_web_owner),
+    user: User = Depends(require_reports_access),
     db: AsyncSession = Depends(get_db),
 ):
     assert user.company_id is not None
+    date_from, date_to = await _clamp_period(user, db, date_from, date_to)
     return await AdminReportService(db).tables_report(
         user.company_id,
         date_from,
@@ -179,7 +203,7 @@ async def tables_report(
 
 @router.get("/tables/filters", response_model=TableReportFiltersResponse)
 async def tables_report_filters(
-    user: User = Depends(require_web_owner),
+    user: User = Depends(require_reports_access),
     db: AsyncSession = Depends(get_db),
 ):
     assert user.company_id is not None
@@ -195,10 +219,11 @@ async def waiters_report(
     include_orders: bool = Query(True),
     include_takeaway_delivery: bool = Query(False),
     include_service: bool = Query(False),
-    user: User = Depends(require_web_owner),
+    user: User = Depends(require_reports_access),
     db: AsyncSession = Depends(get_db),
 ):
     assert user.company_id is not None
+    date_from, date_to = await _clamp_period(user, db, date_from, date_to)
     return await AdminReportService(db).waiters_report(
         user.company_id,
         date_from,
@@ -213,7 +238,7 @@ async def waiters_report(
 
 @router.get("/waiters/filters", response_model=WaiterReportFiltersResponse)
 async def waiters_report_filters(
-    user: User = Depends(require_web_owner),
+    user: User = Depends(require_reports_access),
     db: AsyncSession = Depends(get_db),
 ):
     assert user.company_id is not None
@@ -231,9 +256,10 @@ async def dishes_report(
     order_status: list[OrderFilterValue] | None = Query(None),
     category_id: list[UUID] | None = Query(None),
     payment_method: list[OrderFilterValue] | None = Query(None),
-    user: User = Depends(require_web_owner),
+    user: User = Depends(require_reports_access),
     db: AsyncSession = Depends(get_db),
 ):
+    date_from, date_to = await _clamp_period(user, db, date_from, date_to)
     return await AdminReportService(db).dishes_report(
         user.company_id,
         date_from,
@@ -250,7 +276,7 @@ async def dishes_report(
 
 @router.get("/dishes/filters", response_model=DishReportFiltersResponse)
 async def dishes_report_filters(
-    user: User = Depends(require_web_owner),
+    user: User = Depends(require_reports_access),
     db: AsyncSession = Depends(get_db),
 ):
     return await AdminReportService(db).dishes_report_filters(user.company_id)
@@ -263,13 +289,14 @@ async def cancelled_report(
     order_number: str | None = Query(None, max_length=100),
     author_id: list[UUID] | None = Query(None),
     dish_name: list[str] | None = Query(None, max_length=500),
-    user: User = Depends(require_web_owner),
+    user: User = Depends(require_reports_access),
     db: AsyncSession = Depends(get_db),
 ):
     # Phase 1A multi-select: repeated singular params are OR within a
     # dimension (author_id=A&author_id=B, dish_name=A&dish_name=B), AND
     # across dimensions. Scalar requests stay valid as one-item lists.
     assert user.company_id is not None
+    date_from, date_to = await _clamp_period(user, db, date_from, date_to)
     return await AdminReportService(db).cancelled_items(
         user.company_id,
         date_from,
@@ -282,7 +309,7 @@ async def cancelled_report(
 
 @router.get("/cancelled/filters", response_model=CancelledFiltersResponse)
 async def cancelled_report_filters(
-    user: User = Depends(require_web_owner),
+    user: User = Depends(require_reports_access),
     db: AsyncSession = Depends(get_db),
 ):
     assert user.company_id is not None

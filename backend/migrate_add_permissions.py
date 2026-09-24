@@ -14,16 +14,28 @@ from app.infrastructure.database.session import engine
 # {table: {column: {dialect: ddl}}}
 PLAN = {
     "users": {
-        "branch_id":   {"sqlite": "CHAR(32)", "postgresql": "UUID"},
-        "printer_ip":  {"sqlite": "VARCHAR(45)", "postgresql": "VARCHAR(45)"},
-        "nfc_id":      {"sqlite": "VARCHAR(64)", "postgresql": "VARCHAR(64)"},
-        "permissions": {"sqlite": "TEXT", "postgresql": "JSON"},
-        "avatar_url":  {"sqlite": "VARCHAR(512)", "postgresql": "VARCHAR(512)"},
-        "pin_hash":    {"sqlite": "VARCHAR(255)", "postgresql": "VARCHAR(255)"},
+        "branch_id":          {"sqlite": "CHAR(32)", "postgresql": "UUID"},
+        "printer_ip":         {"sqlite": "VARCHAR(45)", "postgresql": "VARCHAR(45)"},
+        "nfc_id":             {"sqlite": "VARCHAR(64)", "postgresql": "VARCHAR(64)"},
+        "permissions":        {"sqlite": "TEXT", "postgresql": "JSON"},
+        "avatar_url":         {"sqlite": "VARCHAR(512)", "postgresql": "VARCHAR(512)"},
+        "pin_hash":           {"sqlite": "VARCHAR(255)", "postgresql": "VARCHAR(255)"},
+        "pin_failed_attempts": {
+            "sqlite": "INTEGER NOT NULL DEFAULT 0",
+            "postgresql": "INTEGER NOT NULL DEFAULT 0",
+        },
+        "pin_locked_until":   {"sqlite": "TIMESTAMP", "postgresql": "TIMESTAMPTZ"},
     },
     "companies": {
         "cancel_password": {"sqlite": "VARCHAR(64)", "postgresql": "VARCHAR(64)"},
         "waiter_service_percent": {"sqlite": "INTEGER DEFAULT 0", "postgresql": "INTEGER DEFAULT 0"},
+        "address": {"sqlite": "TEXT", "postgresql": "TEXT"},
+        "phone": {"sqlite": "VARCHAR(32)", "postgresql": "VARCHAR(32)"},
+        "inn": {"sqlite": "VARCHAR(32)", "postgresql": "VARCHAR(32)"},
+        "logo_url": {"sqlite": "VARCHAR(512)", "postgresql": "VARCHAR(512)"},
+        "logo_key": {"sqlite": "VARCHAR(255)", "postgresql": "VARCHAR(255)"},
+        "vat_rate": {"sqlite": "NUMERIC(5, 2)", "postgresql": "NUMERIC(5, 2)"},
+        "service_fee": {"sqlite": "NUMERIC(5, 2)", "postgresql": "NUMERIC(5, 2)"},
     },
     "orders": {
         "customer_phone":     {"sqlite": "VARCHAR(30)", "postgresql": "VARCHAR(30)"},

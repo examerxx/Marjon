@@ -6,7 +6,8 @@ from sqlalchemy import delete as sql_delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.modules.inventory.models import (
-    Category, Ingredient, Product, ProductIngredient, StockItem, StockMovement, Warehouse
+    Category, Ingredient, Modifier, ModifierGroup, Product, ProductIngredient,
+    StockItem, StockMovement, Warehouse
 )
 from app.modules.inventory.repository import (
     CategoryRepository, IngredientRepository, ProductRepository,
@@ -20,7 +21,10 @@ from app.modules.printers.models import Printer
 from app.shared.exceptions import NotFoundError
 from app.shared.tenant_scope import require_company_resource, require_company_resource_ids
 
-_PRODUCT_LOAD = selectinload(Product.ingredients).selectinload(ProductIngredient.ingredient)
+_PRODUCT_LOAD = (
+    selectinload(Product.ingredients).selectinload(ProductIngredient.ingredient),
+    selectinload(Product.modifier_groups).selectinload(ModifierGroup.modifiers),
+)
 
 
 class CategoryService:
@@ -156,7 +160,7 @@ class ProductService:
             return products
         ids = [p.id for p in products]
         result = await self.db.execute(
-            select(Product).options(_PRODUCT_LOAD)
+            select(Product).options(*_PRODUCT_LOAD)
             .where(Product.id.in_(ids))
             .execution_options(populate_existing=True)
         )
@@ -166,7 +170,7 @@ class ProductService:
 
     async def get(self, company_id: UUID, product_id: UUID) -> Product:
         result = await self.db.execute(
-            select(Product).options(_PRODUCT_LOAD)
+            select(Product).options(*_PRODUCT_LOAD)
             .where(Product.id == product_id, Product.company_id == company_id)
             .execution_options(populate_existing=True)
         )
@@ -220,6 +224,120 @@ class ProductService:
         p.is_active = False
         if hasattr(p, "is_available"):
             p.is_available = False
+        await self.db.commit()
+
+    async def set_availability(
+        self, company_id: UUID, product_id: UUID, is_available: bool
+    ) -> Product:
+        """Стоп-лист: снять/вернуть блюдо в продажу (product-level is_available).
+
+        Отдельный метод под отдельный узкий эндпоинт — чтобы кассир мог править
+        только доступность, но НЕ цену/название/прочие поля (для этого остаётся
+        админский PATCH /products/{id}).
+        """
+        p = await self.get(company_id, product_id)
+        p.is_available = is_available
+        await self.db.commit()
+        return await self.get(company_id, product_id)
+
+    async def set_daily_limit(
+        self, company_id: UUID, product_id: UUID, daily_limit: int | None
+    ) -> Product:
+        """D3 «максимум блюда»: задать/снять дневной лимит порций.
+
+        Задание числа — это «пополнение» на новый день: обнуляем счётчик
+        проданного и возвращаем блюдо в продажу (сброс ручной, по образцу
+        тумблера стоп-листа). daily_limit=None снимает лимит (без ограничения),
+        текущий стоп при этом НЕ трогаем.
+        """
+        p = await self.get(company_id, product_id)
+        p.daily_limit = daily_limit
+        if daily_limit is not None:
+            p.sold_count = 0
+            p.is_available = True
+        await self.db.commit()
+        return await self.get(company_id, product_id)
+
+
+class ModifierGroupService:
+    """CRUD групп добавок (модификаторов) блюда. Группа принадлежит и блюду,
+    и компании; опции внутри заменяются целиком (delete + insert) по образцу
+    ProductService._replace_ingredients — так же безопасно под async-движком."""
+
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def _replace_modifiers(self, group: ModifierGroup, lines: list) -> None:
+        await self.db.execute(
+            sql_delete(Modifier).where(Modifier.group_id == group.id)
+        )
+        for line in lines:
+            self.db.add(Modifier(
+                group_id=group.id,
+                company_id=group.company_id,
+                name=line.name,
+                price_delta=line.price_delta,
+                is_default=line.is_default,
+                sort_order=line.sort_order,
+            ))
+        await self.db.flush()
+
+    async def _load(self, company_id: UUID, group_id: UUID) -> ModifierGroup:
+        result = await self.db.execute(
+            select(ModifierGroup).options(selectinload(ModifierGroup.modifiers))
+            .where(ModifierGroup.id == group_id, ModifierGroup.company_id == company_id)
+            .execution_options(populate_existing=True)
+        )
+        group = result.scalar_one_or_none()
+        if not group:
+            raise NotFoundError("Modifier group not found")
+        return group
+
+    async def list_for_product(self, company_id: UUID, product_id: UUID) -> list[ModifierGroup]:
+        result = await self.db.execute(
+            select(ModifierGroup).options(selectinload(ModifierGroup.modifiers))
+            .where(
+                ModifierGroup.company_id == company_id,
+                ModifierGroup.product_id == product_id,
+            )
+            .order_by(ModifierGroup.sort_order, ModifierGroup.created_at)
+        )
+        return list(result.scalars().all())
+
+    async def create(self, company_id: UUID, data) -> ModifierGroup:
+        # Блюдо должно существовать и принадлежать компании
+        await require_company_resource(
+            self.db, Product, data.product_id, company_id, detail="Product not found"
+        )
+        group = ModifierGroup(
+            company_id=company_id,
+            product_id=data.product_id,
+            name=data.name,
+            min_select=data.min_select,
+            max_select=data.max_select,
+            is_required=data.is_required,
+            show_in_pos=data.show_in_pos,
+            sort_order=data.sort_order,
+        )
+        self.db.add(group)
+        await self.db.flush()
+        if data.modifiers:
+            await self._replace_modifiers(group, data.modifiers)
+        await self.db.commit()
+        return await self._load(company_id, group.id)
+
+    async def update(self, company_id: UUID, group_id: UUID, data) -> ModifierGroup:
+        group = await self._load(company_id, group_id)
+        for field, value in data.model_dump(exclude_unset=True, exclude={"modifiers"}).items():
+            setattr(group, field, value)
+        if data.modifiers is not None:
+            await self._replace_modifiers(group, data.modifiers)
+        await self.db.commit()
+        return await self._load(company_id, group_id)
+
+    async def delete(self, company_id: UUID, group_id: UUID) -> None:
+        group = await self._load(company_id, group_id)
+        await self.db.delete(group)
         await self.db.commit()
 
 

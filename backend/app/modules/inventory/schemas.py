@@ -85,6 +85,11 @@ class ProductResponse(BaseResponseSchema):
     sku: str | None
     is_active: bool
     is_available: bool
+    # D3 «максимум блюда»: дневной лимит порций (на всю компанию) и счётчик
+    # проданного. NULL лимит = без ограничения. Возвращаются десктопу, чтобы
+    # показывать остаток и авто-стоп при sold_count >= daily_limit.
+    daily_limit: int | None = None
+    sold_count: int = 0
     sort_order: int
     # BE-16 aggregates — real, computed from actual data (see
     # ProductService._attach_aggregates), never fabricated:
@@ -97,6 +102,66 @@ class ProductResponse(BaseResponseSchema):
     # when the product has no recorded composition — not a fake 0.
     stock: int | None = None
     ingredients: list[ProductIngredientResponse] = Field(default_factory=list)
+    # Группы добавок блюда. На кассе (десктоп) показываем только те, у которых
+    # show_in_pos=True — фильтрацию делает потребитель (см. desktop DishModal).
+    modifier_groups: list[ModifierGroupResponse] = Field(default_factory=list)
+
+
+# --- Добавки (модификаторы) --------------------------------------------------
+# Группа добавок принадлежит блюду (Product); внутри — список опций (Modifier)
+# с наценкой price_delta. show_in_pos управляет показом группы на кассе.
+
+class ModifierIn(BaseSchema):
+    # id опционален: при сохранении группы существующие опции приходят с id,
+    # новые — без. Сервис заменяет весь список опций группы (delete + insert).
+    id: UUID | None = None
+    name: str
+    price_delta: Decimal = Decimal("0")
+    is_default: bool = False
+    sort_order: int = 0
+
+
+class ModifierResponse(BaseResponseSchema):
+    group_id: UUID
+    company_id: UUID
+    name: str
+    price_delta: Decimal
+    is_default: bool
+    sort_order: int
+
+
+class ModifierGroupCreate(BaseSchema):
+    product_id: UUID
+    name: str
+    min_select: int = Field(default=0, ge=0)
+    max_select: int = Field(default=1, ge=1)
+    is_required: bool = False
+    show_in_pos: bool = True
+    sort_order: int = 0
+    modifiers: list[ModifierIn] = Field(default_factory=list)
+
+
+class ModifierGroupUpdate(BaseSchema):
+    name: str | None = None
+    min_select: int | None = Field(default=None, ge=0)
+    max_select: int | None = Field(default=None, ge=1)
+    is_required: bool | None = None
+    show_in_pos: bool | None = None
+    sort_order: int | None = None
+    # None = не трогать список опций; [] = очистить; список = заменить целиком.
+    modifiers: list[ModifierIn] | None = None
+
+
+class ModifierGroupResponse(BaseResponseSchema):
+    company_id: UUID
+    product_id: UUID
+    name: str
+    min_select: int
+    max_select: int
+    is_required: bool
+    show_in_pos: bool
+    sort_order: int
+    modifiers: list[ModifierResponse] = Field(default_factory=list)
 
 
 class ProductBranchUpdate(BaseSchema):
@@ -108,6 +173,18 @@ class ProductBranchUpdate(BaseSchema):
 class StopListToggle(BaseSchema):
     branch_id: UUID
     stop_list: bool
+
+
+class ProductAvailabilityUpdate(BaseSchema):
+    # Узкий контракт правки стоп-листа кассиром: только доступность блюда,
+    # без цены/названия/прочих полей (их правит админский PATCH /products/{id}).
+    is_available: bool
+
+
+class ProductLimitUpdate(BaseSchema):
+    # D3 «максимум блюда»: дневной лимит порций. None → снять лимит (без ограничения),
+    # число ≥1 → задать максимум и обнулить счётчик (см. ProductService.set_daily_limit).
+    daily_limit: int | None = Field(default=None, ge=1)
 
 
 class IngredientCreate(BaseSchema):

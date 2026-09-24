@@ -20,6 +20,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { normalizeApiError } from "../../api/errors";
 import { settingsService } from "../../api/settings";
 import Icon from "../../components/Icon";
+import ReportEmptyState from "../../components/ReportEmptyState";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../../hooks/useAsyncSafety";
 
 // "Доп. цена" = additional-price model. Canonical Hall.pricing_type values
@@ -454,7 +455,7 @@ export default function SettingsPlacesPage() {
     closingRef.current = false;
     setModalClosing(false);
   }
-  useEffect(() => () => clearTimeout(closeTimer.current), []);
+  useEffect(() => () => { clearTimeout(closeTimer.current); }, []);
 
   const selectedHallId = searchParams.get("hall_id") || "";
   const selectedHall = useMemo(
@@ -780,9 +781,8 @@ export default function SettingsPlacesPage() {
           <div className="settings-empty-state" role="alert">{error} <button type="button" className="settings-places-retry" onClick={load}>Повторить</button></div>
         ) : !halls.length ? (
           <div className="settings-empty-state settings-places-empty" role="status">
-            <span className="settings-places-empty__icon"><Icon name="bi-geo-alt" size={26} /></span>
-            <strong>Мест пока нет</strong>
-            <span>Добавьте первое место, чтобы настроить зал и столы.</span>
+            <ReportEmptyState title="Мест пока нет" />
+            <span>Добавьте первое место, чтобы начать работу со столами.</span>
           </div>
         ) : (
           <div className="settings-places-groups">
@@ -876,8 +876,7 @@ export default function SettingsPlacesPage() {
           </div>
         ) : (
           <div className="settings-empty-state settings-places-empty" role="status">
-            <span className="settings-places-empty__icon"><Icon name="bi-grid-3x3-gap" size={24} /></span>
-            <strong>Столов пока нет</strong>
+            <ReportEmptyState title="Столов пока нет" />
             <span>Добавьте первый стол для этого места.</span>
           </div>
         )}
@@ -886,10 +885,15 @@ export default function SettingsPlacesPage() {
   }
 
   // RENDER3
+  // Subtle view transition: remounting on view switch replays a short
+  // fade+rise (no geometry, no overlay, no timers). Reduced motion disables
+  // it via media query; navigation itself is always immediate URL truth.
   return (
     <div className="settings-page settings-places-page settings-owner-view">
       <section className="settings-card">
-        {inTablesView ? renderTablesView() : renderPlaces()}
+        <div key={inTablesView ? "tables" : "places"} className="settings-view-fade">
+          {inTablesView ? renderTablesView() : renderPlaces()}
+        </div>
       </section>
 
       {hallDrawer ? createPortal((

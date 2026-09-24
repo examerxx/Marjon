@@ -11,7 +11,7 @@ export default function ModeSelector({ user, branch, onSelect, onBack, onLogout 
       <div className="login-card" style={{ maxWidth: 680 }}>
         <div className="login-header">
           <button className="icon-btn" onClick={onBack} title={t('md_back')}>
-            <ArrowLeft size={22} />
+            <ArrowLeft size={26} />
           </button>
           <div className="login-header__info">
             <h1 className="login-logo">{t('md_title')}</h1>

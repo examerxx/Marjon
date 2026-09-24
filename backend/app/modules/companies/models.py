@@ -2,10 +2,11 @@ from __future__ import annotations
 from decimal import Decimal
 from uuid import UUID
 from typing import TYPE_CHECKING
-from sqlalchemy import String, Boolean, Numeric, Text, ForeignKey
+from sqlalchemy import String, Boolean, Integer, Numeric, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
 from app.shared.base_model import TimeStampedModel
+from app.modules.organizations.models import JsonType
 
 if TYPE_CHECKING:
     from app.modules.auth.models import User
@@ -20,6 +21,19 @@ class Company(TimeStampedModel):
     timezone: Mapped[str] = mapped_column(String(50), default="UTC")
     currency: Mapped[str] = mapped_column(String(3), default="UZS")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Спец-пароль для отмены заказа (задаётся в веб-админке)
+    cancel_password: Mapped[str | None] = mapped_column(String(64))
+    # Доля обслуги, начисляемая официанту, % (для отчёта по официантам)
+    waiter_service_percent: Mapped[int] = mapped_column(Integer, default=0)
+    # Час старта «операционного дня» (0–23) для сброса нумерации заказов.
+    # 0 = сброс в полночь (как раньше); 5 = день идёт с 05:00, заказы до 05:00
+    # относятся к прошлому дню. Локальное время — по timezone компании.
+    day_start_hour: Mapped[int] = mapped_column(Integer, default=0)
+    # 2.5 — конфиг конструктора чека из веб-админки (какие блоки печатать,
+    # тексты «спасибо»/подвала и т.п.). Читается форматтером ESC/POS при печати.
+    # Форма см. frontend/src/api/receipt.js (buildCustomerTemplate/buildKitchenTemplate).
+    receipt_template: Mapped[dict | None] = mapped_column(JsonType, nullable=True)
+    kitchen_receipt_template: Mapped[dict | None] = mapped_column(JsonType, nullable=True)
     # Реквизиты для профиля/чека (SettingsProfilePage, ReceiptSettingsPage)
     address: Mapped[str | None] = mapped_column(Text)
     phone: Mapped[str | None] = mapped_column(String(32))

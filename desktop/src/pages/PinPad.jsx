@@ -73,7 +73,7 @@ export default function PinPad({ employee = {}, onSubmit, onBack, title }) {
   return (
     <div className="pinpad-screen">
       <div className="pinpad">
-        {onBack && <button className="pinpad__back" onClick={onBack}><ArrowLeft size={20} /> {t('back')}</button>}
+        {onBack && <button className="pinpad__back" onClick={onBack}><ArrowLeft size={24} /> {t('back')}</button>}
 
         {title && <h2 className="pinpad__title">{title}</h2>}
 

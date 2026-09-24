@@ -21,7 +21,7 @@ export default function RecipeModal({ product, onClose }) {
       <div className="modal recipe-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal__header">
           <h3><ChefHat size={20} /> {t('tech_card')} — {product.name}</h3>
-          <button className="icon-btn" onClick={onClose}><X size={22} /></button>
+          <button className="icon-btn" onClick={onClose}><X size={24} /></button>
         </div>
         <div className="modal__body">
           {loading ? (

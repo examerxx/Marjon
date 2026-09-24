@@ -119,6 +119,10 @@ class CompanyUserUpdate(BaseSchema):
     # /auth/users/{id} soft-deactivates, doesn't hard-delete) had no way to
     # be reactivated through the API.
     is_active: bool | None = None
+    # Опциональный легаси-слой гранулярных прав (см. User.permissions).
+    # Владелец выставляет пер-юзерные тумблеры; по умолчанию None → колонка
+    # не трогается. Хранится как есть, в UserResponse не отдаётся.
+    permissions: dict | None = None
 
     @field_validator("password")
     @classmethod

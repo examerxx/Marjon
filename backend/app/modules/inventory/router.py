@@ -4,23 +4,77 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.session import get_db
-from app.modules.auth.dependencies import require_company_app_user, require_company_admin
+from app.modules.auth.dependencies import (
+    get_current_user, require_company_app_user, require_company_admin,
+)
 from app.modules.auth.models import User
 from app.modules.inventory.models import Product
 from app.modules.inventory.schemas import (
     CategoryCreate, CategoryResponse,
     IngredientCreate, IngredientResponse, IngredientUpdate,
-    ProductCreate, ProductIngredientResponse, ProductResponse, ProductUpdate,
+    ModifierGroupCreate, ModifierGroupResponse, ModifierGroupUpdate, ModifierResponse,
+    ProductAvailabilityUpdate, ProductCreate, ProductIngredientResponse,
+    ProductLimitUpdate, ProductResponse, ProductUpdate,
     StockItemResponse, StockMovementCreate, StockMovementResponse,
 )
-from app.modules.inventory.service import CategoryService, IngredientService, ProductService, StockService
+from app.modules.inventory.service import (
+    CategoryService, IngredientService, ModifierGroupService, ProductService, StockService
+)
+from sqlalchemy import select
+from app.modules.inventory.models import Product, Ingredient
 from app.modules.rbac.dependencies import require_permission
+from app.modules.rbac.models import Role, UserRole
+from app.shared.exceptions import ForbiddenError
 from app.shared.storage import storage
 
 _ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 _EXT_MAP = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
+
+# Стоп-лист правят с десктопа кассир и повар (плюс владелец/админ и HQ-суперадмин).
+# Официанту и курьеру — запрещено (deny-by-default). Гвард отдельный от
+# require_company_admin: тот НЕ пускает кассира/повара, а здесь они — основные редакторы.
+_STOP_LIST_EDITOR_ROLES = ("owner", "admin", "cashier", "kitchen")
+
+
+async def require_stop_list_editor(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    if user.is_superadmin:
+        return user
+    if not user.company_id:
+        raise ForbiddenError("User is not assigned to a company")
+    result = await db.execute(
+        select(Role.slug)
+        .join(UserRole, UserRole.role_id == Role.id)
+        .where(
+            UserRole.user_id == user.id,
+            Role.company_id == user.company_id,
+            Role.slug.in_(_STOP_LIST_EDITOR_ROLES),
+        )
+    )
+    if result.scalars().first():
+        return user
+    raise ForbiddenError("Cashier role required to edit stop-list")
+
+
+def _group_to_response(g) -> ModifierGroupResponse:
+    return ModifierGroupResponse(
+        id=g.id, created_at=g.created_at, updated_at=g.updated_at,
+        company_id=g.company_id, product_id=g.product_id,
+        name=g.name, min_select=g.min_select, max_select=g.max_select,
+        is_required=g.is_required, show_in_pos=g.show_in_pos, sort_order=g.sort_order,
+        modifiers=[
+            ModifierResponse(
+                id=m.id, created_at=m.created_at, updated_at=m.updated_at,
+                group_id=m.group_id, company_id=m.company_id, name=m.name,
+                price_delta=m.price_delta, is_default=m.is_default, sort_order=m.sort_order,
+            )
+            for m in sorted(g.modifiers, key=lambda m: (m.sort_order, m.created_at))
+        ],
+    )
 
 
 def _product_to_response(p: Product) -> ProductResponse:
@@ -36,6 +90,7 @@ def _product_to_response(p: Product) -> ProductResponse:
         name=p.name, description=p.description, image_url=p.image_url,
         price=p.price, cost_price=p.cost_price, tax_rate=p.tax_rate, unit=p.unit,
         barcode=p.barcode, sku=p.sku, is_active=p.is_active, is_available=p.is_available,
+        daily_limit=p.daily_limit, sold_count=p.sold_count,
         sort_order=p.sort_order,
         category_name=getattr(p, "category_name", None),
         subcategory_name=getattr(p, "subcategory_name", None),
@@ -50,6 +105,10 @@ def _product_to_response(p: Product) -> ProductResponse:
                 unit=line.ingredient.unit if line.ingredient else "",
             )
             for line in p.ingredients
+        ],
+        modifier_groups=[
+            _group_to_response(g)
+            for g in sorted(p.modifier_groups, key=lambda g: (g.sort_order, g.created_at))
         ],
     )
 
@@ -125,9 +184,88 @@ async def upload_product_photo(
     return _product_to_response(await ProductService(db).update_image(user.company_id, product_id, image_url))
 
 
+@router.patch("/products/{product_id}/availability", response_model=ProductResponse)
+async def set_product_availability(
+    product_id: UUID,
+    data: ProductAvailabilityUpdate,
+    user: User = Depends(require_stop_list_editor),
+    db: AsyncSession = Depends(get_db),
+):
+    """Стоп-лист: снять/вернуть блюдо в продажу. Доступно только кассиру.
+
+    Узкий эндпоинт правит ТОЛЬКО is_available — в отличие от админского
+    PATCH /products/{id}, который меняет любые поля блюда. Так кассир управляет
+    стоп-листом с десктопа, но не может трогать цены/названия.
+    """
+    return _product_to_response(await ProductService(db).set_availability(
+        user.company_id, product_id, data.is_available
+    ))
+
+
+@router.patch("/products/{product_id}/limit", response_model=ProductResponse)
+async def set_product_daily_limit(
+    product_id: UUID,
+    data: ProductLimitUpdate,
+    user: User = Depends(require_stop_list_editor),
+    db: AsyncSession = Depends(get_db),
+):
+    """D3 «максимум блюда»: задать дневной лимит порций (или снять — null).
+
+    Тот же гейт, что у стоп-листа (кассир/повар/владелец/админ): задание числа
+    обнуляет счётчик и возвращает блюдо в продажу; при достижении лимита в ходе
+    продаж блюдо авто-встаёт в стоп. Так повар/кассир регулируют «максимум»
+    с десктопа, не трогая цену/название.
+    """
+    return _product_to_response(await ProductService(db).set_daily_limit(
+        user.company_id, product_id, data.daily_limit
+    ))
+
+
 @router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_product(product_id: UUID, user: User = Depends(require_company_admin), db: AsyncSession = Depends(get_db)):
     await ProductService(db).delete(user.company_id, product_id)
+
+
+# --- Добавки (модификаторы) блюда ---------------------------------------------
+# Группы добавок настраиваются в веб-админке (владелец/админ). Чтение доступно
+# любому сотруднику компании — десктоп-касса тянет их вместе с блюдом.
+
+@router.get("/products/{product_id}/modifier-groups", response_model=list[ModifierGroupResponse])
+async def list_modifier_groups(
+    product_id: UUID,
+    user: User = Depends(require_company_app_user),
+    db: AsyncSession = Depends(get_db),
+):
+    groups = await ModifierGroupService(db).list_for_product(user.company_id, product_id)
+    return [_group_to_response(g) for g in groups]
+
+
+@router.post("/modifier-groups", response_model=ModifierGroupResponse, status_code=status.HTTP_201_CREATED)
+async def create_modifier_group(
+    data: ModifierGroupCreate,
+    user: User = Depends(require_company_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return _group_to_response(await ModifierGroupService(db).create(user.company_id, data))
+
+
+@router.patch("/modifier-groups/{group_id}", response_model=ModifierGroupResponse)
+async def update_modifier_group(
+    group_id: UUID,
+    data: ModifierGroupUpdate,
+    user: User = Depends(require_company_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    return _group_to_response(await ModifierGroupService(db).update(user.company_id, group_id, data))
+
+
+@router.delete("/modifier-groups/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_modifier_group(
+    group_id: UUID,
+    user: User = Depends(require_company_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    await ModifierGroupService(db).delete(user.company_id, group_id)
 
 
 @router.post("/ingredients", response_model=IngredientResponse, status_code=status.HTTP_201_CREATED)

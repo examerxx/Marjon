@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Users, UserPlus, Pencil, ArrowLeft, Lock } from 'lucide-react'
+import { X, Users, UserPlus, Pencil, ArrowLeft, Lock } from 'lucide-react'
 import { auth } from '../shared/api'
 import { t } from '../shared/i18n'
 import { toast } from './Toast'
+import CustomSelect from './CustomSelect'
 
 // Роли, которые кассир-менеджер вправе назначать (owner-assignable на бэкенде).
 // owner/admin сюда НЕ входят — такие карточки редактирует только владелец.
@@ -16,12 +17,12 @@ const isAdminRow = (u) => (u.role_slugs || [u.role_slug]).some((s) => s === 'own
 const EMPTY = { name: '', phone: '', roleSlug: 'cashier', pin: '', isActive: true }
 
 /**
- * StaffManagerPanel — управление сотрудниками из режима разработчика.
- * Встраивается в рабочее пространство DeveloperPanel (без своей модалки).
+ * StaffManagerPanel — управление сотрудниками (открывается из меню «…»).
  * Создание/редактирование: имя, телефон, роль (owner-assignable), PIN, активность.
+ * Права здесь НЕ правятся — только владелец в веб-админке.
  * Секреты (pin_code/nfc_id) НЕ отображаем — PIN вводится только на запись.
  */
-export default function StaffManagerPanel() {
+export default function StaffManagerPanel({ onClose }) {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(null)   // null | 'new' | user-объект
@@ -81,10 +82,17 @@ export default function StaffManagerPanel() {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal__header">
+          <h2><Users size={20} /> {t('dev_staff')}</h2>
+          <button className="icon-btn" onClick={onClose}><X size={24} /></button>
+        </div>
+        <div className="modal__body">
     <div className="dev-screen">
       <div className="dev-screen__head">
         {editing && (
-          <button className="icon-btn" onClick={() => setEditing(null)}><ArrowLeft size={22} /></button>
+          <button className="icon-btn" onClick={() => setEditing(null)}><ArrowLeft size={26} /></button>
         )}
         <h3><Users size={20} /> {editing ? (editing === 'new' ? t('staff_add') : t('edit')) : t('dev_staff')}</h3>
         {!editing && !loading && (
@@ -107,9 +115,9 @@ export default function StaffManagerPanel() {
           </div>
           <div className="settings-row settings-row--col">
             <label>{t('staff_role')}</label>
-            <select className="input" value={form.roleSlug} onChange={set('roleSlug')}>
-              {ASSIGNABLE_ROLES.map((r) => <option key={r} value={r}>{t.role(r)}</option>)}
-            </select>
+            <CustomSelect className="cselect--block" value={form.roleSlug}
+              onChange={(v) => setForm((f) => ({ ...f, roleSlug: v }))}
+              options={ASSIGNABLE_ROLES.map((r) => ({ value: r, label: t.role(r) }))} />
           </div>
           <div className="settings-row settings-row--col">
             <label>{t('staff_pin')}</label>
@@ -152,6 +160,9 @@ export default function StaffManagerPanel() {
           })}
         </section>
       )}
+    </div>
+        </div>
+      </div>
     </div>
   )
 }

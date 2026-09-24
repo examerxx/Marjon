@@ -849,4 +849,163 @@
       }
   }
 
+  /* --- Добавки (модификаторы) блюда в боковой форме --- */
+  .dish-mods {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--blue-100);
+  }
+
+  .dish-mods__head h3 {
+      margin: 0 0 4px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--neutral-950);
+  }
+
+  .dish-mods__hint {
+      margin: 0;
+      color: #64748b;
+      font-size: 12px;
+  }
+
+  .dish-mods__group {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--blue-100);
+      border-radius: 14px;
+      background: var(--color-bg);
+  }
+
+  .dish-mods__group-head {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+  }
+
+  .dish-mods__group-name {
+      flex: 1 1 auto;
+      min-height: 42px;
+      padding: 0 12px;
+      border: 1px solid var(--blue-100);
+      border-radius: 12px;
+      background: var(--color-card);
+      color: var(--neutral-950);
+      font: inherit;
+      font-weight: 600;
+      outline: none;
+  }
+
+  .dish-mods__icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--blue-100);
+      border-radius: 10px;
+      background: var(--color-card);
+      color: var(--color-danger);
+      cursor: pointer;
+  }
+
+  .dish-mods__group-opts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: end;
+  }
+
+  .dish-mods__inline {
+      display: grid;
+      gap: 5px;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 500;
+  }
+
+  .dish-mods__inline input[type="number"] {
+      width: 84px;
+      min-height: 40px;
+      padding: 0 10px;
+      border: 1px solid var(--blue-100);
+      border-radius: 10px;
+      background: var(--color-card);
+      color: var(--neutral-950);
+      font: inherit;
+      outline: none;
+  }
+
+  .dish-mods__inline--check {
+      flex-direction: row;
+      align-items: center;
+      gap: 7px;
+      min-height: 40px;
+  }
+
+  .dish-mods__inline--check input {
+      width: 18px;
+      height: 18px;
+  }
+
+  .dish-mods__opts {
+      display: grid;
+      gap: 8px;
+  }
+
+  .dish-mods__opt {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+  }
+
+  .dish-mods__opt-name {
+      flex: 1 1 auto;
+      min-height: 40px;
+      padding: 0 12px;
+      border: 1px solid var(--blue-100);
+      border-radius: 10px;
+      background: var(--color-card);
+      color: var(--neutral-950);
+      font: inherit;
+      outline: none;
+  }
+
+  .dish-mods__opt-price {
+      width: 110px;
+      min-height: 40px;
+      padding: 0 10px;
+      border: 1px solid var(--blue-100);
+      border-radius: 10px;
+      background: var(--color-card);
+      color: var(--neutral-950);
+      font: inherit;
+      text-align: right;
+      outline: none;
+  }
+
+  .dish-mods__opt-cur {
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 500;
+  }
+
+  .dish-mods__add-opt {
+      justify-self: start;
+      padding: 8px 14px;
+  }
+
+  .dish-mods__group-footer {
+      display: flex;
+      justify-content: flex-end;
+  }
+
+  .dish-mods__add-group {
+      justify-self: start;
+      padding: 10px 16px;
+  }
+
 }

@@ -48,11 +48,11 @@
 
 ### 1. Инфраструктура и DevOps
 
-- [ ] 🔴 **Dockerfile и docker-compose** — создать `Dockerfile` для backend, `docker-compose.yml` с PostgreSQL + Redis + backend + frontend
-- [ ] 🔴 **CI/CD pipeline** — GitHub Actions: линтинг, тесты, сборка образа, деплой
+- [x] 🔴 **Dockerfile и docker-compose** — есть: `backend/Dockerfile`, `docker-compose.yml` (db + backend + frontend, профили `storage`/`gateways`/`ngrok`)
+- [ ] 🔴 **CI/CD pipeline** — частично: есть `.github/workflows/` (`smoke` — backend-тесты, `visual`, `desktop-size`); нет линтинга, сборки образа и автодеплоя
 - [ ] 🔴 **Нормальные Alembic миграции** — переписать `initial_schema` на реальные `op.create_table()` вместо `create_all()`. Без этого невозможно делать инкрементальные миграции
-- [ ] 🔴 **Убрать `.env` из репозитория** — добавить в `.gitignore`, создать `.env.example` с шаблоном
-- [ ] 🔴 **Создать `.gitignore`** — `.env`, `__pycache__`, `.venv`, `node_modules`, `*.db`, `dist/`, `.idea/`, `*.log`
+- [x] 🔴 **Убрать `.env` из репозитория** — `backend/.env` не трекается в git, `.gitignore` покрывает `.env`, есть `backend/.env.example`
+- [x] 🔴 **Создать `.gitignore`** — есть в корне (`.env`, `__pycache__`, `.venv`, `node_modules`, `*.db`, `dist/`, `*.log`)
 - [ ] 🟡 **Логирование** — настроить structlog или стандартный logging с JSON-форматом, ротацией, уровнями по модулям
 - [ ] 🟡 **Health check расширить** — добавить проверку БД и Redis
 - [ ] 🟡 **Rate limiting** — slowapi или middleware для защиты от брутфорса (особенно /auth/login)
@@ -196,7 +196,7 @@
 
 - [ ] 🔴 **Seed permissions** — скрипт для создания базовых permissions (pos.create, pos.read, inventory.update и т.д.)
 - [ ] 🟡 **Предустановленные роли** — owner, manager, cashier, waiter, kitchen, courier с набором прав
-- [ ] 🟡 **Проверка прав на endpoints** — сейчас большинство роутеров используют только `get_current_user`, нужно добавить `require_permission()`
+- [x] 🟡 **Проверка прав на endpoints** — `/reports/*` открыты правом `can_view_finance`, `/analytics/z-report` — новым тумблером `can_view_z_report` в карточке сотрудника (+ clamp прошлого без `can_view_past_periods`); остальное — по мере переноса
 - [ ] 🟢 **Scope по филиалу** — ограничение прав на уровне branch_id
 
 ### 16. Модуль Audit
@@ -216,11 +216,11 @@
 
 ### 18. Очистка кода
 
-- [ ] 🔴 **Удалить legacy файлы** — `backend/auth.py`, `backend/config.py`, `backend/database.py`, `backend/models.py`, `backend/schemas.py`, `backend/routers/` — они не используются основным приложением
-- [ ] 🔴 **Удалить `app.db`** — SQLite-файл не должен быть в репозитории
-- [ ] 🔴 **Удалить `uvicorn.err.log`, `uvicorn.out.log`** — логи не должны быть в репозитории
-- [ ] 🔴 **Удалить `print_agent/agent_config.json`** — конфиг с токеном
-- [ ] 🟡 **Удалить `frontend/dist/`** — собранный билд не хранится в git
+- [x] 🔴 **Удалить legacy файлы** — `backend/auth.py`, `backend/config.py`, `backend/database.py`, `backend/models.py`, `backend/schemas.py`, `backend/routers/` — в git не трекаются
+- [x] 🔴 **Удалить `app.db`** — в git не трекается
+- [x] 🔴 **Удалить `uvicorn.err.log`, `uvicorn.out.log`** — в git не трекаются
+- [x] 🔴 **Удалить `print_agent/agent_config.json`** — в git не трекается (конфиг с токеном только локально)
+- [x] 🟡 **Удалить `frontend/dist/`** — в git не трекается
 - [ ] 🟡 **Единый формат** — добавить ruff/black для форматирования, isort для импортов
 - [ ] 🟡 **Type hints** — добавить return type hints во все service/repository методы
 - [ ] 🟡 **Docstrings** — документация для всех публичных методов сервисов

@@ -8,7 +8,6 @@ import PinPad from './pages/PinPad'
 import TopBar from './components/TopBar'
 import BottomBar from './components/BottomBar'
 import SettingsModal from './components/SettingsModal'
-import DeveloperPanel from './components/DeveloperPanel'
 import CashierMode from './modes/cashier/CashierMode'
 import WaiterMode from './modes/waiter/WaiterMode'
 import { auth, branding, flushQueue, queueSize } from './shared/api'
@@ -64,7 +63,6 @@ export default function App() {
   const [, setLangVersion] = useState(0)   // бамп для перерисовки при смене языка
   const [isLocked, setIsLocked] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [showDev, setShowDev] = useState(false)   // скрытая панель разработчика (пакетная печать)
 
   const isStaffLoggedIn = !!(staffToken && staffUser)
 
@@ -236,21 +234,6 @@ export default function App() {
     try { window.electron?.onRequestExitPin?.(() => setIsLocked(true)) } catch { /* not in electron */ }
   }, [])
 
-  // Секретный доступ к панели разработчика: Ctrl+Shift+D — только в рабочем режиме
-  // (вошедший сотрудник, выбран филиал, экран не заблокирован). Второй путь входа —
-  // 7 быстрых тапов по часам в нижней панели (см. BottomBar → onDevAccess).
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')
-          && isStaffLoggedIn && branch && !isLocked) {
-        e.preventDefault()
-        setShowDev(true)
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [isStaffLoggedIn, branch, isLocked])
-
   // ── Экран блокировки: тот же пин-пад с уже выбранным сотрудником ──
   if (isLocked && isStaffLoggedIn) {
     return (
@@ -332,10 +315,8 @@ export default function App() {
       </main>
 
       <BottomBar userName={staffUser?.name} branchName={branch?.name} mode={modeLabel}
-                 isOnline={isOnline} queued={queued}
-                 onDevAccess={() => setShowDev(true)} />
+                 isOnline={isOnline} queued={queued} />
       {settingsOverlay}
-      {showDev && <DeveloperPanel branch={branch} user={userWithBranch} onClose={() => setShowDev(false)} />}
     </div>
   )
 }

@@ -10,7 +10,7 @@ from app.infrastructure.database.session import get_db
 from app.modules.auth.dependencies import require_company_app_user
 from app.modules.auth.models import User
 from app.modules.pos.schemas import (
-    OrderCreate, OrderItemCreate, OrderResponse,
+    OrderCreate, OrderItemCreate, OrderItemWaiterUpdate, OrderResponse,
     OrderStatusUpdate, OrderUpdate,
     TerminalCreate, TerminalResponse,
     ShiftOpen, ShiftClose, ShiftResponse,
@@ -51,7 +51,7 @@ async def get_order(order_id: UUID, user: User = Depends(require_company_app_use
 
 @router.patch("/orders/{order_id}", response_model=OrderResponse)
 async def update_order(order_id: UUID, data: OrderUpdate, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
-    return await OrderService(db).update_order(user.company_id, order_id, data)
+    return await OrderService(db).update_order(user.company_id, order_id, data, user)
 
 
 @router.patch("/orders/{order_id}/status", response_model=OrderResponse)
@@ -60,18 +60,30 @@ async def update_order_status(order_id: UUID, data: OrderStatusUpdate, user: Use
 
 
 @router.delete("/orders/{order_id}", response_model=OrderResponse)
-async def cancel_order(order_id: UUID, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
-    return await OrderService(db).cancel(user.company_id, order_id, actor_id=user.id)
+async def cancel_order(order_id: UUID, password: str | None = Query(None), comment: str | None = Query(None), user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
+    return await OrderService(db).cancel(user.company_id, order_id, password, comment, user)
 
 
 @router.post("/orders/{order_id}/items", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
 async def add_item(order_id: UUID, data: OrderItemCreate, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
-    return await OrderService(db).add_item(user.company_id, order_id, data)
+    return await OrderService(db).add_item(user.company_id, order_id, data, user)
 
 
 @router.delete("/orders/{order_id}/items/{item_id}", response_model=OrderResponse)
-async def remove_item(order_id: UUID, item_id: UUID, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
-    return await OrderService(db).remove_item(user.company_id, order_id, item_id, actor_id=user.id)
+async def remove_item(order_id: UUID, item_id: UUID, reason: str | None = Query(None), pin: str | None = Query(None), user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
+    return await OrderService(db).remove_item(user.company_id, order_id, item_id, reason, user, pin)
+
+
+@router.post("/orders/{order_id}/items/{item_id}/move", response_model=OrderResponse)
+async def move_item(order_id: UUID, item_id: UUID, table: str = Query(...), pin: str | None = Query(None), user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
+    """Перекинуть позицию на другой стол (создаёт/дополняет заказ целевого стола)."""
+    return await OrderService(db).move_item(user.company_id, order_id, item_id, table, user, pin)
+
+
+@router.patch("/orders/{order_id}/items/{item_id}/waiter", response_model=OrderResponse)
+async def set_item_waiter(order_id: UUID, item_id: UUID, data: OrderItemWaiterUpdate, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
+    """Сменить ответственного официанта у отдельной позиции (кассир исправляет путаницу)."""
+    return await OrderService(db).set_item_waiter(user.company_id, order_id, item_id, data, user)
 
 
 # ── Terminals ─────────────────────────────────────────────────────────────────

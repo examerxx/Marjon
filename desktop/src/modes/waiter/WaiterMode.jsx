@@ -131,7 +131,10 @@ export default function WaiterMode({ user = {}, branch = {}, onBack, onLogout })
     setPromptCfg({
       title: t('move_to_table'),
       hint: t('move_to_table'),
-      type: 'number',
+      options: allTables.map((table) => ({
+        value: String(table.number),
+        label: `${t('table')} ${table.number}`,
+      })),
       submitLabel: t('save'),
       onSubmit: async (num) => {
         await orders.moveItem(order.id, item.id, String(num).trim())
@@ -177,7 +180,10 @@ export default function WaiterMode({ user = {}, branch = {}, onBack, onLogout })
     setPromptCfg({
       title: t('move_table'),
       hint: t('move_to_table'),
-      type: 'number',
+      options: allTables.map((table) => ({
+        value: String(table.number),
+        label: `${t('table')} ${table.number}`,
+      })),
       initial: order.table_number || '',
       extra: { label: t('move_reason'), placeholder: t('move_reason_ph') },
       submitLabel: t('save'),
@@ -253,8 +259,8 @@ export default function WaiterMode({ user = {}, branch = {}, onBack, onLogout })
     if (product.is_available === false || product.in_stop_list) return // в стоп-листе
     setCart((prev) => [...prev, { lineId: `${Date.now()}-${Math.random()}`, product, qty: 1, price: Number(product.price) || 0, note: '' }])
   }
-  function saveEdit({ quantity, price, note, takeaway }) {
-    setCart((prev) => prev.map((i) => i.lineId === editLine.lineId ? { ...i, qty: quantity, price, note, takeaway } : i))
+  function saveEdit({ quantity, price, note, takeaway, modifiers }) {
+    setCart((prev) => prev.map((i) => i.lineId === editLine.lineId ? { ...i, qty: quantity, price, note, takeaway, modifiers: modifiers || [] } : i))
     setEditLine(null)
   }
   function updateQty(lineId, d) {
@@ -275,7 +281,7 @@ export default function WaiterMode({ user = {}, branch = {}, onBack, onLogout })
       if (addToOrderId) {
         // Дополняем существующий заказ (старые блюда сохраняются)
         for (const i of cart) {
-          await orders.addItem(addToOrderId, { product_id: i.product.id, quantity: i.qty, note: i.note || null, takeaway: !!i.takeaway })
+          await orders.addItem(addToOrderId, { product_id: i.product.id, quantity: i.qty, note: i.note || null, takeaway: !!i.takeaway, modifiers: i.modifiers || [] })
         }
         // Авто-статус: заказ снова «готовится»
         try { await orders.updateStatus(addToOrderId, 'cooking') } catch { /* офлайн-очередь */ }
@@ -286,7 +292,7 @@ export default function WaiterMode({ user = {}, branch = {}, onBack, onLogout })
           table_number: selectedTable?.number != null ? String(selectedTable.number) : null,
           persons_count: guests,
           note: orderNote || null,
-          items: cart.map((i) => ({ product_id: i.product.id, quantity: i.qty, note: i.note || null, takeaway: !!i.takeaway })),
+          items: cart.map((i) => ({ product_id: i.product.id, quantity: i.qty, note: i.note || null, takeaway: !!i.takeaway, modifiers: i.modifiers || [] })),
         })
       }
       setAddToOrderId(null)

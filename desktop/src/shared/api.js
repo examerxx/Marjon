@@ -204,9 +204,10 @@ export const auth = {
       api.get('/auth/me', { headers: { Authorization: `Bearer ${access_token}` } }).then((r) => r.data)
     ),
   me: () => api.get('/auth/me').then((r) => r.data),
-  // Управление сотрудниками из режима разработчика (хаб «Сотрудники»/«Права»).
-  // Идут под токеном сотрудника (marjon_token) → несут его permissions, которые
-  // читает бэкенд-гейт require_permission_or_admin('can_manage_staff'). Онлайн-only:
+  // Управление сотрудниками (панель «Сотрудники» в меню «…»; правка прав —
+  // только владелец в веб-админке). Идут под токеном сотрудника (marjon_token) →
+  // несут его permissions, которые читает бэкенд-гейт
+  // require_permission_or_admin('can_manage_staff'). Онлайн-only:
   // управленческие операции через офлайн-очередь НЕ гоняем.
   users: () => api.get('/auth/users').then((r) => r.data),
   createUser: (payload) => api.post('/auth/users', payload).then((r) => r.data),
@@ -299,7 +300,7 @@ export const menu = {
   recipe: (id) => api.get(`/inventory/products/${id}/recipe`).then((r) => r.data),
 }
 
-// Склад: приходы и инвентаризации (для пакетной печати в режиме разработчика).
+// Склад: приходы и инвентаризации (для пакетной печати из меню «…»).
 // GET-эндпоинты гейтятся только get_current_user — токена сотрудника/терминала
 // достаточно. Записи (create*) гейтятся require_permission_or_admin('can_manage_warehouse')
 // и идут под токеном сотрудника; онлайн-only, без офлайн-очереди.
@@ -347,7 +348,11 @@ export const reports = {
   products: (params) => api.get('/reports/dishes', { params }).then((r) => r.data),
   staff: (params) => api.get('/reports/waiters', { params }).then((r) => r.data),
   // Z-отчёт за день (как в веб-админке): показатели смены + разбивка по оплатам
-  zReport: (date) => api.get('/analytics/z-report', { params: { date } }).then((r) => r.data),
+  // Z-отчёт за день (from) или за период [from, to]. date дублируем для старых бэкендов,
+  // где обязателен Query date (лишние query-параметры FastAPI игнорирует).
+  zReport: (from, to) => api.get('/analytics/z-report', {
+    params: { date: from, date_from: from, ...(to ? { date_to: to } : {}) },
+  }).then((r) => r.data),
 }
 
 export const stopList = {

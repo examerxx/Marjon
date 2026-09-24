@@ -426,8 +426,15 @@ async def test_tables_phase1_order_summaries_filters_identity_and_completed_paym
     assert zal["orders_count"] == 2 and zal["revenue"] == "205.00"
     assert bar["orders_count"] == 1 and bar["revenue"] == "200.00"
     assert legacy["hall_id"] is None and legacy["orders_count"] == 1
-    # Non-completed and foreign orders never leak into aggregates.
-    assert "999" not in str(rows) and "700" not in str(rows)
+    # Non-completed (o_new / 999) and foreign-tenant (o_foreign / 700) orders never
+    # leak into company A's aggregates or summaries. Assert on structured identity
+    # fields, NOT a substring scan over str(rows): the repr carries random UUIDs
+    # (order_id) and a random hex email suffix, and the pure-digit "999"/"700" are
+    # valid hex, so a scan matches them by chance and flakes (hit in CI run #139).
+    # The revenue asserts above (205/200/50) already prove neither amount inflated
+    # any aggregate; here we prove neither order appears in the summaries.
+    leaked_numbers = {o["order_number"] for r in rows for o in r["orders"]}
+    assert "NEW-1" not in leaked_numbers and "FOREIGN-1" not in leaked_numbers
     # Legacy compatibility fields preserved.
     assert set(zal) == {
         "table_number", "orders_count", "revenue", "avg_check",

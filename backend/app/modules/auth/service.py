@@ -225,6 +225,7 @@ class AuthService:
         password: str | None = None,
         role_slug: str | None = None,
         is_active: bool | None = None,
+        permissions: dict | None = None,
         assignable_role_slugs: frozenset[str] | None = None,
         actor_user_id: UUID | None = None,
     ) -> tuple[User, list[str]]:
@@ -273,6 +274,10 @@ class AuthService:
             user.password_hash = hash_password(password)
         if is_active is not None:
             user.is_active = is_active
+        # Легаси-слой гранулярных прав (опциональный, opt-in): пишем только
+        # когда владелец явно прислал набор тумблеров. RBAC-путь не затрагивается.
+        if permissions is not None:
+            user.permissions = permissions
 
         if role_slug is not None:
             from sqlalchemy import delete as sql_delete

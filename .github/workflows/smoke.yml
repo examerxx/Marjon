@@ -76,6 +76,11 @@ jobs:
                   r = await c.get("/docs")
                   assert r.status_code == 200, f"/docs -> {r.status_code}"
 
+                  # Канонический демо-логин из scripts/seed_waiter_login.py
+                  # (идемпотентный апсерт, чинит конфликты по телефону — его же
+                  # сеет шаг выше). Прежний +998901234566/Staff1234 не создаётся
+                  # ни seed.py (там USERS[0] = +998901234567/Admin1234), ни этим
+                  # скриптом -> логин им давал 401 "user not found".
                   r = await c.post("/api/v1/auth/login",
                                    json={"phone": "+998900078779", "password": "102938"})
                   assert r.status_code == 200, f"login -> {r.status_code}: {r.text[:300]}"
