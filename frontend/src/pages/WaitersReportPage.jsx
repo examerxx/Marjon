@@ -6,6 +6,7 @@ import { exportToExcel } from "../utils/excel";
 import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/useAsyncSafety";
 import { formatDateLabel, todayInputValue } from "../utils/date";
 import { toApiDate } from "./reports/reportPeriod";
+import { reportCacheKey, readReportCache, writeReportCache } from "./reports/reportResultCache";
 import { formatMoney } from "./reports/reportMoney";
 
 export const defaultWaiterFilters = Object.freeze({
@@ -274,7 +275,6 @@ export default function WaitersReportPage() {
       setLoading(false);
       return;
     }
-    setLoading(true);
     setError("");
     if (!isOrderedDateRange(dateFrom, dateTo)) {
       setRows([]); setTotals(emptyTotals);
@@ -282,13 +282,23 @@ export default function WaitersReportPage() {
       setLoading(false); setHasLoaded(true);
       return;
     }
+    const requestFilters = { ...filters, servicePercent: validatedPercent.value };
+    const cacheKey = reportCacheKey("waiters", { dateFrom, dateTo, filters: requestFilters });
+    const cached = readReportCache(cacheKey);
+    if (cached) {
+      setRows(cached.rows); setTotals(cached.totals);
+      setLoading(false); setHasLoaded(true);
+    } else {
+      setLoading(true);
+    }
     reportsService.listWaiters(dateFrom, dateTo, {
-      filters: { ...filters, servicePercent: validatedPercent.value },
+      filters: requestFilters,
       signal: request.signal,
     })
       .then(({ data }) => {
         if (!request.isCurrent()) return;
         const report = normalizeReport(data);
+        writeReportCache(cacheKey, { rows: report.rows, totals: report.totals });
         setRows(report.rows); setTotals(report.totals);
       })
       .catch((requestError) => {
