@@ -15,7 +15,7 @@ import {
 // percent rejected without POST + canonical-fields-only, never condition-as-money)
 // now lives at the real boundary in SettingsPlacesPage.test.jsx, so it is not
 // imported here.
-import { apiMapFormToPayload as mapPaymentPayload } from "./settings/SettingsPaymentMethodsPage";
+import { formToPayload as mapPaymentPayload } from "./settings/SettingsPaymentMethodsPage";
 import {
   apiMapFormToPayload as mapPrinterPayload,
   apiMapRow as mapPrinterRow,
@@ -268,8 +268,8 @@ describe("FE-06 request and form safety", () => {
     // Place payload safety (invalid percent rejected, canonical fields only,
     // condition never sent) is asserted at its real boundary in
     // SettingsPlacesPage.test.jsx — see TEST-SAFETY-01.
-    expect(mapPaymentPayload({ name: "Cash", sort: "x", typeLabel: "cash", status: "#активно" })).toBeNull();
-    expect(mapPaymentPayload({ name: "Cash", sort: "10abc", typeLabel: "cash", status: "#активно" })).toBeNull();
+    expect(mapPaymentPayload({ name: "Cash", sort: "x", type: "cash", active: true })).toBeNull();
+    expect(mapPaymentPayload({ name: "Cash", sort: "10abc", type: "cash", active: true })).toBeNull();
     expect(mapPrinterPayload({ name: "Kitchen", printerType: "kitchen", connectionType: "network", ip: "10.0.0.2", port: "70000", zone: "Kitchen", status: "Активно" }, { editing: false })).toBeNull();
     expect(mapPrinterPayload({ name: "Kitchen", printerType: "kitchen", connectionType: "network", ip: "10.0.0.2", port: "9100abc", zone: "Kitchen", status: "Активно" }, { editing: false })).toBeNull();
     expect(mapPrinterPayload({ name: "Kitchen", printerType: "kitchen", connectionType: "network", ip: "10.0.0.2", port: "9100", zone: "Kitchen", status: "Активно" }, { editing: true })).toEqual({

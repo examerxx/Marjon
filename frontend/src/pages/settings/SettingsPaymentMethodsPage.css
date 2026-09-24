@@ -1,0 +1,153 @@
+/* Settings → Способ оплаты — scoped presentation only.
+   Self-contained (imported by SettingsPaymentMethodsPage.jsx); edits no shared
+   settings.css / reports.css, so parallel Settings work (Места) is unaffected.
+   The page reuses the accepted `settings-owner-view` design system; the rules
+   below only pin the OWNER accent, compact the empty panel, align the table
+   grid, render the status as a dot+text (Staff/Places style), and animate the
+   type dropdown. */
+
+/* ── Primary accent: exact OWNER #1FC9C9 (rgb(31,201,201)). The shared
+   foundation paints CTAs with --color-brand (=#1db5b5), a different teal, so
+   both the header Add button and the modal Save are pinned to the accent. */
+.payment-methods-page.settings-owner-view .settings-actions button,
+.payment-methods-modal-layer.settings-owner-view .settings-form__footer button[type="submit"] {
+  border: 1px solid #1fc9c9;
+  background: #1fc9c9;
+  color: #fff;
+  box-shadow: none;
+}
+.payment-methods-page.settings-owner-view .settings-actions button:hover,
+.payment-methods-page.settings-owner-view .settings-actions button:focus-visible,
+.payment-methods-modal-layer.settings-owner-view .settings-form__footer button[type="submit"]:hover,
+.payment-methods-modal-layer.settings-owner-view .settings-form__footer button[type="submit"]:focus-visible {
+  border-color: #17b1b1;
+  background: #17b1b1;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.18);
+}
+
+/* ── Compact empty state (PNG + title only), keeping the Reports illustration
+   size but a tidy, not-too-tall white panel. Scoped so Reports/Staff/Places
+   are untouched. */
+.payment-methods-page .settings-card {
+  min-height: 0;
+}
+.payment-methods-page .owner-report-empty--illustrated {
+  min-height: 0;
+  padding: 18px 20px 22px;
+  transform: none;
+}
+
+/* ── Table grid: natural auto layout like the Staff (Официант) template, so
+   columns size to their content instead of a rigid fixed grid. Header + body
+   share the same columns by construction; название absorbs slack naturally. */
+.payment-methods-page .settings-table {
+  min-width: 640px;
+}
+/* Тип column is centered (header + body values), mirroring the centered
+   badge/group columns of the Staff template. Scoped to this page only. */
+.payment-methods-page .settings-table th:nth-child(3),
+.payment-methods-page .settings-table td:nth-child(3) {
+  text-align: center;
+}
+/* Right-side columns pin content to the right edge (header + body together),
+   so Статус/Действия sit further right while every value stays exactly under
+   its header. Scoped to this page only; columns 1-2 keep natural left flow. */
+.payment-methods-page .settings-table th:nth-child(4),
+.payment-methods-page .settings-table td:nth-child(4),
+.payment-methods-page .settings-table th:nth-child(5),
+.payment-methods-page .settings-table td:nth-child(5) {
+  text-align: right;
+}
+.payment-methods-page .settings-table td:nth-child(5) .settings-row-actions {
+  justify-content: flex-end;
+}
+/* Header/body share one geometry: identical horizontal padding and middle
+   vertical rhythm, so body ink starts exactly under header ink in every
+   column (auto layout binds the column boxes themselves). First two columns
+   pin explicit left flow (never inherit alignment surprises). */
+.payment-methods-page .settings-table th,
+.payment-methods-page .settings-table td {
+  padding-left: 16px;
+  padding-right: 16px;
+  vertical-align: middle;
+}
+.payment-methods-page .settings-table th:nth-child(1),
+.payment-methods-page .settings-table th:nth-child(2),
+.payment-methods-page .settings-table td:nth-child(1),
+.payment-methods-page .settings-table td:nth-child(2) {
+  text-align: left;
+}
+/* Guide-line optical alignment (user-measured on real rows): body glyphs in
+   Сорт/Название/Статус render slightly left of header ink, so nudge body
+   content right onto the guides. Headers and column boxes untouched; Тип
+   centered and Действия pinned unchanged. */
+.payment-methods-page .settings-table td:nth-child(1),
+.payment-methods-page .settings-table td:nth-child(2) {
+  padding-left: 27px;
+}
+.payment-methods-page .settings-table td:nth-child(4) {
+  padding-right: 5px;
+}
+/* Natural auto-layout needs no per-column widths and no clipping rules. */
+
+/* ── Status = coloured dot + text (Staff/Места reference), not a pill. Scoped
+   under .settings-table to win over the base pill badge without !important. */
+.payment-methods-page .settings-table .settings-status-badge {
+  gap: 7px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-weight: 500;
+}
+.payment-methods-page .settings-table .settings-status-badge.is-active { color: #00dc3b; }
+.payment-methods-page .settings-table .settings-status-badge.is-inactive { color: #ef4444; }
+
+/* ── Create/edit modal sizing (portaled under .payment-methods-modal-layer):
+   comfortable form width, content-driven height from the shared shell. */
+.payment-methods-modal-layer.settings-owner-view .settings-modal {
+  width: min(600px, 100%);
+}
+.payment-methods-modal-layer .settings-modal .pm-form-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 14px;
+}
+@media (max-width: 520px) {
+  .payment-methods-modal-layer .settings-modal .pm-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Neutral note shown when editing a legacy row whose stored type is neither
+   cash nor card. The dropdown still lists ONLY Наличные/Карта; this line just
+   surfaces the preserved raw value until the user explicitly picks a type. */
+.payment-methods-modal-layer .pm-legacy-note {
+  margin: 8px 0 0;
+  color: var(--neutral-500, #64748b);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ── Type dropdown polish: chevron rotates on open, menu opens with a soft
+   animation. The dropdown lives in the portaled modal (.payment-methods-modal
+   -layer); base .settings-select geometry comes from the shared system. */
+.payment-methods-modal-layer .settings-select__chevron {
+  transition: transform 180ms ease;
+}
+.payment-methods-modal-layer .settings-select.is-open .settings-select__chevron {
+  transform: translateY(-50%) rotate(180deg);
+}
+.payment-methods-modal-layer .settings-select__menu {
+  transform-origin: top center;
+  animation: pm-select-in 150ms ease-out both;
+}
+@keyframes pm-select-in {
+  from { opacity: 0; transform: translateY(-6px) scaleY(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .payment-methods-modal-layer .settings-select__chevron,
+  .payment-methods-modal-layer .settings-select__menu { transition: none; animation-duration: 0.01ms; }
+}
