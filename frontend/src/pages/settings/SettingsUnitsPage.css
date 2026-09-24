@@ -1,0 +1,143 @@
+/* Settings → Единица измерения — scoped presentation only.
+   Self-contained (imported by SettingsUnitsPage.jsx); edits no shared
+   settings.css / reports.css, so parallel Settings work is unaffected.
+   The page reuses the accepted `settings-owner-view` design system and mirrors
+   the approved Способ оплаты table family: natural auto layout, left text
+   columns, right-pinned Статус/Действия, dot+text status, teal accents. */
+
+/* ── Primary accent: exact OWNER #1FC9C9 (rgb(31,201,201)). Both the header
+   Add button and the modal Save are pinned to the accent. */
+.units-page.settings-owner-view .settings-actions button,
+.units-modal-layer.settings-owner-view .settings-form__footer button[type="submit"] {
+  border: 1px solid #1fc9c9;
+  background: #1fc9c9;
+  color: #fff;
+  box-shadow: none;
+}
+.units-page.settings-owner-view .settings-actions button:hover,
+.units-page.settings-owner-view .settings-actions button:focus-visible,
+.units-modal-layer.settings-owner-view .settings-form__footer button[type="submit"]:hover,
+.units-modal-layer.settings-owner-view .settings-form__footer button[type="submit"]:focus-visible {
+  border-color: #17b1b1;
+  background: #17b1b1;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.18);
+}
+
+/* ── Compact empty state (PNG + title only), keeping the Reports illustration
+   size but a tidy, not-too-tall white panel. Scoped so Reports/Staff/Places
+   are untouched. */
+.units-page .settings-card {
+  min-height: 0;
+}
+.units-page .owner-report-empty--illustrated {
+  min-height: 0;
+  padding: 18px 20px 22px;
+  transform: none;
+}
+
+/* ── Table grid: natural auto layout like the Staff template, so columns size
+   to their content. Header + body share the same columns by construction. */
+.units-page .settings-table {
+  min-width: 640px;
+}
+/* First text columns pin explicit left flow with the approved guide rhythm;
+   short-name stays plain left. Right-side columns pin content to the right
+   edge (header + body together). Scoped to this page only. */
+.units-page .settings-table th:nth-child(1),
+.units-page .settings-table th:nth-child(2),
+.units-page .settings-table td:nth-child(1),
+.units-page .settings-table td:nth-child(2) {
+  text-align: left;
+}
+.units-page .settings-table td:nth-child(1),
+.units-page .settings-table td:nth-child(2) {
+  padding-left: 27px;
+}
+.units-page .settings-table th:nth-child(4),
+.units-page .settings-table td:nth-child(4),
+.units-page .settings-table th:nth-child(5),
+.units-page .settings-table td:nth-child(5) {
+  text-align: right;
+}
+.units-page .settings-table td:nth-child(4) {
+  padding-right: 5px;
+}
+.units-page .settings-table td:nth-child(5) .settings-row-actions {
+  justify-content: flex-end;
+}
+/* First two text columns pin explicit left flow (never inherit alignment
+   surprises); body ink nudged onto the header guides like the approved
+   payment-methods rhythm. */
+.units-page .settings-table th:nth-child(1),
+.units-page .settings-table th:nth-child(2),
+.units-page .settings-table td:nth-child(1),
+.units-page .settings-table td:nth-child(2) {
+  text-align: left;
+}
+.units-page .settings-table td:nth-child(1),
+.units-page .settings-table td:nth-child(2) {
+  padding-left: 27px;
+}
+/* Right-side columns pin content to the right edge (header + body together),
+   so Статус/Действия sit further right while every value stays exactly under
+   its header. */
+.units-page .settings-table th:nth-child(4),
+.units-page .settings-table td:nth-child(4),
+.units-page .settings-table th:nth-child(5),
+.units-page .settings-table td:nth-child(5) {
+  text-align: right;
+}
+.units-page .settings-table td:nth-child(4) {
+  padding-right: 5px;
+}
+.units-page .settings-table td:nth-child(5) .settings-row-actions {
+  justify-content: flex-end;
+}
+/* Header/body share one geometry: identical horizontal padding and middle
+   vertical rhythm. */
+.units-page .settings-table th,
+.units-page .settings-table td {
+  padding-left: 16px;
+  padding-right: 16px;
+  vertical-align: middle;
+}
+
+/* ── Status = coloured dot + text (Staff/Места reference), not a pill. Scoped
+   under .settings-table to win over the base pill badge without !important. */
+.units-page .settings-table .settings-status-badge {
+  gap: 7px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-weight: 500;
+}
+.units-page .settings-table .settings-status-badge.is-active { color: #00dc3b; }
+.units-page .settings-table .settings-status-badge.is-inactive { color: #ef4444; }
+
+/* ── Empty-table shell (Payment Methods family): PNG/title live inside the
+   tbody cell spanning all columns, not in a blank card. Scoped to Units. */
+.units-page tbody tr.pm-empty-row:hover {
+  background: #fff;
+}
+.units-page td.pm-empty-cell {
+  padding: 28px 16px;
+  text-align: center;
+}
+
+/* ── Create/edit modal sizing (portaled under .units-modal-layer):
+   comfortable form width, content-driven height from the shared shell. */
+.units-modal-layer.settings-owner-view .settings-modal {
+  width: min(600px, 100%);
+}
+.units-modal-layer .settings-modal .u-form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 14px;
+}
+@media (max-width: 520px) {
+  .units-modal-layer .settings-modal .u-form-row {
+    grid-template-columns: 1fr;
+  }
+}
