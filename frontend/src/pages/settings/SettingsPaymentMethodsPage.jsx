@@ -70,6 +70,15 @@ export function formToPayload(form) {
 
 const EMPTY_FORM = { sort: "", name: "", type: "", active: true };
 
+// Session-only snapshot of the last SUCCESSFUL real GET result (rows or
+// confirmed empty). Memory only — never localStorage, never fake rows, never
+// mutated values. Lets return visits render instantly while a background
+// revalidation reconciles with the server. Null = never loaded successfully.
+let cachedPaymentMethods = null;
+export function resetPaymentMethodsCacheForTest() {
+  cachedPaymentMethods = null;
+}
+
 function extractItems(data) {
   if (Array.isArray(data)) return data;
   return data?.items || data?.results || [];
@@ -181,27 +190,48 @@ function SettingsPaymentMethodsPage() {
   const beginRequest = useLatestRequest();
   const mutationLocks = useMutationLocks();
 
-  const load = () => {
+  const load = (options = {}) => {
     const request = beginRequest();
-    setLoading(true);
+    // Background revalidation (return visit with cached truth) must never
+    // flash loading nor blank cached rows: it reconciles silently.
+    const background = Boolean(options.background) && cachedPaymentMethods !== null;
+    if (!background) setLoading(true);
     setError("");
     settingsService
       .listResource(RESOURCE, { signal: request.signal })
       .then(({ data }) => {
         if (!request.isCurrent()) return;
-        setRows(extractItems(data).map(mapRow));
+        const mapped = extractItems(data).map(mapRow);
+        cachedPaymentMethods = mapped;
+        setRows(mapped);
       })
       .catch((err) => {
         if (!request.isCurrent() || isAbortError(err)) return;
+        if (background) {
+          // Keep the last successful real content visible; surface a
+          // restrained refresh error instead of blanking the page.
+          setError(err.response?.data?.detail || "Не удалось обновить способы оплаты.");
+          return;
+        }
         setRows([]);
         setError(err.response?.data?.detail || "Не удалось загрузить способы оплаты.");
       })
       .finally(() => {
-        if (request.isCurrent()) setLoading(false);
+        if (request.isCurrent() && !background) setLoading(false);
       });
   };
 
-  useEffect(load, [beginRequest]);
+  useEffect(() => {
+    if (cachedPaymentMethods !== null) {
+      // Return visit: render last successful real result instantly, then
+      // revalidate in background. First visit (null): truthful loading.
+      setRows(cachedPaymentMethods);
+      setLoading(false);
+      load({ background: true });
+      return undefined;
+    }
+    load();
+  }, [beginRequest]);
 
   // Escape closes whichever overlay is open (delete confirm takes priority over
   // the create/edit drawer), unless a request is in flight.
@@ -319,11 +349,9 @@ function SettingsPaymentMethodsPage() {
             {error}
             <button type="button" className="settings-places-retry" onClick={load}>Повторить</button>
           </div>
-        ) : rows.length === 0 ? (
-          <ReportEmptyState title="Способов оплаты пока нет" />
         ) : (
           <>
-            {error ? (
+            {error && rows.length > 0 ? (
               <div className="settings-form__error" role="alert">{error}</div>
             ) : null}
             <div className="settings-table-wrapper">
@@ -361,6 +389,13 @@ function SettingsPaymentMethodsPage() {
                       </td>
                     </tr>
                   ))}
+                  {!error && rows.length === 0 ? (
+                    <tr className="pm-empty-row">
+                      <td colSpan={5} className="pm-empty-cell">
+                        <ReportEmptyState title="Способов оплаты пока нет" />
+                      </td>
+                    </tr>
+                  ) : null}
                 </tbody>
               </table>
             </div>

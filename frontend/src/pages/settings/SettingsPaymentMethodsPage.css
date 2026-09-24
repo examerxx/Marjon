@@ -151,3 +151,14 @@
   .payment-methods-modal-layer .settings-select__chevron,
   .payment-methods-modal-layer .settings-select__menu { transition: none; animation-duration: 0.01ms; }
 }
+
+/* -- Staff-family empty table: the header stays visible and the empty body
+   keeps the PNG/title inside the table shell (no blank-card state). Scoped
+   to this page; populated hover untouched. */
+.payment-methods-page tbody tr.pm-empty-row:hover {
+  background: #fff;
+}
+.payment-methods-page td.pm-empty-cell {
+  padding: 28px 16px;
+  text-align: center;
+}
