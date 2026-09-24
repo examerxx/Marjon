@@ -7,6 +7,7 @@ import SettingsPaymentMethodsPage, {
   formToPayload,
   mapRow,
   paymentTypeLabel,
+  resetPaymentMethodsCacheForTest,
 } from "./SettingsPaymentMethodsPage";
 
 vi.mock("../../api/settings", () => ({
@@ -45,6 +46,11 @@ function renderPage() {
     </MemoryRouter>,
   );
 }
+
+// Session cache is module state: reset between tests so each starts with no cache.
+beforeEach(() => {
+  resetPaymentMethodsCacheForTest();
+});
 
 describe("payment-method helpers (canonical contract)", () => {
   it("maps canonical codes to Russian labels and passes unknown values through", () => {
@@ -117,7 +123,10 @@ describe("SettingsPaymentMethodsPage — states", () => {
     // No fabricated demo methods leak into an empty backend list.
     expect(screen.queryByText("NAXT")).toBeNull();
     expect(screen.queryByText("UzumBank")).toBeNull();
-    expect(screen.queryByRole("row")).toBeNull();
+    // Staff-family empty table: header row stays visible, tbody holds only
+    // the PNG empty cell (no fabricated rows).
+    expect(screen.getAllByRole("row")).toHaveLength(2);
+    expect(screen.getByText("Сорт")).toBeInTheDocument();
     // Exactly ONE primary Add action (header) — no duplicate CTA in the panel.
     expect(screen.getAllByRole("button", { name: "Добавить способ оплаты" })).toHaveLength(1);
     // Search + type filter controls are gone entirely.
@@ -346,5 +355,108 @@ describe("SettingsPaymentMethodsPage — delete safety", () => {
     ).toBeInTheDocument();
     // Row was NOT optimistically removed.
     expect(screen.getByText("Касса")).toBeInTheDocument();
+  });
+});
+
+describe("SettingsPaymentMethodsPage - session cache (stale-while-revalidate)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  function deferredList() {
+    let resolveGet;
+    const promise = new Promise((resolve) => { resolveGet = resolve; });
+    settingsService.listResource.mockImplementation(() => promise);
+    return (data) => resolveGet({ data });
+  }
+
+  it("CASE A - first visit with no cache shows truthful loading", async () => {
+    const resolveGet = deferredList();
+    renderPage();
+    expect(await screen.findByText("Загрузка...")).toBeInTheDocument();
+    expect(screen.queryByText("Касса")).not.toBeInTheDocument();
+    resolveGet({ items: METHODS });
+    expect(await screen.findByText("Касса")).toBeInTheDocument();
+  });
+
+  it("CASE B - revisit after rows success renders instantly, no flash, background GET runs", async () => {
+    settingsService.listResource.mockImplementation(() => Promise.resolve({ data: { items: METHODS } }));
+    const first = renderPage();
+    expect(await first.findByText("Касса")).toBeInTheDocument();
+    expect(settingsService.listResource).toHaveBeenCalledTimes(1);
+    first.unmount();
+    // Second mount: slow backend this time - cached rows must already be there.
+    const resolveGet = deferredList();
+    renderPage();
+    expect(screen.queryByText("Загрузка...")).toBeNull();
+    expect(screen.getByText("Касса")).toBeInTheDocument();
+    resolveGet({ items: METHODS });
+    await waitFor(() => expect(settingsService.listResource).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("Касса")).toBeInTheDocument();
+    expect(localStorage.length).toBe(0);
+    expect(sessionStorage.length).toBe(0);
+  });
+
+  it("CASE C - revisit after empty success shows PNG empty state instantly (header + cell)", async () => {
+    settingsService.listResource.mockImplementation(() => Promise.resolve({ data: { items: [] } }));
+    const first = renderPage();
+    expect(await first.findByText("Способов оплаты пока нет")).toBeInTheDocument();
+    first.unmount();
+    const resolveGet = deferredList();
+    renderPage();
+    // Cached empty array: no flash, empty table present immediately.
+    expect(screen.queryByText("Загрузка...")).toBeNull();
+    expect(screen.getByText("Способов оплаты пока нет")).toBeInTheDocument();
+    expect(screen.getByText("Сорт")).toBeInTheDocument();
+    const emptyCell = document.querySelector("td.pm-empty-cell");
+    expect(emptyCell).not.toBeNull();
+    expect(emptyCell.getAttribute("colspan")).toBe("5");
+    resolveGet({ items: [] });
+    await waitFor(() => expect(settingsService.listResource).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("Способов оплаты пока нет")).toBeInTheDocument();
+  });
+
+  it("CASE D - revisit with failed refresh keeps cached rows + banner, next visit reconciles", async () => {
+    settingsService.listResource.mockImplementation(() => Promise.resolve({ data: { items: METHODS } }));
+    const first = renderPage();
+    expect(await first.findByText("Касса")).toBeInTheDocument();
+    first.unmount();
+    // Second mount: backend now fails - cached rows stay, refresh banner appears.
+    settingsService.listResource.mockRejectedValueOnce(new Error("boom"));
+    const second = renderPage();
+    expect(second.queryByText("Загрузка...")).toBeNull();
+    expect(second.getByText("Касса")).toBeInTheDocument();
+    expect(await second.findByText("Не удалось обновить способы оплаты.")).toBeInTheDocument();
+    expect(second.container.querySelector(".settings-form__error")).not.toBeNull();
+    expect(second.getByText("Касса")).toBeInTheDocument();
+    expect(localStorage.length).toBe(0);
+    second.unmount();
+    // Next visit: refresh succeeds - truth stays on screen.
+    settingsService.listResource.mockImplementation(() => Promise.resolve({ data: { items: METHODS } }));
+    const third = renderPage();
+    expect(third.getByText("Касса")).toBeInTheDocument();
+    await waitFor(() => expect(settingsService.listResource).toHaveBeenCalledTimes(3));
+    expect(third.queryByText("Не удалось обновить способы оплаты.")).toBeNull();
+  });
+
+  it("CASE E - failed first visit keeps truthful failure: no rows, retry reloads", async () => {
+    settingsService.listResource.mockRejectedValueOnce(new Error("offline"));
+    renderPage();
+    expect(await screen.findByText("Не удалось загрузить способы оплаты.")).toBeInTheDocument();
+    expect(screen.queryByText("Касса")).toBeNull();
+    expect(screen.queryByText("Способов оплаты пока нет")).toBeNull();
+    settingsService.listResource.mockImplementation(() => Promise.resolve({ data: { items: METHODS } }));
+    fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
+    expect(await screen.findByText("Касса")).toBeInTheDocument();
+  });
+
+  it("uses no browser storage for the session cache", async () => {
+    mockList(METHODS);
+    renderPage();
+    expect(await screen.findByText("Касса")).toBeInTheDocument();
+    expect(localStorage.length).toBe(0);
+    expect(sessionStorage.length).toBe(0);
   });
 });

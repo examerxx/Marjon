@@ -3,7 +3,7 @@ import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { settingsService } from "../../api/settings";
-import SettingsPlacesPage, { applyBranchOrder } from "./SettingsPlacesPage";
+import SettingsPlacesPage, { applyBranchOrder, resetPlacesCacheForTest } from "./SettingsPlacesPage";
 
 vi.mock("../../api/settings", () => ({
   settingsService: {
@@ -112,6 +112,7 @@ function clearPricing() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  resetPlacesCacheForTest();
   mockList(HALLS);
   mockBranches(ONE_BRANCH);
 });
@@ -1436,7 +1437,7 @@ describe("SettingsPlacesPage — subtle view transition (fade, no morph overlay)
     expect(document.querySelector("[class*='is-morph']")).toBeNull();
   });
 
-  it("back navigation replays the same fade wrapper", async () => {
+  it("back navigation entry is instant (no entrance fade)", async () => {
     render(
       <MemoryRouter initialEntries={["/settings/places?hall_id=h-zal"]}>
         <SettingsPlacesPage />
@@ -1444,7 +1445,8 @@ describe("SettingsPlacesPage — subtle view transition (fade, no morph overlay)
       </MemoryRouter>,
     );
     await screen.findByRole("heading", { name: "Зал" });
-    expect(document.querySelector(".settings-view-fade")).not.toBeNull();
+    // Route entry - even with a deep link - never plays the page fade.
+    expect(document.querySelector(".settings-view-fade")).toBeNull();
   });
 
   it("edit, delete and drag-grip clicks do not navigate", async () => {
@@ -1482,14 +1484,14 @@ describe("SettingsPlacesPage — subtle view transition (fade, no morph overlay)
     }
   });
 
-  it("direct ?hall_id URL works with the fade wrapper and no overlay", async () => {
+  it("direct ?hall_id URL enters instantly with no fade wrapper and no overlay", async () => {
     render(
       <MemoryRouter initialEntries={["/settings/places?hall_id=h-bar"]}>
         <SettingsPlacesPage />
       </MemoryRouter>,
     );
     await screen.findByRole("heading", { name: "Бар" });
-    expect(document.querySelector(".settings-view-fade")).not.toBeNull();
+    expect(document.querySelector(".settings-view-fade")).toBeNull();
     expect(document.querySelector(".settings-morph-layer")).toBeNull();
   });
 
@@ -1577,5 +1579,194 @@ describe("SettingsPlacesPage — compact empty panel (scoped, populated frozen)"
     expect(block).not.toBeNull();
     expect(block[0]).toContain("background: #1FC9C9");
     expect(css).toMatch(/\.settings-places-page \.settings-actions button:hover:not\(:disabled\) \{[^}]*background: #1AB5B5[^}]*\}/);
+  });
+});
+
+describe("SettingsPlacesPage - route entry has no page animation", () => {
+  it("mount shows no entrance-fade wrapper", async () => {
+    const { container } = renderPage();
+    await screen.findByRole("button", { name: "Открыть столы: Зал" });
+    // No fade on route mount: the keyed wrapper renders without the
+    // entrance class until an internal view switch happens.
+    expect(container.querySelector(".settings-view-fade")).toBeNull();
+    expect(document.querySelector(".settings-morph-layer")).toBeNull();
+  });
+
+  it("internal halls -> tables switch keeps the subtle synchronized fade", async () => {
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Открыть столы: Зал" }));
+    await screen.findByRole("heading", { name: "Зал" });
+    expect(document.querySelector(".settings-view-fade")).not.toBeNull();
+    expect(document.querySelector(".settings-morph-layer")).toBeNull();
+  });
+
+  it("direct ?hall_id entry stays instant (no entrance fade)", async () => {
+    render(
+      <MemoryRouter initialEntries={["/settings/places?hall_id=h-zal"]}>
+        <SettingsPlacesPage />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", { name: "Зал" });
+    expect(document.querySelector(".settings-view-fade")).toBeNull();
+  });
+});
+
+describe("SettingsPlacesPage - session cache (stale-while-revalidate, memory only)", () => {
+  function deferredPlaces() {
+    let resolvePlaces;
+    const promise = new Promise((resolve) => { resolvePlaces = resolve; });
+    settingsService.listPlaces.mockImplementation(() => promise);
+    settingsService.listBranches.mockImplementation(() => Promise.resolve({ data: ONE_BRANCH }));
+    return (data) => resolvePlaces({ data });
+  }
+
+  function renderTablesPage(hallId) {
+    return render(
+      <MemoryRouter initialEntries={[`/settings/places?hall_id=${hallId}`]}>
+        <SettingsPlacesPage />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+  }
+
+  it("1 - first visit with no cache shows truthful loading", async () => {
+    const resolveGet = deferredPlaces();
+    renderPage();
+    expect(await screen.findByText("Загрузка...")).toBeInTheDocument();
+    expect(screen.queryByText("Зал")).toBeNull();
+    expect(document.querySelector(".owner-report-empty-image")).toBeNull();
+    resolveGet(HALLS);
+    expect(await screen.findByText("Зал")).toBeInTheDocument();
+  });
+
+  it("2 - loaded halls -> away/back -> instant halls, no flash", async () => {
+    const first = renderPage();
+    expect(await first.findByText("Зал")).toBeInTheDocument();
+    expect(settingsService.listPlaces).toHaveBeenCalledTimes(1);
+    first.unmount();
+    // Second mount: slow backend - cached halls must already be visible.
+    const resolveGet = deferredPlaces();
+    renderPage();
+    expect(screen.queryByText("Загрузка...")).toBeNull();
+    expect(screen.getByText("Зал")).toBeInTheDocument();
+    expect(screen.getByText("Бар")).toBeInTheDocument();
+    resolveGet(HALLS);
+    await waitFor(() => expect(settingsService.listPlaces).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("Зал")).toBeInTheDocument();
+  });
+
+  it("3 - loaded empty halls -> away/back -> instant empty state, no flash", async () => {
+    settingsService.listPlaces.mockImplementation(() => Promise.resolve({ data: [] }));
+    const first = renderPage();
+    expect(await first.findByText("Мест пока нет")).toBeInTheDocument();
+    first.unmount();
+    const resolveGet = deferredPlaces();
+    renderPage();
+    expect(screen.queryByText("Загрузка...")).toBeNull();
+    expect(screen.getByText("Мест пока нет")).toBeInTheDocument();
+    expect(document.querySelector(".owner-report-empty-image")).not.toBeNull();
+    resolveGet([]);
+    await waitFor(() => expect(settingsService.listPlaces).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("Мест пока нет")).toBeInTheDocument();
+  });
+
+  it("4 - background revalidate still occurs and reconciles fresh truth", async () => {
+    const first = renderPage();
+    expect(await first.findByText("Зал")).toBeInTheDocument();
+    first.unmount();
+    const resolveGet = deferredPlaces();
+    renderPage();
+    // Cached truth visible while refresh is pending.
+    expect(screen.getByText("Зал")).toBeInTheDocument();
+    expect(screen.queryByText("Загрузка...")).toBeNull();
+    const FRESH = [...HALLS, { id: "h-new", name: "Терраса", is_active: true, branch_id: "b-main", tables: [] }];
+    resolveGet(FRESH);
+    expect(await screen.findByText("Терраса")).toBeInTheDocument();
+    expect(settingsService.listPlaces).toHaveBeenCalledTimes(2);
+  });
+
+  it("5 - revalidate failure preserves cached real content, no blank", async () => {
+    const first = renderPage();
+    expect(await first.findByText("Зал")).toBeInTheDocument();
+    first.unmount();
+    settingsService.listPlaces.mockRejectedValueOnce(new Error("boom"));
+    settingsService.listBranches.mockImplementation(() => Promise.resolve({ data: ONE_BRANCH }));
+    const second = renderPage();
+    // Cached halls stay visible instantly, never a loading flash.
+    expect(second.queryByText("Загрузка...")).toBeNull();
+    expect(second.getByText("Зал")).toBeInTheDocument();
+    expect(await second.findByText("Не удалось обновить места.")).toBeInTheDocument();
+    // Still on the list, not blanked to a full error page.
+    expect(second.getByText("Бар")).toBeInTheDocument();
+    expect(second.container.querySelector(".settings-places-list")).not.toBeNull();
+    second.unmount();
+    // Next visit reconciles when the backend recovers.
+    mockList(HALLS);
+    mockBranches(ONE_BRANCH);
+    const third = renderPage();
+    expect(third.getByText("Зал")).toBeInTheDocument();
+    await waitFor(() => expect(settingsService.listPlaces).toHaveBeenCalledTimes(3));
+    expect(third.queryByText("Не удалось обновить места.")).toBeNull();
+  });
+
+  it("6 - hall tables cache is keyed by hall_id, no cross-hall leakage", async () => {
+    // Prime the session cache from the list (halls carry nested tables).
+    const first = renderPage();
+    expect(await first.findByText("Зал")).toBeInTheDocument();
+    first.unmount();
+    // Return directly to h-zal tables with a slow backend: correct cached
+    // tables appear immediately (№2 is unique to Зал).
+    let resolveGet = deferredPlaces();
+    const second = renderTablesPage("h-zal");
+    expect(second.queryByText("Загрузка...")).toBeNull();
+    expect(await second.findByText("№2")).toBeInTheDocument();
+    expect(second.getByTestId("location-search")).toHaveTextContent("?hall_id=h-zal");
+    resolveGet(HALLS);
+    await waitFor(() => expect(settingsService.listPlaces).toHaveBeenCalledTimes(2));
+    second.unmount();
+    // Same cache, different hall: Бар has no №2, so it must NOT leak.
+    resolveGet = deferredPlaces();
+    const third = renderTablesPage("h-bar");
+    expect(third.queryByText("Загрузка...")).toBeNull();
+    expect(await third.findByText("№5")).toBeInTheDocument();
+    expect(third.queryByText("№2")).toBeNull();
+    expect(third.getByTestId("location-search")).toHaveTextContent("?hall_id=h-bar");
+    resolveGet(HALLS);
+    await waitFor(() => expect(settingsService.listPlaces).toHaveBeenCalledTimes(3));
+  });
+
+  it("7 - uses no browser storage for the session cache", async () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    renderPage();
+    expect(await screen.findByText("Зал")).toBeInTheDocument();
+    expect(localStorage.length).toBe(0);
+    expect(sessionStorage.length).toBe(0);
+  });
+
+  it("8 - route-entry animation remains absent after cache", async () => {
+    const first = renderPage();
+    expect(await first.findByText("Зал")).toBeInTheDocument();
+    first.unmount();
+    const resolveGet = deferredPlaces();
+    const { container } = renderPage();
+    expect(screen.getByText("Зал")).toBeInTheDocument();
+    expect(container.querySelector(".settings-view-fade")).toBeNull();
+    expect(document.querySelector(".settings-morph-layer")).toBeNull();
+    resolveGet(HALLS);
+    await waitFor(() => expect(settingsService.listPlaces).toHaveBeenCalledTimes(2));
+  });
+
+  it("9 - internal Places <-> Tables fade remains preserved with cache", async () => {
+    const first = renderPage();
+    expect(await first.findByText("Зал")).toBeInTheDocument();
+    first.unmount();
+    mockList(HALLS);
+    mockBranches(ONE_BRANCH);
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Открыть столы: Зал" }));
+    await screen.findByRole("heading", { name: "Зал" });
+    expect(document.querySelector(".settings-view-fade")).not.toBeNull();
+    expect(document.querySelector(".settings-morph-layer")).toBeNull();
   });
 });
