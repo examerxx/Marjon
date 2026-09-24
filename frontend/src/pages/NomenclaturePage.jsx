@@ -107,6 +107,12 @@ function DishesCatalogPage() {
         photoSearch={catalog.photoSearch}
         setPhotoSearch={catalog.setPhotoSearch}
         selectPhoto={catalog.selectPhoto}
+        modGroups={catalog.modGroups}
+        setModGroups={catalog.setModGroups}
+        modLoading={catalog.modLoading}
+        modError={catalog.modError}
+        saveModGroup={catalog.saveModGroup}
+        removeModGroup={catalog.removeModGroup}
       />
     </section>
   );

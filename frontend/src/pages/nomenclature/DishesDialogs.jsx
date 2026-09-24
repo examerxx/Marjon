@@ -5,6 +5,7 @@
 import Icon from "../../components/Icon";
 import { fieldLabels } from "./nomenclatureConfig";
 import { getPhotoOptions } from "./nomenclatureData";
+import DishesModifiers from "./DishesModifiers";
 
 export default function DishesDialogs({
   drawerOpen,
@@ -19,6 +20,12 @@ export default function DishesDialogs({
   photoSearch,
   setPhotoSearch,
   selectPhoto,
+  modGroups,
+  setModGroups,
+  modLoading,
+  modError,
+  saveModGroup,
+  removeModGroup,
 }) {
   return (
     <>
@@ -66,6 +73,17 @@ export default function DishesDialogs({
                 </select>
               </label>
             </div>
+
+            <DishesModifiers
+              editing={editing}
+              modGroups={modGroups}
+              setModGroups={setModGroups}
+              modLoading={modLoading}
+              modError={modError}
+              saveModGroup={saveModGroup}
+              removeModGroup={removeModGroup}
+            />
+
             <div className="nomenclature-drawer-footer">
               <button type="button" className="btn-soft" disabled={saving} onClick={() => setDrawerOpen(false)}>Отмена</button>
               <button type="button" className="btn-primary" disabled={saving} onClick={saveDish}>{saving ? "Сохранение…" : "Сохранить"}</button>

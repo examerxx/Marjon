@@ -21,6 +21,15 @@ export function useCompanyProfileForm(user) {
   const beginRequest = useLatestRequest();
   const { acquire, release } = useMutationLocks();
 
+  // Доля обслуги официанту и час старта операционного дня — самодостаточные
+  // блоки страницы профиля: у каждого своя кнопка «Сохранить», в общий payload
+  // handleSave они не входят. Оба поля бэкенд принимает в PATCH /companies/me
+  // (CompanyUpdate.waiter_service_percent / day_start_hour) и отдаёт в профиле.
+  const [waiterPct, setWaiterPct] = useState("");
+  const [waiterPctSaving, setWaiterPctSaving] = useState(false);
+  const [dayStartHour, setDayStartHour] = useState("0");
+  const [dayStartHourSaving, setDayStartHourSaving] = useState(false);
+
   useEffect(() => {
     const request = beginRequest();
     settingsService.getCompanyProfile({ signal: request.signal })
@@ -37,6 +46,9 @@ export function useCompanyProfileForm(user) {
         };
         setForm(next);
         setSavedForm(next);
+        // Доля обслуги и час сброса нумерации приходят в том же профиле компании.
+        setWaiterPct(data?.waiter_service_percent != null ? String(data.waiter_service_percent) : "");
+        setDayStartHour(data?.day_start_hour != null ? String(data.day_start_hour) : "0");
       })
       .catch((err) => {
         if (request.isCurrent() && !isAbortError(err)) setError(err.response?.data?.detail || "Не удалось загрузить профиль.");
@@ -71,6 +83,36 @@ export function useCompanyProfileForm(user) {
 
   function clearLogo(key) {
     set(key, "");
+  }
+
+  async function saveWaiterPct() {
+    setWaiterPctSaving(true);
+    try {
+      await settingsService.updateCompanyProfile({
+        waiter_service_percent: Math.max(0, Math.min(100, Number(waiterPct) || 0)),
+      });
+      setError("");
+      setSuccess("Доля обслуги официанту сохранена.");
+    } catch (err) {
+      setError(err.response?.data?.detail || "Не удалось сохранить долю обслуги");
+    } finally {
+      setWaiterPctSaving(false);
+    }
+  }
+
+  async function saveDayStartHour() {
+    setDayStartHourSaving(true);
+    try {
+      await settingsService.updateCompanyProfile({
+        day_start_hour: Math.max(0, Math.min(23, Math.trunc(Number(dayStartHour) || 0))),
+      });
+      setError("");
+      setSuccess("Время сброса нумерации сохранено.");
+    } catch (err) {
+      setError(err.response?.data?.detail || "Не удалось сохранить время сброса");
+    } finally {
+      setDayStartHourSaving(false);
+    }
   }
 
   async function handleSave(event) {
@@ -135,5 +177,13 @@ export function useCompanyProfileForm(user) {
     resetForm,
     clearLogo,
     handleSave,
+    waiterPct,
+    setWaiterPct,
+    waiterPctSaving,
+    saveWaiterPct,
+    dayStartHour,
+    setDayStartHour,
+    dayStartHourSaving,
+    saveDayStartHour,
   };
 }

@@ -16,8 +16,10 @@
 |-----------|-----------|
 | **Backend** | FastAPI, Python 3.12+, SQLAlchemy 2.0 (async), Alembic, PostgreSQL (Supabase) |
 | **Frontend** | React 18, Vite, React Router v6, Axios, Chart.js, CSS (marjon-tokens.css) |
-| **Mobile** | React Native + Expo (планируется v1.2) |
-| **Desktop KDS** | Electron (планируется v1.1) |
+| **Mobile** | Flutter (кассир, официант, кухня) |
+| **Desktop KDS** | Electron 28 (касса, официант, кухня, offline-очередь) |
+| **Owner App** | Flutter (дашборд владельца) |
+| **Payment gateways** | Go-микросервисы Click / Payme / Uzum (per-company) |
 | **Print Agent** | ESC/POS, polling-based, TCP |
 | **Оплата** | Click, Payme, Uzum Bank, наличные, смешанная |
 | **Фискализация** | ОФД Узбекистана (ЦОТУ / soliq.uz) |
@@ -39,30 +41,42 @@ Marjon/
 │
 ├── backend/                     # FastAPI backend
 │   ├── app/
-│   │   ├── modules/             #   30 бизнес-модулей
+│   │   ├── modules/             #   31 бизнес-модуль
 │   │   ├── shared/              #   Базовые классы
 │   │   ├── infrastructure/      #   БД, сессии
 │   │   └── middleware/          #   Multi-tenancy
-│   ├── migrations/              #   Alembic миграции
+│   ├── migrations/              #   Alembic миграции (59 версий)
 │   ├── print_agent/             #   Агент печати ESC/POS
-│   ├── tests/                   #   Тесты
+│   ├── tests/                   #   Тесты (~45 файлов)
 │   ├── requirements.txt
 │   └── Dockerfile
 │
-├── frontend/                    # React SPA
+├── frontend/                    # React SPA (JSX, без TypeScript)
 │   ├── src/
-│   │   ├── pages/               #   30+ страниц
+│   │   ├── pages/               #   ~50 страниц
 │   │   ├── components/          #   Layout, Sidebar, Topbar, UI
 │   │   ├── api/                 #   Axios client, interceptors
-│   │   └── styles/              #   CSS (~45K строк), marjon-tokens.css
+│   │   ├── admin/               #   Отдельное HQ-приложение (admin.html)
+│   │   └── styles/              #   CSS (~47K строк), marjon-tokens.css
 │   ├── index.html               #   Entry: кафе (POS)
 │   ├── admin.html               #   Entry: админка
 │   └── vite.config.js           #   Multi-page build
 │
+├── desktop/                     # Electron-касса (кассир, официант, кухня)
+├── mobile/                      # Flutter (кассир, официант, кухня)
+├── owner/                       # Flutter (дашборд владельца)
+├── services/                    # Go-шлюзы: click-gateway, payme-gateway, uzum-gateway
+│
+├── docs/                        # Документация (см. таблицу ниже)
+├── .github/workflows/           # CI: smoke, visual, desktop-size
+├── TASKS.md                     # 226 задач до production-ready
+├── OFFLINE_PLAN.md              # План offline-режима десктоп-кассы
+├── MARJON_TZ_v2.pdf             # ТЗ (PDF)
 ├── .gitignore
 ├── CLAUDE.md                    # Инструкции для AI-агентов
-├── docker-compose.yml           # Docker конфигурация
-├── render.yaml                  # Render.com деплой
+├── docker-compose.yml           # Docker: db + backend + frontend (+профили storage/gateways/ngrok)
+├── render.yaml                  # Render.com деплой API
+├── start.ps1 / start.cmd        # Меню запуска (front, desktop, mobile, owner, all, docker…)
 └── README.md                    # ← вы тут
 ```
 
@@ -109,9 +123,11 @@ Frontend работает автономно — без бэкенда пока�
 | Платформа | Статус | Описание |
 |-----------|--------|----------|
 | **Web Admin** | 🟢 80% MVP | React SPA — управление заведением |
-| **Mobile App** | 🔴 Не начато | React Native — официант, владелец, курьер |
-| **Desktop KDS** | 🔴 Не начато | Electron — кухонный дисплей для поваров |
-| **Print Agent** | 🟡 Backend готов | ESC/POS — печать чеков |
+| **Desktop** | 🟢 Рабочий | Electron — касса, официант, кухня, offline-очередь, печать TCP 9100 |
+| **Mobile App** | 🟡 Рабочий скелет | Flutter — кассир, официант, кухня |
+| **Owner App** | 🟡 Рабочий скелет | Flutter — дашборд владельца |
+| **Payment gateways** | 🟢 Рабочие | Go — Click / Payme / Uzum (per-company креды) |
+| **Print Agent** | 🟢 Рабочий | ESC/POS polling-агент (`backend/print_agent/`) |
 
 ## API
 
@@ -123,7 +139,8 @@ Frontend работает автономно — без бэкенда пока�
 - `/warehouse/*` — склад (приход, расход, остатки, инвентаризация)
 - `/analytics/*` — дашборд, KPI
 - `/reports/*` — 7 типов отчётов
-- `/payments/*` — Click, Payme, Uzum (webhook + create)
+- `/payments/*` — Click, Payme, Uzum (webhook + create; вебхуки сверяются с глобальными ключами — см. TASKS.md)
+- `/internal/*` — приём колбэков от Go-шлюзов (`services/`) по `X-Webhook-Secret`
 - `/fiscal/*` — фискализация (ОФД)
 - `/ws/kitchen` — WebSocket для кухонного дисплея
 

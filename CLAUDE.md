@@ -2,7 +2,7 @@
 
 > Этот файл читается автоматически при каждой сессии.
 > Прочитай ПОЛНОСТЬЮ перед любой работой с кодом.
-> Последнее обновление: 2026-07-08
+> Последнее обновление: 2026-09-17 (сверено с кодом)
 
 ---
 
@@ -11,8 +11,8 @@
 SaaS-платформа для автоматизации ресторанов на рынке Узбекистана.
 POS-касса, кухонный дисплей (KDS), склад, доставка, CRM, HR, аналитика, фискализация (ОФД), интеграция Click/Payme/Uzum.
 
-**Дедлайн MVP:** 10.08.2026
-**Ветка разработки:** `front` (push только сюда)
+**Дедлайн MVP:** 10.08.2026 (срок прошёл — идёт доработка до production, см. TASKS.md)
+**Ветка разработки:** `main` (push только по явной просьбе; на upstream есть ветка `front`)
 **Репозиторий:** `github.com/examerxx/Marjon`
 
 ---
@@ -26,7 +26,7 @@ POS-касса, кухонный дисплей (KDS), склад, достав�
 | Backend + Frontend | Обе части проекта доступны для работы |
 | Не пушь без просьбы | `git push` только когда пользователь явно просит |
 | Не создавай лишнего | Не добавляй фичи, абстракции и файлы сверх задания |
-| Mobile / Desktop | Не трогай (планируются v1.1–v1.2) |
+| Desktop / Mobile / Owner | Код существует и рабочий (`desktop/`, `mobile/`, `owner/`) — меняй только по явному заданию, без расширения скоупа |
 
 ---
 
@@ -42,18 +42,20 @@ POS-касса, кухонный дисплей (KDS), склад, достав�
 | HTTP | Axios | Единый клиент в `src/api/client.js` |
 | Графики | Chart.js 4 | Используется в дашборде и отчётах |
 | Иконки | Lucide React + Bootstrap Icons SVG | `<Icon>` компонент-обёртка |
-| CSS | Vanilla CSS | **Без Tailwind.** 15 файлов, ~45K строк |
+| CSS | Vanilla CSS | **Без Tailwind.** 23 файла, ~47K строк (+ монолит админки ~20K) |
 | Токены | `marjon-tokens.css` | Все цвета, тени, радиусы — ТОЛЬКО через токены |
 | State | React Context | `AuthContext`, `OrgContext`, `ThemeContext` |
 
 ### Backend
 
-FastAPI + Python 3.12 + SQLAlchemy 2.0 async + Alembic + PostgreSQL (Supabase).
-30 модулей в `backend/app/modules/`. Swagger: `localhost:8000/docs`.
+FastAPI + Python 3.12 + SQLAlchemy 2.0 async + Alembic (59 версий в `migrations/versions/`) + PostgreSQL.
+31 модуль в `backend/app/modules/`. Swagger: `localhost:8000/docs`.
 
 Бэкенд можно менять. Сейчас активная работа над мобилкой и десктопом — бэкенд чиним потом.
 
-**TODO (бэкенд, отложено):** `/auth/pin-login` (`backend/app/modules/auth/router.py`) — заглушка, всегда кидает "PIN-логин не настроен". Нужно реализовать: поиск user по `pin_code` в рамках company, выдача access/refresh токенов (по образцу `AuthService.login`). Фронт (десктоп) уже вызывает `auth.loginByPin`.
+**PIN-логин реализован** (`backend/app/modules/auth/router.py:318`, `service.py:570` — `pin_login`: bcrypt `pin_hash`, троттлинг 5 попыток / лок 15 мин, тесты в `tests/test_pin_login.py`). Остаток: удалить легаси-колонку `User.pin_code` (plaintext-наследие, обнуляется миграцией `20260806_r8s9pin01`).
+
+**Известные расхождения (см. TASKS.md):** вебхуки `payments/webhooks.py` сверяются с глобальными ключами из настроек, а `PUT /payments/gateway-settings` хранит per-company ключи — онлайн-оплата на несколько филиалов упрётся в один мерчант; фискализация архитектурно готова (`fiscal/outbox.py`, `runtime.py`), но провайдер ОФД не подключён (`fiscal_enabled=False`).
 
 ### Backend паттерны
 
@@ -67,10 +69,8 @@ backend/app/modules/{module}/
 └── router.py      # FastAPI endpoints
 ```
 
-**Три prefix-группы (main.py):**
-- `/api/v1` — legacy (все роутеры)
-- `/api/v1/kafe` — кафе-панель (POS, кухня, склад, аналитика, финансы)
-- `/api/v1/admin` — HQ-админка (организации, маркетинг, справочники)
+**Префиксы (main.py:156-183):** единый `API = "/api/v1"` — все роутеры монтируются на него
+(включая `kafe_compat` и платёжные вебхуки без JWT). Отдельных `/api/v1/kafe` и `/api/v1/admin` в коде нет.
 
 **Базовая модель:**
 ```python
@@ -106,11 +106,11 @@ frontend/src/
 │   ├── api.js           # Axios для админки (отдельный)
 │   ├── main.jsx
 │   └── styles.css       # ~8400 строк
-├── components/          # 12 переиспользуемых компонентов
+├── components/          # 30 компонентов (DashboardLayout, Sidebar + sidebar/, Topbar + topbar/, GlobalSearch, DatePicker, ReportDateRangePicker, Icon, SupportWidget, receipt/…)
 │   ├── DashboardLayout.jsx   # Shell: sidebar + topbar + content
 │   ├── Sidebar.jsx           # Навигация + mobile bottom-nav
 │   ├── Topbar.jsx            # Дата, курс, баланс, уведомления
-│   ├── DemoNotice.jsx        # Баннер «Демо-данные»
+│   ├── DemoNotice.jsx        # Заглушка (return null) — демо-данных больше нет, см. 5.1
 │   ├── DataTableView.jsx     # Универсальная таблица
 │   ├── SettingsResourcePage  # → в pages/settings/ (CRUD-компонент)
 │   ├── GlobalSearch.jsx      # Ctrl+K поиск
@@ -125,7 +125,7 @@ frontend/src/
 │   ├── AuthContext.jsx       # JWT, login/logout, user
 │   ├── OrgContext.jsx        # Данные организации (name, currency, vat)
 │   └── ThemeContext.jsx      # Тема (пока не используется)
-├── pages/                    # 29 страниц + подпапки
+├── pages/                    # ~50 страниц + подпапки (dashboard/, nomenclature/, staff/, finance/, settings/, auth/)
 │   ├── auth/                 # PinLoginPage, StaffLoginPage
 │   ├── settings/             # 11 settings-страниц + SettingsResourcePage
 │   ├── OwnerDashboard.jsx    # Главный дашборд (~1025 строк)
@@ -139,57 +139,50 @@ frontend/src/
 │   ├── StaffPage.jsx         # Персонал
 │   ├── *ReportPage.jsx       # 7 типов отчётов
 │   └── ...
-├── styles/                   # 15 CSS-файлов, ~45K строк суммарно
-│   ├── react-overrides.css   # ~29300 строк (основной!)
-│   ├── app.css               # ~6900 строк
-│   ├── dashboard.css         # ~5900 строк
-│   ├── marjon-tokens.css     # 273 строки (токены — источник истины)
-│   ├── topbar-widgets.css    # ~540 строк
-│   ├── receipt.css           # ~960 строк
-│   ├── staff-pos.css         # ~580 строк
-│   └── ... (8 файлов поменьше)
+├── styles/                   # 23 CSS-файла, ~47K строк суммарно (подпапки global/, owner/, shared/)
+│   ├── react-overrides.css   # ~29200 строк (основной!)
+│   ├── owner/dashboard.css   # ~6700 строк (layout дашборда, sidebar, topbar)
+│   ├── app.css               # ~720 строк (базовые стили)
+│   ├── global/marjon-tokens.css # ~280 строк (токены — источник истины)
+│   ├── shared/topbar-widgets.css # ~520 строк
+│   ├── shared/receipt.css    # ~1290 строк
+│   ├── owner/staff-pos.css   # ~520 строк
+│   └── ... (остальные owner/*, shared/*, global/*)
 └── utils/
     ├── date.js               # Хелперы дат
-    └── permissions.js        # Проверка прав
+    └── permissions.js        # Проверка прав (Web Launch V1: owner-only)
 ```
 
 ---
 
 ## 5. Ключевые паттерны кода
 
-### 5.1. Demo Fallback (обязателен для КАЖДОЙ страницы)
+### 5.1. Честные состояния данных (демо-фолбэк упразднён)
 
-Фронтенд работает ВСЕГДА — даже без бэкенда. Каждая страница:
+> Старый паттерн Demo Fallback (`HARDCODED_DATA` + `isDemo` + баннер `DemoNotice`) удалён:
+> `DemoNotice.jsx` — заглушка (`return null`), импортов в прод-коде нет. Не возвращать его.
+
+Стандарт зафиксирован тестами в `src/pages/TruthfulDataStates.test.jsx`. Каждая страница:
 
 ```jsx
-const [rows, setRows] = useState(HARDCODED_DATA);
-const [isDemo, setIsDemo] = useState(true);
+const [rows, setRows] = useState([]);        // пусто, НЕ демо-данные
+const [error, setError] = useState(null);
 
 useEffect(() => {
   api.get("/endpoint")
-    .then(({ data }) => {
-      const items = Array.isArray(data) ? data : data?.items || [];
-      if (items.length) {
-        setRows(items.map(mapApiRow));
-        setIsDemo(false);
-      }
-    })
-    .catch(() => {});
+    .then(({ data }) => setRows(normalize(data)))
+    .catch((e) => setError(e));
 }, []);
 
-return (
-  <>
-    {isDemo && <DemoNotice />}
-    {/* контент */}
-  </>
-);
+if (error) return <div role="alert">Не удалось загрузить…</div>;
+if (!rows.length) return <div>…пока нет</div>;  // пустой текст, не нули
 ```
 
 **Правила:**
-- `HARDCODED_DATA` — реалистичные данные для демо (не `[]`)
-- `isDemo` по умолчанию `true` — переключается на `false` только при успешном API-ответе с данными
-- `DemoNotice` — жёлтый баннер «Показаны демо-данные»
-- `.catch(() => {})` — ошибки API НЕ ломают UI, молча остаёмся на демо
+- При ошибке API — `role="alert"` с текстом «Не удалось загрузить…», никаких `0 UZS` и симуляции сумм (`FinanceTransactions` показывает «Недоступно», `OwnerDashboard` — «Dashboard недоступен»)
+- При пустом успешном ответе — пустой текст («Категорий пока нет», «Заказов за этот день нет»)
+- Мёртвый код `data/reportDemo.jsx` и `dashboard/simulation.js` не использовать и не расширять (их единственность проверяется гардами)
+- В `WarehousePage` запрещены прямые `api.post/patch/delete` и несекционные кэши
 
 ### 5.2. API Client
 
@@ -237,12 +230,14 @@ cd frontend && npm install && npm run dev   # → http://localhost:5173
 
 | Файл | Строк | Роль |
 |------|-------|------|
-| `react-overrides.css` | ~29300 | Основной: все компоненты, страницы, breakpoints |
-| `app.css` | ~6900 | Базовые стили приложения |
-| `dashboard.css` | ~5900 | Layout дашборда, sidebar, topbar |
-| `marjon-tokens.css` | 273 | Дизайн-токены (ИСТОЧНИК ИСТИНЫ для цветов!) |
-| `topbar-widgets.css` | ~540 | Виджеты топбара |
-| Остальные 10 файлов | ~2400 | auth, receipt, staff-pos, responsive и др. |
+| `react-overrides.css` | ~29200 | Основной: все компоненты, страницы, breakpoints |
+| `owner/dashboard.css` | ~6700 | Layout дашборда, sidebar, topbar |
+| `global/marjon-tokens.css` | ~280 | Дизайн-токены (ИСТОЧНИК ИСТИНЫ для цветов!) |
+| `shared/receipt.css` | ~1290 | Чеки |
+| `owner/settings.css` | ~1060 | Настройки |
+| `app.css` | ~720 | Базовые стили приложения |
+| Остальные ~17 файлов | ~5500 | owner/*, shared/* (auth, topbar-widgets, staff-pos…), global/* |
+| `admin/styles.css` | ~20100 | Намеренный монолит HQ-админки (ретро-split запрещён, см. ADR выше) |
 
 ### 6.2. Layout (критические зависимости)
 
@@ -366,17 +361,19 @@ dashboard-shell (display: flex, flex-direction: row)
 
 | Платформа | Статус | Где код |
 |-----------|--------|---------|
-| Web Admin Panel | 🟢 ~80% MVP | `frontend/` |
-| Mobile App (React Native) | 🔴 Не начато | Планируется v1.2 |
-| Desktop KDS (Electron) | 🔴 Не начато | Планируется v1.1 |
-| Print Agent | 🟡 Backend готов | `backend/print_agent/` |
+| Web Admin Panel | 🟢 ~80% MVP | `frontend/` (owner-only gate, см. 5.1) |
+| Desktop (касса, официант, кухня) | 🟢 Рабочий | `desktop/` (Electron 28, offline-очередь; детали и лимиты — OFFLINE_PLAN.md) |
+| Mobile App (Flutter) | 🟡 Рабочий скелет | `mobile/` |
+| Owner App (Flutter) | 🟡 Рабочий скелет | `owner/` |
+| Payment gateways (Go) | 🟢 Рабочие | `services/click-gateway`, `services/payme-gateway`, `services/uzum-gateway` |
+| Print Agent | 🟢 Рабочий | `backend/print_agent/` (polling → TCP 9100) |
 | Админка (HQ) | 🟡 Частично | `frontend/src/admin/` |
 
 ---
 
 ## 12. Git-конвенции
 
-- **Ветка:** `front` (вся frontend-разработка тут)
+- **Ветка:** `main` (push только по явной просьбе)
 - **Коммиты:** на русском или английском, осмысленные
 - **Формат:** `feat:`, `fix:`, `docs:`, `refactor:`, `style:` (conventional commits)
 - **Не коммить:** `node_modules/`, `.env`, `*.log`, `dist/`, `.venv/`

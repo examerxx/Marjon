@@ -19,4 +19,18 @@ export const catalogService = Object.freeze({
   createCategory(payload) {
     return api.post("/inventory/categories", payload);
   },
+  // Добавки (модификаторы) блюда: группа принадлежит блюду, внутри — опции с наценкой.
+  listModifierGroups(productId, config) {
+    const url = `/inventory/products/${productId}/modifier-groups`;
+    return config ? api.get(url, config) : api.get(url);
+  },
+  createModifierGroup(payload) {
+    return api.post("/inventory/modifier-groups", payload);
+  },
+  updateModifierGroup(groupId, payload) {
+    return api.patch(`/inventory/modifier-groups/${groupId}`, payload);
+  },
+  deleteModifierGroup(groupId) {
+    return api.delete(`/inventory/modifier-groups/${groupId}`);
+  },
 });

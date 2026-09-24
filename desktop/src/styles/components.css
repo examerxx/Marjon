@@ -1957,8 +1957,7 @@ body.vkb-open .login-card {
   transition: background var(--transition-fast);
 }
 .bottombar__minimize:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
-/* Часы намеренно тихие: моно-цифры, приглушённый цвет, никакого акцента.
-   На них же висит скрытый вход в панель разработчика (7 быстрых тапов). */
+/* Часы намеренно тихие: моно-цифры, приглушённый цвет, никакого акцента. */
 .bottombar__clock {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
@@ -3023,6 +3022,11 @@ body.vkb-open .login-card {
   justify-content: space-between;
 }
 .bottombar__info { color: var(--chrome-text-muted); }
+/* Имя и режим (Касса/Официант) — ключевая пара в строке низа, идут первыми:
+   красим основным текстом и полужирным, чтобы читались с одного взгляда.
+   Филиал и разделители « · » остаются приглушёнными (наследуют от .bottombar__info). */
+.bottombar__name,
+.bottombar__mode { color: var(--chrome-text); font-weight: 600; }
 .bottombar__clock { color: var(--chrome-text-muted); }
 .bottombar__status { color: var(--chrome-text-muted); }
 .bottombar__status--offline { color: var(--color-danger); }
@@ -3251,10 +3255,11 @@ body.vkb-open .login-card {
 }
 .pinpad__back {
   align-self: flex-start;
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: var(--spacing-sm); margin-bottom: var(--spacing-sm);
-  background: transparent; color: var(--color-text-muted); font-size: var(--text-sm);
-  border-radius: var(--radius-sm);
+  display: inline-flex; align-items: center; gap: var(--spacing-xs);
+  min-height: var(--touch-min);
+  padding: var(--spacing-sm) var(--spacing-lg); margin-bottom: var(--spacing-sm);
+  background: var(--color-subtle); color: var(--color-text-secondary); font-size: var(--text-md);
+  border-radius: var(--radius-md);
 }
 .pinpad__back:hover { color: var(--color-text-primary); background: var(--color-subtle); }
 .pinpad__title {
@@ -3371,25 +3376,129 @@ body.vkb-open .login-card {
 .vkb__key--active { background: var(--color-brand); color: #fff; }
 .vkb__key--active svg { color: #fff; }
 
-/* ── Модалка блюда: количество / цена / комментарий ── */
-.dish-modal { width: 460px; max-width: 94vw; }
-.dish-modal__body { padding: var(--spacing-lg) var(--spacing-xl); display: flex; flex-direction: column; gap: var(--spacing-lg); }
-.dish-modal__row { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-lg); }
-.dish-modal__row--col { flex-direction: column; align-items: stretch; gap: var(--spacing-sm); }
-.dish-modal__row > label { font-size: var(--text-base); color: var(--color-text-secondary); font-weight: var(--font-weight-medium); }
-.dish-modal__price { width: 170px; text-align: right; }
-.dish-modal__note { min-height: 64px; padding: var(--spacing-md); resize: vertical; line-height: 1.4; }
-.dish-modal__total { display: flex; justify-content: space-between; padding-top: var(--spacing-md); border-top: 1px solid var(--color-border-light); font-size: var(--text-lg); }
-.dish-modal__total strong { color: var(--color-brand); font-weight: var(--font-weight-bold); }
-.dish-modal__actions { display: flex; gap: var(--spacing-md); padding: var(--spacing-lg) var(--spacing-xl); border-top: 1px solid var(--color-border-light); }
-.dish-modal__actions .btn { flex: 1; }
-.qty-stepper { display: inline-flex; align-items: center; gap: var(--spacing-md); }
-.qty-stepper button { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; background: var(--color-subtle); color: var(--color-text-primary); }
-.qty-stepper button:hover { background: var(--neutral-200); }
-.qty-stepper button:active { transform: scale(0.94); }
-.qty-stepper span { min-width: 40px; text-align: center; font-size: var(--text-xl); font-weight: 700; }
-.qty-stepper__input { width: 84px; height: 46px; text-align: center; font-size: var(--text-xl); font-weight: 700; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); color: var(--color-text-primary); }
-.qty-stepper__input:focus { border-color: var(--color-brand); outline: none; }
+/* ── Экран блюда: связанная порция / цена / постоянная себестоимость ── */
+.dish-modal { width: 100%; }
+.dish-modal__body {
+  flex: 1;
+  width: 100%;
+  max-width: 980px;
+  margin-inline: auto;
+  padding: var(--spacing-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  overflow-y: auto;
+}
+.dish-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-xl);
+}
+.dish-modal__card {
+  min-width: 0;
+  padding: var(--spacing-xl);
+  background: var(--color-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.dish-modal__card--accent { border-color: var(--color-brand); background: var(--color-brand-subtle); }
+.dish-modal__card-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--spacing-md); margin-bottom: var(--spacing-lg); }
+.dish-modal__card-head label { font-size: var(--text-md); color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+.dish-modal__card-head span { color: var(--color-text-muted); font-size: var(--text-sm); white-space: nowrap; }
+.dish-modal__control,
+.qty-stepper,
+.dish-modal__price-stepper {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 64px;
+  align-items: stretch;
+  gap: var(--spacing-sm);
+}
+.dish-modal__control > button {
+  min-width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+.dish-modal__control > button:hover { background: var(--color-brand); border-color: var(--color-brand); color: var(--color-text-inverse); }
+.dish-modal__control > button:active { background: var(--color-brand-dark); transform: scale(0.95); }
+.dish-modal__number-input,
+.qty-stepper__input {
+  width: 100%;
+  min-width: 0;
+  height: 64px;
+  padding: 0 var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.dish-modal__number-input:focus { border-color: var(--color-brand); box-shadow: 0 0 0 3px var(--color-brand-bg); }
+.dish-modal__number-input::-webkit-inner-spin-button,
+.dish-modal__number-input::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
+.dish-modal__number-input[type='number'] { appearance: textfield; -moz-appearance: textfield; }
+.dish-modal__price-field { position: relative; min-width: 0; }
+.dish-modal__price { padding-inline: var(--spacing-sm) 58px; text-align: right; }
+.dish-modal__price-field > span { position: absolute; top: 50%; right: var(--spacing-md); transform: translateY(-50%); color: var(--color-text-muted); font-size: var(--text-sm); font-weight: var(--font-weight-semibold); pointer-events: none; }
+.dish-modal__cost-row,
+.dish-modal__option-row {
+  min-height: 76px;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xl);
+  background: var(--color-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+}
+.dish-modal__cost-row > div { display: flex; flex-direction: column; gap: var(--spacing-xs); }
+.dish-modal__cost-label,
+.dish-modal__option-row label,
+.dish-modal__note-block > label { color: var(--color-text-primary); font-size: var(--text-base); font-weight: var(--font-weight-semibold); }
+.dish-modal__cost-row small { color: var(--color-text-muted); font-size: var(--text-sm); }
+.dish-modal__cost { color: var(--color-text-secondary); font-family: var(--font-mono); font-size: var(--text-lg); font-weight: var(--font-weight-semibold); white-space: nowrap; }
+/* Добавки в модалке блюда: группы show_in_pos, опции с наценкой */
+.dish-modal__addons { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.dish-modal__addon-group { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.dish-modal__addon-head { display: flex; align-items: center; gap: var(--spacing-sm); color: var(--color-text-primary); font-size: var(--text-base); font-weight: var(--font-weight-semibold); }
+.dish-modal__addon-req { color: var(--color-warning); font-size: var(--text-xs); font-style: normal; }
+.dish-modal__addon-opts { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
+.dish-modal__addon { display: inline-flex; align-items: center; gap: var(--spacing-sm); min-height: var(--touch-min); padding: var(--spacing-sm) var(--spacing-lg); background: var(--color-card); border: 1px solid var(--color-border-light); border-radius: var(--radius-md); color: var(--color-text-primary); font-size: var(--text-md); cursor: pointer; }
+.dish-modal__addon.is-on { border-color: var(--color-brand); background: var(--color-brand-subtle); }
+.dish-modal__addon-name { font-weight: 600; line-height: 1; }
+.dish-modal__addon-price { display: inline-flex; align-items: center; color: var(--color-text-muted); font-family: var(--font-mono); font-size: var(--text-sm); line-height: 1; }
+.dish-modal__addon.is-on .dish-modal__addon-price { color: var(--color-brand-dark); }
+.dish-modal__note-block { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.dish-modal__note { width: 100%; min-height: 112px; padding: var(--spacing-md) var(--spacing-lg); resize: vertical; line-height: 1.5; }
+.dish-modal__actions { display: flex; gap: var(--spacing-md); padding: var(--spacing-lg) var(--spacing-2xl); border-top: 1px solid var(--color-border-light); background: var(--color-surface); }
+.dish-modal__actions .btn { flex: 1; min-height: var(--touch-min); }
+@media (max-width: 720px) {
+  .dish-modal__body { padding: var(--spacing-lg); gap: var(--spacing-lg); }
+  .dish-modal__grid { grid-template-columns: 1fr; gap: var(--spacing-lg); }
+  .dish-modal__card { padding: var(--spacing-lg); }
+  .dish-modal__control { grid-template-columns: 58px minmax(0, 1fr) 58px; }
+  .dish-modal__control > button,
+  .dish-modal__number-input { min-width: 0; height: 58px; }
+  .dish-modal__number-input { font-size: var(--text-xl); }
+  .dish-modal__cost-row,
+  .dish-modal__option-row { padding: var(--spacing-md) var(--spacing-lg); }
+  .dish-modal__actions { padding: var(--spacing-md) var(--spacing-lg); }
+}
 
 /* Строка корзины: название + примечание из модалки блюда */
 .cart-row__info { flex: 1; display: flex; flex-direction: column; min-width: 0; gap: 2px; background: transparent; border: none; padding: 0; text-align: left; cursor: pointer; color: var(--color-text-primary); }
@@ -3657,6 +3766,8 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 
 /* ── Кастомный селект (.cselect) — единый вид с .cal-field, замена нативного <select> ── */
 .cselect { position: relative; display: inline-block; vertical-align: middle; }
+/* Модификатор на всю ширину контейнера — для форм (settings-row, ячейки склада). */
+.cselect--block { display: block; width: 100%; }
 .cselect__btn { display: inline-flex; align-items: center; justify-content: space-between; gap: var(--spacing-xs); width: 100%; min-height: 44px; cursor: pointer; font-weight: 600; text-align: left; }
 .cselect__value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cselect__caret { color: var(--color-text-muted); flex-shrink: 0; transition: transform 0.15s ease; }
@@ -3865,8 +3976,18 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 .pay-order__meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; margin-bottom: var(--spacing-md); font-size: var(--text-sm); font-weight: 600; color: var(--color-text-secondary); }
 .pay-order__meta span { display: inline-flex; align-items: center; gap: 6px; }
 .pay-order__meta svg { color: var(--color-brand); }
+.pay-order__selection-bar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--spacing-sm); margin-bottom: var(--spacing-md); }
+.pay-order__selection-bar > span { margin-right: auto; color: var(--color-text-secondary); font-size: var(--text-sm); }
+.pay-order__selection-bar > span strong { color: var(--color-text-primary); }
+.pay-order__selection-bar .btn { min-height: 44px; width: auto; }
+.pay-order__remove-selected { color: var(--color-danger); border-color: var(--color-danger); }
+.pay-order__remove-selected:hover:not(:disabled) { background: var(--color-danger-bg); color: var(--color-danger); }
 .pay-order__items { display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--spacing-md); }
-.pay-order__row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; row-gap: 10px; padding: 14px 16px; border-radius: var(--radius-md); background: var(--color-subtle); }
+.pay-order__row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; row-gap: 10px; padding: 14px 16px; border: 1px solid transparent; border-radius: var(--radius-md); background: var(--color-subtle); transition: border-color var(--transition-fast), background var(--transition-fast); }
+.pay-order__row--selected { border-color: var(--color-danger); background: var(--color-danger-bg); }
+.pay-order__select { flex: 0 0 34px; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 2px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-card); color: var(--color-danger); cursor: pointer; }
+.pay-order__select:hover { border-color: var(--color-danger); }
+.pay-order__select[aria-checked='true'] { border-color: var(--color-danger); background: var(--color-card); }
 .pay-order__qty { font-size: var(--text-lg); font-weight: 500; color: var(--color-brand); min-width: 40px; }
 .pay-order__name { flex: 1; min-width: 0; font-size: var(--text-lg); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pay-order__sum { font-size: var(--text-xl); font-weight: 600; color: var(--color-text-primary); white-space: nowrap; }
@@ -3922,7 +4043,10 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 /* Выбор ответственного официанта у ОДНОЙ позиции (кассир исправляет путаницу).
    Своя строка на всю ширину под блюдом — .pay-order__row переносит её вниз. */
 .pay-order__waiter { flex: 1 0 100%; }
-.wpick { position: relative; }
+/* Смена официанта всего заказа — в колонке оплаты, отдельной строкой с отступом
+   (в отличие от .pay-order__waiter у позиции, который тянется на всю ширину строки). */
+.pay-order__waiter--order { flex: initial; display: flex; align-items: center; gap: 10px; margin: var(--spacing-md) 0; }
+.wpick { position: relative; flex: 1; min-width: 0; }
 .wpick__trigger {
   display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px;
   padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md);
@@ -3946,9 +4070,12 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
   font-size: var(--text-xs); font-weight: 700;
 }
 /* Список раскрывается в потоке (не absolute): .modal__body скроллится и обрезал бы панель */
+/* Список раскрывается ПОВЕРХ (absolute), а не в потоке — чтобы не толкать высоту
+   контента модалки. Тянется на всю ширину триггера (left/right: 0). */
 .wpick__list {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
   display: flex; flex-direction: column; gap: 2px;
-  max-height: 264px; overflow-y: auto; margin-top: 6px; padding: 6px;
+  max-height: 264px; overflow-y: auto; padding: 6px;
   background: var(--color-card); border: 1px solid var(--color-brand); border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
 }
@@ -3981,8 +4108,32 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 .pay-order__methods .pay-method-btn.is-active { border-color: var(--color-brand); background: var(--color-brand-bg); color: var(--color-brand); box-shadow: 0 0 0 1px var(--color-brand) inset; }
 .pay-order__cash { display: flex; flex-direction: column; gap: 8px; }
 .pay-order__cash label { font-size: var(--text-sm); color: var(--color-text-secondary); font-weight: 600; }
+/* Подпись «Получено» и свёрнутая сумма — в одной строке (сумма справа от текста). */
+.pay-order__cash-head { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md); }
 .pay-order__change { display: flex; align-items: baseline; justify-content: space-between; padding: 0; margin-top: 10px; }
 .pay-order__change strong { font-size: var(--text-lg); font-weight: 700; color: var(--color-success); }
+/* Итог смешанной оплаты (сколько нал / сколько карта, сдача или остаток) — отделён
+   верхней линией, чтобы читался как сводка под полями ввода. */
+.pay-order__split { display: flex; flex-direction: column; margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--color-border); }
+/* Кнопка «Назад» с подписью в шапке полноэкранной оплаты — слева от заголовка,
+   не растягивается; заголовок занимает остаток строки, крестик остаётся справа. */
+.pay-order__back { flex-shrink: 0; gap: 6px; margin-right: var(--spacing-md); }
+.pay-screen .modal__header h3 { flex: 1; }
+/* Введённая сумма (наличные/карта) сворачивается в крупные тач-цифры; выглядит
+   как значение, а клик снова открывает инпут для правки. */
+.pay-order__amount {
+  align-self: flex-start;
+  padding: 10px 16px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+.pay-order__amount:hover { border-color: var(--color-brand); background: var(--color-brand-bg); color: var(--color-brand); }
 /* Кнопки почти вплотную, по две в ряд; «Закрыть заказ» — во всю ширину */
 .pay-order__actions { padding: var(--spacing-md) var(--spacing-xl) var(--spacing-lg); border-top: 1px solid var(--color-border-light); display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .pay-order__actions .btn { width: 100%; justify-content: center; }
@@ -4182,11 +4333,9 @@ body.vkb-lift .app-shell {
 /* Модалка оплаты существующего заказа: скидка и «не хватает» */
 .pay-order__discount { margin-top: var(--spacing-md); }
 .pay-order__change--discount strong { color: var(--color-danger); }
-.pay-order__change--short {
-  background: var(--color-danger-bg, rgba(239, 68, 68, 0.12));
-  border-radius: var(--radius-sm, 8px);
-  padding: 8px 10px;
-}
+/* Строка «не хватает»/«долг» — в один ряд с остальными (К оплате / Наличные / Сдача):
+   без фона и боковых отступов, чтобы сумма и подпись стояли по тем же краям. Акцент — красный цвет. */
+.pay-order__change--short { padding: 0; }
 .pay-order__change--short span,
 .pay-order__change--short strong { color: var(--color-danger); }
 
@@ -4207,6 +4356,80 @@ body.vkb-lift .app-shell {
 .prompt-modal__actions { display: flex; gap: 8px; padding: var(--spacing-md) var(--spacing-xl) var(--spacing-lg); }
 .prompt-modal__actions .btn { flex: 1; justify-content: center; }
 .prompt-modal__extra { resize: none; min-height: 56px; padding: 10px 12px; font-family: inherit; line-height: 1.4; }
+.prompt-select {
+  position: relative;
+  width: 100%;
+}
+.prompt-select__trigger {
+  width: 100%;
+  min-height: var(--touch-min);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: 0 var(--spacing-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-subtle);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+.prompt-select__trigger:hover { background: var(--color-surface-hover); }
+.prompt-select__trigger:focus-visible,
+.prompt-select--open .prompt-select__trigger {
+  outline: none;
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-brand-bg);
+}
+.prompt-select__trigger:disabled { opacity: 0.6; cursor: not-allowed; }
+.prompt-select__chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform var(--transition-fast);
+}
+.prompt-select--open .prompt-select__chevron { transform: rotate(180deg); }
+.prompt-select__menu {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--spacing-sm);
+  max-height: 320px;
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+.prompt-select__option {
+  min-height: var(--touch-min);
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-card);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-semibold);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+.prompt-select__option:hover,
+.prompt-select__option:focus-visible {
+  outline: none;
+  border-color: var(--color-brand);
+  background: var(--color-brand-subtle);
+  color: var(--color-brand-dark);
+}
 
 /* ═══ ТЁМНАЯ ТЕМА — правки по фидбеку ═══ */
 /* Шапка без тени вниз */
@@ -4299,7 +4522,7 @@ body.vkb-lift .app-shell {
 .modal-overlay .modal.pos-payment-modal .modal__body,
 .modal-overlay .modal.pay-modal .modal__body {
   width: 100%;
-  max-width: 900px;
+  max-width: 980px;
   margin-inline: auto;
 }
 

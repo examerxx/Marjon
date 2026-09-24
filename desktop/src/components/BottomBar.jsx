@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Minus, User } from 'lucide-react'
 import { t } from '../shared/i18n'
 
@@ -8,26 +8,13 @@ import { t } from '../shared/i18n'
  * здесь они не мешают).
  * Критична для touch-моноблоков без стандартного taskbar Windows.
  */
-export default function BottomBar({ userName, branchName, mode, isOnline = true, queued = 0, onMinimize, onDevAccess }) {
+export default function BottomBar({ userName, branchName, mode, isOnline = true, queued = 0, onMinimize }) {
   const [time, setTime] = useState(formatTime)
-  const devTapsRef = useRef([])             // метки времени тапов по часам (секретный вход)
 
   useEffect(() => {
     const id = setInterval(() => setTime(formatTime()), 1000)
     return () => clearInterval(id)
   }, [])
-
-  // Секретный доступ к панели разработчика: 7 быстрых тапов по часам подряд.
-  // Без видимой подсказки — намеренно скрыто.
-  const handleClockTap = () => {
-    if (!onDevAccess) return
-    const now = Date.now()
-    devTapsRef.current = [...devTapsRef.current.filter((ts) => now - ts < 3000), now]
-    if (devTapsRef.current.length >= 7) {
-      devTapsRef.current = []
-      onDevAccess()
-    }
-  }
 
   const handleMinimize = () => {
     if (onMinimize) {
@@ -41,13 +28,13 @@ export default function BottomBar({ userName, branchName, mode, isOnline = true,
     <footer className="bottombar">
       <div className="bottombar__info">
         {userName && (
-          <span className="flex items-center gap-sm">
+          <span className="bottombar__name flex items-center gap-sm">
             <User size={14} />
             {userName}
           </span>
         )}
+        {mode && <span> · <span className="bottombar__mode">{mode}</span></span>}
         {branchName && <span> · {branchName}</span>}
-        {mode && <span> · {mode}</span>}
       </div>
 
       {/* Статус связи: тихий в норме, заметный только при обрыве */}
@@ -59,7 +46,7 @@ export default function BottomBar({ userName, branchName, mode, isOnline = true,
         <span className="bottombar__queue" title={t('queue_hint')}>↻ {queued}</span>
       )}
 
-      <span className="bottombar__clock" onClick={handleClockTap}>{time}</span>
+      <span className="bottombar__clock">{time}</span>
 
       <button className="bottombar__minimize" onClick={handleMinimize} title={t('minimize')}>
         <Minus size={18} />

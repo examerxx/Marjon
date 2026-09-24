@@ -16,7 +16,7 @@ const DICT = {
     free: 'Свободен', busy: 'Занят', ready: 'Готов', await: 'Ожидает оплату', tables: 'Столы', table: 'Стол',
     branch: 'Филиал', staff: 'Сотрудник', loading: 'Загрузка...', no_orders: 'Нет активных заказов',
     search_dish: 'Поиск блюда…', order: 'Заказ', orders: 'Заказы', total: 'Итого', comment: 'Комментарий',
-    qty: 'Количество', price_per: 'Цена за порцию, сум', currency: 'сум',
+    qty: 'Количество', price_per: 'Цена за порцию, сум', price: 'Цена, сум', cost_price: 'Себестоимость', cost_fixed: 'Фиксированная, не меняется', currency: 'сум',
     // Типы заказов
     dine_in: 'В зале', takeaway: 'С собой', delivery: 'Доставка', type_qr: 'QR',
     // Статусы заказов
@@ -35,6 +35,11 @@ const DICT = {
     receipt_sent: 'Чек отправлен на печать', complete_order: 'Закрыть заказ', hand_to_cashier: 'Передать на кассу',
     not_enough: 'Не хватает', print_failed: 'Ошибка печати чека',
     card_amount: 'Сумма к оплате картой', card_hint: 'Проведите карту на терминале, затем закройте заказ',
+    card_frozen: 'Остаток после наличных',
+    debt_title: 'Заказ в долг', debt_ask: 'Хотите закрыть заказ в долг?',
+    debt_yes: 'Да, в долг', debt_no: 'Нет', debt_left: 'Осталось (долг)',
+    debt_client: 'Имя клиента', debt_client_ph: 'Например: Алишер', debt_close: 'Закрыть в долг',
+    debt_phone: 'Номер клиента', debt_phone_ph: '+998 __ ___-__-__',
     order_items: 'Позиции заказа', to_pay_label: 'К оплате', phone: 'Телефон', address: 'Адрес доставки', move_table: 'Сменить стол',
     cancel_order: 'Отменить заказ', cancel_password_prompt: 'Введите пароль отмены', cancel_error: 'Не удалось отменить заказ',
     cancel_comment: 'Комментарий к отмене (необязательно)', cancel_comment_ph: 'Например: гость ушёл, ошибка в позициях…',
@@ -43,6 +48,8 @@ const DICT = {
     confirm_pin: 'Подтвердите PIN-кодом', pin_confirm: 'Подтвердить',
     move_reason: 'Причина смены стола (необязательно)', move_reason_ph: 'Например: гостей пересадили, объединили столы…',
     delete_dish: 'Удалить блюдо', delete_reason: 'Причина удаления', delete_reason_ph: 'Например: гость передумал, ошибка при вводе…',
+    select_dishes_to_cancel: 'Выбрать блюда для отмены', select_dish: 'Выбрать блюдо', dishes_selected: 'Выбрано блюд',
+    cancel_selected_dishes: 'Отменить выбранные',
     // Техкарта
     tech_card: 'Техкарта', ingredient: 'Ингредиент', amount: 'Кол-во',
     recipe_yield: 'Выход', portion: 'порция', recipe_empty: 'Техкарта для этого блюда ещё не заполнена.',
@@ -63,6 +70,7 @@ const DICT = {
     col_no: '№', col_table: 'Стол', col_status: 'Статус', col_time: 'Время', col_sum: 'Сумма', col_type: 'Тип',
     // Блюдо (модалка)
     dish_note_ph: 'Например: без лука, острее, отдельно соус…',
+    addons: 'Добавки', addon_required: 'Обязательно', addon_pick_min: 'Выберите минимум',
     // Финансы
     fin_title: 'Касса — смена и операции', shift: 'Смена', status: 'Статус',
     fin_status_open: 'Открыта', opened_label: 'Открыта', cash_start_bal: 'Касса на начало',
@@ -126,12 +134,11 @@ const DICT = {
     ping_ok: 'Доступен с сервера — печать пойдёт напрямую',
     ping_terminal: 'С сервера недоступен, но доступен с этого терминала — печать пойдёт через терминал',
     ping_fail: 'Недоступен ни с сервера, ни с терминала — проверьте IP, порт и сеть',
-    // Разработчик (скрытая панель пакетной печати)
-    dev_title: 'Разработчик', dev_hint: 'Пакетная печать чеков по категориям на чековом принтере.',
+    // Пакетная печать + разделы из бывшей панели разработчика (меню «…»)
+    dev_hint: 'Пакетная печать чеков по категориям на чековом принтере.',
     dev_accounts: 'Все аккаунты', dev_techcards: 'Все тех.карты', dev_arrivals: 'Все приходы', dev_inventory: 'Вся инвентаризация',
-    dev_soon: 'скоро', dev_empty: 'Нет данных для печати', dev_printing: 'Печать…',
-    dev_manage_hint: 'Управление (доступно по спец-праву).', open: 'Открыть',
-    dev_staff: 'Сотрудники', dev_rights: 'Права кассиров', dev_warehouse: 'Склад',
+    dev_empty: 'Нет данных для печати', dev_printing: 'Печать…',
+    dev_staff: 'Сотрудники', dev_warehouse: 'Склад',
     // Управление сотрудниками
     required_fields: 'Заполните имя и роль', saved: 'Сохранено', save_failed: 'Не удалось сохранить',
     staff_add: 'Добавить сотрудника', staff_name: 'Имя', staff_phone: 'Телефон', staff_role: 'Роль',
@@ -188,7 +195,7 @@ const DICT = {
     free: 'Bo‘sh', busy: 'Band', ready: 'Tayyor', await: 'To‘lovni kutmoqda', tables: 'Stollar', table: 'Stol',
     branch: 'Filial', staff: 'Xodim', loading: 'Yuklanmoqda...', no_orders: 'Faol buyurtmalar yo‘q',
     search_dish: 'Taom qidirish…', order: 'Buyurtma', orders: 'Buyurtmalar', total: 'Jami', comment: 'Izoh',
-    qty: 'Miqdor', price_per: 'Porsiya narxi, so‘m', currency: 'so‘m',
+    qty: 'Miqdor', price_per: 'Porsiya narxi, so‘m', price: 'Narx, so‘m', cost_price: 'Tannarx', cost_fixed: 'O‘zgarmas qiymat', currency: 'so‘m',
     // Buyurtma turlari
     dine_in: 'Zalda', takeaway: 'O‘zi bilan', delivery: 'Yetkazish', type_qr: 'QR',
     // Buyurtma holatlari
@@ -207,6 +214,11 @@ const DICT = {
     receipt_sent: 'Chek chop etishga yuborildi', complete_order: 'Buyurtmani yopish', hand_to_cashier: 'Kassaga topshirish',
     not_enough: 'Yetarli emas', print_failed: 'Chek chop etishda xato',
     card_amount: 'Karta bilan to‘lanadigan summa', card_hint: 'Kartani terminalda o‘tkazing, so‘ng buyurtmani yoping',
+    card_frozen: 'Naqd to‘lovdan keyingi qoldiq',
+    debt_title: 'Qarzga buyurtma', debt_ask: 'Buyurtmani qarzga yopasizmi?',
+    debt_yes: 'Ha, qarzga', debt_no: 'Yo‘q', debt_left: 'Qoldiq (qarz)',
+    debt_client: 'Mijoz ismi', debt_client_ph: 'Masalan: Alisher', debt_close: 'Qarzga yopish',
+    debt_phone: 'Mijoz telefoni', debt_phone_ph: '+998 __ ___-__-__',
     order_items: 'Buyurtma tarkibi', to_pay_label: 'To‘lash kerak', phone: 'Telefon', address: 'Yetkazish manzili', move_table: 'Stolni almashtirish',
     cancel_order: 'Buyurtmani bekor qilish', cancel_password_prompt: 'Bekor qilish parolini kiriting', cancel_error: 'Buyurtmani bekor qilib bo‘lmadi',
     cancel_comment: 'Bekor sababi (ixtiyoriy)', cancel_comment_ph: 'Masalan: mehmon ketdi, pozitsiyada xato…',
@@ -215,6 +227,8 @@ const DICT = {
     confirm_pin: 'PIN-kod bilan tasdiqlang', pin_confirm: 'Tasdiqlash',
     move_reason: 'Stol almashtirish sababi (ixtiyoriy)', move_reason_ph: 'Masalan: mehmonlar boshqa stolga o‘tdi, stollar birlashtirildi…',
     delete_dish: 'Taomni o‘chirish', delete_reason: 'O‘chirish sababi', delete_reason_ph: 'Masalan: mehmon fikridan qaytdi, kiritishda xato…',
+    select_dishes_to_cancel: 'Bekor qilish uchun taomlarni tanlash', select_dish: 'Taomni tanlash', dishes_selected: 'Tanlangan taomlar',
+    cancel_selected_dishes: 'Tanlanganlarni bekor qilish',
     // Texkarta
     tech_card: 'Texkarta', ingredient: 'Ingredient', amount: 'Miqdor',
     recipe_yield: 'Chiqishi', portion: 'porsiya', recipe_empty: 'Bu taom uchun texkarta hali to‘ldirilmagan.',
@@ -235,6 +249,7 @@ const DICT = {
     col_no: '№', col_table: 'Stol', col_status: 'Holat', col_time: 'Vaqt', col_sum: 'Summa', col_type: 'Turi',
     // Taom (modal)
     dish_note_ph: 'Masalan: piyozsiz, achchiqroq, sous alohida…',
+    addons: 'Qo‘shimchalar', addon_required: 'Majburiy', addon_pick_min: 'Kamida tanlang',
     // Moliya
     fin_title: 'Kassa — smena va operatsiyalar', shift: 'Smena', status: 'Holat',
     fin_status_open: 'Ochiq', opened_label: 'Ochilgan', cash_start_bal: 'Boshlang‘ich kassa',
@@ -298,12 +313,11 @@ const DICT = {
     ping_ok: 'Serverdan mavjud — chop etish to‘g‘ridan-to‘g‘ri ketadi',
     ping_terminal: 'Serverdan mavjud emas, lekin shu terminaldan mavjud — chop etish terminal orqali ketadi',
     ping_fail: 'Na serverdan, na terminaldan mavjud emas — IP, port va tarmoqni tekshiring',
-    // Ishlab chiquvchi (yashirin paketli chop etish paneli)
-    dev_title: 'Ishlab chiquvchi', dev_hint: 'Chek printerida turkumlar bo‘yicha paketli chop etish.',
+    // Paketli chop etish + sobiq ishlab chiquvchi paneli bo‘limlari («…» menyusi)
+    dev_hint: 'Chek printerida turkumlar bo‘yicha paketli chop etish.',
     dev_accounts: 'Barcha hisoblar', dev_techcards: 'Barcha texkartalar', dev_arrivals: 'Barcha kirimlar', dev_inventory: 'Butun inventarizatsiya',
-    dev_soon: 'tez orada', dev_empty: 'Chop etish uchun ma’lumot yo‘q', dev_printing: 'Chop etilmoqda…',
-    dev_manage_hint: 'Boshqaruv (maxsus huquq bilan mavjud).', open: 'Ochish',
-    dev_staff: 'Xodimlar', dev_rights: 'Kassir huquqlari', dev_warehouse: 'Ombor',
+    dev_empty: 'Chop etish uchun ma’lumot yo‘q', dev_printing: 'Chop etilmoqda…',
+    dev_staff: 'Xodimlar', dev_warehouse: 'Ombor',
     // Xodimlarni boshqarish
     required_fields: 'Ism va rolni to‘ldiring', saved: 'Saqlandi', save_failed: 'Saqlab bo‘lmadi',
     staff_add: 'Xodim qo‘shish', staff_name: 'Ism', staff_phone: 'Telefon', staff_role: 'Rol',

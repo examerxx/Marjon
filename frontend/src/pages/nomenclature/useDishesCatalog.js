@@ -31,6 +31,10 @@ export function useDishesCatalog() {
   const [form, setForm] = useState({ ...emptyDishForm });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState(defaultDishColumnVisibility);
+  // Добавки (модификаторы) редактируемого блюда: список групп, загрузка/ошибка.
+  const [modGroups, setModGroups] = useState([]);
+  const [modLoading, setModLoading] = useState(false);
+  const [modError, setModError] = useState("");
   const beginRequest = useLatestRequest();
   const { acquire, release } = useMutationLocks();
 
@@ -113,6 +117,11 @@ export function useDishesCatalog() {
     setEditing(row);
     setForm(row || { ...emptyDishForm });
     setDrawerOpen(true);
+    // Добавки существуют только у сохранённого блюда — подтягиваем их группы
+    // при открытии редактирования; для нового блюда список пуст.
+    setModGroups([]);
+    setModError("");
+    if (row?.id) loadModGroups(row.id);
   };
 
   const saveDish = async () => {
@@ -170,6 +179,88 @@ export function useDishesCatalog() {
     setRows((prev) => prev.filter((row) => row.id !== id));
   };
 
+  // --- Добавки (модификаторы) --------------------------------------------------
+  async function loadModGroups(productId) {
+    setModLoading(true);
+    setModError("");
+    try {
+      const { data } = await catalogService.listModifierGroups(productId);
+      setModGroups(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setModError(err.response?.data?.detail || "Не удалось загрузить добавки.");
+    } finally {
+      setModLoading(false);
+    }
+  }
+
+  // Сохранение группы: новая (без id) → create, существующая → update. После
+  // ответа перезагружаем список, чтобы id новых опций пришли с сервера.
+  async function saveModGroup(group) {
+    if (!editing?.id) {
+      setModError("Сначала сохраните блюдо, затем добавляйте добавки.");
+      return;
+    }
+    const lockKey = `modgroup-save:${group.id || "new"}`;
+    if (!acquire(lockKey)) return;
+    setModError("");
+    const modifiers = (group.modifiers || [])
+      .map((m) => ({
+        id: m.id || undefined,
+        name: String(m.name || "").trim(),
+        price_delta: Number(m.price_delta) || 0,
+        is_default: Boolean(m.is_default),
+        sort_order: Number(m.sort_order) || 0,
+      }))
+      .filter((m) => m.name);
+    try {
+      if (group.id) {
+        await catalogService.updateModifierGroup(group.id, {
+          name: String(group.name || "").trim(),
+          min_select: Number(group.min_select) || 0,
+          max_select: Math.max(1, Number(group.max_select) || 1),
+          is_required: Boolean(group.is_required),
+          show_in_pos: group.show_in_pos !== false,
+          modifiers,
+        });
+      } else {
+        await catalogService.createModifierGroup({
+          product_id: editing.id,
+          name: String(group.name || "").trim(),
+          min_select: Number(group.min_select) || 0,
+          max_select: Math.max(1, Number(group.max_select) || 1),
+          is_required: Boolean(group.is_required),
+          show_in_pos: group.show_in_pos !== false,
+          modifiers,
+        });
+      }
+      await loadModGroups(editing.id);
+    } catch (err) {
+      const message = err.response?.data?.detail || "Не удалось сохранить добавки.";
+      setModError(message);
+      window.alert(message);
+    } finally {
+      release(lockKey);
+    }
+  }
+
+  async function removeModGroup(groupId) {
+    if (!groupId) {
+      // Несохранённая группа — просто убираем из локального списка.
+      setModGroups((current) => current.filter((g) => g.id));
+      return;
+    }
+    const lockKey = `modgroup-delete:${groupId}`;
+    if (!acquire(lockKey)) return;
+    try {
+      await catalogService.deleteModifierGroup(groupId);
+      setModGroups((current) => current.filter((g) => g.id !== groupId));
+    } catch (err) {
+      window.alert(err.response?.data?.detail || "Не удалось удалить добавки.");
+    } finally {
+      release(lockKey);
+    }
+  }
+
   const openPhotoPicker = (row) => {
     setPhotoPicker(row);
     setPhotoSearch(row.name);
@@ -217,6 +308,13 @@ export function useDishesCatalog() {
     archiveDish,
     openPhotoPicker,
     selectPhoto,
+    // Добавки (модификаторы)
+    modGroups,
+    setModGroups,
+    modLoading,
+    modError,
+    saveModGroup,
+    removeModGroup,
   };
 }
 

@@ -4,6 +4,7 @@ import { reports, printers as printersApi } from '../shared/api'
 import { t } from '../shared/i18n'
 import CalendarField from './CalendarField'
 import CustomSelect from './CustomSelect'
+import { must } from '../shared/permissions'
 import { toast } from './Toast'
 
 // Ключ колонки с сервера → ключ словаря
@@ -50,11 +51,14 @@ function fmtCell(k, v) {
   return String(v)
 }
 
-export default function ReportsPanel({ branch, onClose }) {
+export default function ReportsPanel({ branch, user, onClose }) {
+  // Вкладка Z-отчёта — только у кого право явно выдано в админке
+  // (тумблер «Z-отчёт», permissions.can_view_z_report). Остальным бэкенд
+  // всё равно отдаст 403 — вкладку прячем, чтобы не упираться в ошибку.
   const TABS = [
     { id: 'products', label: t('rep_products') },
     { id: 'staff', label: t('rep_staff') },
-    { id: 'z', label: t('rep_z') },
+    ...(must(user, 'can_view_z_report') ? [{ id: 'z', label: t('rep_z') }] : []),
   ]
   const [tab, setTab] = useState('products')
   const [from, setFrom] = useState(today())
@@ -76,9 +80,9 @@ export default function ReportsPanel({ branch, onClose }) {
   const run = useCallback((which) => {
     const active = which || tab
     setTab(active); setLoading(true); setErr(false); setRows(null); setZData(null); setFilter('')
-    // Z-отчёт — свой эндпоинт (одна дата) и своя форма ответа
+    // Z-отчёт — свой эндпоинт (день или период) и своя форма ответа
     const req = active === 'z'
-      ? reports.zReport(from).then((d) => setZData(d))
+      ? reports.zReport(from, to).then((d) => setZData(d))
       : reports[active]?.({ date_from: from, date_to: to, branch_id: branch?.id })
           .then((d) => {
             const arr = Array.isArray(d) ? d : d?.items || d?.rows || d?.data || (d && typeof d === 'object' ? [d] : [])
@@ -156,7 +160,7 @@ export default function ReportsPanel({ branch, onClose }) {
     try {
       await printersApi.printSummary({
         printer_id: receiptPrinter.id,
-        title: `${t('rep_z')} · ${fmtDate(from)}`,
+        title: `${t('rep_z')} · ${fmtDate(from)}${from !== to ? ` — ${fmtDate(to)}` : ''}`,
         lines,
         footer: `${t('z_net')}: ${money(zData.net_sales)} ${t('currency')}`,
         copies: 1,
@@ -181,7 +185,7 @@ export default function ReportsPanel({ branch, onClose }) {
           </div>
           <div className="rep-dates">
             <CalendarField value={from} onChange={setFrom} />
-            {tab !== 'z' && <><span>—</span><CalendarField value={to} onChange={setTo} /></>}
+            <span>—</span><CalendarField value={to} onChange={setTo} />
             <button className="btn btn--primary" onClick={() => run()}>{t('generate')}</button>
           </div>
           {/* Селект показываем, как только в отчёте есть хоть одно имя: в отчёте по
@@ -210,7 +214,7 @@ export default function ReportsPanel({ branch, onClose }) {
               <div className="z-report">
                 <div className="z-report__head">
                   <div className="z-report__meta">
-                    <span>{t('col_date')}: <strong>{fmtDate(zData.date)}</strong></span>
+                    <span>{t('col_date')}: <strong>{fmtDate(from)}{from !== to ? ` — ${fmtDate(to)}` : ''}</strong></span>
                     <span>{t('z_closed')}: <strong>{zData.is_closed ? t('z_yes') : t('z_no')}</strong></span>
                     <span>{t('z_shift_open')}: <strong>{zData.shift_opened_at || '—'}</strong></span>
                     <span>{t('z_shift_close')}: <strong>{zData.shift_closed_at || '—'}</strong></span>

@@ -1,11 +1,14 @@
 ﻿from __future__ import annotations
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Literal
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.database.session import get_db
-from app.modules.auth.dependencies import require_web_owner
+from app.shared.exceptions import ValidationError
+from app.modules.auth.dependencies import (
+    require_permission_or_admin, require_web_owner, user_can_view_past_periods,
+)
 from app.modules.auth.models import User
 from app.modules.analytics.schemas import (
     DashboardResponse,
@@ -24,6 +27,11 @@ from app.modules.analytics.zreport_period import (
 from app.shared.exceptions import ValidationError
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
+
+# Z-отчёт доступен владельцу/админу компании либо сотруднику, которому владелец
+# выдал permissions.can_view_z_report (тумблер «Z-отчёт» в карточке сотрудника).
+# Без can_view_past_periods — только сегодняшний день (как в финансах).
+require_z_report_access = require_permission_or_admin("can_view_z_report")
 
 
 @router.get("/dashboard", response_model=DashboardResponse)
@@ -75,7 +83,7 @@ async def z_report(
     date_to: date | None = Query(None),
     time_from: str | None = Query(None, pattern=TIME_QUERY_PATTERN),
     time_to: str | None = Query(None, pattern=TIME_QUERY_PATTERN),
-    user: User = Depends(require_web_owner),
+    user: User = Depends(require_z_report_access),
     db: AsyncSession = Depends(get_db),
 ):
     # Backward-compatible: ?date= is a single-day report. ?date_from=&date_to=
@@ -83,6 +91,12 @@ async def z_report(
     # ZR-TIME-01: adding time_from/time_to narrows either mode to an explicit
     # company-local wall-clock window; omitting them keeps the exact calendar-day
     # semantics this endpoint has always had.
+    # RBAC: сотруднику с can_view_z_report, но без can_view_past_periods, показываем
+    # только сегодняшний день (как в финансах); владелец/админ видит любой период.
+    if not await user_can_view_past_periods(user, db):
+        today = datetime.now(timezone.utc).date()
+        date, date_from, date_to = today, None, None
+        time_from = time_to = None
     request = validate_zreport_period(date, date_from, date_to, time_from, time_to)
     return await AnalyticsService(db).z_report(user.company_id, period=request)
 

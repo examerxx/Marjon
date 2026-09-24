@@ -57,6 +57,12 @@ class Product(TimeStampedModel):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_available: Mapped[bool] = mapped_column(Boolean, default=True)
+    # D3 «максимум блюда»: дневной лимит порций и счётчик проданного (на всю
+    # компанию, по образцу is_available). NULL лимит = без ограничения (как было).
+    # При достижении sold_count >= daily_limit блюдо авто-встаёт в стоп
+    # (is_available=False). Сброс счётчика — ручной (см. ProductService.set_daily_limit).
+    daily_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sold_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
     category: Mapped[Category | None] = relationship(back_populates="products", foreign_keys=[category_id])
     modifier_groups: Mapped[list[ModifierGroup]] = relationship(back_populates="product", cascade="all, delete-orphan")
@@ -74,6 +80,10 @@ class ModifierGroup(TimeStampedModel):
     max_select: Mapped[int] = mapped_column(Integer, default=1)
     is_required: Mapped[bool] = mapped_column(Boolean, default=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    # Переключатель из веб-админки: показывать ли группу добавок на кассе (десктоп).
+    # True = кассир видит и выбирает добавки в экране блюда; False = группа скрыта
+    # (настроена, но не продаётся). По умолчанию показываем.
+    show_in_pos: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
 
     product: Mapped[Product] = relationship(back_populates="modifier_groups")
     modifiers: Mapped[list[Modifier]] = relationship(back_populates="group", cascade="all, delete-orphan")

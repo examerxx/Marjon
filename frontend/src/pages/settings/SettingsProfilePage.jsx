@@ -23,6 +23,14 @@ export default function SettingsProfilePage() {
     resetForm,
     clearLogo,
     handleSave,
+    waiterPct,
+    setWaiterPct,
+    waiterPctSaving,
+    saveWaiterPct,
+    dayStartHour,
+    setDayStartHour,
+    dayStartHourSaving,
+    saveDayStartHour,
   } = useCompanyProfileForm(user);
 
   const activeMeta = profileSections.find((section) => section.key === activeSection) || profileSections[0];
@@ -155,7 +163,49 @@ export default function SettingsProfilePage() {
                 <select value={form.currency} onChange={(event) => set("currency", event.target.value)}>
                   <option value="UZS">UZS - Узбекский сум</option>
                   <option value="USD">USD - Доллар</option>
-                </select>
+              </select>
+              </label>
+
+              <label>
+                <span>
+                  <b>Доля обслуги официанту, %</b>
+                  <em>Процент от суммы обслуги для отчёта по официантам</em>
+                </span>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={waiterPct}
+                    onChange={(event) => setWaiterPct(event.target.value)}
+                    placeholder="0"
+                  />
+                  <button type="button" className="company-profile-danger" style={{ whiteSpace: "nowrap" }} disabled={waiterPctSaving} onClick={saveWaiterPct}>
+                    Сохранить
+                  </button>
+                </div>
+              </label>
+
+              <label>
+                <span>
+                  <b>Сброс нумерации заказов</b>
+                  <em>Час, когда начинается новый операционный день. Заказы до этого часа относятся к прошлому дню. 0 — сброс в полночь</em>
+                </span>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <select
+                    value={dayStartHour}
+                    onChange={(event) => setDayStartHour(event.target.value)}
+                  >
+                    {Array.from({ length: 24 }, (_, hour) => (
+                      <option key={hour} value={String(hour)}>
+                        {String(hour).padStart(2, "0")}:00
+                      </option>
+                    ))}
+                  </select>
+                  <button type="button" className="company-profile-danger" style={{ whiteSpace: "nowrap" }} disabled={dayStartHourSaving} onClick={saveDayStartHour}>
+                    Сохранить
+                  </button>
+                </div>
               </label>
             </div>
 

@@ -11,14 +11,16 @@ function initials(name = '') {
  * Нативный <select> на кассе слишком мелкий для пальца, поэтому свой список:
  * крупная кнопка + строки по 48px. Список раскрывается В ПОТОКЕ (не absolute):
  * .modal__body скроллится (overflow-y: auto) и обрезал бы всплывающую панель.
+ * Триггер тянется на всю доступную ширину контейнера.
  *
  * props:
  *   value — id текущего официанта (или пусто)
  *   staff — [{ id, name, email }]
  *   onChange(id) — выбор официанта
+ *   label — подпись над значением (по умолчанию «сменить официанта у позиции»)
  *   disabled — идёт сохранение
  */
-export default function WaiterPicker({ value, staff = [], onChange, disabled = false }) {
+export default function WaiterPicker({ value, staff = [], onChange, label, disabled = false }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -49,7 +51,7 @@ export default function WaiterPicker({ value, staff = [], onChange, disabled = f
     <div className={`wpick ${open ? 'wpick--open' : ''}`} ref={ref}>
       <button type="button" className="wpick__trigger" disabled={disabled}
         aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-        <span className="wpick__label">{t('change_item_waiter')}</span>
+        <span className="wpick__label">{label || t('change_item_waiter')}</span>
         <span className={`wpick__value ${current ? '' : 'wpick__value--empty'}`}>
           {current
             ? <span className="wpick__avatar">{initials(currentName)}</span>

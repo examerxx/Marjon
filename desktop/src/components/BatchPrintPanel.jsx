@@ -1,12 +1,8 @@
 import { useState, useEffect } from 'react'
-import { X, Code2, Printer, Users, FileText, Package, ClipboardList, UserCog, ShieldCheck, Boxes } from 'lucide-react'
+import { X, Printer, Users, FileText, Package, ClipboardList } from 'lucide-react'
 import { auth, menu, warehouse, printers as printersApi } from '../shared/api'
 import { t } from '../shared/i18n'
-import { must } from '../shared/permissions'
 import { toast } from './Toast'
-import StaffManagerPanel from './StaffManagerPanel'
-import StaffRightsPanel from './StaffRightsPanel'
-import WarehouseWritePanel from './WarehouseWritePanel'
 
 // Ограниченная параллельность: техкарты тянутся по одной (bulk-эндпоинта нет),
 // поэтому не заваливаем бэкенд — обрабатываем список блюд чанками.
@@ -22,17 +18,13 @@ const asItems = (raw) => (Array.isArray(raw) ? raw : raw?.items || [])
 const fmtMoney = (x) => Number(x || 0).toLocaleString('ru-RU')
 
 /**
- * DeveloperPanel — скрытая панель разработчика (Ctrl+Shift+D / 7 тапов по часам).
- * Полноэкранное рабочее пространство: боковое меню слева + область содержимого
- * справа. Разделы: Печать (всем), Сотрудники / Права / Склад (только кассиру со
- * спец-правом can_manage_staff). Настоящая защита — на бэкенде; UI-гейт косметический.
+ * BatchPrintPanel — пакетная печать сводок на чековом принтере филиала.
+ * Переехала из удалённой панели разработчика в меню «…» (доступна всем —
+ * как и раньше; защита записей — на бэкенде).
  */
-export default function DeveloperPanel({ branch, user, onClose }) {
+export default function BatchPrintPanel({ branch, onClose }) {
   const [receiptPrinter, setReceiptPrinter] = useState(null)
   const [busy, setBusy] = useState(null)      // ключ печатающейся сейчас категории
-  const [screen, setScreen] = useState('print') // print | staff | rights | warehouse
-
-  const canManage = must(user, 'can_manage_staff')
 
   // Чековый принтер филиала — тот же путь, что в Истории/Отчётах
   useEffect(() => {
@@ -123,74 +115,35 @@ export default function DeveloperPanel({ branch, user, onClose }) {
     }
   }
 
-  // Пункты бокового меню. Печать — всегда; управление — только при спец-праве.
-  const NAV = [
-    { key: 'print', icon: Printer, label: t('print') },
-    ...(canManage ? [
-      { key: 'staff', icon: UserCog, label: t('dev_staff') },
-      { key: 'rights', icon: ShieldCheck, label: t('dev_rights') },
-      { key: 'warehouse', icon: Boxes, label: t('dev_warehouse') },
-    ] : []),
-  ]
-
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal dev-workspace" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal__header">
-          <h2><Code2 size={20} /> {t('dev_title')}</h2>
+          <h2><Printer size={20} /> {t('print')}</h2>
           <button className="icon-btn" onClick={onClose}><X size={24} /></button>
         </div>
 
         <div className="modal__body">
-          <nav className="dev-nav">
-            {NAV.map((item) => {
-              const Icon = item.icon
+          <p className="settings-hint">{t('dev_hint')}</p>
+          {!receiptPrinter && <p className="settings-hint">{t('no_receipt_printer')}</p>}
+          <div className="dev-tiles">
+            {CATS.map((cat) => {
+              const Icon = cat.icon
+              const isBusy = busy === cat.key
               return (
                 <button
-                  key={item.key}
+                  key={cat.key}
                   type="button"
-                  className={`dev-nav__item ${screen === item.key ? 'is-active' : ''}`}
-                  onClick={() => setScreen(item.key)}
+                  className="dev-tile"
+                  onClick={() => runPrint(cat)}
+                  disabled={!receiptPrinter || !!busy}
                 >
-                  <Icon size={20} /> <span>{item.label}</span>
+                  <Icon size={28} />
+                  <span className="dev-tile__label">{cat.label}</span>
+                  <span className="dev-tile__hint">{isBusy ? t('dev_printing') : t('print')}</span>
                 </button>
               )
             })}
-          </nav>
-
-          <div className="dev-content">
-            {screen === 'print' && (
-              <div className="dev-screen">
-                <div className="dev-screen__head">
-                  <h3><Printer size={20} /> {t('print')}</h3>
-                </div>
-                <p className="settings-hint">{t('dev_hint')}</p>
-                {!receiptPrinter && <p className="settings-hint">{t('no_receipt_printer')}</p>}
-                <div className="dev-tiles">
-                  {CATS.map((cat) => {
-                    const Icon = cat.icon
-                    const isBusy = busy === cat.key
-                    return (
-                      <button
-                        key={cat.key}
-                        type="button"
-                        className="dev-tile"
-                        onClick={() => runPrint(cat)}
-                        disabled={!receiptPrinter || !!busy}
-                      >
-                        <Icon size={28} />
-                        <span className="dev-tile__label">{cat.label}</span>
-                        <span className="dev-tile__hint">{isBusy ? t('dev_printing') : t('print')}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {screen === 'staff' && canManage && <StaffManagerPanel />}
-            {screen === 'rights' && canManage && <StaffRightsPanel />}
-            {screen === 'warehouse' && canManage && <WarehouseWritePanel />}
           </div>
         </div>
       </div>
