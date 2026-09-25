@@ -3,6 +3,7 @@ import { reportsService } from "../api/reports";
 import Icon from "../components/Icon";
 import ReportDateRangePicker from "../components/ReportDateRangePicker";
 import ReportEmptyState from "../components/ReportEmptyState";
+import { reportCacheKey, readReportCache, writeReportCache } from "./reports/reportResultCache";
 import ReportMultiSelect from "../components/ReportMultiSelect";
 import { exportToExcel } from "../utils/excel";
 import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/useAsyncSafety";
@@ -226,13 +227,21 @@ export default function DishesReportPage() {
     const request = beginRequest();
     const dateFrom = toApiDate(dateRange.start);
     const dateTo = toApiDate(dateRange.end);
-    setLoading(true);
     setError("");
     if (!isOrderedDateRange(dateFrom, dateTo)) {
       setRows([]);
       setError("Дата начала периода не может быть позже даты окончания.");
       setLoading(false);
       return;
+    }
+    const cacheKey = reportCacheKey("dishes", { dateFrom, dateTo, filters: appliedFilters });
+    const cached = readReportCache(cacheKey);
+    if (cached) {
+      setRows(cached.rows);
+      setTotals(cached.totals);
+      setLoading(false);
+    } else {
+      setLoading(true);
     }
     reportsService.listDishes(dateFrom, dateTo, { filters: appliedFilters, signal: request.signal })
       .then(({ data }) => {
@@ -241,6 +250,7 @@ export default function DishesReportPage() {
         // Dual-shape bridge: canonical object keeps backend totals verbatim;
         // legacy array falls back to transitional client totals.
         const normalized = normalizeDishesReportResponse(data);
+        writeReportCache(cacheKey, { rows: normalized.rows, totals: normalized.totals });
         setRows(normalized.rows);
         setTotals(normalized.totals);
       })
@@ -510,8 +520,8 @@ export default function DishesReportPage() {
                 </tr>
               ))}
               {!filteredRows.length ? (
-                <tr className="report-empty-row" aria-hidden={loading || undefined}>
-                  <td colSpan="5"><ReportEmptyState title="Блюд не найдено" hidden={loading} /></td>
+                <tr className="report-empty-row">
+                  <td colSpan="5"><ReportEmptyState title="Блюд не найдено" loading={loading} /></td>
                 </tr>
               ) : null}
             </tbody>
