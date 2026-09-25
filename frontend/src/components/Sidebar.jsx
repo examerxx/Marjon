@@ -17,7 +17,6 @@ import SidebarMobileNav from "./sidebar/SidebarMobileNav";
 export default function Sidebar({ user, collapsed, onToggle }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const closePopoverTimer = useRef(null);
   const closeAccountTimer = useRef(null);
   const [openMenu, setOpenMenu] = useState("");
   const [pinnedMenu, setPinnedMenu] = useState("");
@@ -74,7 +73,6 @@ export default function Sidebar({ user, collapsed, onToggle }) {
   }, [user?.id]);
 
   useEffect(() => () => {
-    if (closePopoverTimer.current) clearTimeout(closePopoverTimer.current);
     if (closeAccountTimer.current) clearTimeout(closeAccountTimer.current);
   }, []);
 
@@ -118,19 +116,16 @@ export default function Sidebar({ user, collapsed, onToggle }) {
 
   function openCollapsedPopover(key) {
     if (collapsed && accountOpen) return;
-    if (closePopoverTimer.current) clearTimeout(closePopoverTimer.current);
     setHoverMenu(key);
   }
 
   function closeCollapsedPopover() {
-    if (closePopoverTimer.current) clearTimeout(closePopoverTimer.current);
-    closePopoverTimer.current = setTimeout(() => setHoverMenu(""), 260);
+    setHoverMenu("");
   }
 
   function openCollapsedAccount() {
     if (closeAccountTimer.current) clearTimeout(closeAccountTimer.current);
     if (collapsed) {
-      if (closePopoverTimer.current) clearTimeout(closePopoverTimer.current);
       setHoverMenu("");
       setAccountOpen(true);
     }

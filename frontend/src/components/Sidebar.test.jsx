@@ -97,6 +97,35 @@ describe("OWNER Sidebar", () => {
     expect(collapsedInlineSubmenus).toHaveLength(0);
   });
 
+  it("opens collapsed subcategories from the category hover band and keeps the popover reachable", () => {
+    renderSidebar(users.owner, "/", true);
+
+    const reportsButton = screen.getByRole("button", { name: "Отчеты" });
+    const reportsItem = reportsButton.closest(".sidebar-nav-item");
+    const reportsPopover = reportsItem.querySelector(".sidebar-collapsed-popover");
+
+    fireEvent.mouseEnter(reportsItem);
+    expect(reportsItem).toHaveClass("has-popover");
+    expect(reportsButton).toHaveAttribute("aria-expanded", "true");
+    expect(reportsPopover.style.top).not.toBe("");
+
+    fireEvent.mouseEnter(reportsPopover);
+    expect(reportsItem).toHaveClass("has-popover");
+
+    fireEvent.mouseLeave(reportsItem);
+    expect(reportsItem).not.toHaveClass("has-popover");
+    expect(reportsButton).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.mouseEnter(reportsItem);
+    const dashboardItem = screen
+      .getByRole("navigation", { name: "Навигация" })
+      .querySelector('a.sidebar-link[href="/"]')
+      .closest(".sidebar-nav-item");
+    fireEvent.mouseEnter(dashboardItem);
+    expect(reportsItem).not.toHaveClass("has-popover");
+    expect(reportsButton).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("keeps operational role links under OWNER staff management", () => {
     renderSidebar(users.owner);
 

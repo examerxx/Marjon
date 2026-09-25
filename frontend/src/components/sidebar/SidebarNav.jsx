@@ -1,8 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Icon from "../Icon";
 
-const SUBMENU_RETRACT_MS = 260;
+const SUBMENU_RETRACT_MS = 320;
 
 // Десктопное дерево навигации сайдбара OWNER.
 // Вынесено из Sidebar.jsx (FE-07B). Разметка, классы и поведение сохранены 1:1;
@@ -42,35 +42,37 @@ export default function SidebarNav({
     return () => clearTimeout(timer);
   }, [retracting]);
 
-  useLayoutEffect(() => {
-    if (!collapsed || !hoverMenu) return;
-    const host = popoverHosts.current.get(hoverMenu);
+  const syncCollapsedPopoverPlacement = useCallback((key) => {
+    if (!collapsed || !key) return;
+    const host = popoverHosts.current.get(key);
     const popover = host?.querySelector(".sidebar-collapsed-popover");
     if (!host || !popover) return;
 
     const sidebar = host.closest(".dashboard-sidebar");
     const topbar = document.querySelector(".dashboard-topbar");
     const account = sidebar?.querySelector(".sidebar-account");
-    const measurePopover = () => {
-      const hostRect = host.getBoundingClientRect();
-      const popoverRect = popover.getBoundingClientRect();
-      const topbarBottom = topbar?.getBoundingClientRect().bottom || 0;
-      const accountTop = account?.getBoundingClientRect().top || window.innerHeight;
-      const topBoundary = Math.max(8, topbarBottom + 8);
-      const bottomBoundary = Math.min(window.innerHeight - 8, accountTop - 8);
-      const maxTop = Math.max(topBoundary, bottomBoundary - popoverRect.height);
-      const viewportTop = Math.min(Math.max(hostRect.top, topBoundary), maxTop);
-      const top = Math.round(viewportTop - hostRect.top);
+    const hostRect = host.getBoundingClientRect();
+    const popoverRect = popover.getBoundingClientRect();
+    const topbarBottom = topbar?.getBoundingClientRect().bottom || 0;
+    const accountTop = account?.getBoundingClientRect().top || window.innerHeight;
+    const topBoundary = Math.max(8, topbarBottom + 8);
+    const bottomBoundary = Math.min(window.innerHeight - 8, accountTop - 8);
+    const maxTop = Math.max(topBoundary, bottomBoundary - popoverRect.height);
+    const viewportTop = Math.min(Math.max(hostRect.top, topBoundary), maxTop);
+    const top = Math.round(viewportTop - hostRect.top);
 
-      setPopoverPlacement((current) => (
-        current.key === hoverMenu && current.top === top ? current : { key: hoverMenu, top }
-      ));
-    };
+    setPopoverPlacement((current) => (
+      current.key === key && current.top === top ? current : { key, top }
+    ));
+  }, [collapsed]);
 
+  useLayoutEffect(() => {
+    if (!collapsed || !hoverMenu) return;
+    const measurePopover = () => syncCollapsedPopoverPlacement(hoverMenu);
     measurePopover();
     window.addEventListener("resize", measurePopover);
     return () => window.removeEventListener("resize", measurePopover);
-  }, [collapsed, hoverMenu, visibleNavItems]);
+  }, [collapsed, hoverMenu, syncCollapsedPopoverPlacement, visibleNavItems]);
 
   return (
     <div className="sidebar-nav-scroll">
@@ -95,6 +97,10 @@ export default function SidebarNav({
               className={`sidebar-nav-item has-submenu ${active ? "is-active" : ""} ${submenuOpen ? "is-open" : ""} ${popoverOpen ? "has-popover" : ""}`}
               onMouseEnter={() => {
                 if (collapsed) {
+                  // Hidden popovers still have measurable geometry. Resolve the
+                  // constrained top before opening so the first visible frame is
+                  // already in its final position instead of jumping afterwards.
+                  syncCollapsedPopoverPlacement(item.key);
                   openCollapsedPopover(item.key);
                 }
               }}
@@ -147,8 +153,6 @@ export default function SidebarNav({
                 <div
                   className="sidebar-collapsed-popover"
                   style={popoverPlacement.key === item.key ? { top: `${popoverPlacement.top}px` } : undefined}
-                  onMouseEnter={() => openCollapsedPopover(item.key)}
-                  onMouseLeave={closeCollapsedPopover}
                 >
                   {item.children.map((child) => (
                     <Link
@@ -174,7 +178,13 @@ export default function SidebarNav({
         }
 
         return (
-          <div key={item.key} className={`sidebar-nav-item ${active ? "is-active" : ""}`}>
+          <div
+            key={item.key}
+            className={`sidebar-nav-item ${active ? "is-active" : ""}`}
+            onMouseEnter={() => {
+              if (collapsed) closeCollapsedPopover();
+            }}
+          >
             <Link
               className={`sidebar-link ${active ? "is-active" : ""}`}
               to={item.to}

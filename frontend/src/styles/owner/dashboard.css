@@ -6527,12 +6527,30 @@ body.dashboard-body .dashboard-shell .sidebar-submenu__icon svg * {
   stroke: rgba(11, 31, 63, 0.6);
 }
 /* ---- Collapsed flyout popover ---- */
-body.dashboard-body .sidebar-collapsed-popover {
+body.dashboard-body .dashboard-sidebar.is-collapsed .sidebar-collapsed-popover {
   background: #ffffff;
   color: var(--neutral-900, #0b1f3f);
   border: 1px solid rgba(15, 35, 60, 0.10);
   box-shadow: 0 18px 30px -16px rgba(15, 35, 60, 0.24),
     0 8px 18px -14px rgba(15, 35, 60, 0.14);
+  transform: none;
+  transition: none;
+}
+body.dashboard-body .dashboard-sidebar.is-collapsed .sidebar-nav-item.has-popover .sidebar-collapsed-popover {
+  transform: none;
+  transform-origin: left center;
+  transition: none;
+  animation: owner-collapsed-popover-in 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes owner-collapsed-popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__link {
   color: rgba(11, 31, 63, 0.82);
@@ -7021,6 +7039,8 @@ body.dashboard-body .dashboard-shell .premium-kpi--expense .premium-kpi__icon sv
    state-invariance rule below owns one normal non-inset box-shadow for every
    parent/child state, so depth stays outside the surface and cannot repaint. */
 body.dashboard-body .dashboard-shell .sidebar-submenu {
+  --owner-submenu-motion-ms: 320ms;
+  --owner-submenu-motion-easing: cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
   display: grid;
   position: relative;
@@ -7029,6 +7049,7 @@ body.dashboard-body .dashboard-shell .sidebar-submenu {
   max-width: var(--owner-sidebar-content-w, 268px);
   height: 0;
   max-height: none;
+  margin-top: 0;
   margin-left: 0;
   margin-right: 0;
   padding: 0 4px;
@@ -7041,8 +7062,11 @@ body.dashboard-body .dashboard-shell .sidebar-submenu {
   pointer-events: none;
   transform: none;
   interpolate-size: allow-keywords;
-  transition: height 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1), padding 180ms ease, border-width 180ms ease,
+  transition: height var(--owner-submenu-motion-ms) var(--owner-submenu-motion-easing),
+    opacity var(--owner-submenu-motion-ms) var(--owner-submenu-motion-easing),
+    margin-top var(--owner-submenu-motion-ms) var(--owner-submenu-motion-easing),
+    padding var(--owner-submenu-motion-ms) var(--owner-submenu-motion-easing),
+    border-width var(--owner-submenu-motion-ms) var(--owner-submenu-motion-easing),
     width 180ms cubic-bezier(0.22, 1, 0.36, 1),
     min-width 180ms cubic-bezier(0.22, 1, 0.36, 1),
     max-width 180ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -7110,7 +7134,10 @@ body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu.is-open > .si
    max-height:none -> 0 and translate combination could not interpolate and left
    residual padding/borders behind, which made the panel and active parent jerk. */
 body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu.is-open .sidebar-submenu {
+  --owner-submenu-motion-ms: 220ms;
+  --owner-submenu-motion-easing: cubic-bezier(0.22, 1, 0.36, 1);
   height: auto;
+  margin-top: 0;
   padding: 4px;
   border-width: 1px;
   opacity: 1;
@@ -7120,7 +7147,7 @@ body.dashboard-body .dashboard-shell .sidebar-nav-item.has-submenu.is-open .side
    layout. Its fixed expanded width would otherwise push the 56px icon button
    outside the rail; the dedicated collapsed popover remains the submenu UI.
    Height is NOT pinned here: while an open category retracts, the item height is
-   driven by the panel closing on the same 220ms rhythm, so the rail collapses in
+   driven by the panel closing on the same 320ms rhythm, so the rail collapses in
    ONE motion instead of the panel snapping away. react-overrides pins
    height/max-height 56px + row direction on this node, so both are released
    explicitly (higher specificity) and the axis is forced back to column — the
@@ -7304,6 +7331,7 @@ body.dashboard-body .dashboard-shell .sidebar-submenu__link:not(.is-active):focu
   body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__link,
   body.dashboard-body .sidebar-collapsed-popover .sidebar-collapsed-popover__icon {
     transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
   }
 }
 
@@ -7917,6 +7945,15 @@ body.dashboard-body .dashboard-shell .warehouse-summary-item:focus-visible {
     align-items: flex-start;
   }
 
+  body.dashboard-body .dashboard-shell .dashboard-sidebar .sidebar-nav-item.has-submenu {
+    display: flex;
+    flex-direction: column;
+  }
+
+  body.dashboard-body .dashboard-shell .dashboard-sidebar .sidebar-nav-item.has-submenu > .sidebar-link--button {
+    margin-block: 0;
+  }
+
   body.dashboard-body .dashboard-shell .dashboard-sidebar .sidebar-nav-item,
   body.dashboard-body .dashboard-shell .dashboard-sidebar .sidebar-link,
   body.dashboard-body .dashboard-shell .dashboard-sidebar .sidebar-link--button {
@@ -8210,6 +8247,15 @@ body.dashboard-body .dashboard-shell .warehouse-summary-item:focus-visible {
     max-height: 46px;
   }
 
+  /* A submenu parent owns its natural height while the panel retracts. This
+     lets every category below it follow the same 320ms geometry instead of
+     snapping back on the generic 180ms row-height rule. */
+  body.dashboard-body .dashboard-shell .dashboard-sidebar:not(.is-collapsed) .sidebar-nav-item.has-submenu {
+    height: auto;
+    min-height: 46px;
+    max-height: none;
+  }
+
   body.dashboard-body .dashboard-shell .dashboard-sidebar:not(.is-collapsed) .sidebar-link.is-active {
     border-radius: 24px;
   }
@@ -8253,6 +8299,39 @@ body.dashboard-body .dashboard-shell .warehouse-summary-item:focus-visible {
     height: 56px;
     min-height: 56px;
     max-height: 56px;
+  }
+
+  body.dashboard-body .dashboard-shell .dashboard-sidebar.is-collapsed .sidebar-nav-item.has-submenu {
+    height: auto;
+    min-height: 56px;
+    max-height: none;
+  }
+
+  /* The visible tile remains 56×56 and never moves. Its hover target expands
+     to the full 88px rail and halfway through the 12px vertical gaps: exactly
+     one non-overlapping horizontal band per icon. */
+  body.dashboard-body .dashboard-shell .dashboard-sidebar.is-collapsed .sidebar-nav-item::before {
+    content: "";
+    position: absolute;
+    inset: -6px -16px;
+    z-index: 0;
+    pointer-events: auto;
+    background: transparent;
+  }
+
+  body.dashboard-body .dashboard-shell .dashboard-sidebar.is-collapsed .sidebar-nav-item > .sidebar-link,
+  body.dashboard-body .dashboard-shell .dashboard-sidebar.is-collapsed .sidebar-nav-item > .sidebar-link--button {
+    position: relative;
+    z-index: 1;
+  }
+
+  body.dashboard-body .dashboard-shell .dashboard-sidebar.is-collapsed .sidebar-nav-item.has-popover > .sidebar-link--button:not(.is-active) {
+    background: rgba(29, 181, 181, 0.07);
+    box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.07);
+  }
+
+  body.dashboard-body .dashboard-shell .dashboard-sidebar.is-collapsed .sidebar-collapsed-popover {
+    z-index: 2;
   }
 
   body.dashboard-body .dashboard-shell .dashboard-sidebar.is-collapsed .sidebar-link > span:not(.sidebar-icon),
