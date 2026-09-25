@@ -3,15 +3,51 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("owner sidebar collapse motion", () => {
+  it("keeps submenu opening responsive and synchronizes closing with React retention", () => {
+    const css = readFileSync(resolve("src/styles/owner/dashboard.css"), "utf8").replaceAll("\r\n", "\n");
+    const panel = css.slice(
+      css.indexOf("OWNER expanded subcategory panel"),
+      css.indexOf("OWNER sidebar MOTION + ICON cleanup"),
+    );
+
+    expect(panel).toContain("--owner-submenu-motion-ms: 320ms;");
+    expect(panel).toContain("--owner-submenu-motion-easing: cubic-bezier(0.4, 0, 0.2, 1);");
+    expect(panel).toContain("height var(--owner-submenu-motion-ms)");
+    expect(panel).toContain("opacity var(--owner-submenu-motion-ms)");
+    expect(panel).toContain("margin-top var(--owner-submenu-motion-ms)");
+    expect(panel).toContain("padding var(--owner-submenu-motion-ms)");
+    expect(panel).toContain("border-width var(--owner-submenu-motion-ms)");
+    expect(panel).toMatch(/\.sidebar-nav-item\.has-submenu\.is-open \.sidebar-submenu\s*\{[^}]*--owner-submenu-motion-ms:\s*220ms;[^}]*--owner-submenu-motion-easing:\s*cubic-bezier\(0\.22, 1, 0\.36, 1\);/s);
+    expect(panel).toMatch(/\.sidebar-nav-item\.has-submenu\.is-open \.sidebar-submenu\s*\{[^}]*margin-top:\s*0;/s);
+  });
+
+  it("gives collapsed flyouts a light stationary entrance animation", () => {
+    const css = readFileSync(resolve("src/styles/owner/dashboard.css"), "utf8").replaceAll("\r\n", "\n");
+    const flyout = css.slice(
+      css.indexOf("Collapsed flyout popover"),
+      css.indexOf("OWNER sidebar NAVIGATION search"),
+    );
+
+    expect(flyout).toMatch(/\.dashboard-sidebar\.is-collapsed \.sidebar-collapsed-popover\s*\{[^}]*transform:\s*none;[^}]*transition:\s*none;/s);
+    expect(flyout).toMatch(/\.sidebar-nav-item\.has-popover \.sidebar-collapsed-popover\s*\{[^}]*transform-origin:\s*left center;[^}]*transition:\s*none;[^}]*animation:\s*owner-collapsed-popover-in 160ms cubic-bezier\(0\.22, 1, 0\.36, 1\) both;/s);
+    expect(flyout).toMatch(/@keyframes owner-collapsed-popover-in\s*\{[\s\S]*?transform:\s*scale\(0\.99\);[\s\S]*?transform:\s*scale\(1\);/s);
+  });
+
   it("keeps rail, category wrappers and buttons on one 180ms geometry track", () => {
     const css = readFileSync(resolve("src/styles/owner/dashboard.css"), "utf8").replaceAll("\r\n", "\n");
     const contract = css.slice(css.indexOf("OWNER sidebar collapse motion contract"));
 
     expect(contract).toContain(".dashboard-sidebar .sidebar-nav-item");
     expect(contract).toContain(".dashboard-sidebar .sidebar-link--button");
+    expect(contract).toMatch(/\.dashboard-sidebar \.sidebar-nav-item\.has-submenu\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s);
+    expect(contract).toMatch(/\.sidebar-nav-item\.has-submenu > \.sidebar-link--button\s*\{[^}]*margin-block:\s*0;/s);
     expect(contract).toContain("width 180ms ease");
     expect(contract).toContain("height 180ms ease");
     expect(contract).toContain(".sidebar-nav-item:not(.is-open)");
+    expect(contract).toMatch(/\.dashboard-sidebar:not\(\.is-collapsed\) \.sidebar-nav-item\.has-submenu\s*\{[^}]*height:\s*auto;[^}]*min-height:\s*46px;[^}]*max-height:\s*none;/s);
+    expect(contract).toMatch(/\.dashboard-sidebar\.is-collapsed \.sidebar-nav-item\.has-submenu\s*\{[^}]*height:\s*auto;[^}]*min-height:\s*56px;[^}]*max-height:\s*none;/s);
+    expect(contract).toMatch(/\.dashboard-sidebar\.is-collapsed \.sidebar-nav-item::before\s*\{[^}]*inset:\s*-6px -16px;[^}]*pointer-events:\s*auto;/s);
+    expect(contract).toMatch(/\.sidebar-nav-item\.has-popover > \.sidebar-link--button:not\(\.is-active\)\s*\{[^}]*background:\s*rgba\(29, 181, 181, 0\.07\);/s);
     expect(contract).toContain(".sidebar-nav-item.has-submenu .sidebar-link__chevron");
     expect(contract).toContain("grid-template-columns 180ms ease");
     expect(contract).toContain("grid-template-columns: 22px minmax(0, 0fr) 0;");
