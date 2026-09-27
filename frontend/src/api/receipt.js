@@ -18,7 +18,6 @@ export const CUSTOMER_BLOCKS = [
   "vat",
   "total",
   "paymentMethod",
-  "qr",
   "thankYouText",
   "footerText",
 ];
@@ -50,7 +49,6 @@ export const CUSTOMER_BLOCK_LABELS = {
   vat: "НДС",
   total: "Итого",
   paymentMethod: "Способ оплаты",
-  qr: "QR",
   thankYouText: "Текст благодарности",
   footerText: "Нижний текст",
 };
@@ -91,7 +89,6 @@ export function buildCustomerTemplate(org = {}) {
   enabled.logo = true;
   enabled.address = false;
   enabled.phone = false;
-  enabled.qr = false;
   enabled.vat = false;
 
   return {
@@ -112,7 +109,6 @@ export function buildCustomerTemplate(org = {}) {
     positions: {
       logo: { x: 0, y: 0 },
       restaurantName: { x: 0, y: 0 },
-      qr: { x: 0, y: 0 },
       thankYouText: { x: 0, y: 0 },
       footerText: { x: 0, y: 0 },
     },

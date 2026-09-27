@@ -1,0 +1,757 @@
+/* Settings receipt and kitchen receipt pages -- scoped presentation.
+   Imported by ReceiptSettingsPage.jsx and ChefReceiptSettingsPage.jsx. Reuses
+   the accepted OWNER `settings-owner-view` foundation for the outer card/header;
+    the rules below add the two-column editor-preview layout, the sticky large
+   preview, the #1FC9C9 primary action, and reference-like dense block controls.
+   No edits to shared settings.css / receipt.css. */
+
+/* -- Header actions ------------------------------------------------ */
+/* Title + secondary actions share ONE header row. The row uses the same
+   two-column grid as the workspace below, so the action group belongs to the
+   LEFT settings column: its right edge lands on the left pane's right edge
+   and it never floats above the receipt. */
+.receipt-settings-page .settings-header.receipt-header {
+  display: grid;
+  /* Second track is FIXED (not minmax): the header spacer is empty while the
+     workspace track holds the receipt, so minmax would resolve the two grids
+     to different widths and the actions would overshoot the left pane. */
+  grid-template-columns: minmax(0, 1fr) 440px;
+  gap: 22px;
+  align-items: center;
+}
+.receipt-settings-page .receipt-header-left {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+/* Title never wraps or shrinks; the action group takes the remaining row
+   width and wraps its buttons internally on narrow desktop (still centered
+   on the title, right edge pinned to the pane) instead of ever overflowing
+   past the left pane. Wide screens show the ideal single row. */
+.receipt-settings-page .receipt-header-left .settings-title-group {
+  flex: none;
+}
+.receipt-settings-page .receipt-header-left .receipt-editor-actions {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-content: center;
+  row-gap: 8px;
+}
+.receipt-settings-page .receipt-header-spacer {
+  min-width: 0;
+}
+@media (max-width: 1100px) {
+  .receipt-settings-page .settings-header.receipt-header {
+    grid-template-columns: 1fr;
+  }
+  .receipt-settings-page .receipt-header-spacer {
+    display: none;
+  }
+  .receipt-settings-page .receipt-header-left {
+    flex-wrap: wrap;
+  }
+}
+.receipt-settings-page .receipt-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.receipt-settings-page .receipt-btn-primary {
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid #1fc9c9;
+  border-radius: 12px;
+  background: #1fc9c9;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.receipt-settings-page .receipt-btn-primary:hover:not(:disabled),
+.receipt-settings-page .receipt-btn-primary:focus-visible:not(:disabled) {
+  border-color: #17b1b1;
+  background: #17b1b1;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.18);
+}
+.receipt-settings-page .receipt-btn-secondary {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(15, 35, 60, 0.16);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--neutral-800, #1e293b);
+  font-weight: 700;
+  cursor: pointer;
+}
+.receipt-settings-page .receipt-btn-secondary:hover:not(:disabled) {
+  border-color: rgba(31, 201, 201, 0.7);
+}
+.receipt-settings-page .receipt-btn-primary:disabled,
+.receipt-settings-page .receipt-btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* -- Banners ------------------------------------------------------- */
+.receipt-settings-page .receipt-banner {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.receipt-settings-page .receipt-banner--ok { background: rgba(0, 220, 59, 0.10); color: #15803d; }
+.receipt-settings-page .receipt-banner--error { background: rgba(239, 68, 68, 0.10); color: #b42318; }
+
+/* -- Two-column layout: settings editor (left) + sticky preview (right) -- */
+.receipt-settings-page .receipt-grid {
+  display: grid;
+  /* Fixed 440px preview track - matches the header grid exactly so the title
+     row and the workspace share one column geometry. */
+  grid-template-columns: minmax(0, 1fr) 440px;
+  gap: 22px;
+  align-items: start;
+}
+.receipt-settings-page .receipt-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+/* Left column: [secondary actions] + [scrolling editor] + [Save CTA footer]. */
+.receipt-settings-page .receipt-editor-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 12px;
+}
+.receipt-settings-page .receipt-editor-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+/* Secondary actions belong to the LEFT settings area: right-aligned to the
+   left pane's right edge, never over the receipt. */
+.receipt-settings-page .receipt-editor-actions--end {
+  justify-content: flex-end;
+}
+.receipt-settings-page .receipt-editor-save {
+  display: flex;
+  justify-content: flex-end;
+  padding: 2px 0 4px;
+}
+.receipt-settings-page .receipt-editor-save .receipt-save { min-width: 180px; }
+
+/* The preview column is top-anchored (never vertically centered), so changing
+    receipt height only grows/shrinks it downward - the top edge stays put. */
+.receipt-settings-page .receipt-preview-col {
+  align-self: start;
+}
+.receipt-settings-page .receipt-preview-shell {
+  align-items: center;      /* horizontal centering only */
+  justify-content: flex-start; /* anchor to top, no vertical re-centering */
+  /* Mockup stage: distinctly gray-blue backdrop (reference feel) so the
+     white paper reads as a separate floating object. */
+  background: linear-gradient(180deg, #E6EBF4 0%, #D7DFEB 100%);
+  border: 1px solid rgba(15, 35, 60, 0.06);
+  box-shadow: none;
+}
+
+/* Tighten the header so the workspace starts higher (more room for the
+   receipt, less internal scroll) without moving controls around. */
+.receipt-settings-page .settings-header { margin-bottom: 8px; }
+.receipt-settings-page .settings-accent-bar { height: 40px; }
+
+/* Let the receipt size to its content instead of a fixed 640px floor (which
+   created empty paper when few blocks are enabled), and trim the paper's
+    vertical padding a touch. Horizontal padding - hence line-wrapping - is
+   untouched, so the canonical 80/58mm geometry is preserved. */
+.receipt-settings-page .receipt-preview {
+  min-height: 0;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+/* Editor: subtle, narrow scrollbar. Preview: NO visible scrollbar at all
+    (hidden on both engines) - the user asked for no "spinners" on the receipt. */
+.receipt-settings-page .receipt-editor {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 35, 60, 0.22) transparent;
+}
+.receipt-settings-page .receipt-editor::-webkit-scrollbar { width: 8px; }
+.receipt-settings-page .receipt-editor::-webkit-scrollbar-thumb {
+  background: rgba(15, 35, 60, 0.18);
+  border-radius: 999px;
+}
+.receipt-settings-page .receipt-editor::-webkit-scrollbar-thumb:hover { background: rgba(15, 35, 60, 0.30); }
+.receipt-settings-page .receipt-editor::-webkit-scrollbar-track { background: transparent; }
+.receipt-settings-page .receipt-preview-col { scrollbar-width: none; -ms-overflow-style: none; }
+.receipt-settings-page .receipt-preview-col::-webkit-scrollbar { width: 0; height: 0; }
+
+/* -- Fixed two-pane on desktop: the page fills the content area below the
+    OWNER topbar. The LEFT column is [actions + scrolling editor] - Save lives
+   INSIDE the scrolling editor as its last block, so it appears only at the
+   bottom of the scroll. The RIGHT preview is stationary, top-anchored, and
+   fits the receipt WITHOUT any scrollbar (no sticky, no scroll listeners,
+   no fixed positioning). */
+@media (min-width: 1101px) {
+  .receipt-settings-page { flex: 1; min-height: 0; display: flex; }
+  .receipt-settings-page .settings-card {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    /* Stretch into the shell's own bottom padding (shell CSS is shared and
+        must not be touched): bottom outer gap lands ~30px - tighter than the
+        accepted top gap - and both panes gain the height. */
+    height: calc(100% + 22px);
+    margin-bottom: 0;
+    /* Trim the card's own bottom padding: the dead strip below the workspace
+       shrinks while the panes extend lower. Top/side padding untouched. */
+    padding-bottom: 10px;
+  }
+  .receipt-settings-page .receipt-grid { flex: 1; min-height: 0; }
+  .receipt-settings-page .receipt-editor-col { height: 100%; min-height: 0; }
+  .receipt-settings-page .receipt-editor {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding-right: 10px;
+  }
+  /* Preview: fill the pane height, anchor content to the top, NO scrollbar
+      of any kind - the receipt is visually scaled to fit (see fit rules).
+     The panel extends ABOVE the workspace grid into the header's empty
+     right zone (the header spacer column is intentionally blank), so its
+     top starts visibly higher than the left settings panel. The header
+     action buttons end well left of this zone, so nothing overlaps.
+     height compensates the negative offset: the bottom edge stays put. */
+  .receipt-settings-page .receipt-preview-col {
+    height: calc(100% + 44px);
+    min-height: 0;
+    margin-top: -44px;
+    overflow: hidden;
+  }
+}
+
+/* -- Fit-to-pane presentation (preview-only): the shell fills the right pane;
+   the viewport clips without scrollbars; the frame is sized by JS to the
+   scaled receipt box; the receipt stays horizontally centered via the flex
+   row. Logical receipt geometry is untouched. */
+.receipt-settings-page .receipt-preview-shell--fit {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.receipt-settings-page .receipt-fit-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+.receipt-settings-page .receipt-fit-frame {
+  flex: none;
+  overflow: hidden;
+  /* Shadow breathing room is sized in JS (FIT_PAD_*); the padding here must
+     match so the paper sits centered in the measured box. Compact: the fit
+     scale is height-bound, so spare vertical pads directly shrink the
+     rendered receipt. */
+  padding: 26px 12px 32px;
+  box-sizing: border-box;
+}
+@media (max-width: 1100px) {
+  .receipt-settings-page .receipt-fit-viewport { overflow: visible; }
+}
+
+/* -- Sub-cards ----------------------------------------------------- */
+.receipt-settings-page .receipt-subcard {
+  padding: 18px 18px 20px;
+  border: 1px solid rgba(15, 35, 60, 0.10);
+  border-radius: 16px;
+  background: #fff;
+}
+.receipt-settings-page .receipt-subcard__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.receipt-settings-page .receipt-subcard__head h3 { margin: 0; font-size: 16px; font-weight: 700; color: var(--neutral-950, #071428); }
+.receipt-settings-page .receipt-subcard__hint { color: var(--neutral-500, #64748b); font-size: 12px; font-weight: 500; }
+
+/* -- Fields ---------------------------------------------------------- */
+.receipt-settings-page .receipt-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.receipt-settings-page .receipt-field { display: grid; gap: 7px; color: var(--neutral-500, #64748b); font-size: 12px; font-weight: 500; }
+.receipt-settings-page .receipt-field--wide { grid-column: 1 / -1; margin-top: 14px; }
+.receipt-settings-page .receipt-field input,
+.receipt-settings-page .receipt-field select,
+.receipt-settings-page .receipt-field textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 13px;
+  border: 1px solid var(--blue-100, #d7e2f0);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--neutral-950, #071428);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  outline: none;
+}
+.receipt-settings-page .receipt-field textarea { min-height: 84px; resize: vertical; }
+.receipt-settings-page .receipt-field :is(input, select, textarea):focus {
+  border-color: #1fc9c9;
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.15);
+}
+.receipt-settings-page .receipt-toggle-field { display: flex; align-items: center; gap: 10px; align-self: end; min-height: 44px; color: var(--neutral-800, #1e293b); font-size: 13px; font-weight: 600; }
+.receipt-settings-page .receipt-paper-hint { margin: 12px 0 0; color: var(--neutral-500, #64748b); font-size: 12px; line-height: 1.4; }
+
+/* -- Preview card: enlarge the receipt (drop the 0.85 shrink -> canonical
+   410px/320px logical width, shown 1:1 so line-wrapping matches the ESC/POS
+    contract) and tighten the surrounding empty space. -- */
+.receipt-settings-page .receipt-preview-shell {
+  padding: 8px 12px 10px;
+  border-radius: 18px;
+  gap: 10px;
+}
+.receipt-settings-page .receipt-preview {
+  zoom: 1;
+}
+
+/* -- Brand alignment truthfulness: the shared `.receipt-preview__brand`
+   center rule would otherwise beat the block align modifiers (same
+   specificity, later in shared source), so an explicit user alignment would
+   show in the style editor + saved template + physical receipt but NOT in
+   this preview. Scoped override restores the agreement. */
+.receipt-settings-page .receipt-preview__brand.receipt-preview__block--align-left { text-align: left; }
+.receipt-settings-page .receipt-preview__brand.receipt-preview__block--align-center { text-align: center; }
+.receipt-settings-page .receipt-preview__brand.receipt-preview__block--align-right { text-align: right; }
+
+/* -- Minimal reference paper: clean thermal-receipt look scoped
+   to the settings preview. White paper, soft shadow, sans typography,
+   calm rules, tidy 3-column items. Widths/zoom/line-wrapping geometry and
+    all class/data contracts stay untouched - only presentation. -- */
+.receipt-settings-page .receipt-preview-shell .receipt-preview {
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  font-size: 15px;
+  line-height: 1.35;
+  color: #161616;
+  background: #fff;
+  border: 1px solid rgba(15, 35, 60, 0.05);
+  /* drop-shadow (not box-shadow): the torn-paper clip-path clips everything
+      painted by the element itself, including box-shadow - drop-shadow is
+     computed from the clipped alpha instead, so it follows the zigzag edge.
+     Wide soft lift + tight ambient contact, reference mockup feel. */
+  box-shadow: none;
+  filter:
+    drop-shadow(0 30px 34px rgba(15, 30, 60, 0.30))
+    drop-shadow(0 5px 12px rgba(15, 30, 60, 0.14));
+}
+/* Customer paper depth: 3-layer wrap-around lift (contact + diffuse +
+   all-round ambience) instead of one heavy downward cast. Reference feel:
+   soft, wide, noticeable but clean — no dirty halo. Customer-only so the
+   Kitchen preview keeps its accepted shadow byte-for-byte. drop-shadow
+   follows the zig-zag clip-path; offsets stay inside the FIT_PAD shadow
+   room so the frame never clips a visible edge. */
+.receipt-settings-page .receipt-preview-shell .receipt-preview--customer {
+  filter:
+    drop-shadow(0 1px 3px rgba(15, 30, 60, 0.22))
+    drop-shadow(0 14px 32px rgba(15, 30, 60, 0.22))
+    drop-shadow(0 0 20px rgba(15, 30, 60, 0.10));
+}
+.receipt-settings-page .receipt-preview .receipt-preview__brand {
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+}
+/* Header address/phone lines: calm centered gray, not bold. */
+.receipt-settings-page .receipt-preview .receipt-preview__brand-block b,
+.receipt-settings-page .receipt-preview .receipt-preview__customer-footer b {
+  font-weight: 400;
+  color: #3a3a3a;
+}
+/* Info rows: plain label left, semibold tabular value right, no separators. */
+.receipt-settings-page .receipt-preview .receipt-preview__info-row b {
+  font-weight: 400;
+  color: #222;
+}
+.receipt-settings-page .receipt-preview .receipt-preview__info-row span {
+  border-left: 0;
+  padding-left: 0;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+/* Items: simple 3-column table with a single calm header rule. */
+.receipt-settings-page .receipt-preview .receipt-preview__items {
+  font-size: 14px;
+}
+.receipt-settings-page .receipt-preview .receipt-preview__items-head,
+.receipt-settings-page .receipt-preview .receipt-preview__item-row {
+  grid-template-columns: minmax(0, 1fr) 56px 84px;
+  gap: 8px;
+}
+.receipt-settings-page .receipt-preview[data-paper-size="58"] .receipt-preview__items-head,
+.receipt-settings-page .receipt-preview[data-paper-size="58"] .receipt-preview__item-row {
+  grid-template-columns: minmax(0, 1fr) 48px 72px;
+  gap: 6px;
+}
+.receipt-settings-page .receipt-preview .receipt-preview__items-head {
+  padding-bottom: 6px;
+  border-bottom: 1px solid #1c1c1c;
+  font-weight: 800;
+  font-size: 13.5px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__item-row {
+  /* Item rows carry no borders: fixed reference rules render between
+     sections (solid) and after dishes/subtotals (dashed). */
+  border-top: 0;
+}
+.receipt-settings-page .receipt-preview .receipt-preview__item-row span:not(:first-child) {
+  font-variant-numeric: tabular-nums;
+}
+/* Totals: even rhythm, semibold values, strong final total. The total label
+   renders in mixed case (like the reference) so the longer
+   "Itogo k oplate:" copy fits one line next to the amount. */
+.receipt-settings-page .receipt-preview .receipt-preview__summary-row,
+.receipt-settings-page .receipt-preview .receipt-preview__payment-row {
+  font-size: 14.5px;
+}
+.receipt-settings-page .receipt-preview .receipt-preview__summary-row span,
+.receipt-settings-page .receipt-preview .receipt-preview__payment-row span {
+  font-weight: 400;
+  color: #222;
+}
+.receipt-settings-page .receipt-preview .receipt-preview__summary-row b,
+.receipt-settings-page .receipt-preview .receipt-preview__payment-row b,
+.receipt-settings-page .receipt-preview .receipt-preview__total b {
+  font-variant-numeric: tabular-nums;
+}
+.receipt-settings-page .receipt-preview .receipt-preview__total {
+  /* Mixed case (like the reference) + compact base so the longer
+      "Itogo k oplate:" copy fits one line next to the amount. Size mapping
+     still differentiates: standard 18px / large 1.12em / xlarge 1.28em.
+     Physical output is unaffected (formatter reads style names, not px). */
+  text-transform: none;
+  font-size: 18px;
+}
+/* Rules: thin solid section dividers, light dashed inner dividers. */
+.receipt-settings-page .receipt-preview .receipt-preview__rule {
+  border-top-color: #8a8a8a;
+}
+.receipt-settings-page .receipt-preview .receipt-preview__rule.is-solid {
+  border-top: 1px solid #1c1c1c;
+}
+/* Footer thanks: centered, bold, larger. */
+.receipt-settings-page .receipt-preview .receipt-preview__customer-footer strong {
+  font-size: 1.12em;
+}
+
+/* -- Logo block controls (inside the logo editor row): current thumbnail or
+    truthful empty state plus real upload/replace/remove actions. -- */
+.receipt-settings-page .receipt-logo-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(15, 35, 60, 0.12);
+}
+.receipt-settings-page .receipt-logo-thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border: 1px solid rgba(15, 35, 60, 0.10);
+  border-radius: 10px;
+  background: #fff;
+}
+.receipt-settings-page .receipt-logo-empty {
+  color: var(--neutral-500, #64748b);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.receipt-settings-page .receipt-logo-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+}
+.receipt-settings-page .receipt-logo-actions .receipt-btn-secondary {
+  min-height: 36px;
+}
+
+
+/* -- Reference-like dense block rows --------------------------------- */
+.receipt-settings-page .receipt-section-editor { display: flex; flex-direction: column; gap: 8px; }
+.receipt-settings-page .receipt-section-row {
+  padding: 10px 12px;
+  border: 1px solid rgba(15, 35, 60, 0.10);
+  border-radius: 12px;
+  background: var(--neutral-50, #f6f9fd);
+}
+.receipt-settings-page .receipt-section-row.is-enabled { background: #fff; border-color: rgba(31, 201, 201, 0.35); }
+.receipt-settings-page .receipt-section-row__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.receipt-settings-page .receipt-toggle { display: inline-flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 600; color: var(--neutral-900, #0b1f3f); cursor: pointer; }
+.receipt-settings-page .receipt-toggle input { width: 18px; height: 18px; accent-color: #1fc9c9; }
+.receipt-settings-page .receipt-section-row__actions { display: inline-flex; gap: 6px; }
+.receipt-settings-page .receipt-icon-btn {
+  width: 30px; height: 30px; display: grid; place-items: center;
+  border: 1px solid rgba(15, 35, 60, 0.14); border-radius: 8px; background: #fff; color: #0f99b8; cursor: pointer;
+}
+.receipt-settings-page .receipt-icon-btn:hover:not(:disabled) { border-color: rgba(31, 201, 201, 0.7); }
+.receipt-settings-page .receipt-icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.receipt-settings-page .receipt-section-row__style {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.receipt-settings-page .receipt-segment-group { display: grid; gap: 5px; }
+.receipt-settings-page .receipt-segment-group > span { color: var(--neutral-500, #64748b); font-size: 11px; font-weight: 600; }
+.receipt-settings-page .receipt-segments { display: inline-flex; gap: 4px; padding: 3px; border: 1px solid rgba(15, 35, 60, 0.10); border-radius: 10px; background: var(--neutral-50, #f6f9fd); }
+.receipt-settings-page .receipt-segments button {
+  flex: 1; min-height: 28px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent;
+  color: var(--neutral-600, #475569); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.receipt-settings-page .receipt-segments button.is-active { background: #1fc9c9; color: #fff; }
+
+/* -- Responsive: stack + disable sticky on narrow layouts -------------- */
+@media (max-width: 1100px) {
+  .receipt-settings-page .receipt-grid { grid-template-columns: 1fr; }
+  .receipt-settings-page .receipt-preview-col { justify-self: center; }
+}
+
+/* -- Thermal receipt visual alignment (customer only) --------------------
+   Brings the CUSTOMER receipt preview to a real 80mm thermal look:
+   larger readable type, open vertical rhythm, breathing room around the
+   fixed reference rules. Presentation only: no geometry/API/logic change.
+   Scoped to `.receipt-preview--customer` so the Kitchen receipt (same
+   shared classes, `--kitchen` modifier, ChefReceiptSettingsPage) is
+   byte-for-byte untouched. Plain cascade only, zero override hacks. */
+.receipt-settings-page .receipt-preview-shell .receipt-preview--customer {
+  font-size: 17.5px;
+  line-height: 1.5;
+}
+/* Brand header: bigger name, air above/below, centered stack. */
+.receipt-settings-page .receipt-preview--customer .receipt-preview__brand-block {
+  gap: 7px;
+  margin-bottom: 12px;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__brand {
+  font-size: 27pt;
+  line-height: 1.08;
+  font-weight: 700;
+}
+/* Calibrated per-block size/weight scales: each rule below reproduces the
+   approved default template value for that block's default option, so the
+   accepted visual is pixel-identical until the user explicitly picks another
+   option. Only then does the preview change — truthfully. */
+.receipt-settings-page .receipt-preview--customer .receipt-preview__brand.receipt-preview__block--size-large {
+  font-size: 30pt;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__brand.receipt-preview__block--size-xlarge {
+  font-size: 34pt;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__brand.receipt-preview__block--weight-bold {
+  font-weight: 900;
+}
+/* Logo ON: real company logo, centered, thermal-sized. Logo OFF renders no
+   node at all, so no gap appears above the name. */
+.receipt-settings-page .receipt-preview--customer .receipt-preview__logo {
+  width: 54px;
+  height: 54px;
+  margin: 2px auto 4px;
+}
+/* Header contact lines: calm centered running text. */
+.receipt-settings-page .receipt-preview--customer .receipt-preview__brand-block b {
+  line-height: 1.5;
+}
+/* Order info: label left (regular), value right (semibold, tabular), open
+   rows, no separator glyphs — like a real receipt. */
+.receipt-settings-page .receipt-preview--customer .receipt-preview__info {
+  gap: 5px;
+  margin: 8px 0;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__info-row {
+  align-items: baseline;
+  line-height: 1.4;
+}
+/* Info-row weight: labels are pinned regular by the base rule, so an
+   explicit winning rule is required — otherwise the Bold control is dead.
+   Note: default orderNumber/dateTime templates use weight=bold, therefore
+   their labels now render bold in preview — converging with the physical
+   ESC/POS formatter, which already applies BOLD_ON for these blocks. */
+.receipt-settings-page .receipt-preview--customer .receipt-preview__info-row.receipt-preview__block--weight-bold b {
+  font-weight: 700;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__info-row span {
+  border-left: 0;
+  padding-left: 0;
+}
+/* Items: bold header, readable rows, air between rows, NO divider after
+   every dish (fixed reference rules separate sections instead). Long names
+   wrap safely, amounts never break the layout. */
+.receipt-settings-page .receipt-preview--customer .receipt-preview__items {
+  font-size: 17px;
+}
+/* The size class lands on the items wrapper while the inner list carries a
+   fixed size, so the scale must be re-applied inside (standard = base). */
+.receipt-settings-page .receipt-preview--customer .receipt-preview__block--size-large .receipt-preview__items {
+  font-size: 19px;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__block--size-xlarge .receipt-preview__items {
+  font-size: 21.5px;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__block--size-large .receipt-preview__payment-row {
+  font-size: 19px;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__block--size-xlarge .receipt-preview__payment-row {
+  font-size: 21.5px;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__items-head {
+  /* No border here: the single separator under the head is the fixed solid
+     ReceiptRule rendered by CustomerItems. A border would double the line. */
+  border-bottom: 0;
+  padding-bottom: 6px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__items-head span:nth-child(2),
+.receipt-settings-page .receipt-preview--customer .receipt-preview__item-row span:nth-child(2) {
+  text-align: center;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__item-row {
+  padding: 4px 0;
+  border-top: 0;
+  line-height: 1.4;
+}
+/* Subtotal/service + payment rows: running size, calm labels, tabular
+   amounts, open rhythm. */
+.receipt-settings-page .receipt-preview--customer .receipt-preview__summary,
+.receipt-settings-page .receipt-preview--customer .receipt-preview__payments {
+  gap: 4px;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__summary-row,
+.receipt-settings-page .receipt-preview--customer .receipt-preview__payment-row {
+  font-size: 17px;
+  line-height: 1.4;
+}
+/* Grand total: the single financial accent — bold, clearly larger than
+   subtotal/service, label left / value right, air around it (top breathing
+   room slightly larger than the bottom one). */
+.receipt-settings-page .receipt-preview--customer .receipt-preview__total {
+  margin: 14px 0 8px;
+  font-size: 21px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__total.receipt-preview__block--size-large {
+  font-size: 23px;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__total.receipt-preview__block--size-xlarge {
+  font-size: 25px;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__total.receipt-preview__block--weight-bold {
+  font-weight: 900;
+}
+/* Fixed reference rules: normal breathing space above/below, like the
+   reference receipt. Rule style contract (solid sections / light dashed
+   inner) is unchanged. */
+.receipt-settings-page .receipt-preview--customer .receipt-preview__rule {
+  margin: 10px 0;
+}
+/* Dashed inner separators: softer than section solids — they divide blocks
+   without competing with text or the grand total. Solids stay #1c1c1c. */
+.receipt-settings-page .receipt-preview--customer .receipt-preview__rule:not(.is-solid) {
+  border-top-color: #b0b0b0;
+}
+/* Footer: readable centered thank-you with distance from the money block;
+   lower contact lines calm and centered. */
+.receipt-settings-page .receipt-preview--customer .receipt-preview__customer-footer {
+  gap: 7px;
+  margin: 20px 0 10px;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__customer-footer strong {
+  font-size: 1.1em;
+  line-height: 1.5;
+  font-weight: 500;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__customer-footer strong.receipt-preview__block--size-large {
+  font-size: 1.21em;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__customer-footer strong.receipt-preview__block--size-xlarge {
+  font-size: 1.35em;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__customer-footer strong.receipt-preview__block--weight-bold {
+  font-weight: 600;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__customer-footer b {
+  font-size: 0.95em;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #3a3a3a;
+}
+.receipt-settings-page .receipt-preview--customer .receipt-preview__customer-footer b.receipt-preview__block--weight-bold {
+  font-weight: 500;
+}
+/* 58mm: same rhythm, proportionally smaller type so the total still fits
+   one line next to its amount. */
+.receipt-settings-page .receipt-preview-shell .receipt-preview--customer[data-paper-size="58"] {
+  font-size: 15.5px;
+}
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__brand {
+  font-size: 22pt;
+}
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__brand.receipt-preview__block--size-large {
+  font-size: 24pt;
+}
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__brand.receipt-preview__block--size-xlarge {
+  font-size: 27pt;
+}
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__logo {
+  width: 44px;
+  height: 44px;
+}
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__items {
+  font-size: 14.5px;
+}
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__block--size-large .receipt-preview__items {
+  font-size: 16px;
+}
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__block--size-xlarge .receipt-preview__items {
+  font-size: 18px;
+}
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__items-head {
+  font-size: 13.5px;
+}
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__summary-row,
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__payment-row {
+  font-size: 15px;
+}
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__total {
+  font-size: 18px;
+}
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__total.receipt-preview__block--size-large {
+  font-size: 19.5px;
+}
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__total.receipt-preview__block--size-xlarge {
+  font-size: 21px;
+}
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__customer-footer strong {
+  font-size: 1.05em;
+}
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__customer-footer strong.receipt-preview__block--size-large {
+  font-size: 1.16em;
+}
+.receipt-settings-page .receipt-preview--customer[data-paper-size="58"] .receipt-preview__customer-footer strong.receipt-preview__block--size-xlarge {
+  font-size: 1.28em;
+}
+

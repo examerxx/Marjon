@@ -33,6 +33,18 @@ export const settingsService = Object.freeze({
   updateCompanyProfile(payload) {
     return api.patch("/companies/me", payload);
   },
+  // Company logo for the receipt header (POST/DELETE /companies/me/logo,
+  // jpg/png/webp, admin-only). Real server persistence (logo_key); the
+  // returned CompanyResponse carries the viewable logo URL. FormData is
+  // posted bare so the transport sets the multipart boundary itself.
+  uploadCompanyLogo(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post("/companies/me/logo", formData);
+  },
+  deleteCompanyLogo() {
+    return api.delete("/companies/me/logo");
+  },
   listBranches(config) {
     return config ? api.get("/companies/me/branches", config) : api.get("/companies/me/branches");
   },

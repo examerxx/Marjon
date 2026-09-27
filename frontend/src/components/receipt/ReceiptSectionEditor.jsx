@@ -1,5 +1,3 @@
-import Icon from "../Icon";
-
 const sizeOptions = [
   { value: "standard", label: "Стандартный" },
   { value: "large", label: "Большой" },
@@ -44,15 +42,15 @@ export default function ReceiptSectionEditor({
   blockStyles,
   styleBlocks = [],
   onToggle,
-  onMove,
   onStyleChange,
+  renderBlockExtra,
 }) {
   const styleBlockSet = new Set(styleBlocks);
 
   return (
     <div className="receipt-section-editor">
-      {blocks.map((block, index) => (
-        <div className={`receipt-section-row ${enabled?.[block] ? "is-enabled" : ""}`} key={block}>
+      {blocks.map((block) => (
+        <div className={`receipt-section-row ${enabled?.[block] ? "is-enabled" : ""}`} key={block} data-block-row={block}>
           <div className="receipt-section-row__top">
             <label className="receipt-toggle">
               <input
@@ -62,30 +60,8 @@ export default function ReceiptSectionEditor({
               />
               <span>{labels[block] || block}</span>
             </label>
-            <div className="receipt-section-row__actions">
-              <button
-                type="button"
-                className="receipt-icon-btn"
-                onClick={() => onMove(block, -1)}
-                disabled={index === 0}
-                title="Выше"
-                aria-label={`${labels[block] || block} выше`}
-              >
-                <Icon name="bi-arrow-up" size={15} />
-              </button>
-              <button
-                type="button"
-                className="receipt-icon-btn"
-                onClick={() => onMove(block, 1)}
-                disabled={index === blocks.length - 1}
-                title="Ниже"
-                aria-label={`${labels[block] || block} ниже`}
-              >
-                <Icon name="bi-arrow-down" size={15} />
-              </button>
-            </div>
           </div>
-          {styleBlockSet.has(block) ? (
+          {enabled?.[block] && styleBlockSet.has(block) ? (
             <div className="receipt-section-row__style">
               <SegmentedControl
                 label="Размер текста"
@@ -107,6 +83,7 @@ export default function ReceiptSectionEditor({
               />
             </div>
           ) : null}
+          {renderBlockExtra ? renderBlockExtra(block) : null}
         </div>
       ))}
     </div>
