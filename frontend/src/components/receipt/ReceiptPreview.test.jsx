@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { api } from "../../api/client";
 import { buildCustomerTemplate, buildKitchenTemplate, testPrintReceipt } from "../../api/receipt";
 import ReceiptPreview, { computeFitScale, FIT_MIN_SCALE, getCustomerReceiptTotals } from "./ReceiptPreview";
+import { LINE_SPACING_LARGE, normalizeLineSpacing } from "../../api/receipt";
 
 const customerOrder = {
   order_number: "3",
@@ -72,13 +73,15 @@ describe("ReceiptPreview print layout", () => {
     expect(screen.getByText("Чайхана №1")).toBeInTheDocument();
   });
 
-  it("renders the customer order number exactly once (no bottom duplicate)", () => {
-    renderCustomer();
+  it("renders the order number in info and in the bottom block (same order data)", () => {
+    const { container } = renderCustomer();
 
     expect(screen.getByText("Номер заказа:")).toBeInTheDocument();
-    // The retired bottom-order duplicate is gone: one info row only.
+    // One info row only.
     expect(screen.getAllByText("Номер заказа:")).toHaveLength(1);
-    expect(screen.getAllByText("3")).toHaveLength(1);
+    // Info value "3" plus the bottom block value "3": same order, two spots.
+    expect(screen.getAllByText("3")).toHaveLength(2);
+    expect(container.querySelector(".receipt-preview__bottomnum-value")).toHaveTextContent("3");
   });
 
   it("renders the total amount", () => {
@@ -96,6 +99,27 @@ describe("ReceiptPreview print layout", () => {
     renderCustomer();
 
     expect(screen.queryByText("Скидка")).not.toBeInTheDocument();
+  });
+
+  it("still applies stored discount/vat values without editor cards", () => {
+    // The editor hides discount/vat toggles, but already-saved templates
+    // with nonzero values keep rendering them via the total-anchored unit.
+    const base = buildCustomerTemplate();
+    const template = {
+      ...base,
+      blocks: base.blocks.filter((block) => block !== "discount" && block !== "vat"),
+      enabled: { ...base.enabled, discount: true, vat: true },
+    };
+    render(
+      <ReceiptPreview
+        type="customer"
+        template={template}
+        order={{ ...customerOrder, discount: 5000, vat: 1200 }}
+        org={{ name: "MARJON", phone: "+998770702101" }}
+      />,
+    );
+    expect(screen.getByText("Скидка")).toBeInTheDocument();
+    expect(screen.getByText("Налог")).toBeInTheDocument();
   });
 
   it("hides a zero tax row", () => {
@@ -116,11 +140,29 @@ describe("ReceiptPreview print layout", () => {
     expect(screen.queryByText("Подарочный баланс:")).not.toBeInTheDocument();
   });
 
-  it("never renders a bottom order-number duplicate (no such physical block)", () => {
+  it("renders the bottom order number block below the comment (caption + big number)", () => {
     const { container } = renderCustomer();
     expect(container.querySelector(".receipt-preview__bottom-order")).toBeNull();
-    expect(screen.queryByText("НОМЕР ЗАКАЗА")).toBeNull();
-    // The single real order number lives in the order info section.
+    const block = container.querySelector(".receipt-preview__bottomnum");
+    expect(block).not.toBeNull();
+    expect(block.querySelector(".receipt-preview__bottomnum-caption")).toHaveTextContent("НОМЕР ЗАКАЗА");
+    // Order number comes from the current order data, not a static value.
+    expect(block.querySelector(".receipt-preview__bottomnum-value")).toHaveTextContent("3");
+    // The single real order number still lives in the order info section.
+    expect(screen.getByText("Номер заказа:")).toBeInTheDocument();
+  });
+
+  it("hides the bottom order number block when disabled", () => {
+    const base = buildCustomerTemplate();
+    const { container } = render(
+      <ReceiptPreview
+        type="customer"
+        template={{ ...base, enabled: { ...base.enabled, bottomOrderNumber: false } }}
+        order={customerOrder}
+        org={{ name: "MARJON", phone: "+998770702101" }}
+      />,
+    );
+    expect(container.querySelector(".receipt-preview__bottomnum")).toBeNull();
     expect(screen.getByText("Номер заказа:")).toBeInTheDocument();
   });
 
@@ -168,23 +210,126 @@ describe("ReceiptPreview print layout", () => {
     expect(container.querySelector(".receipt-preview__notes")).toBeNull();
   });
 
-  it("renders urgent kitchen orders", () => {
+  it("never renders the priority banner, even for urgent orders", () => {
     renderKitchen();
 
-    expect(screen.getByText("! СРОЧНО !")).toBeInTheDocument();
+    expect(screen.queryByText("! СРОЧНО !")).not.toBeInTheDocument();
+    expect(screen.queryByText("ОТМЕНА")).not.toBeInTheDocument();
   });
 
   it("does not use the old bordered wrapper class for urgent text", () => {
     const { container } = renderKitchen();
-    const urgent = screen.getByText("! СРОЧНО !");
 
-    expect(urgent).toHaveClass("receipt-preview__kitchen-urgent");
+    expect(container.querySelector(".receipt-preview__kitchen-urgent")).toBeNull();
     expect(container.querySelector(".receipt-preview__priority")).toBeNull();
   });
 
   it("omits urgency for non-urgent kitchen orders", () => {
     renderKitchen({ order: { ...kitchenOrder, priority: "Обычный", urgent: false, is_urgent: false } });
 
+    expect(screen.queryByText("! СРОЧНО !")).not.toBeInTheDocument();
+  });
+
+  it("renders the order type when enabled", () => {
+    renderKitchen({ order: { ...kitchenOrder, order_type: "На стол" } });
+
+    expect(screen.getByText("Тип заказа:")).toBeInTheDocument();
+    expect(screen.getByText("На стол")).toBeInTheDocument();
+  });
+
+  it("does not duplicate the order number for a normal (non-cancelled) order", () => {
+    const { container } = renderKitchen();
+
+    expect(container.querySelector(".receipt-preview__kitchen-cancel")).toBeNull();
+    expect(screen.queryByText("ОТМЕНА")).not.toBeInTheDocument();
+    expect(screen.getAllByText("#A-1042")).toHaveLength(1);
+  });
+
+  it("renders the cancellation block instead of the normal number when cancelled", () => {
+    const { container } = renderKitchen({
+      order: { ...kitchenOrder, status: "cancelled" },
+    });
+
+    expect(screen.getByText("ОТМЕНА")).toBeInTheDocument();
+    expect(screen.getAllByText("#A-1042")).toHaveLength(1);
+  });
+
+  it("keeps dishes visible with no money when showOrderSum is OFF", () => {
+    const { container } = renderKitchen();
+
+    expect(screen.getByText("Плов чайханский", { exact: false })).toBeInTheDocument();
+    expect(container.querySelector(".receipt-preview__kitchen-amount")).toBeNull();
+  });
+
+  it("shows real amounts only when showOrderSum is ON and data provides them", () => {
+    const order = {
+      ...kitchenOrder,
+      items: [{ id: 1, name: "Плов чайханский", quantity: 2, total: 16000 }],
+    };
+    const template = {
+      ...buildKitchenTemplate(),
+      enabled: { ...buildKitchenTemplate().enabled, showOrderSum: true },
+    };
+    const { container } = renderKitchen({ template, order });
+
+    expect(container.querySelector(".receipt-preview__kitchen-amount")).not.toBeNull();
+  });
+
+  it("shows no amounts when showOrderSum is ON but the order has no money", () => {
+    const template = {
+      ...buildKitchenTemplate(),
+      enabled: { ...buildKitchenTemplate().enabled, showOrderSum: true },
+    };
+    const { container } = renderKitchen({ template });
+
+    expect(screen.getByText("Плов чайханский", { exact: false })).toBeInTheDocument();
+    expect(container.querySelector(".receipt-preview__kitchen-amount")).toBeNull();
+  });
+
+  it("hides item notes and the order note when comment is OFF but keeps modifiers", () => {
+    const template = {
+      ...buildKitchenTemplate(),
+      enabled: { ...buildKitchenTemplate().enabled, comment: false },
+    };
+    renderKitchen({ template });
+
+    expect(screen.getByText("- Без казы, Острый соус отдельно")).toBeInTheDocument();
+    expect(screen.queryByText("Без лука в салате")).not.toBeInTheDocument();
+    expect(screen.queryByText("Комментарий:")).not.toBeInTheDocument();
+  });
+
+  it("applies chef style classes to the order number", () => {
+    const { container } = renderKitchen();
+    const number = container.querySelector(".receipt-preview__kitchen-number");
+
+    expect(number).toHaveClass("receipt-preview__block--size-large");
+    expect(number).toHaveClass("receipt-preview__block--align-center");
+    expect(number).toHaveClass("receipt-preview__block--weight-bold");
+  });
+
+  it("maps a legacy medium chef size to large in the preview", () => {
+    const template = {
+      ...buildKitchenTemplate(),
+      blockStyles: {
+        ...buildKitchenTemplate().blockStyles,
+        orderNumber: { size: "medium", align: "center", weight: "bold" },
+      },
+    };
+    const { container } = renderKitchen({ template });
+    const number = container.querySelector(".receipt-preview__kitchen-number");
+
+    expect(number).toHaveClass("receipt-preview__block--size-large");
+    expect(number.className).not.toContain("size-medium");
+  });
+
+  it("renders legacy kitchen template keys without crashing", () => {
+    const legacy = {
+      ...buildKitchenTemplate(),
+      blocks: ["orderNumber", "table", "waiter", "createdAt", "items", "orderNote", "priority"],
+    };
+    const { container } = renderKitchen({ template: legacy });
+
+    expect(screen.getByText("#A-1042")).toBeInTheDocument();
     expect(screen.queryByText("! СРОЧНО !")).not.toBeInTheDocument();
   });
 
@@ -305,25 +450,41 @@ describe("ReceiptPreview block-order parity", () => {
 
   it("reorders the kitchen preview independently and keeps it pricing-free", () => {
     const base = buildKitchenTemplate();
-    const reordered = { ...base, blocks: ["items", "orderNumber", ...base.blocks.filter((b) => b !== "items" && b !== "orderNumber")] };
+    const reordered = { ...base, blocks: ["date", "orderNumber", ...base.blocks.filter((b) => b !== "date" && b !== "orderNumber")] };
     const { container } = renderKitchen({ template: reordered });
     const text = receiptRoot(container).textContent;
-    // items (Плов) now precede the big order number.
-    expect(text.indexOf("Плов чайханский")).toBeLessThan(text.indexOf("#A-1042"));
+    // date (Время) now precedes the big order number.
+    expect(text.indexOf("Время:")).toBeLessThan(text.indexOf("#A-1042"));
     expect(text).not.toContain("Итого к оплате:");
+  });
+
+  it("keeps dishes as core content even when legacy items keys are stored", () => {
+    const base = buildKitchenTemplate();
+    const legacy = { ...base, blocks: ["orderNumber", "items", "modifiers"], enabled: { ...base.enabled, showOrderSum: false } };
+    const { container } = renderKitchen({ template: legacy });
+    expect(receiptRoot(container).textContent).toContain("Плов чайханский");
+    expect(container.querySelector(".receipt-preview__kitchen-amount")).toBeNull();
   });
 });
 
 
 describe("ReceiptPreview fixed reference lines", () => {
-  it("renders solid rules after header/info/head/total/payment and dashed after items/summary", () => {
+  it("renders solid rules after info/head/total/payment and dashed after items/summary", () => {
     const { container } = renderCustomer();
     const solids = container.querySelectorAll(".receipt-preview__rule.is-solid");
-    expect(solids.length).toBe(5);
+    expect(solids.length).toBe(4);
     const dashed = [...container.querySelectorAll(".receipt-preview__rule")].filter((el) => !el.classList.contains("is-solid"));
     expect(dashed.length).toBe(2);
     const headRule = container.querySelector(".receipt-preview__items .receipt-preview__rule.is-solid");
     expect(headRule).not.toBeNull();
+  });
+
+  it("renders no rule directly under the restaurant header block", () => {
+    const { container } = renderCustomer();
+    const sections = [...container.querySelectorAll("[data-receipt-section]")];
+    const headerSection = sections.find((el) => el.getAttribute("data-receipt-section") === "header");
+    expect(headerSection).not.toBeNull();
+    expect(headerSection.querySelector(".receipt-preview__rule")).toBeNull();
   });
 
   it("renders no rules between item rows and no divider machinery", () => {
@@ -337,27 +498,31 @@ describe("ReceiptPreview fixed reference lines", () => {
 });
 
 describe("computeFitScale contract", () => {
-  it("never upscales when the receipt already fits", () => {
-    expect(computeFitScale(430, 400, 500, 612)).toBe(1);
+  it("never upscales when the pane fits the paper width", () => {
+    expect(computeFitScale(430, 500)).toBe(1);
   });
 
-  it("takes the tighter constraint (height-bound 80mm receipt)", () => {
-    // Real audit numbers: 430x819 paper in a 322x612 box.
-    expect(computeFitScale(430, 819, 322, 612)).toBeCloseTo(612 / 819, 5);
+  it("scales by width only: height has no parameter to influence the result", () => {
+    // The signature itself is the contract: (natW, availW). A short pane
+    // (browser zoom) yields the same scale as a tall one at equal width.
+    expect(computeFitScale(430, 392)).toBeCloseTo(392 / 430, 5);
+    expect(computeFitScale(326, 392)).toBe(1);
   });
 
-  it("takes the width constraint on narrow panes", () => {
-    expect(computeFitScale(430, 200, 215, 612)).toBeCloseTo(0.5, 5);
-  });
-
-  it("floors at the readable minimum instead of shrinking to a miniature", () => {
-    expect(computeFitScale(430, 2000, 322, 612)).toBe(FIT_MIN_SCALE);
+  it("floors at the readable minimum on genuinely narrow panes", () => {
+    expect(computeFitScale(430, 215)).toBeCloseTo(0.5, 5);
+    expect(computeFitScale(430, 10)).toBe(FIT_MIN_SCALE);
     expect(FIT_MIN_SCALE).toBe(0.5);
   });
 
+  it("keeps a tall receipt at the width scale instead of tiny-mode", () => {
+    // 826px tall receipt in a short pane: width still decides, no collapse.
+    expect(computeFitScale(430, 392)).toBeGreaterThanOrEqual(0.9);
+  });
+
   it("falls back to 1.0 when nothing is measurable", () => {
-    expect(computeFitScale(0, 0, 0, 0)).toBe(1);
-    expect(computeFitScale(430, 819, 0, 0)).toBe(1);
+    expect(computeFitScale(0, 0)).toBe(1);
+    expect(computeFitScale(430, 0)).toBe(1);
   });
 });
 
@@ -381,10 +546,64 @@ describe("ReceiptPreview constructor style mapping", () => {
     expect(container.querySelector(".receipt-preview__total")).toHaveClass("receipt-preview__block--size-large");
     ({ container } = styled("thankYouText", { size: "xlarge", align: "center", weight: "bold" }));
     expect(container.querySelector(".receipt-preview__customer-footer strong")).toHaveClass("receipt-preview__block--size-xlarge");
-    ({ container } = styled("footerText", { size: "large", align: "center", weight: "bold" }));
-    expect(container.querySelector(".receipt-preview__customer-footer b")).toHaveClass("receipt-preview__block--size-large");
+    ({ container } = styled("bottomOrderNumber", { size: "large", align: "center", weight: "bold" }));
+    expect(container.querySelector(".receipt-preview__bottomnum")).toHaveClass("receipt-preview__block--size-large");
     ({ container } = styled("items", { size: "large", align: "left", weight: "standard" }));
     expect(container.querySelector("[data-receipt-items]").parentElement).toHaveClass("receipt-preview__block--size-large");
+  });
+
+  it("maps alignment onto the restaurant name block for every option", () => {
+    const base = buildCustomerTemplate();
+    for (const align of ["left", "center", "right"]) {
+      const { container, unmount } = render(
+        <ReceiptPreview
+          type="customer"
+          template={{ ...base, blockStyles: { ...base.blockStyles, restaurantName: { size: "large", align, weight: "bold" } } }}
+          order={customerOrder}
+          org={{ name: "MARJON", phone: "+998770702101" }}
+        />,
+      );
+      expect(container.querySelector(".receipt-preview__brand"))
+        .toHaveClass(`receipt-preview__block--align-${align}`);
+      unmount();
+    }
+  });
+
+  it("maps size options onto the bottom order number block", () => {
+    const base = buildCustomerTemplate();
+    const at = (size) => {
+      const { container, unmount } = render(
+        <ReceiptPreview
+          type="customer"
+          template={{ ...base, blockStyles: { ...base.blockStyles, bottomOrderNumber: { size, align: "center", weight: "bold" } } }}
+          order={customerOrder}
+          org={{ name: "MARJON", phone: "+998770702101" }}
+        />,
+      );
+      const cls = container.querySelector(".receipt-preview__bottomnum").className;
+      unmount();
+      return cls;
+    };
+    expect(at("standard")).not.toMatch(/size-(large|xlarge)/);
+    expect(at("large")).toMatch(/size-large/);
+    expect(at("xlarge")).toMatch(/size-xlarge/);
+  });
+
+  it("maps alignment onto the bottom order number block for every option", () => {
+    const base = buildCustomerTemplate();
+    for (const align of ["left", "center", "right"]) {
+      const { container, unmount } = render(
+        <ReceiptPreview
+          type="customer"
+          template={{ ...base, blockStyles: { ...base.blockStyles, bottomOrderNumber: { size: "large", align, weight: "bold" } } }}
+          order={customerOrder}
+          org={{ name: "MARJON", phone: "+998770702101" }}
+        />,
+      );
+      expect(container.querySelector(".receipt-preview__bottomnum"))
+        .toHaveClass(`receipt-preview__block--align-${align}`);
+      unmount();
+    }
   });
 
   it("maps weight onto info rows and thanks so the Bold control has a target", () => {
@@ -411,6 +630,25 @@ describe("ReceiptPreview constructor style mapping", () => {
     expect(row).toHaveClass("receipt-preview__block--align-right");
     expect(row.querySelector("b")).not.toBeNull();
     expect(row.querySelector("span")).not.toBeNull();
+  });
+});
+
+describe("ReceiptPreview line-spacing density", () => {
+  it("resolves a missing density to the large approved baseline", () => {
+    expect(normalizeLineSpacing(undefined)).toBe(LINE_SPACING_LARGE);
+    expect(normalizeLineSpacing("ultra")).toBe(LINE_SPACING_LARGE);
+    expect(normalizeLineSpacing("small")).toBe("small");
+    expect(normalizeLineSpacing("medium")).toBe("medium");
+  });
+
+  it("exposes the resolved density on the print root", () => {
+    const { container, unmount } = renderCustomer();
+    expect(receiptRoot(container)).toHaveAttribute("data-line-spacing", "large");
+    unmount();
+    const small = render(
+      <ReceiptPreview type="customer" template={{ ...buildCustomerTemplate(), lineSpacing: "small" }} order={customerOrder} org={{ name: "MARJON" }} />,
+    );
+    expect(receiptRoot(small.container)).toHaveAttribute("data-line-spacing", "small");
   });
 });
 

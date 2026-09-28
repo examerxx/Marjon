@@ -144,17 +144,19 @@ test.describe("Settings → Настройка чека — final viewport layou
     expect(g.actions.right).toBeLessThanOrEqual(g.editorCol.right + 2);
     expect(g.actions.right).toBeGreaterThan(g.editorCol.left + g.editorCol.w / 2);
     expect(g.actions.right).toBeLessThan(g.col.left);
-    expect(g.headerSecondary).toBe(2);
+    // Single header secondary action (paper selector is a select, not a button).
+    expect(g.headerSecondary).toBe(1);
     expect(g.headerPrimary).toBe(0);
     // Preview label is gone; panel is tall (label-free + raised + stretched).
     expect(g.previewLabel).toBe(0);
     expect(g.col.h).toBeGreaterThanOrEqual(640);
-    // Right preview panel starts visibly HIGHER than the left settings panel
-    // (top extended upward into the header's empty right zone).
+    // Right preview stage starts at the top-controls row (raised alignment):
+    // panel top visibly HIGHER than the left settings panel, extended
+    // upward into the header's empty right zone.
     expect(g.col.top).toBeLessThan(g.editor.rect.top);
     const topDelta = g.editor.rect.top - g.col.top;
-    expect(topDelta).toBeGreaterThanOrEqual(25);
-    expect(topDelta).toBeLessThanOrEqual(70);
+    expect(topDelta).toBeGreaterThanOrEqual(50);
+    expect(topDelta).toBeLessThanOrEqual(80);
     // Save is inside the scroll content, not a pinned footer.
     expect(g.oldFooter).toBe(false);
     expect(g.savePosition).not.toBe("sticky");
@@ -226,6 +228,9 @@ test.describe("Settings → Настройка чека — final viewport layou
   });
 
   test("58mm vs 80mm: both fit entirely, 58 narrower, no scrollbars", async () => {
+    // No visible paper switch remains on the page: paper flows from the
+    // persisted template blob, so the mock serves each size in turn.
+    customerTpl = {};
     await open();
     const check = async () => page.evaluate(() => {
       const root = document.querySelector("[data-receipt-print-root]");
@@ -236,7 +241,9 @@ test.describe("Settings → Настройка чека — final viewport layou
         scale: document.querySelector("[data-receipt-preview-shell]").getAttribute("data-fit-scale") };
     });
     const r80 = await check();
-    await page.getByLabel("Размер бумаги").selectOption("58mm");
+    customerTpl = { paperSize: "58mm" };
+    await page.reload();
+    await page.locator(".receipt-settings-page").waitFor({ state: "visible", timeout: 30000 });
     await page.locator(".receipt-preview--58mm").waitFor({ state: "visible", timeout: 10000 });
     const r58 = await check();
     fs.appendFileSync(path.join(SHOTS, "_measure.txt"), `80mm w=${r80.w} [${r80.top},${r80.bottom}] scale=${r80.scale}\n58mm w=${r58.w} [${r58.top},${r58.bottom}] scale=${r58.scale}\n`);
@@ -247,30 +254,45 @@ test.describe("Settings → Настройка чека — final viewport layou
       expect(r.bottom).toBeLessThanOrEqual(r.vwH);
       expect(r.canScroll).toBe(false);
     }
-    await page.getByLabel("Размер бумаги").selectOption("80mm");
+    customerTpl = {};
+    await page.reload();
     await page.locator(".receipt-preview--80mm").waitFor({ state: "visible", timeout: 10000 });
   });
 
-  test("tall receipt (all blocks on) still fits entirely with no scrollbar", async () => {
+  test("tall receipt (all blocks on) keeps stable scale, top anchor, panel scroll", async () => {
     await open();
+    const normalTop = await rcptTop();
+    const normalScale = await page.evaluate(() => Number(document.querySelector("[data-receipt-preview-shell]").getAttribute("data-fit-scale")));
     // Enable every block toggle to maximize receipt height.
     for (const box of await page.getByRole("checkbox").all()) {
       if (!(await box.isChecked())) await box.check();
     }
     const r = await page.evaluate(() => {
       const root = document.querySelector("[data-receipt-print-root]");
-      const pc = document.querySelector(".receipt-preview-col");
+      const vp = document.querySelector(".receipt-fit-viewport");
       const b = root.getBoundingClientRect();
       return { top: Math.round(b.top), bottom: Math.round(b.bottom), vwH: window.innerHeight,
-        canScroll: pc.scrollHeight > pc.clientHeight + 1,
+        vpScroll: vp.scrollHeight > vp.clientHeight + 1,
+        paperScroll: root.scrollHeight > root.clientHeight + 1,
         scale: Number(document.querySelector("[data-receipt-preview-shell]").getAttribute("data-fit-scale")) };
     });
-    fs.appendFileSync(path.join(SHOTS, "_measure.txt"), `tall receipt [${r.top},${r.bottom}] vw=${r.vwH} scale=${r.scale}\n`);
+    fs.appendFileSync(path.join(SHOTS, "_measure.txt"), `tall receipt [${r.top},${r.bottom}] vw=${r.vwH} scale=${r.scale} (normal ${normalScale})\n`);
     await page.screenshot({ path: path.join(SHOTS, "E-tall-1280.png"), fullPage: false });
+    // Stable contract: same top anchor, SAME scale as the normal receipt (no
+    // tiny-mode), never a scrollbar inside the paper itself.
     expect(r.top).toBeGreaterThanOrEqual(0);
-    expect(r.bottom).toBeLessThanOrEqual(r.vwH);
-    expect(r.canScroll).toBe(false);
+    expect(Math.abs(r.top - normalTop)).toBeLessThanOrEqual(2);
+    expect(r.scale).toBeCloseTo(normalScale, 2);
+    expect(r.paperScroll).toBe(false);
     expect(r.scale).toBeGreaterThanOrEqual(0.5);
+    // Footer stays reachable by scrolling the preview viewport (the last
+    // footer run holds thanks/footerText; address/phone form an earlier one).
+    await page.locator(".receipt-fit-viewport").evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    const footerVisible = await page.locator("[data-receipt-print-root] .receipt-preview__customer-footer").last().evaluate((el) => {
+      const b = el.getBoundingClientRect();
+      return b.top >= 0 && b.bottom <= window.innerHeight + 1;
+    });
+    expect(footerVisible).toBe(true);
   });
 
   test("block edit reflects immediately in the preview", async () => {
@@ -284,7 +306,7 @@ test.describe("Settings → Настройка чека — final viewport layou
   test("saved block order is reflected in the preview and survives reload (parity with printer)", async () => {
     // Persisted order comes from template.blocks — the same field the ESC/POS
     // formatter uses. Reorder UI was removed; order is still honoured on load.
-    customerTpl = { blocks: ["total", "items", "logo", "restaurantName", "orderNumber", "table", "waiter", "dateTime", "discount", "serviceFee", "vat", "paymentMethod", "qr", "thankYouText", "footerText", "address", "phone"] };
+    customerTpl = { blocks: ["total", "items", "logo", "restaurantName", "orderNumber", "table", "waiter", "dateTime", "discount", "serviceFee", "vat", "paymentMethod", "qr", "thankYouText", "bottomOrderNumber", "address", "phone"] };
     await open();
     const text = () => page.locator("[data-receipt-print-root]").evaluate((el) => el.textContent);
     await expect.poll(async () => {
@@ -348,7 +370,8 @@ test.describe("Settings → Настройка чека — final viewport layou
     expect(geo.previewLabel).toBe(0);
     expect(geo.saveBg).toBe("rgb(31, 201, 201)");
     expect(geo.saveInContent).toBe(true);
-    expect(geo.headerSecondary).toBe(2);
+    // Chef header keeps only "Печать предпросмотра" (reset removed by design).
+    expect(geo.headerSecondary).toBe(1);
     expect(geo.headerPrimary).toBe(0);
     expect(geo.oldFooter).toBe(false);
     expect(geo.type).toBe("kitchen");
@@ -359,25 +382,36 @@ test.describe("Settings → Настройка чека — final viewport layou
     await page.screenshot({ path: path.join(SHOTS, "K-kitchen-1280.png"), fullPage: false });
   });
 
-  test("functional regression: Reset, Print preview, Save PATCH persists", async () => {
+  test("functional regression: Print preview, Save PATCH persists", async () => {
+    customerTpl = {};
     await open();
     await page.evaluate(() => { window.print = () => {}; });
-    // Reset restores defaults with a truthful draft message.
-    await page.getByRole("button", { name: "Сбросить" }).click();
-    await expect(page.getByText("Шаблон сброшен к стандартному виду.")).toBeVisible();
+    // Persisted paperSize flows from the template blob (no visible switch):
+    // serve 58mm, reload, preview follows.
+    customerTpl = { paperSize: "58mm" };
+    await page.reload();
+    await page.locator("[data-receipt-print-root]").waitFor({ state: "visible", timeout: 30000 });
+    await expect(page.locator(".receipt-preview--58mm")).toBeVisible({ timeout: 10000 });
+    customerTpl = {};
+    await page.reload();
+    await page.locator("[data-receipt-print-root]").waitFor({ state: "visible", timeout: 30000 });
+    await expect(page.locator(".receipt-preview--80mm")).toBeVisible({ timeout: 10000 });
     // Print preview action (local window.print stubbed).
     await page.getByRole("button", { name: "Печать предпросмотра" }).click();
     await expect(page.getByText("Открыто окно печати предпросмотра.")).toBeVisible();
-    // Save is at the editor bottom: scroll there, edit footer text, save via real PATCH.
-    await page.getByRole("textbox", { name: "Нижний текст" }).fill("TEST-FOOTER-123");
+    // Save is at the editor bottom: disable the bottom order number, save via
+    // real PATCH, reload: the block stays hidden while order info persists.
+    await page.getByRole("checkbox", { name: "Нижний номер заказа" }).click();
+    await expect(page.locator(".receipt-preview__bottomnum")).toHaveCount(0);
     const m = await editorMetrics();
     await scrollEditor(m.max);
     await page.getByRole("button", { name: "Сохранить" }).click();
     await expect(page.getByText("Шаблон чека сохранён на сервере.")).toBeVisible({ timeout: 10000 });
     await page.reload();
     await page.locator("[data-receipt-print-root]").waitFor({ state: "visible", timeout: 30000 });
-    await expect(page.getByText("TEST-FOOTER-123").first()).toBeVisible({ timeout: 10000 });
-    fs.appendFileSync(path.join(SHOTS, "_measure.txt"), `functional: reset/print/save-patch + reload persistence = true\n`);
+    await expect(page.locator(".receipt-preview__bottomnum")).toHaveCount(0);
+    await expect(page.getByText("Номер заказа:")).toBeVisible({ timeout: 10000 });
+    fs.appendFileSync(path.join(SHOTS, "_measure.txt"), `functional: paper-select/print/save-patch + reload persistence = true\n`);
     await page.screenshot({ path: path.join(SHOTS, "G-functional-1280.png"), fullPage: false });
   });
 
@@ -388,9 +422,10 @@ test.describe("Settings → Настройка чека — final viewport layou
     await page.locator(".receipt-section-row").filter({ hasText: "Название ресторана" }).getByRole("button", { name: "Вправо" }).click();
     await expect(page.locator(".receipt-preview__brand").first()).toHaveCSS("text-align", "right");
     // TOP: order number toggle → info row disappears/appears immediately.
-    await page.getByRole("checkbox", { name: "Номер заказа" }).click();
+    // exact:true — "Нижний номер заказа" is a separate block now.
+    await page.getByRole("checkbox", { name: "Номер заказа", exact: true }).click();
     await expect(page.getByText("Номер заказа:")).toHaveCount(0);
-    await page.getByRole("checkbox", { name: "Номер заказа" }).click();
+    await page.getByRole("checkbox", { name: "Номер заказа", exact: true }).click();
     await expect(page.getByText("Номер заказа:")).toBeVisible();
     // MIDDLE: payment details toggle.
     await page.getByRole("checkbox", { name: "Способ оплаты" }).click();
@@ -410,8 +445,8 @@ test.describe("Settings → Настройка чека — final viewport layou
     await expect(page.getByText("Обслуживание")).toHaveCount(0);
     await page.getByRole("checkbox", { name: "Сервисный сбор" }).click();
     await expect(page.getByText("Обслуживание")).toBeVisible();
-    // BOTTOM: thank-you text edit → footer updates immediately.
-    await page.getByRole("textbox", { name: "Текст благодарности" }).fill("RAXMAT-TEST");
+    // BOTTOM: comment text edit → footer updates immediately.
+    await page.getByRole("textbox", { name: "Комментарий к чеку" }).fill("RAXMAT-TEST");
     await expect(page.getByText("RAXMAT-TEST")).toBeVisible();
     // Save → reload → everything persists via the real PATCH replay.
     const m = await editorMetrics();
@@ -515,36 +550,42 @@ test.describe("Settings → Настройка чека — final viewport layou
     await page.locator("[data-receipt-print-root]").waitFor({ state: "visible", timeout: 30000 });
     await expect(page.locator("img.receipt-preview__logo")).toBeVisible({ timeout: 10000 });
     // Delete removes it truthfully.
-    await page.getByRole("button", { name: "Убрать" }).click();
+    await page.getByRole("button", { name: "Удалить" }).click();
     await expect(page.getByText("Логотип удалён.")).toBeVisible({ timeout: 10000 });
     expect(await page.locator("img.receipt-preview__logo").count()).toBe(0);
   });
 
 
 
-  test("wider desktop 1536x864: fit still holds with no scrollbars", async () => {
+  test("wider desktop 1536x864: stable width scale, top anchor, panel scroll", async () => {
     customerTpl = {};
     await page.setViewportSize({ width: 1536, height: 864 });
     await open();
     const r = await page.evaluate(() => {
       const root = document.querySelector("[data-receipt-print-root]");
       const pc = document.querySelector(".receipt-preview-col");
+      const vp = document.querySelector(".receipt-fit-viewport");
       const ed = document.querySelector(".receipt-editor");
       const b = root.getBoundingClientRect();
       const pb = pc.getBoundingClientRect();
       const eb = ed.getBoundingClientRect();
-      return { top: Math.round(b.top), bottom: Math.round(b.bottom), vwH: window.innerHeight,
-        canScroll: pc.scrollHeight > pc.clientHeight + 1,
+      return { top: Math.round(b.top), w: Math.round(b.width), vwH: window.innerHeight,
+        paperScroll: root.scrollHeight > root.clientHeight + 1,
+        vpScroll: vp.scrollHeight > vp.clientHeight + 1,
+        scale: Number(document.querySelector("[data-receipt-preview-shell]").getAttribute("data-fit-scale")),
         panelTop: Math.round(pb.top), leftTop: Math.round(eb.top) };
     });
     await page.screenshot({ path: path.join(SHOTS, "L-1536x864.png"), fullPage: false });
+    // Width-driven scale: same paper width class as 1280 (no height shrink),
+    // top-anchored, never a scrollbar inside the paper itself.
     expect(r.top).toBeGreaterThanOrEqual(0);
-    expect(r.bottom).toBeLessThanOrEqual(r.vwH);
-    expect(r.canScroll).toBe(false);
-    // Raised panel holds on wide desktop too.
+    expect(r.w).toBeGreaterThanOrEqual(380);
+    expect(r.paperScroll).toBe(false);
+    expect(r.scale).toBeGreaterThanOrEqual(0.5);
+    // Raised stage holds on wide desktop too (top-controls alignment).
     expect(r.panelTop).toBeLessThan(r.leftTop);
-    expect(r.leftTop - r.panelTop).toBeGreaterThanOrEqual(25);
-    expect(r.leftTop - r.panelTop).toBeLessThanOrEqual(70);
+    expect(r.leftTop - r.panelTop).toBeGreaterThanOrEqual(50);
+    expect(r.leftTop - r.panelTop).toBeLessThanOrEqual(80);
     await page.setViewportSize({ width: 1280, height: 900 });
   });
 });

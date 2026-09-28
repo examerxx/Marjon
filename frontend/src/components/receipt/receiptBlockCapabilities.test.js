@@ -15,12 +15,13 @@ describe("receiptBlockCapabilities — active contract", () => {
     expect(Object.keys(CUSTOMER_BLOCK_PHYSICAL)).toHaveLength(CUSTOMER_BLOCKS.length);
   });
 
-  it("locks the style classification: 8 full, 2 full-tabular, rest none", () => {
+  it("locks the style classification: 8 full, 2 full-tabular, 1 preview-only, rest none", () => {
     const by = (kind) => CUSTOMER_BLOCKS.filter((key) => CUSTOMER_BLOCK_PHYSICAL[key].styles === kind);
     expect(by("full").sort()).toEqual(
-      ["dateTime", "footerText", "orderNumber", "restaurantName", "table", "thankYouText", "total", "waiter"].sort(),
+      ["dateTime", "orderNumber", "restaurantName", "table", "thankYouText", "total", "waiter"].sort(),
     );
     expect(by("full-tabular").sort()).toEqual(["items", "paymentMethod"].sort());
+    expect(by("preview-only").sort()).toEqual(["bottomOrderNumber"].sort());
     expect(by("partial").sort()).toEqual([]);
     expect(by("none").sort()).toEqual(
       ["address", "discount", "logo", "phone", "serviceFee", "vat"].sort(),
@@ -38,7 +39,9 @@ describe("receiptBlockCapabilities — pending can never appear as active", () =
   const pendingKeys = PENDING_BLOCKS.map((entry) => entry.key);
 
   it("covers every reference-video gap with a backend requirement", () => {
-    for (const key of ["orderTypeSplit", "subtotal", "separators", "deliveryAddress", "deliveryPhone", "deliveryComment", "qr", "bottomOrderNumber", "splitBill", "printerConnection"]) {
+    // bottomOrderNumber graduated to a canonical block (preview-only until the
+    // formatter workstream renders it); the rest remain backend-gated.
+    for (const key of ["orderTypeSplit", "subtotal", "separators", "deliveryAddress", "deliveryPhone", "deliveryComment", "qr", "splitBill", "printerConnection"]) {
       expect(pendingKeys).toContain(key);
     }
     for (const entry of PENDING_BLOCKS) {
