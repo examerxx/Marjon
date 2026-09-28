@@ -26,7 +26,12 @@ const STYLE_TABULAR = new Set(["items", "paymentMethod"]);
 
 function physicalStyles(key) {
   if (!CUSTOMER_STYLE_BLOCKS.includes(key)) return "none";
-  return STYLE_TABULAR.has(key) ? "full-tabular" : "full";
+  if (STYLE_TABULAR.has(key)) return "full-tabular";
+  // bottomOrderNumber is frontend + persistence complete (canonical template
+  // blob), but the physical ESC/POS formatter has no bottom-number block yet:
+  // preview-only until the backend workstream implements it.
+  if (key === "bottomOrderNumber") return "preview-only";
+  return "full";
 }
 
 export const CUSTOMER_BLOCK_PHYSICAL = Object.freeze(
@@ -82,12 +87,6 @@ export const PENDING_BLOCKS = Object.freeze([
     label: "QR-код",
     domain: "template",
     need: "QR payload source (what value to encode) → ReceiptData field → formatter ESC/POS QR support (today explicitly excluded: separate QR-printer). Retired from CUSTOMER_BLOCKS until then.",
-  }),
-  Object.freeze({
-    key: "bottomOrderNumber",
-    label: "Нижний номер заказа",
-    domain: "template",
-    need: "Separate canonical template block (same order data, bottom placement, own style) + formatter rendering. Preview duplication alone is not a feature.",
   }),
   Object.freeze({
     key: "splitBill",

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { CUSTOMER_BLOCKS, KITCHEN_BLOCKS } from "../../api/receipt";
+import { CUSTOMER_BLOCKS, KITCHEN_BLOCKS, normalizeLineSpacing } from "../../api/receipt";
 import { orderedBlocks } from "../../pages/settings/receiptBlockOrder";
 
 export const customerSampleOrder = {
@@ -145,7 +145,7 @@ function getOrderNumber(order = {}) {
 // unless its template.enabled entry is explicitly false (default = shown).
 const CUSTOMER_STYLE_SET = new Set([
   "restaurantName", "orderNumber", "table", "waiter", "dateTime",
-  "items", "total", "paymentMethod", "thankYouText", "footerText",
+  "items", "total", "paymentMethod", "thankYouText", "bottomOrderNumber",
 ]);
 
 function isOn(enabled, block) {
@@ -269,7 +269,12 @@ function CustomerReceipt({ template = {}, org, order }) {
     else if (block === "items") push("items", <div className={cls} key="items"><CustomerItems items={order.items || []} /></div>);
     else if (block === "paymentMethod") { if (payments.length) push("payment", <div className={cls} key="pay"><PaymentRows rows={payments} /></div>); }
     else if (block === "thankYouText") push("footer", <strong className={cls} key="ty">{template.thankYouText || "XARIDINGIZ UCHUN RAXMAT!"}</strong>);
-    else if (block === "footerText") { const v = template.footerText || template.phone || org?.phone; if (hasValue(v)) push("footer", <b className={cls} key="ft">{v}</b>); }
+    else if (block === "bottomOrderNumber") push("footer", (
+      <div className={`receipt-preview__bottomnum ${cls}`} key="bon">
+        <span className="receipt-preview__bottomnum-caption">НОМЕР ЗАКАЗА</span>
+        <b className="receipt-preview__bottomnum-value">{getOrderNumber(order)}</b>
+      </div>
+    ));
     else if (block === "address") { const v = template.address || org?.address; if (hasValue(v)) push("footer", <b key="addr">{v}</b>); }
     else if (block === "phone") { const v = template.phone || org?.phone; if (hasValue(v)) push("footer", <b key="ph">{v}</b>); }
   }
@@ -283,12 +288,16 @@ function CustomerReceipt({ template = {}, org, order }) {
     return <>{run.nodes}</>;
   };
 
-  // Fixed reference lines: solid after header/info, solid under the items
-  // head, dashed after the dishes list and after the subtotal block, solid
-  // after the grand total and after payment. No configurability, no gaps.
-  const boundaryRule = (previous) => (previous === "items" || previous === "summary"
-    ? <ReceiptRule key={`rule-${previous}`} />
-    : <ReceiptRule solid key={`rule-${previous}`} />);
+  // Fixed reference lines: solid after info, solid under the items head,
+  // dashed after the dishes list and after the subtotal block, solid after
+  // the grand total and after payment. No line follows the restaurant header
+  // (product decision). No configurability, no gaps.
+  const boundaryRule = (previous) => {
+    if (previous === "header") return null;
+    return (previous === "items" || previous === "summary"
+      ? <ReceiptRule key={`rule-${previous}`} />
+      : <ReceiptRule solid key={`rule-${previous}`} />);
+  };
 
   return (
     <>
@@ -319,41 +328,62 @@ function itemNotes(item, { modifiers = true, comments = true } = {}) {
   return notes;
 }
 
-function isUrgent(order = {}) {
-  const value = String(order.priority || order.urgency || "").toLowerCase();
-  return Boolean(order.is_urgent || order.urgent || value.includes("сроч") || value.includes("urgent"));
-}
-
 // Breathing room around the paper inside the fit frame so the drop-shadow
 // renders instead of being clipped by the frame's hidden overflow. Kept
-// compact on purpose: every vertical pad pixel directly shrinks the fitted
-// scale (scale is height-bound), so the pads are the minimum that still
-// holds the soft shadow edge. Must stay in sync with the
-// `.receipt-fit-frame` padding in receiptSettings.css.
-export const FIT_PAD_TOP = 26;
-export const FIT_PAD_BOTTOM = 32;
-export const FIT_PAD_SIDE = 12;
+// compact so a tall receipt wastes little vertical room. Must stay in sync
+// with the `.receipt-fit-frame` padding in receiptSettings.css.
+export const FIT_PAD_TOP = 22;
+export const FIT_PAD_BOTTOM = 26;
+export const FIT_PAD_SIDE = 8;
 
 export const FIT_MIN_SCALE = 0.5;
 
-// Pure fit-scale contract, extracted for unit testing: never upscale, take
-// the tighter of the width/height constraints, never go below the readable
-// floor. Height is the binding constraint for a real 80mm receipt; width
-// only binds on narrow panes.
-export function computeFitScale(natW, natH, availW, availH) {
-  if (!natW || !natH || availW <= 0 || availH <= 0) return 1;
-  const raw = Math.min(1, availH / natH, availW / natW);
+// Pure fit-scale contract, extracted for unit testing. Desktop paper size
+// is driven by paper type + available WIDTH only: scale = min(1, availW / natW)
+// clamped at the readable floor for genuinely narrow panes. Pane HEIGHT
+// never participates, so browser zoom (which shrinks CSS viewport height)
+// cannot shrink the receipt. A very tall receipt keeps this stable scale
+// and scrolls inside the preview viewport instead of collapsing.
+export function computeFitScale(natW, availW) {
+  if (!natW || availW <= 0) return 1;
+  const raw = Math.min(1, availW / natW);
   return raw < 1 ? Math.max(raw, FIT_MIN_SCALE) : 1;
 }
 
-function KitchenItems({ items = [], modifiers = true, comments = true }) {
+function itemMoneyValue(item) {
+  const direct = toNumber(item.total ?? item.amount);
+  if (direct > 0) return direct;
+  const computed = toNumber(item.price) * toNumber(item.quantity ?? item.qty ?? 1);
+  return computed > 0 ? computed : 0;
+}
+
+function isCancelledOrder(order = {}) {
+  if (order.is_cancelled || order.cancelled_at) return true;
+  return String(order.status || "").toLowerCase() === "cancelled";
+}
+
+// Chef-only style classes (kitchen preview scope). Isolated from the
+// Customer blockClass contract. Retired size "medium" maps to "large" so
+// unmigrated blobs never render a classless size.
+function kitchenBlockClass(block, styles) {
+  const classes = ["receipt-preview__block"];
+  const style = styles?.[block] || {};
+  if (style.align) classes.push(`receipt-preview__block--align-${style.align}`);
+  if (style.size) classes.push(`receipt-preview__block--size-${style.size === "medium" ? "large" : style.size}`);
+  if (style.weight === "bold") classes.push("receipt-preview__block--weight-bold");
+  return classes.join(" ");
+}
+
+function KitchenItems({ items = [], modifiers = true, comments = true, showMoney = false }) {
   return (
     <div className="receipt-preview__kitchen-items">
       {items.map((item, index) => {
         const notes = itemNotes(item, { modifiers, comments });
+        const amount = showMoney ? itemMoneyValue(item) : 0;
         return (
           <div className="receipt-preview__kitchen-item" key={item.id || `${itemName(item)}-${index}`}>
             <strong>{money(itemQuantity(item))} x {itemName(item)}</strong>
+            {amount > 0 ? <span className="receipt-preview__kitchen-amount">{money(amount)}</span> : null}
             {notes.map((note) => <span key={note}>- {note}</span>)}
           </div>
         );
@@ -364,6 +394,11 @@ function KitchenItems({ items = [], modifiers = true, comments = true }) {
 
 function KitchenReceipt({ template = {}, order }) {
   const enabled = template.enabled || {};
+  const styles = template.blockStyles || {};
+  const cancelled = isCancelledOrder(order);
+  const showCancel = cancelled && enabled.cancelOrderNumber !== false;
+  const commentOn = enabled.comment !== false;
+  const showMoney = enabled.showOrderSum === true;
   const runs = [];
   const push = (section, node) => {
     const last = runs[runs.length - 1];
@@ -373,25 +408,39 @@ function KitchenReceipt({ template = {}, order }) {
   const infoRow = (block, label, value) => {
     if (!hasValue(value)) return;
     push("info", (
-      <div className="receipt-preview__info-row" key={`${block}-${label}`}><b>{label}</b><span>{value}</span></div>
+      <div className={`receipt-preview__info-row ${kitchenBlockClass(block, styles)}`} key={`${block}-${label}`}><b>{label}</b><span>{value}</span></div>
     ));
   };
 
   for (const block of orderedBlocks(template.blocks, KITCHEN_BLOCKS)) {
-    if (block === "modifiers" || block === "itemComments") continue; // sub-toggles of items
     if (!isOn(enabled, block)) continue;
-    if (block === "orderNumber") push("number", <h3 className="receipt-preview__kitchen-number" key="num">#{getOrderNumber(order)}</h3>);
+    if (block === "orderNumber") {
+      if (showCancel) continue; // cancellation ticket shows the cancel block instead
+      push("number", <h3 className={`receipt-preview__kitchen-number ${kitchenBlockClass(block, styles)}`} key="num">#{getOrderNumber(order)}</h3>);
+    } else if (block === "cancelOrderNumber") {
+      if (!showCancel) continue; // never duplicate the normal number
+      push("number", (
+        <div key="cancelnum">
+          <h3 className={`receipt-preview__kitchen-number ${kitchenBlockClass(block, styles)}`}>#{getOrderNumber(order)}</h3>
+          <div className="receipt-preview__kitchen-cancel">ОТМЕНА</div>
+        </div>
+      ));
+    } else if (block === "orderType") infoRow("orderType", "Тип заказа:", order.order_type);
     else if (block === "table") infoRow("table", "Стол:", order.table_number);
     else if (block === "waiter") infoRow("waiter", "Официант:", order.waiter);
-    else if (block === "createdAt") infoRow("createdAt", "Время:", formatKitchenDate(order.created_at));
-    else if (block === "items") push("items", (
-      <KitchenItems key="items" items={order.items || []} modifiers={isOn(enabled, "modifiers")} comments={isOn(enabled, "itemComments")} />
-    ));
-    else if (block === "orderNote" && hasValue(order.note)) push("note", (
-      <div className="receipt-preview__kitchen-comment" key="note"><b>Комментарий:</b><span>- {order.note}</span></div>
-    ));
-    else if (block === "priority" && isUrgent(order)) push("priority", <div className="receipt-preview__kitchen-urgent" key="urg">! СРОЧНО !</div>);
+    else if (block === "date") infoRow("date", "Время:", formatKitchenDate(order.created_at));
+    else if (block === "showOrderSum") continue; // modifier of items, no own position
+    else if (block === "comment") continue; // gates item/order notes, no own position
   }
+
+  // Dishes are core content: always printed with modifiers; comments follow
+  // the unified "Комментарий" setting; amounts only via "Заказы (показать сумму)".
+  push("items", (
+    <KitchenItems key="items" items={order.items || []} modifiers comments={commentOn} showMoney={showMoney} />
+  ));
+  if (commentOn && hasValue(order.note)) push("note", (
+    <div className={`receipt-preview__kitchen-comment ${kitchenBlockClass("comment", styles)}`} key="note"><b>Комментарий:</b><span>- {order.note}</span></div>
+  ));
 
   const wrapRun = (run) => {
     if (run.section === "info") return <div className="receipt-preview__info">{run.nodes}</div>;
@@ -414,12 +463,16 @@ export default function ReceiptPreview({ type = "customer", template = {}, org, 
   const paperSize = normalizePaperSize(template.paperSize);
   const sample = order || (type === "kitchen" ? kitchenSampleOrder : customerSampleOrder);
 
-  // Fit-to-pane (settings preview only): shrink the receipt JUST enough to
-  // fit the visible right-pane height. Preview-only presentation — the logical
-  // receipt (widths, wrapping, ESC/POS order) is untouched. `zoom` composes
-  // naturally: offsetHeight already includes it, so scale is measured against
-  // the true on-screen size. Floor 0.5 keeps text readable; anything smaller
-  // is reported via data-fit-scale instead of silently shrinking further.
+  // Fit-to-pane (settings preview only): scale the receipt to the preview
+  // pane WIDTH. Preview-only presentation — the logical receipt (widths,
+  // wrapping, ESC/POS order) is untouched. `zoom` composes naturally:
+  // offsetWidth already includes it, so scale is measured against the true
+  // on-screen size. Floor 0.5 keeps text readable on genuinely narrow panes;
+  // anything smaller is reported via data-fit-scale instead of silently
+  // shrinking further. Pane height never enters the scale: browser zoom
+  // changes CSS viewport height, and height-fitting is what used to shrink
+  // the receipt into a miniature. A receipt taller than the pane keeps this
+  // stable scale, stays top-anchored, and scrolls inside the fit viewport.
   // The fit frame reserves padding around the paper (FIT_PAD_*) so the
   // drop-shadow has room to render: frame overflow is hidden, so without
   // this breathing room the shadow would be clipped at the frame edge.
@@ -435,12 +488,11 @@ export default function ReceiptPreview({ type = "customer", template = {}, org, 
       // Measure the receipt node itself: an ancestor transform never changes
       // layout metrics, so this is always the natural (zoom-included) size.
       const inner = content.querySelector("[data-receipt-print-root]");
-      const availH = avail.clientHeight - (FIT_PAD_TOP + FIT_PAD_BOTTOM);
       const availW = avail.clientWidth - FIT_PAD_SIDE * 2;
       const natH = inner ? inner.offsetHeight : content.offsetHeight;
       const natW = inner ? inner.offsetWidth : content.offsetWidth;
-      if (!natH || !natW || availH <= 0 || availW <= 0) return;
-      const scale = computeFitScale(natW, natH, availW, availH);
+      if (!natH || !natW || availW <= 0) return;
+      const scale = computeFitScale(natW, availW);
       setFit((prev) => (Math.abs(prev.scale - scale) < 0.004 && prev.width === natW && prev.height === natH)
         ? prev
         : { scale, width: natW, height: natH });
@@ -456,6 +508,7 @@ export default function ReceiptPreview({ type = "customer", template = {}, org, 
     <div
       className={`receipt-preview receipt-preview--${type} receipt-preview--${paperSize}mm`}
       data-paper-size={paperSize}
+      data-line-spacing={normalizeLineSpacing(template.lineSpacing)}
       data-receipt-type={type}
       data-receipt-component="shared"
       data-receipt-print-root

@@ -7,13 +7,30 @@ import { settingsService } from "../../api/settings";
 import {
   CUSTOMER_BLOCK_LABELS,
   CUSTOMER_STYLE_BLOCKS,
+  LINE_SPACING_OPTIONS,
+  PRINTER_CONNECTION_OPTIONS,
   buildCustomerTemplate,
   getCustomerTemplate,
+  normalizeLineSpacing,
+  normalizePrinterConnection,
   saveCustomerTemplate,
   testPrintReceipt,
 } from "../../api/receipt";
 import { isAbortError } from "../../hooks/useAsyncSafety";
 import "./receiptSettings.css";
+
+// Editor-only grouping of the constructor rows. Covers every canonical
+// customer block exactly once; order inside groups follows template.blocks.
+// Notes: "Тип заказа" has no independent block (rendered on the orderNumber
+// row); "Сумма блюд" has no toggle (rendered once, anchored to `total`).
+// Collapse state lives inside ReceiptSectionEditor (UI-only, never saved).
+export const CUSTOMER_RECEIPT_GROUPS = [
+  { key: "header", title: "Шапка", blocks: ["logo", "restaurantName", "address", "phone"] },
+  { key: "order", title: "Информация о заказе", blocks: ["orderNumber", "table", "waiter", "dateTime"] },
+  { key: "items", title: "Состав заказа", blocks: ["items"] },
+  { key: "totals", title: "Итоги", blocks: ["discount", "serviceFee", "vat", "total", "paymentMethod"] },
+  { key: "footer", title: "Нижняя часть", blocks: ["thankYouText", "bottomOrderNumber"] },
+];
 
 export default function ReceiptSettingsPage() {
   const { org, reload: reloadOrg } = useOrg();
@@ -27,6 +44,12 @@ export default function ReceiptSettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [conflict, setConflict] = useState(false);
+  // Standalone card collapse state is UI-only (never saved, never sent):
+  // params + line-spacing panels reuse the group collapse language.
+  const [openPanels, setOpenPanels] = useState(() => ({ additional: true }));
+  function togglePanel(key) {
+    setOpenPanels((current) => ({ ...current, [key]: !current[key] }));
+  }
 
   useEffect(() => {
     let active = true;
@@ -70,13 +93,6 @@ export default function ReceiptSettingsPage() {
         [block]: { ...(current.blockStyles?.[block] || {}), ...patch },
       },
     }));
-  }
-
-  function handleReset() {
-    setTemplate(JSON.parse(JSON.stringify(defaults)));
-    setError("");
-    setConflict(false);
-    setMessage("Шаблон сброшен к стандартному виду. Нажмите «Сохранить», чтобы применить.");
   }
 
   async function handleSave() {
@@ -149,8 +165,53 @@ export default function ReceiptSettingsPage() {
     }
   }
 
-  function renderLogoExtra(block) {
-    if (block !== "logo" || !template.enabled?.logo) return null;
+  // Block extras always render their UI: the animated row-details wrapper
+  // (ReceiptSectionEditor) owns visibility, so OFF hides with animation
+  // while values survive in template state. Never cleared on toggle.
+  function renderBlockExtra(block) {
+    if (block === "restaurantName") {
+      return (
+        <div className="receipt-block-extra">
+          <label className="receipt-field">
+            <span>Название</span>
+            <input
+              value={template.restaurantName || ""}
+              onChange={(event) => patchTemplate({ restaurantName: event.target.value })}
+            />
+          </label>
+        </div>
+      );
+    }
+    if (block === "address" || block === "phone") {
+      const isAddress = block === "address";
+      return (
+        <div className="receipt-block-extra">
+          <label className="receipt-field">
+            <span>{isAddress ? "Адрес" : "Телефон"}</span>
+            <input
+              value={isAddress ? template.address || "" : template.phone || ""}
+              onChange={(event) => patchTemplate(isAddress
+                ? { address: event.target.value }
+                : { phone: event.target.value })}
+            />
+          </label>
+        </div>
+      );
+    }
+    if (block === "thankYouText") {
+      return (
+        <div className="receipt-block-extra">
+          <label className="receipt-field">
+            <span>Комментарий к чеку</span>
+            <input
+              value={template.thankYouText || ""}
+              onChange={(event) => patchTemplate({ thankYouText: event.target.value })}
+            />
+          </label>
+        </div>
+      );
+    }
+    if (block !== "logo") return null;
     return (
       <div className="receipt-logo-field">
         {org?.logo ? (
@@ -158,6 +219,9 @@ export default function ReceiptSettingsPage() {
         ) : (
           <span className="receipt-logo-empty">Логотип компании не установлен</span>
         )}
+        {org?.logo ? (
+          <span className="receipt-logo-name">Логотип компании</span>
+        ) : null}
         <div className="receipt-logo-actions">
           <input
             ref={logoInputRef}
@@ -174,11 +238,11 @@ export default function ReceiptSettingsPage() {
             disabled={uploadingLogo}
             onClick={() => logoInputRef.current?.click()}
           >
-            {uploadingLogo ? "Загрузка..." : org?.logo ? "Заменить логотип" : "Выбрать логотип"}
+            {uploadingLogo ? "Загрузка..." : org?.logo ? "Заменить" : "Выбрать логотип"}
           </button>
           {org?.logo ? (
             <button type="button" className="receipt-btn-secondary" disabled={uploadingLogo} onClick={handleLogoDelete}>
-              Убрать
+              Удалить
             </button>
           ) : null}
         </div>
@@ -199,7 +263,6 @@ export default function ReceiptSettingsPage() {
               </div>
             </div>
             <div className="receipt-editor-actions receipt-editor-actions--end">
-              <button type="button" className="receipt-btn-secondary" disabled={saving} onClick={handleReset}>Сбросить</button>
               <button type="button" className="receipt-btn-secondary" disabled={printing} onClick={handleTestPrint}>Печать предпросмотра</button>
             </div>
           </div>
@@ -213,60 +276,70 @@ export default function ReceiptSettingsPage() {
         <div className="receipt-grid">
           <div className="receipt-editor-col">
             <div className="receipt-editor">
-            <div className="receipt-subcard">
-              <div className="receipt-subcard__head">
-                <h3>Параметры</h3>
-                {loading ? <span className="receipt-subcard__hint">Загрузка...</span> : null}
-              </div>
-              <div className="receipt-field-grid">
-                <label className="receipt-field">
-                  <span>Размер бумаги</span>
-                  <select value={template.paperSize} onChange={(event) => patchTemplate({ paperSize: event.target.value })}>
-                    <option value="58mm">58mm</option>
-                    <option value="80mm">80mm</option>
-                  </select>
-                </label>
-                <label className="receipt-field">
-                  <span>Название</span>
-                  <input value={template.restaurantName || ""} onChange={(event) => patchTemplate({ restaurantName: event.target.value })} />
-                </label>
-                <label className="receipt-field">
-                  <span>Адрес</span>
-                  <input value={template.address || ""} onChange={(event) => patchTemplate({ address: event.target.value })} />
-                </label>
-                <label className="receipt-field">
-                  <span>Телефон</span>
-                  <input value={template.phone || ""} onChange={(event) => patchTemplate({ phone: event.target.value })} />
-                </label>
-              </div>
-              <p className="receipt-paper-hint">Фактическая ширина печати зависит от настройки выбранного принтера.</p>
-              <label className="receipt-field receipt-field--wide">
-                <span>Текст благодарности</span>
-                <input value={template.thankYouText || ""} onChange={(event) => patchTemplate({ thankYouText: event.target.value })} />
-              </label>
-              <label className="receipt-field receipt-field--wide">
-                <span>Нижний текст</span>
-                <textarea rows="3" value={template.footerText || ""} onChange={(event) => patchTemplate({ footerText: event.target.value })} />
-              </label>
-            </div>
+            {/* Unknown legacy keys (e.g. retired "qr") never get an editor
+                 row: every visible toggle must have a real preview effect.
+                 Discount/VAT are intentionally hidden from the editor (their
+                 stored enabled state still applies to already-saved
+                 templates in preview and print); use serviceFee/total. */}
+            <ReceiptSectionEditor
+              blocks={(template.blocks || []).filter(isActiveConstructorBlock).filter((block) => block !== "discount" && block !== "vat")}
+              enabled={template.enabled}
+              labels={CUSTOMER_BLOCK_LABELS}
+              blockStyles={template.blockStyles}
+              styleBlocks={CUSTOMER_STYLE_BLOCKS}
+              onToggle={toggleBlock}
+              onStyleChange={changeBlockStyle}
+              renderBlockExtra={renderBlockExtra}
+              groups={CUSTOMER_RECEIPT_GROUPS}
+            />
 
-            <div className="receipt-subcard">
-              <div className="receipt-subcard__head">
-                <h3>Блоки чека</h3>
-              </div>
-              {/* Unknown legacy keys (e.g. retired "qr") never get an editor
-                  row: every visible toggle must have a real preview effect. */}
-              <ReceiptSectionEditor
-                blocks={(template.blocks || []).filter(isActiveConstructorBlock)}
-                enabled={template.enabled}
-                labels={CUSTOMER_BLOCK_LABELS}
-                blockStyles={template.blockStyles}
-                styleBlocks={CUSTOMER_STYLE_BLOCKS}
-                onToggle={toggleBlock}
-                onStyleChange={changeBlockStyle}
-                renderBlockExtra={renderLogoExtra}
-              />
-            </div>
+              <section className="receipt-section-group" data-settings-section="additional">
+                <button
+                  type="button"
+                  className="receipt-section-group__header"
+                  aria-expanded={openPanels.additional}
+                  onClick={() => togglePanel("additional")}
+                >
+                  <span className="receipt-section-group__title">Дополнительные настройки</span>
+                  <span className="receipt-section-group__chevron" aria-hidden="true" />
+                </button>
+                <div className={`receipt-section-group__body${openPanels.additional ? " is-open" : ""}`}>
+                  <div className="receipt-section-group__inner">
+                    <div className="receipt-duo">
+                      <div className="receipt-duo-col">
+                        <span className="receipt-duo-label">Место между строками</span>
+                        <div className="receipt-segments receipt-line-spacing" role="group" aria-label="Место между строками чека">
+                          {LINE_SPACING_OPTIONS.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              className={normalizeLineSpacing(template.lineSpacing) === option.value ? "is-active" : ""}
+                              onClick={() => patchTemplate({ lineSpacing: option.value })}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="receipt-duo-col">
+                        <span className="receipt-duo-label">Подключение принтера</span>
+                        <div className="receipt-segments receipt-line-spacing" role="group" aria-label="Подключение принтера">
+                          {PRINTER_CONNECTION_OPTIONS.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              className={normalizePrinterConnection(template.printerConnection) === option.value ? "is-active" : ""}
+                              onClick={() => patchTemplate({ printerConnection: option.value })}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
 
               <div className="receipt-editor-save">
                 <button type="button" className="receipt-btn-primary receipt-save" disabled={saving || loading} onClick={handleSave}>
