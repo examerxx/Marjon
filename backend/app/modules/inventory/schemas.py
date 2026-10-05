@@ -10,6 +10,9 @@ class CategoryCreate(BaseSchema):
     slug: str
     parent_id: UUID | None = None
     sort_order: int = 0
+    is_active: bool = True
+    calculate_service: bool = False
+    show_in_menu: bool = False
 
 
 class CategoryResponse(BaseResponseSchema):
@@ -19,6 +22,19 @@ class CategoryResponse(BaseResponseSchema):
     slug: str
     sort_order: int
     is_active: bool
+    calculate_service: bool
+    show_in_menu: bool
+
+
+class CategoryUpdate(BaseSchema):
+    # Canonical inventory-category update: proven model columns only.
+    # No slug (renaming breaks raw/semi slug-prefix filtering), no photo
+    # (image_url has no API surface yet) — both stay untouched.
+    name: str | None = None
+    sort_order: int | None = None
+    is_active: bool | None = None
+    calculate_service: bool | None = None
+    show_in_menu: bool | None = None
 
 
 class ProductIngredientIn(BaseSchema):

@@ -10,7 +10,7 @@ from app.modules.auth.dependencies import (
 from app.modules.auth.models import User
 from app.modules.inventory.models import Product
 from app.modules.inventory.schemas import (
-    CategoryCreate, CategoryResponse,
+    CategoryCreate, CategoryResponse, CategoryUpdate,
     IngredientCreate, IngredientResponse, IngredientUpdate,
     ModifierGroupCreate, ModifierGroupResponse, ModifierGroupUpdate, ModifierResponse,
     ProductAvailabilityUpdate, ProductCreate, ProductIngredientResponse,
@@ -121,6 +121,16 @@ async def create_category(data: CategoryCreate, user: User = Depends(require_com
 @router.get("/categories", response_model=list[CategoryResponse])
 async def list_categories(user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
     return await CategoryService(db).list(user.company_id)
+
+
+@router.patch("/categories/{category_id}", response_model=CategoryResponse)
+async def update_category(category_id: UUID, data: CategoryUpdate, user: User = Depends(require_company_admin), db: AsyncSession = Depends(get_db)):
+    return await CategoryService(db).update(user.company_id, category_id, data)
+
+
+@router.delete("/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_category(category_id: UUID, user: User = Depends(require_company_admin), db: AsyncSession = Depends(get_db)):
+    await CategoryService(db).delete(user.company_id, category_id)
 
 
 @router.post("/products", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)

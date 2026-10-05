@@ -1108,4 +1108,349 @@
       line-height: 1.4;
   }
 
+  /* V1 — Dish Categories live in marjon-important (like the existing
+     .menu-categories-page overrides in react-overrides.css), otherwise the
+     older row geometry wins by layer. Still strictly scoped to
+     .is-dish-categories. */
+}
+
+@layer marjon-important {
+  /* V1 — Dish Categories in the "Место" (SettingsPlacesPage) visual family.
+     Strictly scoped to Menu → Категория блюд (.is-dish-categories), so raw /
+     semi / sales categories and the Places page itself are untouched.
+     Borrows the Place tokens: white 14px-radius card row, 20px title,
+     calm 13px secondary, dot status, text edit + icon delete. */
+  .menu-categories-page.is-dish-categories .menu-categories-card {
+      display: block;
+      padding: 16px 22px 22px;
+      border: 1px solid rgba(15, 35, 60, 0.09);
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 3px 12px rgba(15, 35, 60, 0.055);
+  }
+
+  /* V3 — desktop shell matches Dishes: neutralize the category-only stretch
+     (react-overrides ~32215: width calc + negative margins, menu-categories
+     ONLY) and mirror the Dishes content rhythm (dishes.css V9/V14 pattern:
+     16px sides + 14px top / 42px bottom on desktop). Page-scoped, no shared
+     shell regression. */
+  .dashboard-content:has(.menu-categories-page.is-dish-categories) {
+      padding-left: 16px;
+      padding-right: 16px;
+  }
+
+  @media (min-width: 1025px) {
+      .menu-categories-page.is-dish-categories {
+          width: auto;
+          margin: 0;
+          padding: 0;
+      }
+
+      body.dashboard-body .dashboard-content:has(.menu-categories-page.is-dish-categories) {
+          padding-top: 14px;
+          padding-bottom: 42px;
+      }
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+  }
+
+  /* V4 — header follows the approved "Блюда" template (live values:
+     accent 8x44, title 28px/600); eyebrow already shares the same classes. */
+  .menu-categories-page.is-dish-categories .dishcat-header .settings-accent-bar {
+      height: 44px;
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-header .settings-title-group h1 {
+      font-size: 28px;
+      font-weight: 600;
+  }
+
+  /* V2 — Add button in the OWNER primary turquoise family (#1FC9C9, 22px). */
+  .menu-categories-page.is-dish-categories .dishcat-header .settings-actions button {
+      min-height: 44px;
+      padding: 0 22px;
+      border: 0;
+      border-radius: 22px;
+      background: #1FC9C9;
+      color: #fff;
+      font-weight: 800;
+      box-shadow: 0 8px 18px rgba(31, 201, 201, 0.28);
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-header .settings-actions button:hover:not(:disabled) {
+      background: #1AB5B5;
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-header .settings-actions button:active:not(:disabled) {
+      background: #159898;
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-header .settings-actions button:disabled {
+      opacity: 0.6;
+      box-shadow: none;
+      cursor: not-allowed;
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-list {
+      gap: 10px;
+      /* V3 — neutralize react-overrides grid-auto-rows:54px: tracks must size
+         to the 72px rows, otherwise rows overflow tracks and overlap. */
+      grid-auto-rows: auto;
+  }
+
+  .menu-categories-page.is-dish-categories .menu-category-row.dishcat-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 18px;
+      height: auto;
+      max-height: none;
+      min-height: 72px;
+      min-width: 0;
+      padding: 18px 16px;
+      border: 1px solid rgba(215, 226, 240, .9);
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: none;
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+  }
+
+  .menu-categories-page.is-dish-categories .menu-category-row.dishcat-row:hover {
+      border-color: rgba(22, 198, 200, .5);
+      background: #fff;
+      box-shadow: 0 6px 16px rgba(20, 44, 72, .06);
+      transform: none;
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-main {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+  }
+
+  /* V4 — row photo block: compact rounded square left of the name, OWNER
+     neutral placeholder when the row carries no real photo (NomCategory has
+     no photo field, so placeholder is the honest default). */
+  .menu-categories-page.is-dish-categories .dishcat-photo-sm {
+      width: 40px;
+      height: 40px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid rgba(215, 226, 240, .9);
+      border-radius: 12px;
+      background: var(--neutral-50, #f4f7fc);
+      color: #8aa0b4;
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-photo-sm img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-info {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-info strong {
+      overflow: hidden;
+      color: #0b1f3f;
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 1.3;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+  }
+
+  /* V5 — eyebrow "МЕНЮ" exactly +8px down: relative offset moves only the
+     eyebrow text (layout untouched, accent/title/button stay). */
+  .menu-categories-page.is-dish-categories .dishcat-header .settings-title-group p {
+      position: relative;
+      top: 8px;
+  }
+
+  /* V6 — service state colors: ON = approved active green, OFF = #EF4444
+     (dot inherits via currentColor). Independent from is_active. */
+  .menu-categories-page.is-dish-categories .dishcat-service-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-right: 14px;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.5;
+      white-space: nowrap;
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-service-badge.is-on {
+      color: #00dc3b;
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-service-badge.is-off {
+      color: #EF4444;
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-service-badge__dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 8px;
+      border-radius: 50%;
+      background: currentColor;
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-meta {
+      display: grid;
+      grid-template-columns: 40px auto auto auto 34px;
+      align-items: center;
+      gap: 10px;
+  }
+
+  /* Place-family dot status on this page only (transparent, text-first). */
+  .menu-categories-page.is-dish-categories .dishcat-meta .settings-status-badge {
+      gap: 7px;
+      justify-self: start;
+      padding: 0;
+      border: 0;
+      background: transparent;
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-meta .settings-status-badge.is-active {
+      border: 0;
+      background: transparent;
+      color: #00dc3b;
+  }
+
+  .menu-categories-page.is-dish-categories .dishcat-meta .settings-status-badge.is-inactive {
+      border: 0;
+      background: transparent;
+      color: var(--color-danger, #ef4444);
+  }
+
+  /* V2 — Add Category centered modal: OWNER settings-modal shell is reused
+     untouched; only the primary action joins the turquoise family and the
+     photo block gets its local layout. */
+  .dishcat-modal-layer .settings-form__footer button[type="submit"] {
+      min-height: 43px;
+      border: 0;
+      border-radius: 22px;
+      background: #1FC9C9;
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(31, 201, 201, 0.28);
+  }
+
+  .dishcat-modal-layer .settings-form__footer button[type="submit"]:hover:not(:disabled) {
+      background: #1AB5B5;
+  }
+
+  .dishcat-modal-layer .settings-form__footer button[type="submit"]:active:not(:disabled) {
+      background: #159898;
+  }
+
+  .dishcat-modal-layer .settings-form__footer button[type="submit"]:disabled {
+      opacity: 0.6;
+      box-shadow: none;
+      cursor: not-allowed;
+  }
+
+  /* V6 — delete confirm: destructive action in outlined red (OWNER family:
+     white + red border/text, never filled red). Stronger than the turquoise
+     modal-submit rule in this same layer. */
+  .dishcat-modal-layer .settings-form__footer button.dishcat-confirm__delete[type="submit"] {
+      min-height: 43px;
+      padding: 0 18px;
+      border: 1px solid #EF4444;
+      border-radius: 22px;
+      background: #fff;
+      color: #EF4444;
+      font-weight: 800;
+      cursor: pointer;
+  }
+
+  .dishcat-modal-layer .dishcat-confirm__delete:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.06);
+  }
+
+  .dishcat-modal-layer .dishcat-confirm__delete:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+  }
+
+  .dishcat-photo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+  }
+
+  .dishcat-photo__preview {
+      width: 64px;
+      height: 64px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid rgba(215, 226, 240, .9);
+      border-radius: 18px;
+      background: var(--neutral-50, #f4f7fc);
+      color: #8aa0b4;
+  }
+
+  .dishcat-photo__preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+  }
+
+  .dishcat-photo__body {
+      display: grid;
+      gap: 8px;
+      color: var(--neutral-600, #475569);
+      font-size: 14px;
+  }
+
+  .dishcat-photo__upload {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+      padding: 0 14px;
+      border: 1px solid rgba(15, 153, 184, .35);
+      border-radius: 12px;
+      background: #fff;
+      color: #0f99b8;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+  }
+
+  .dishcat-photo__upload:hover {
+      border-color: rgba(22, 198, 200, .6);
+      background: rgba(22, 198, 200, .07);
+  }
+
+  .dishcat-photo__upload input {
+      display: none;
+  }
+
+  @media (max-width: 720px) {
+      .menu-categories-page.is-dish-categories .menu-category-row.dishcat-row {
+          grid-template-columns: minmax(0, 1fr);
+      }
+
+      .menu-categories-page.is-dish-categories .dishcat-meta {
+          justify-content: start;
+          width: 100%;
+      }
+  }
+
 }

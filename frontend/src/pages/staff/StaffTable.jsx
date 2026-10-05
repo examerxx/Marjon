@@ -33,7 +33,8 @@ export default function StaffTable({
   return (
     <>
       {staffError ? <div className="login-error" role="alert">{staffError}</div> : null}
-      <div className="staff-table-wrapper">
+      <div className="staff-table-wrapper staff-table-wrapper--roles">
+        <div className="staff-role-table-scroll">
         <table className={`staff-table${showAccess ? "" : " staff-table--no-access"}`}>
           <thead>
             <tr>
@@ -187,6 +188,7 @@ export default function StaffTable({
             )}
           </tbody>
         </table>
+        </div>
       </div>
       {/* Индикатор загрузки — ПОД таблицей (а не над ней), как и статусы/пустое
           состояние, чтобы шапка таблицы была видна сразу, а «Загрузка…» не

@@ -1410,3 +1410,47 @@ body.dashboard-body:has(.staff-modal--cashier-full) .staff-modal.staff-modal--ca
     font-weight: 600;
     font-size: clamp(24px, 2.4vw, 28px);
 }
+
+/* STAFF-TABLE-V1: approved Dishes V30 skin, only the canonical StaffTable.
+   Journals, settings and inventory also use staff-table classes; the role
+   wrapper keeps them out of scope. The inner scroll retains narrow-screen
+   access while the outer shell clips its rounded corners. No density changes. */
+.staff-table-wrapper.staff-table-wrapper--roles {
+    border-color: var(--neutral-200, #d0d9e8);
+    border-radius: 20px;
+    background: #fff;
+    overflow: hidden;
+    box-shadow: none;
+}
+
+.staff-table-wrapper--roles .staff-role-table-scroll {
+    overflow-x: auto;
+}
+
+.staff-table-wrapper--roles .staff-table th {
+    background: var(--blue-50, #eff6ff);
+}
+
+.staff-table-wrapper--roles .staff-table th:first-child {
+    border-top-left-radius: 20px;
+}
+
+.staff-table-wrapper--roles .staff-table th:last-child {
+    border-top-right-radius: 20px;
+}
+
+.staff-table-wrapper--roles .staff-table td {
+    border-top-color: var(--neutral-200, #d0d9e8);
+}
+
+.staff-table-wrapper--roles .staff-table tbody tr {
+    transition: none;
+}
+
+.staff-table-wrapper--roles .staff-table tbody tr:not(.staff-empty-row):hover {
+    background: var(--neutral-50, #f4f7fc);
+}
+
+.staff-table-wrapper--roles .staff-table tbody tr:not(.staff-empty-row):hover td {
+    background: transparent;
+}

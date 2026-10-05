@@ -26,6 +26,12 @@ export const catalogService = Object.freeze({
   createCategory(payload) {
     return api.post("/inventory/categories", payload);
   },
+  updateCategory(categoryId, payload) {
+    return api.patch(`/inventory/categories/${categoryId}`, payload);
+  },
+  deleteCategory(categoryId) {
+    return api.delete(`/inventory/categories/${categoryId}`);
+  },
   // Добавки (модификаторы) блюда: группа принадлежит блюду, внутри — опции с наценкой.
   listModifierGroups(productId, config) {
     const url = `/inventory/products/${productId}/modifier-groups`;

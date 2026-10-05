@@ -17,6 +17,10 @@ class Category(TimeStampedModel):
     image_url: Mapped[str | None] = mapped_column(Text)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # V25: canonical persisted booleans for the OWNER dish-category UI.
+    # Both default FALSE for existing rows (conservative: no fake ON state).
+    calculate_service: Mapped[bool] = mapped_column(Boolean, default=False)
+    show_in_menu: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # BE-16: Product now has two FKs to Category (category_id,
     # subcategory_id) — foreign_keys disambiguates which one this side of

@@ -14,11 +14,11 @@ from app.modules.inventory.repository import (
     StockItemRepository, StockMovementRepository, WarehouseRepository,
 )
 from app.modules.inventory.schemas import (
-    CategoryCreate, IngredientCreate, IngredientUpdate, ProductCreate,
+    CategoryCreate, CategoryUpdate, IngredientCreate, IngredientUpdate, ProductCreate,
     ProductIngredientIn, ProductUpdate, StockMovementCreate,
 )
 from app.modules.printers.models import Printer
-from app.shared.exceptions import NotFoundError
+from app.shared.exceptions import ConflictError, NotFoundError
 from app.shared.tenant_scope import require_company_resource, require_company_resource_ids
 
 _PRODUCT_LOAD = (
@@ -45,6 +45,42 @@ class CategoryService:
         if not cat:
             raise NotFoundError("Category not found")
         return cat
+
+    async def update(self, company_id: UUID, category_id: UUID, data: CategoryUpdate) -> Category:
+        # Company-scoped: get() hides foreign-company ids as 404, same as read.
+        cat = await self.get(company_id, category_id)
+        for field, value in data.model_dump(exclude_unset=True).items():
+            setattr(cat, field, value)
+        await self.repo.db.commit()
+        return await self.get(company_id, category_id)
+
+    async def delete(self, company_id: UUID, category_id: UUID) -> None:
+        # Hard delete only when nothing references the category; otherwise a
+        # canonical 409 (FKs are NO ACTION, so the DB would reject it anyway —
+        # this pre-check gives a clear message instead of an IntegrityError).
+        cat = await self.get(company_id, category_id)
+        used_by_product = (
+            await self.repo.db.execute(
+                select(Product.id).where(
+                    Product.company_id == company_id,
+                    ((Product.category_id == category_id) | (Product.subcategory_id == category_id)),
+                ).limit(1)
+            )
+        ).scalar_one_or_none()
+        if used_by_product is not None:
+            raise ConflictError("Category is in use by dishes and cannot be deleted")
+        used_by_child = (
+            await self.repo.db.execute(
+                select(Category.id).where(
+                    Category.company_id == company_id,
+                    Category.parent_id == category_id,
+                ).limit(1)
+            )
+        ).scalar_one_or_none()
+        if used_by_child is not None:
+            raise ConflictError("Category has subcategories and cannot be deleted")
+        await self.repo.db.delete(cat)
+        await self.repo.db.commit()
 
 
 class ProductService:
