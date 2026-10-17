@@ -91,11 +91,6 @@ export const navItems = [
     children: [
       { key: "raw-categories", label: "Категория продуктов", to: "/nomenclature/raw-categories", icon: "bi-boxes" },
       { key: "raw-materials", label: "Продукты", to: "/nomenclature/raw-materials", icon: "bi-basket" },
-      // MERGE: страницы «Полуфабрикаты» есть в App.jsx и в main-меню, но в
-      // ветке toast-notifications ссылки не было — восстановлено, чтобы
-      // маршруты /nomenclature/semi-finished* не остались без входа в меню.
-      { key: "semi-finished", label: "Полуфабрикаты", to: "/nomenclature/semi-finished", icon: "bi-box" },
-      { key: "semi-finished-categories", label: "Категория полуфабрикатов", to: "/nomenclature/semi-finished-categories", icon: "bi-diagram-3" },
     ],
   },
   {
@@ -108,13 +103,7 @@ export const navItems = [
       { key: "incoming", label: "Приход товаров", to: "/stock-report/incoming", icon: "bi-box-arrow-in-down" },
       { key: "outgoing", label: "Расход товаров", to: "/stock-report/outgoing", icon: "bi-box-arrow-up" },
       { key: "stock", label: "Остаток", to: "/stock-report/stock", icon: "bi-boxes" },
-      // MERGE: «Перемещение», «Списание» и «Категории списания» — рабочие
-      // страницы WarehousePage (маршруты есть в App.jsx). В ветке
-      // toast-notifications они выпали из меню, здесь восстановлены.
-      { key: "transfer", label: "Перемещение", to: "/stock-report/transfer", icon: "bi-arrow-left-right" },
       { key: "inventory", label: "Инвентаризация", to: "/stock-report/inventory", icon: "bi-clipboard-check" },
-      { key: "write-off", label: "Списание", to: "/stock-report/write-off", icon: "bi-trash3" },
-      { key: "write-off-categories", label: "Категории списания", to: "/stock-report/write-off-categories", icon: "bi-tags" },
       { key: "waste", label: "Отход товаров", to: "/stock-report/waste", icon: "bi-recycle" },
     ],
   },

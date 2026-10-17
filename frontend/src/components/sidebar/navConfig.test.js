@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { isNavPathActive, navItems } from "./navConfig";
 
@@ -27,10 +29,7 @@ describe("OWNER sidebar navigation order", () => {
       "/stock-report/incoming",
       "/stock-report/outgoing",
       "/stock-report/stock",
-      "/stock-report/transfer",
       "/stock-report/inventory",
-      "/stock-report/write-off",
-      "/stock-report/write-off-categories",
       "/stock-report/waste",
     ]);
   });
@@ -80,21 +79,17 @@ describe("OWNER sidebar navigation order", () => {
     expect(childPaths("settings")).not.toContain("/settings/profile");
   });
 
-  it("WAREHOUSE V1: shows Категория продуктов, Продукты, Полуфабрикаты, Категория полуфабрикатов", () => {
+  it("WAREHOUSE V1: shows Категория продуктов и Продукты", () => {
     const warehouse = navItems.find((item) => item.key === "warehouse");
     expect(warehouse).toBeDefined();
-    expect(warehouse.children).toHaveLength(4);
+    expect(warehouse.children).toHaveLength(2);
     expect(childLabels("warehouse")).toEqual([
       "Категория продуктов",
       "Продукты",
-      "Полуфабрикаты",
-      "Категория полуфабрикатов",
     ]);
     expect(childPaths("warehouse")).toEqual([
       "/nomenclature/raw-categories",
       "/nomenclature/raw-materials",
-      "/nomenclature/semi-finished",
-      "/nomenclature/semi-finished-categories",
     ]);
     // Preserved routes + icons
     expect(warehouse.children[0]).toMatchObject({
@@ -109,11 +104,30 @@ describe("OWNER sidebar navigation order", () => {
     });
   });
 
-  it("WAREHOUSE V1: keeps semi-finished subcategories in navigation", () => {
-    expect(childLabels("warehouse")).toContain("Полуфабрикаты");
-    expect(childLabels("warehouse")).toContain("Категория полуфабрикатов");
-    expect(childPaths("warehouse")).toContain("/nomenclature/semi-finished");
-    expect(childPaths("warehouse")).toContain("/nomenclature/semi-finished-categories");
+  it("WAREHOUSE V1: keeps semi-finished out of the menu but routes stay reachable", () => {
+    // Пункты меню убраны по требованию владельца, но маршруты в App.jsx
+    // остаются: страницы не ломаются, если на них ведёт прямая ссылка
+    // или переход изнутри интерфейса.
+    expect(childLabels("warehouse")).not.toContain("Полуфабрикаты");
+    expect(childLabels("warehouse")).not.toContain("Категория полуфабрикатов");
+    expect(childPaths("warehouse")).not.toContain("/nomenclature/semi-finished");
+    expect(childPaths("warehouse")).not.toContain("/nomenclature/semi-finished-categories");
+
+    const appRoutes = readFileSync(resolve(process.cwd(), "src/App.jsx"), "utf8");
+    expect(appRoutes).toContain('path: "nomenclature/semi-finished"');
+    expect(appRoutes).toContain('path: "nomenclature/semi-finished-categories"');
+  });
+
+  it("WAREHOUSE V1: keeps transfer and write-off out of the menu but routes stay reachable", () => {
+    // Тот же принцип, что и у полуфабрикатов: убрали вход из меню, а не экраны.
+    expect(childPaths("warehouse-report")).not.toContain("/stock-report/transfer");
+    expect(childPaths("warehouse-report")).not.toContain("/stock-report/write-off");
+    expect(childPaths("warehouse-report")).not.toContain("/stock-report/write-off-categories");
+
+    const appRoutes = readFileSync(resolve(process.cwd(), "src/App.jsx"), "utf8");
+    expect(appRoutes).toContain('path: "stock-report/transfer"');
+    expect(appRoutes).toContain('path: "stock-report/write-off"');
+    expect(appRoutes).toContain('path: "stock-report/write-off-categories"');
   });
 
   it("WAREHOUSE V1: preserves other top-level sidebar sections", () => {
