@@ -1347,7 +1347,11 @@
       "foto_profilya": "Фото профиля",
       "vybrat_foto": "Выбрать фото",
       "sohranit": "Сохранить",
-      "ubrat_foto": "Убрать фото"
+      "ubrat_foto": "Убрать фото",
+      "select_image_file": "Выберите файл изображения.",
+      "enter_profile_name": "Введите имя профиля.",
+      "settings_saved_local": "Локальные настройки профиля сохранены на этом устройстве.",
+      "photo_will_reset": "Фото будет сброшено после сохранения."
     },
     "sectionpage": {
       "nazad": "Назад",

@@ -1345,7 +1345,11 @@
       "foto_profilya": "Profile photo",
       "vybrat_foto": "Choose photo",
       "sohranit": "Save",
-      "ubrat_foto": "Remove photo"
+      "ubrat_foto": "Remove photo",
+      "select_image_file": "Please select an image file.",
+      "enter_profile_name": "Please enter a profile name.",
+      "settings_saved_local": "Profile settings saved on this device.",
+      "photo_will_reset": "Photo will be reset after saving."
     },
     "sectionpage": {
       "nazad": "Back",

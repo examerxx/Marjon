@@ -23,7 +23,7 @@ export default function ProfileSettingsPage() {
     const file = event.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setMessage("Выберите файл изображения.");
+      setMessage(t("pages.profilesettingspage.select_image_file"));
       return;
     }
 
@@ -39,18 +39,18 @@ export default function ProfileSettingsPage() {
     event.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setMessage("Введите имя профиля.");
+      setMessage(t("pages.profilesettingspage.enter_profile_name"));
       return;
     }
 
     updateStoredProfile(user?.id, { name: trimmedName, photo });
     setName(trimmedName);
-    setMessage("Локальные настройки профиля сохранены на этом устройстве.");
+    setMessage(t("pages.profilesettingspage.settings_saved_local"));
   }
 
   function removePhoto() {
     setPhoto("");
-    setMessage("Фото будет сброшено после сохранения.");
+    setMessage(t("pages.profilesettingspage.photo_will_reset"));
   }
 
   return (

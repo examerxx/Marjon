@@ -1345,7 +1345,11 @@
       "foto_profilya": "Profil fotosi",
       "vybrat_foto": "Foto tanlash",
       "sohranit": "Saqlash",
-      "ubrat_foto": "Fotoni olib tashlash"
+      "ubrat_foto": "Fotoni olib tashlash",
+      "select_image_file": "Rasm faylini tanlang.",
+      "enter_profile_name": "Profil ismini kiriting.",
+      "settings_saved_local": "Profil sozlamalari ushbu qurilmada saqlandi.",
+      "photo_will_reset": "Foto saqlangandan so'ng tiklanadi."
     },
     "sectionpage": {
       "nazad": "Orqaga",
