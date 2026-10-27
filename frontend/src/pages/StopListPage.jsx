@@ -3,6 +3,7 @@ import { catalogService } from "../api/catalog";
 import { formatMoney } from "../api/client";
 import Icon from "../components/Icon";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../hooks/useAsyncSafety";
+import { t } from "../i18n/t";
 
 // Стоп-лист: блюда, временно снятые с продажи. Правит доступность
 // (is_available) и дневной лимит порций через узкие inventory-эндпоинты.
@@ -112,8 +113,8 @@ export default function StopListPage() {
           <div className="stoplist-title">
             <span className="stoplist-accent" />
             <div>
-              <h1>Стоп-лист</h1>
-              <p>Временно недоступные блюда{stopCount ? ` · в стопе: ${stopCount}` : ""}</p>
+              <h1>{t("pages.stoplistpage.stop_list")}</h1>
+              <p>{t("pages.stoplistpage.vremenno_nedostupnye_blyuda")}{stopCount ? ` · в стопе: ${stopCount}` : ""}</p>
             </div>
           </div>
           <div className="stoplist-controls">
@@ -122,7 +123,7 @@ export default function StopListPage() {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Поиск блюда"
+                placeholder={t("pages.stoplistpage.poisk_blyuda")}
               />
             </div>
             <button
@@ -130,7 +131,7 @@ export default function StopListPage() {
               className={`stoplist-filter ${onlyStop ? "is-active" : ""}`}
               onClick={() => setOnlyStop((value) => !value)}
             >
-              Только в стопе
+             {t("pages.stoplistpage.tolko_v_stope")}
             </button>
           </div>
         </div>
@@ -173,20 +174,20 @@ export default function StopListPage() {
                           type="number"
                           min="1"
                           inputMode="numeric"
-                          placeholder="Лимит/день"
+                          placeholder={t("pages.stoplistpage.limit_den")}
                           value={draftFor(p)}
                           disabled={limitBusyId === p.id}
                           onChange={(event) => setLimitDraft((prev) => ({ ...prev, [p.id]: event.target.value }))}
                           onKeyDown={(event) => { if (event.key === "Enter") saveLimit(p); }}
                         />
                         <button type="button" disabled={limitBusyId === p.id} onClick={() => saveLimit(p)}>
-                          ОК
+                         {t("pages.stoplistpage.ok")}
                         </button>
                       </div>
                     </div>
                     {p.daily_limit != null ? (
                       <p className="stoplist-item__sold">
-                        Продано: <strong>{p.sold_count ?? 0}</strong> / {p.daily_limit}
+                       {t("pages.stoplistpage.prodano")} <strong>{p.sold_count ?? 0}</strong> / {p.daily_limit}
                       </p>
                     ) : null}
                   </article>

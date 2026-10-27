@@ -13,6 +13,7 @@ import { exportToExcel } from "../utils/excel";
 import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/useAsyncSafety";
 import { formatDateLabel, todayInputValue } from "../utils/date";
 import { toApiDate } from "./reports/reportPeriod";
+import { t } from "../i18n/t";
 
 const initialFilters = {
   query: "",
@@ -172,7 +173,7 @@ function normalizeDishesReportResponse(data) {
 
 function ReportDishPhoto({ row, onOpen }) {
   const [failed, setFailed] = useState(false);
-  if (!row.photo || failed) return <span className="dish-report-photo" aria-label="Нет фото"><Icon name="bi-image" size={16} /></span>;
+  if (!row.photo || failed) return <span className="dish-report-photo" aria-label={t("pages.dishesreportpage.net_foto")}><Icon name="bi-image" size={16} /></span>;
   return <button type="button" className="dish-report-photo" aria-label={`Открыть фото ${row.name}`} onClick={event => { event.stopPropagation(); onOpen(); }}><img src={row.photo} alt="" loading="lazy" onError={() => setFailed(true)} /></button>;
 }
 
@@ -384,13 +385,13 @@ export default function DishesReportPage() {
     // the backend's row order (already category-sorted); uncategorized → the
     // presentation label "Без категории".
     const cols = [
-      { key: "name", label: "Название", width: 30 },
-      { key: "unit", label: "Ед изм", width: 10 },
-      { key: "quantityNum", label: "Кол-во", type: "number", format: "#,##0", width: 12 },
-      { key: "priceNum", label: "Цена", type: "number", format: "#,##0", width: 14 },
-      { key: "amountNum", label: "Сумма", type: "number", format: "#,##0", width: 16 },
-      { key: "costNum", label: "Себестоимость", type: "number", format: "#,##0", width: 18 },
-      { key: "profitNum", label: "Прибыль", type: "number", format: "#,##0", width: 16 },
+      { key: "name", label: t("pages.dishesreportpage.nazvanie"), width: 30 },
+      { key: "unit", label: t("pages.dishesreportpage.ed_izm"), width: 10 },
+      { key: "quantityNum", label: t("pages.dishesreportpage.kol_vo"), type: "number", format: "#,##0", width: 12 },
+      { key: "priceNum", label: t("pages.dishesreportpage.tsena"), type: "number", format: "#,##0", width: 14 },
+      { key: "amountNum", label: t("pages.dishesreportpage.summa"), type: "number", format: "#,##0", width: 16 },
+      { key: "costNum", label: t("pages.dishesreportpage.sebestoimost"), type: "number", format: "#,##0", width: 18 },
+      { key: "profitNum", label: t("pages.dishesreportpage.pribyl"), type: "number", format: "#,##0", width: 16 },
     ];
     const UNCATEGORIZED = "Без категории";
     // Group in the canonical row order the backend returned (category-sorted).
@@ -421,7 +422,7 @@ export default function DishesReportPage() {
       sheetName: "Отчёт по блюдам",
       groups,
       grandTotal: {
-        label: "Общий итог",
+        label: t("pages.dishesreportpage.obschiy_itog"),
         values: {
           quantityNum: Number(totals.quantity || 0),
           amountNum: Number(totals.amount || 0),
@@ -446,12 +447,12 @@ export default function DishesReportPage() {
           <div className="report-title-group owner-report-heading">
             <span className="report-accent-bar" aria-hidden="true" />
             <div>
-              <span className="report-eyebrow owner-report-kicker">Отчёты</span>
-              <h1>Отчёт по блюдам</h1>
+              <span className="report-eyebrow owner-report-kicker">{t("pages.dishesreportpage.otchety")}</span>
+              <h1>{t("pages.dishesreportpage.otchet_po_blyudam")}</h1>
             </div>
           </div>
           <div className="report-actions owner-report-actions">
-            <ReportDateRangePicker variant="canonical" animateExit value={dateRange} onChange={setDateRange} open={panelState.active === "period"} onOpenChange={(nextOpen) => requestPanel(nextOpen ? "period" : "")} onExitComplete={() => completePanelExit("period")} buttonAriaLabel="Период отчёта по блюдам" />
+            <ReportDateRangePicker variant="canonical" animateExit value={dateRange} onChange={setDateRange} open={panelState.active === "period"} onOpenChange={(nextOpen) => requestPanel(nextOpen ? "period" : "")} onExitComplete={() => completePanelExit("period")} buttonAriaLabel={t("report_period.dishes")} />
             <button
               className="dishes-filter-toggle"
               type="button"
@@ -463,11 +464,11 @@ export default function DishesReportPage() {
               }}
             >
               <Icon name="bi-sliders" size={17} />
-              Фильтровать
+             {t("pages.dishesreportpage.filtrovat")}
             </button>
             <button className="report-excel-button owner-report-excel" type="button" onClick={downloadExcel}>
               <Icon name="bi-filetype-xlsx" size={19} strokeWidth={1.9} className="owner-report-xlsx-icon" />
-              Скачать Excel
+             {t("pages.dishesreportpage.skachat_excel")}
             </button>
           </div>
         </div>
@@ -477,24 +478,24 @@ export default function DishesReportPage() {
         <div
           className="report-filters-grid dishes-filter-panel"
           id="dishes-report-filters"
-          aria-label="Фильтры отчёта по блюдам"
+          aria-label={t("pages.dishesreportpage.filtry_otcheta_po_blyudam")}
         >
           <label className="report-filter-input">
             <Icon name="bi-search" size={17} />
-            <input aria-label="Поиск по названию блюда" value={filters.query} onChange={(event) => updateFilter("query", event.target.value)} placeholder="Поиск" />
+            <input aria-label={t("pages.dishesreportpage.poisk_po_nazvaniyu_blyuda")} value={filters.query} onChange={(event) => updateFilter("query", event.target.value)} placeholder={t("pages.dishesreportpage.poisk")} />
           </label>
-          <ReportMultiSelect filterKey="authorId" label="Автор" placeholder="Выберите автора" options={filterOptions.authors} selected={filters.authorId} onToggle={(value) => toggleFilterValue("authorId", value)} disabled={filterOptionsLoading || !filterOptions.authors.length} {...dishFilterPanelProps("authorId")} />
+          <ReportMultiSelect filterKey="authorId" label={t("pages.dishesreportpage.avtor")} placeholder={t("pages.dishesreportpage.vyberite_avtora")} options={filterOptions.authors} selected={filters.authorId} onToggle={(value) => toggleFilterValue("authorId", value)} disabled={filterOptionsLoading || !filterOptions.authors.length} {...dishFilterPanelProps("authorId")} />
           <div className="dishes-filter-wide">
-          <ReportMultiSelect filterKey="categoryId" label="Категория" placeholder="Выберите категорию" options={filterOptions.categories} selected={filters.categoryId} onToggle={(value) => toggleFilterValue("categoryId", value)} disabled={filterOptionsLoading || !filterOptions.categories.length} {...dishFilterPanelProps("categoryId")} />
+          <ReportMultiSelect filterKey="categoryId" label={t("pages.dishesreportpage.kategoriya")} placeholder={t("pages.dishesreportpage.vyberite_kategoriyu")} options={filterOptions.categories} selected={filters.categoryId} onToggle={(value) => toggleFilterValue("categoryId", value)} disabled={filterOptionsLoading || !filterOptions.categories.length} {...dishFilterPanelProps("categoryId")} />
           </div>
-          <ReportMultiSelect filterKey="productId" label="Продукт" placeholder="Выберите продукт" options={filterOptions.products} selected={filters.productId} onToggle={(value) => toggleFilterValue("productId", value)} disabled={filterOptionsLoading || !filterOptions.products.length} {...dishFilterPanelProps("productId")} />
-          <ReportMultiSelect filterKey="orderType" label="Тип заказа" placeholder="Выберите тип заказа" options={filterOptions.order_types} selected={filters.orderType} onToggle={(value) => toggleFilterValue("orderType", value)} disabled={filterOptionsLoading || !filterOptions.order_types.length} {...dishFilterPanelProps("orderType")} />
-          <ReportMultiSelect filterKey="orderStatus" label="Статус заказа" placeholder="Выберите статус заказа" options={filterOptions.order_statuses} selected={filters.orderStatus} onToggle={(value) => toggleFilterValue("orderStatus", value)} disabled={filterOptionsLoading || !filterOptions.order_statuses.length} {...dishFilterPanelProps("orderStatus")} />
-          <ReportMultiSelect filterKey="paymentMethod" label="Тип оплаты" placeholder="Выберите тип оплаты" options={filterOptions.payment_methods} selected={filters.paymentMethod} onToggle={(value) => toggleFilterValue("paymentMethod", value)} disabled={filterOptionsLoading || !filterOptions.payment_methods.length} {...dishFilterPanelProps("paymentMethod")} />
+          <ReportMultiSelect filterKey="productId" label={t("pages.dishesreportpage.produkt")} placeholder={t("pages.dishesreportpage.vyberite_produkt")} options={filterOptions.products} selected={filters.productId} onToggle={(value) => toggleFilterValue("productId", value)} disabled={filterOptionsLoading || !filterOptions.products.length} {...dishFilterPanelProps("productId")} />
+          <ReportMultiSelect filterKey="orderType" label={t("pages.dishesreportpage.tip_zakaza")} placeholder={t("pages.dishesreportpage.vyberite_tip_zakaza")} options={filterOptions.order_types} selected={filters.orderType} onToggle={(value) => toggleFilterValue("orderType", value)} disabled={filterOptionsLoading || !filterOptions.order_types.length} {...dishFilterPanelProps("orderType")} />
+          <ReportMultiSelect filterKey="orderStatus" label={t("pages.dishesreportpage.status_zakaza")} placeholder={t("pages.dishesreportpage.vyberite_status_zakaza")} options={filterOptions.order_statuses} selected={filters.orderStatus} onToggle={(value) => toggleFilterValue("orderStatus", value)} disabled={filterOptionsLoading || !filterOptions.order_statuses.length} {...dishFilterPanelProps("orderStatus")} />
+          <ReportMultiSelect filterKey="paymentMethod" label={t("pages.dishesreportpage.tip_oplaty")} placeholder={t("pages.dishesreportpage.vyberite_tip_oplaty")} options={filterOptions.payment_methods} selected={filters.paymentMethod} onToggle={(value) => toggleFilterValue("paymentMethod", value)} disabled={filterOptionsLoading || !filterOptions.payment_methods.length} {...dishFilterPanelProps("paymentMethod")} />
           <div className="report-filter-buttons">
             <button type="button" className="report-filter-clear" onClick={clearFilters}>
               <Icon name="bi-x-circle" size={17} />
-              Очистить
+             {t("pages.dishesreportpage.ochistit")}
             </button>
           </div>
         </div>
@@ -502,7 +503,7 @@ export default function DishesReportPage() {
         </div>
 
         {activeFilterEntries.length ? (
-          <div className="report-active-filters" aria-label="Активные фильтры">
+          <div className="report-active-filters" aria-label={t("pages.dishesreportpage.aktivnye_filtry")}>
             {activeFilterEntries.map(([key, value]) => (
               <span key={key}>{filterNames[key]}: {optionLabel(key, value, filterOptions)}</span>
             ))}
@@ -510,10 +511,10 @@ export default function DishesReportPage() {
         ) : null}
 
         <div className="report-table-wrapper owner-report-table-scroll" aria-busy={loading ? "true" : "false"}>
-          <table className="report-table owner-report-table dishes-sales-table" aria-label="Отчёт по блюдам">
-            <thead><tr><th>№</th><th>Фото</th><th>Блюдо / товар</th><th>Ед. изм.</th>
-              <th aria-sort={quantitySort === "asc" ? "ascending" : quantitySort === "desc" ? "descending" : "none"}><button type="button" className="dish-report-quantity-sort" aria-label="Сортировать по количеству" onClick={() => setQuantitySort(current => current === "desc" ? "asc" : "desc")}>Кол-во<Icon name="bi-chevron-expand" size={12} /></button></th>
-              <th title="Сумма продаж, делённая на количество в выбранном периоде.">Цена позиции</th><th>Сумма продаж</th></tr></thead>
+          <table className="report-table owner-report-table dishes-sales-table" aria-label={t("pages.dishesreportpage.otchet_po_blyudam")}>
+            <thead><tr><th>№</th><th>{t("pages.dishesreportpage.foto")}</th><th>{t("pages.dishesreportpage.blyudo_tovar")}</th><th>{t("pages.dishesreportpage.ed_izm_2")}</th>
+              <th aria-sort={quantitySort === "asc" ? "ascending" : quantitySort === "desc" ? "descending" : "none"}><button type="button" className="dish-report-quantity-sort" aria-label={t("pages.dishesreportpage.sortirovat_po_kolichestvu")} onClick={() => setQuantitySort(current => current === "desc" ? "asc" : "desc")}>{t("pages.dishesreportpage.kol_vo")}<Icon name="bi-chevron-expand" size={12} /></button></th>
+              <th title={t("pages.dishesreportpage.summa_prodazh_delennaya_na_kolichestvo_v_vybrannom")}>{t("pages.dishesreportpage.tsena_pozitsii")}</th><th>{t("pages.dishesreportpage.summa_prodazh")}</th></tr></thead>
             <tbody>{displayRows.map((row, index) => <tr key={row.id} tabIndex={0} aria-label={`Детали блюда ${row.name}`} onClick={() => openDish(row)} onKeyDown={event => {
               if (event.target === event.currentTarget && ["Enter", " "].includes(event.key)) { event.preventDefault(); openDish(row); }
             }}>
@@ -521,8 +522,8 @@ export default function DishesReportPage() {
               <td><ReportDishPhoto row={row} onOpen={() => setPhoto(row)} /></td>
               <td className="dish-report-name">{row.name}</td><td>{row.unit}</td><td>{row.quantity}</td><td>{row.price}</td><td>{row.amount}</td>
             </tr>)}
-            {!filteredRows.length ? <tr className="report-empty-row"><td colSpan={7}><ReportEmptyState title="Блюд не найдено" loading={loading} /></td></tr> : null}</tbody>
-            {filteredRows.length ? <tfoot><tr className="report-total-row"><td colSpan={4}>Итого</td><td>{totalRow.quantity}</td><td>—</td><td>{totalRow.amount}</td></tr></tfoot> : null}
+            {!filteredRows.length ? <tr className="report-empty-row"><td colSpan={7}><ReportEmptyState title={t("pages.dishesreportpage.blyud_ne_naydeno")} loading={loading} /></td></tr> : null}</tbody>
+            {filteredRows.length ? <tfoot><tr className="report-total-row"><td colSpan={4}>{t("pages.dishesreportpage.itogo")}</td><td>{totalRow.quantity}</td><td>—</td><td>{totalRow.amount}</td></tr></tfoot> : null}
           </table>
         </div>
       </article>

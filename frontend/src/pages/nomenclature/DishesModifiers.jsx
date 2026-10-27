@@ -5,6 +5,7 @@
 import { useState } from "react";
 import Icon from "../../components/Icon";
 import Toast from "../../components/Toast";
+import { t } from "../../i18n/t";
 
 // Пустая новая группа с одной пустой опцией.
 const emptyGroup = () => ({
@@ -71,12 +72,12 @@ export default function DishesModifiers({ editing, modGroups, setModGroups, modL
   return (
     <div className="dish-mods">
       <div className="dish-mods__head">
-        <h3>Добавки</h3>
-        <p className="dish-mods__hint">Например «Яйцо», «Сыр» с наценкой. Переключатель «На кассе» решает, видит ли кассир группу в десктопе.</p>
+        <h3>{t("pages.nomenclature.dishesmodifiers.dobavki")}</h3>
+        <p className="dish-mods__hint">{t("pages.nomenclature.dishesmodifiers.naprimer_yaytso_syr_s_natsenkoy_pereklyuchatel_na")}</p>
       </div>
 
       {modError ? <Toast kind="error" message={modError} onClose={onClearModError || undefined} /> : null}
-      {modLoading ? <p className="dish-mods__hint">Загрузка добавок…</p> : null}
+      {modLoading ? <p className="dish-mods__hint">{t("pages.nomenclature.dishesmodifiers.zagruzka_dobavok")}</p> : null}
 
       {modGroups.map((group, gi) => {
         const key = groupKey(group, gi);
@@ -86,34 +87,34 @@ export default function DishesModifiers({ editing, modGroups, setModGroups, modL
               <input
                 className="dish-mods__group-name"
                 value={group.name || ""}
-                placeholder="Название группы (напр. Добавки)"
+                placeholder={t("pages.nomenclature.dishesmodifiers.nazvanie_gruppy_napr_dobavki")}
                 onChange={(event) => patchGroup(gi, { name: event.target.value })}
               />
-              <button type="button" className="dish-mods__icon-btn" title="Удалить группу" onClick={() => removeModGroup(group.id)}>
+              <button type="button" className="dish-mods__icon-btn" title={t("pages.nomenclature.dishesmodifiers.udalit_gruppu")} onClick={() => removeModGroup(group.id)}>
                 <Icon name="bi-trash" />
               </button>
             </div>
 
             <div className="dish-mods__group-opts">
               <label className="dish-mods__inline">
-                <span>Мин.</span>
+                <span>{t("pages.nomenclature.dishesmodifiers.min")}</span>
                 <input type="number" min="0" value={group.min_select ?? 0}
                   onChange={(event) => patchGroup(gi, { min_select: event.target.value })} />
               </label>
               <label className="dish-mods__inline">
-                <span>Макс.</span>
+                <span>{t("pages.nomenclature.dishesmodifiers.maks")}</span>
                 <input type="number" min="1" value={group.max_select ?? 1}
                   onChange={(event) => patchGroup(gi, { max_select: event.target.value })} />
               </label>
               <label className="dish-mods__inline dish-mods__inline--check">
                 <input type="checkbox" checked={Boolean(group.is_required)}
                   onChange={(event) => patchGroup(gi, { is_required: event.target.checked })} />
-                <span>Обязательно</span>
+                <span>{t("pages.nomenclature.dishesmodifiers.obyazatelno")}</span>
               </label>
               <label className="dish-mods__inline dish-mods__inline--check">
                 <input type="checkbox" checked={group.show_in_pos !== false}
                   onChange={(event) => patchGroup(gi, { show_in_pos: event.target.checked })} />
-                <span>На кассе</span>
+                <span>{t("pages.nomenclature.dishesmodifiers.na_kasse")}</span>
               </label>
             </div>
 
@@ -123,7 +124,7 @@ export default function DishesModifiers({ editing, modGroups, setModGroups, modL
                   <input
                     className="dish-mods__opt-name"
                     value={mod.name || ""}
-                    placeholder="Название (напр. Яйцо)"
+                    placeholder={t("pages.nomenclature.dishesmodifiers.nazvanie_napr_yaytso")}
                     onChange={(event) => patchModifier(gi, mi, { name: event.target.value })}
                   />
                   <input
@@ -134,19 +135,19 @@ export default function DishesModifiers({ editing, modGroups, setModGroups, modL
                     onChange={(event) => patchModifier(gi, mi, { price_delta: event.target.value })}
                   />
                   <span className="dish-mods__opt-cur">UZS</span>
-                  <button type="button" className="dish-mods__icon-btn" title="Удалить опцию" onClick={() => removeModifier(gi, mi)}>
+                  <button type="button" className="dish-mods__icon-btn" title={t("pages.nomenclature.dishesmodifiers.udalit_optsiyu")} onClick={() => removeModifier(gi, mi)}>
                     <Icon name="bi-x-lg" />
                   </button>
                 </div>
               ))}
               <button type="button" className="btn-soft dish-mods__add-opt" onClick={() => addModifier(gi)}>
-                <Icon name="bi-plus" /> Опция
+                <Icon name="bi-plus" /> {t("pages.nomenclature.dishesmodifiers.optsiya")}
               </button>
             </div>
 
             <div className="dish-mods__group-footer">
               <button type="button" className="btn-primary" disabled={!dirty[key]} onClick={() => handleSave(group, gi)}>
-                Сохранить группу
+               {t("pages.nomenclature.dishesmodifiers.sohranit_gruppu")}
               </button>
             </div>
           </div>
@@ -154,7 +155,7 @@ export default function DishesModifiers({ editing, modGroups, setModGroups, modL
       })}
 
       <button type="button" className="btn-soft dish-mods__add-group" onClick={addGroup}>
-        <Icon name="bi-plus-circle" /> Добавить группу
+        <Icon name="bi-plus-circle" /> {t("pages.nomenclature.dishesmodifiers.dobavit_gruppu")}
       </button>
     </div>
   );

@@ -19,6 +19,7 @@ import WarehouseModal from "./warehouse/WarehouseModal";
 import { readOutgoingReport } from "./warehouse/outgoingReport";
 import { dashboardPeriodFromSearch } from "./dashboard/reportRange";
 import { webDayKey, webDateTime, webFormat } from "../utils/webTime";
+import { t } from "../i18n/t";
 
 const ACTIVE = "active";
 const ARCHIVE = "archive";
@@ -1045,7 +1046,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
       animateExit
       value={docRange}
       onChange={handleDocRange}
-      buttonAriaLabel="Период документов"
+      buttonAriaLabel={t("report_period.documents")}
     />
   );
   // reloadKey форсит перезагрузку списка после мутаций (создание/проведение/удаление).
@@ -2745,7 +2746,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
         timeTouched: false,
       }}
       onChange={handleAsOfRange}
-      buttonAriaLabel="Остатки на дату"
+      buttonAriaLabel={t("pages.warehousepage.stock_on_date")}
     />
   );
 
@@ -2756,14 +2757,14 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
     const empty = !invLoading && !invError && invVisible.length === 0;
     return (
       <div className={`settings-table-wrapper dish-grid-wrap${empty ? " is-empty" : ""}`}>
-        <div className="dish-grid-scroll" role="region" aria-label={`${label} с прокруткой`} tabIndex={0}>
+        <div className="dish-grid-scroll" role="region" aria-label={t("pages.warehousepage.table_scroll", { label })} tabIndex={0}>
           <table className="settings-table dish-grid-table warehouse-journal-table wh-inventory-table" aria-label={label}>
             <thead>
               <tr>
                 <th>№</th>
-                <th>Склад</th>
-                <th>Дата регистрации</th>
-                <th>Комментарий</th>
+                <th>{t("pages.warehousepage.sklad")}</th>
+                <th>{t("pages.warehousepage.data_registratsii")}</th>
+                <th>{t("pages.warehousepage.kommentariy")}</th>
               </tr>
             </thead>
             <tbody>
@@ -2786,7 +2787,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
         </div>
         {empty ? (
           <div className="dish-empty-overlay">
-            <ReportEmptyState title="Инвентаризаций пока нет." />
+            <ReportEmptyState title={t("pages.warehousepage.inventarizatsiy_poka_net")} />
           </div>
         ) : null}
       </div>
@@ -2810,12 +2811,12 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
             <div className="warehouse-title-group">
               <span className="warehouse-accent-bar" />
               <div>
-                <p>Склад</p>
-                <h1>{config.title}</h1>
+                <p>{t("pages.warehousepage.sklad")}</p>
+                <h1>{t(config.title)}</h1>
               </div>
             </div>
           </header>
-          <div className="warehouse-empty-cell" role="status">{unavailableMessage}</div>
+          <div className="warehouse-empty-cell" role="status">{t(unavailableMessage)}</div>
         </section>
       </div>
     );
@@ -2871,7 +2872,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
               <div className="settings-title-group">
                 <span className="settings-accent-bar" aria-hidden="true" />
                 <div>
-                  <p>Склад / Остаток{asOfDated ? ` / ${asOfToDDMM(asOf)}` : ""}</p>
+                  <p>{t("pages.warehousepage.sklad_ostatok")}{asOfDated ? ` / ${asOfToDDMM(asOf)}` : ""}</p>
                   <h1>{whDetail.warehouse.name}</h1>
                 </div>
               </div>
@@ -2880,40 +2881,40 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
               </div>
             </header>
             <div className="settings-table-wrapper dish-grid-wrap">
-              <div className="dish-grid-scroll" role="region" aria-label={`Остатки склада ${whDetail.warehouse.name} с прокруткой`} tabIndex={0}>
+              <div className="dish-grid-scroll" role="region" aria-label={t("pages.warehousepage.warehouse_scroll", { label: t("pages.warehousepage.ostatki"), name: whDetail.warehouse.name })} tabIndex={0}>
                 <table className="settings-table dish-grid-table warehouse-stock-table wh-detail-table" aria-label={`Остаток склада ${whDetail.warehouse.name}`}>
                   <thead>
                     <tr>
-                      <th className="wh-detail-col-name">Названия</th>
-                      <th className="wh-detail-col-qty">Остаток</th>
-                      <th className="wh-detail-col-sum">Сумма</th>
+                      <th className="wh-detail-col-name">{t("pages.warehousepage.nazvaniya")}</th>
+                      <th className="wh-detail-col-qty">{t("pages.warehousepage.ostatok")}</th>
+                      <th className="wh-detail-col-sum">{t("pages.warehousepage.summa")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="wh-detail-total-row">
-                      <td>Всего</td>
+                      <td>{t("pages.warehousepage.vsego")}</td>
                       <td>{formatQty(whDetail.totalQty)}</td>
                       <td>{formatAmount(whDetail.totalSum)}</td>
                     </tr>
                     <tr className="wh-detail-total-row">
-                      <td>Продукты</td>
+                      <td>{t("pages.warehousepage.produkty")}</td>
                       <td>{formatQty(whDetail.productQty)}</td>
                       <td>{formatAmount(whDetail.productSum)}</td>
                     </tr>
                     <tr className="wh-detail-total-row">
-                      <td>Товары</td>
+                      <td>{t("pages.warehousepage.tovary")}</td>
                       <td>{formatQty(whDetail.tovarQty)}</td>
                       <td>{formatAmount(whDetail.tovarSum)}</td>
                     </tr>
                     {whDetail.productGroups.length > 0 ? (
                       <tr className="wh-detail-section-row">
-                        <td colSpan={3}>Продукты по категориям</td>
+                        <td colSpan={3}>{t("pages.warehousepage.produkty_po_kategoriyam")}</td>
                       </tr>
                     ) : null}
                     {whDetail.productGroups.map((group) => renderWhGroup(group, "product"))}
                     {whDetail.tovarGroups.length > 0 ? (
                       <tr className="wh-detail-section-row">
-                        <td colSpan={3}>Товары по категориям</td>
+                        <td colSpan={3}>{t("pages.warehousepage.tovary_po_kategoriyam")}</td>
                       </tr>
                     ) : null}
                     {whDetail.tovarGroups.map((group) => renderWhGroup(group, "tovar"))}
@@ -2933,38 +2934,38 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
             <div className="settings-title-group">
               <span className="settings-accent-bar" aria-hidden="true" />
               <div>
-                <p>Склад</p>
-                <h1>{config.title}</h1>
+                <p>{t("pages.warehousepage.sklad")}</p>
+                <h1>{t(config.title)}</h1>
               </div>
             </div>
             <div className="settings-actions dish-header-actions">
               {asOfControl}
               {asOfDated ? (
                 <span className="wh-asof-note" role="status">
-                  Срез на {asOfToDDMM(asOf)} — только просмотр
+                 {t("pages.warehousepage.srez_na")} {asOfToDDMM(asOf)} {t("pages.warehousepage.tolko_prosmotr")}
                 </span>
               ) : (
                 <button type="button" className="dish-add-button" onClick={openWhCreate}>
-                  <Icon name="bi-plus" size={18} /> Добавить
+                  <Icon name="bi-plus" size={18} /> {t("pages.warehousepage.dobavit")}
                 </button>
               )}
             </div>
           </header>
-          {loading ? <div className="warehouse-empty-cell" role="status">Загрузка складских данных...</div> : null}
+          {loading ? <div className="warehouse-empty-cell" role="status">{t("pages.warehousepage.zagruzka_skladskih_dannyh")}</div> : null}
           {error ? <div className="login-error" role="alert">{error}</div> : null}
           {!loading && !error ? (
             <div className={`settings-table-wrapper dish-grid-wrap${isEmpty ? " is-empty" : ""}`}>
-              <div className="dish-grid-scroll" role="region" aria-label="Остатки по складам с прокруткой" tabIndex={0}>
-                <table className="settings-table dish-grid-table warehouse-stock-table" aria-label="Остаток по складам">
+              <div className="dish-grid-scroll" role="region" aria-label={t("pages.warehousepage.ostatki_po_skladam_s_prokrutkoy")} tabIndex={0}>
+                <table className="settings-table dish-grid-table warehouse-stock-table" aria-label={t("pages.warehousepage.ostatok_po_skladam")}>
                   <thead>
                     <tr>
                       <th className="wh-stock-col-num">№</th>
-                      <th className="wh-stock-col-name">Название</th>
-                      <th className="wh-stock-col-product"><span className="wh-shift-left">Продукты</span></th>
-                      <th className="wh-stock-col-tovar">Товары</th>
-                      <th className="wh-stock-col-sum">Сумма</th>
-                      <th className="wh-stock-col-status">Статус</th>
-                      <th className="wh-stock-col-actions">Действия</th>
+                      <th className="wh-stock-col-name">{t("pages.warehousepage.nazvanie")}</th>
+                      <th className="wh-stock-col-product"><span className="wh-shift-left">{t("pages.warehousepage.produkty")}</span></th>
+                      <th className="wh-stock-col-tovar">{t("pages.warehousepage.tovary")}</th>
+                      <th className="wh-stock-col-sum">{t("pages.warehousepage.summa")}</th>
+                      <th className="wh-stock-col-status">{t("pages.warehousepage.status")}</th>
+                      <th className="wh-stock-col-actions">{t("pages.warehousepage.deystviya")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2995,7 +2996,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
                             <button
                               type="button"
                               onClick={() => openWhEdit(row)}
-                              aria-label="Редактировать"
+                              aria-label={t("pages.warehousepage.redaktirovat")}
                               disabled={asOfDated}
                               title={asOfDated ? "Исторический срез — только просмотр" : "Редактировать"}
                             >
@@ -3005,7 +3006,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
                               type="button"
                               className="danger"
                               onClick={() => openWhDelete(row)}
-                              aria-label="Удалить"
+                              aria-label={t("pages.warehousepage.udalit")}
                               title={asOfDated ? "Исторический срез — только просмотр" : "Удалить"}
                               disabled={asOfDated}
                             >
@@ -3019,7 +3020,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
                   {warehouseSummary.length > 0 ? (
                     <tfoot>
                       <tr className="wh-stock-total-row">
-                        <td className="wh-stock-col-num">Итого</td>
+                        <td className="wh-stock-col-num">{t("pages.warehousepage.itogo")}</td>
                         <td className="wh-stock-col-name" />
                         <td className="wh-stock-col-product"><span className="wh-shift-left">{formatAmount(warehouseGrandProduct)}</span></td>
                         <td className="wh-stock-col-tovar">{formatAmount(warehouseGrandTovar)}</td>
@@ -3033,7 +3034,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
               </div>
               {isEmpty ? (
                 <div className="dish-empty-overlay">
-                  <ReportEmptyState title="Склады пока не добавлены." />
+                  <ReportEmptyState title={t("pages.warehousepage.sklady_poka_ne_dobavleny")} />
                 </div>
               ) : null}
             </div>
@@ -3113,13 +3114,13 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
           <div className="settings-actions dish-header-actions">
             {onBack ? (
               <button type="button" className="dishes-filter-toggle" onClick={onBack}>
-                ← Назад
+               {t("pages.warehousepage.nazad")}
               </button>
             ) : null}
             {docRangeControl}
           </div>
         </header>
-        {loading ? <div className="warehouse-empty-cell" role="status">Загрузка складских данных...</div> : null}
+        {loading ? <div className="warehouse-empty-cell" role="status">{t("pages.warehousepage.zagruzka_skladskih_dannyh")}</div> : null}
         {error ? <div className="login-error" role="alert">{error}</div> : null}
         {!loading && !error && detail ? (
           <div className="settings-table-wrapper dish-grid-wrap">
@@ -3127,40 +3128,40 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
               <table className="settings-table dish-grid-table warehouse-stock-table wh-detail-table" aria-label={tableLabel}>
                 <thead>
                   <tr>
-                    <th className="wh-detail-col-name">Названия</th>
+                    <th className="wh-detail-col-name">{t("pages.warehousepage.nazvaniya")}</th>
                     <th aria-hidden="true" />
-                    <th className="wh-detail-col-qty">Приход</th>
-                    <th className="wh-detail-col-sum">Сумма</th>
+                    <th className="wh-detail-col-qty">{t("pages.warehousepage.prihod")}</th>
+                    <th className="wh-detail-col-sum">{t("pages.warehousepage.summa")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr className="wh-detail-total-row">
-                    <td>Всего</td>
+                    <td>{t("pages.warehousepage.vsego")}</td>
                     <td />
                     <td>{formatQty(detail.totalQty)}</td>
                     <td>{formatAmount(detail.totalSum)}</td>
                   </tr>
                   <tr className="wh-detail-total-row">
-                    <td>Продукты</td>
+                    <td>{t("pages.warehousepage.produkty")}</td>
                     <td />
                     <td>{formatQty(detail.productQty)}</td>
                     <td>{formatAmount(detail.productSum)}</td>
                   </tr>
                   <tr className="wh-detail-total-row">
-                    <td>Товары</td>
+                    <td>{t("pages.warehousepage.tovary")}</td>
                     <td />
                     <td>{formatQty(detail.tovarQty)}</td>
                     <td>{formatAmount(detail.tovarSum)}</td>
                   </tr>
                   {detail.productGroups.length > 0 ? (
                     <tr className="wh-detail-section-row">
-                      <td colSpan={4}>Продукты по категориям</td>
+                      <td colSpan={4}>{t("pages.warehousepage.produkty_po_kategoriyam")}</td>
                     </tr>
                   ) : null}
                   {detail.productGroups.map((group) => renderPurchaseGroup(group, "product"))}
                   {detail.tovarGroups.length > 0 ? (
                     <tr className="wh-detail-section-row">
-                      <td colSpan={4}>Товары по категориям</td>
+                      <td colSpan={4}>{t("pages.warehousepage.tovary_po_kategoriyam")}</td>
                     </tr>
                   ) : null}
                   {detail.tovarGroups.map((group) => renderPurchaseGroup(group, "tovar"))}
@@ -3208,8 +3209,8 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
         // Кнопки «← Назад» здесь нет: назад возвращает стрелка топбара
         // (открытие пушит history — см. openIncomingDetail и popstate ниже).
         onBack: null,
-        regionLabel: detail ? `Приход склада ${detail.warehouse.name} с прокруткой` : undefined,
-        tableLabel: detail ? `Приход склада ${detail.warehouse.name}` : undefined,
+        regionLabel: detail ? t("pages.warehousepage.warehouse_scroll", { label: t("pages.warehousepage.prihod"), name: detail.warehouse.name }) : undefined,
+        tableLabel: detail ? t("pages.warehousepage.warehouse_table", { label: t("pages.warehousepage.prihod"), name: detail.warehouse.name }) : undefined,
         drawer: incomingDrawer,
       });
     }
@@ -3226,8 +3227,8 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
         // Кнопки «← Назад» здесь нет: назад возвращает стрелка топбара
         // (открытие пушит history — см. openInventoryDetail и popstate выше).
         onBack: null,
-        regionLabel: detail ? `Инвентаризация склада ${detail.warehouse.name} с прокруткой` : undefined,
-        tableLabel: detail ? `Инвентаризация склада ${detail.warehouse.name}` : undefined,
+        regionLabel: detail ? t("pages.warehousepage.inventory_scroll_named", { name: detail.warehouse.name }) : undefined,
+        tableLabel: detail ? t("pages.warehousepage.inventory_table_named", { name: detail.warehouse.name }) : undefined,
         drawer: null,
       });
     }
@@ -3244,24 +3245,24 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
           <div className="settings-title-group">
             <span className="settings-accent-bar" aria-hidden="true" />
             <div>
-              <p>Склад</p>
-              <h1>Инвентаризация</h1>
+              <p>{t("pages.warehousepage.sklad")}</p>
+              <h1>{t("pages.warehousepage.inventarizatsiya")}</h1>
             </div>
           </div>
         </header>
-        {loading ? <div className="warehouse-empty-cell" role="status">Загрузка складских данных...</div> : null}
+        {loading ? <div className="warehouse-empty-cell" role="status">{t("pages.warehousepage.zagruzka_skladskih_dannyh")}</div> : null}
         {error ? <div className="login-error" role="alert">{error}</div> : null}
         {!loading && !error ? (
           <div className={`settings-table-wrapper dish-grid-wrap${inventoryEmpty ? " is-empty" : ""}`}>
-            <div className="dish-grid-scroll" role="region" aria-label="Инвентаризация по складам с прокруткой" tabIndex={0}>
-              <table className="settings-table dish-grid-table warehouse-stock-table" aria-label="Инвентаризация по складам">
+            <div className="dish-grid-scroll" role="region" aria-label={t("pages.warehousepage.inventarizatsiya_po_skladam_s_prokrutkoy")} tabIndex={0}>
+              <table className="settings-table dish-grid-table warehouse-stock-table" aria-label={t("pages.warehousepage.inventarizatsiya_po_skladam")}>
                 <thead>
                   <tr>
                     <th className="wh-stock-col-num">№</th>
-                    <th className="wh-stock-col-name">Название</th>
-                    <th className="wh-stock-col-product"><span className="wh-shift-left">Продукт</span></th>
-                    <th className="wh-stock-col-tovar"><span className="wh-shift-right">Товар</span></th>
-                    <th className="wh-stock-col-sum"><span className="wh-shift-right">Сумма</span></th>
+                    <th className="wh-stock-col-name">{t("pages.warehousepage.nazvanie")}</th>
+                    <th className="wh-stock-col-product"><span className="wh-shift-left">{t("pages.warehousepage.produkt")}</span></th>
+                    <th className="wh-stock-col-tovar"><span className="wh-shift-right">{t("pages.warehousepage.tovar")}</span></th>
+                    <th className="wh-stock-col-sum"><span className="wh-shift-right">{t("pages.warehousepage.summa")}</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3287,7 +3288,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
                 {inventorySummary.length > 0 ? (
                   <tfoot>
                     <tr className="wh-stock-total-row">
-                      <td className="wh-stock-col-num">Итого</td>
+                      <td className="wh-stock-col-num">{t("pages.warehousepage.itogo")}</td>
                       <td className="wh-stock-col-name" />
                       <td className="wh-stock-col-product"><span className="wh-shift-left">{formatAmount(inventoryGrandProduct)}</span></td>
                       <td className="wh-stock-col-tovar"><span className="wh-shift-right">{formatAmount(inventoryGrandTovar)}</span></td>
@@ -3299,7 +3300,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
             </div>
             {inventoryEmpty ? (
               <div className="dish-empty-overlay">
-                <ReportEmptyState title="Приходов от инвентаризации пока нет." />
+                <ReportEmptyState title={t("pages.warehousepage.prihodov_ot_inventarizatsii_poka_net")} />
               </div>
             ) : null}
           </div>
@@ -3313,27 +3314,27 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
             <div className="settings-title-group">
               <span className="settings-accent-bar" aria-hidden="true" />
               <div>
-                <p>Склад</p>
-                <h1>{config.title}</h1>
+                <p>{t("pages.warehousepage.sklad")}</p>
+                <h1>{t(config.title)}</h1>
               </div>
             </div>
             <div className="settings-actions dish-header-actions">
               {docRangeControl}
             </div>
           </header>
-          {loading ? <div className="warehouse-empty-cell" role="status">Загрузка складских данных...</div> : null}
+          {loading ? <div className="warehouse-empty-cell" role="status">{t("pages.warehousepage.zagruzka_skladskih_dannyh")}</div> : null}
           {error ? <div className="login-error" role="alert">{error}</div> : null}
           {!loading && !error ? (
             <div className={`settings-table-wrapper dish-grid-wrap${incomingEmpty ? " is-empty" : ""}`}>
-              <div className="dish-grid-scroll" role="region" aria-label="Приходы по складам с прокруткой" tabIndex={0}>
-                <table className="settings-table dish-grid-table warehouse-stock-table" aria-label="Приход по складам">
+              <div className="dish-grid-scroll" role="region" aria-label={t("pages.warehousepage.prihody_po_skladam_s_prokrutkoy")} tabIndex={0}>
+                <table className="settings-table dish-grid-table warehouse-stock-table" aria-label={t("pages.warehousepage.prihod_po_skladam")}>
                   <thead>
                     <tr>
                       <th className="wh-stock-col-num">№</th>
-                      <th className="wh-stock-col-name">Название</th>
-                      <th className="wh-stock-col-product"><span className="wh-shift-left">Продукт</span></th>
-                      <th className="wh-stock-col-tovar"><span className="wh-shift-right">Товар</span></th>
-                      <th className="wh-stock-col-sum"><span className="wh-shift-right">Сумма</span></th>
+                      <th className="wh-stock-col-name">{t("pages.warehousepage.nazvanie")}</th>
+                      <th className="wh-stock-col-product"><span className="wh-shift-left">{t("pages.warehousepage.produkt")}</span></th>
+                      <th className="wh-stock-col-tovar"><span className="wh-shift-right">{t("pages.warehousepage.tovar")}</span></th>
+                      <th className="wh-stock-col-sum"><span className="wh-shift-right">{t("pages.warehousepage.summa")}</span></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3359,7 +3360,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
                   {incomingSummary.length > 0 ? (
                     <tfoot>
                       <tr className="wh-stock-total-row">
-                        <td className="wh-stock-col-num">Итого</td>
+                        <td className="wh-stock-col-num">{t("pages.warehousepage.itogo")}</td>
                         <td className="wh-stock-col-name" />
                         <td className="wh-stock-col-product"><span className="wh-shift-left">{formatAmount(incomingGrandProduct)}</span></td>
                         <td className="wh-stock-col-tovar"><span className="wh-shift-right">{formatAmount(incomingGrandTovar)}</span></td>
@@ -3371,7 +3372,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
               </div>
               {incomingEmpty ? (
                 <div className="dish-empty-overlay">
-                  <ReportEmptyState title="Приходов пока нет." />
+                  <ReportEmptyState title={t("pages.warehousepage.prihodov_poka_net")} />
                 </div>
               ) : null}
             </div>
@@ -3394,20 +3395,20 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
             <div className="settings-title-group">
               <span className="settings-accent-bar" aria-hidden="true" />
               <div>
-                <p>Склад</p>
-                <h1>{config.title}</h1>
+                <p>{t("pages.warehousepage.sklad")}</p>
+                <h1>{t(config.title)}</h1>
               </div>
             </div>
             <div className="settings-actions dish-header-actions">
               {docRangeControl}
               <button type="button" className="dish-add-button" onClick={() => setInvModalOpen(true)}>
-                <Icon name="bi-plus" size={18} /> Создать
+                <Icon name="bi-plus" size={18} /> {t("pages.warehousepage.sozdat")}
               </button>
             </div>
           </header>
-          {invLoading ? <div className="warehouse-empty-cell" role="status">Загрузка складских данных...</div> : null}
+          {invLoading ? <div className="warehouse-empty-cell" role="status">{t("pages.warehousepage.zagruzka_skladskih_dannyh")}</div> : null}
           {invError ? <div className="login-error" role="alert">{invError}</div> : null}
-          {!invLoading && !invError ? renderInventoryTable("Инвентаризация") : null}
+          {!invLoading && !invError ? renderInventoryTable(t("pages.warehousepage.inventarizatsiya")) : null}
         </section>
         {inventoryModal}
         {detailCheck ? (
@@ -3442,30 +3443,30 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
             <div className="settings-title-group">
               <span className="settings-accent-bar" aria-hidden="true" />
               <div>
-                <p>Склад</p>
-                <h1>{config.title}</h1>
+                <p>{t("pages.warehousepage.sklad")}</p>
+                <h1>{t(config.title)}</h1>
               </div>
             </div>
             <div className="settings-actions dish-header-actions">
               {docRangeControl}
             </div>
           </header>
-          {loading ? <div className="warehouse-empty-cell" role="status">Загрузка складских данных...</div> : null}
+          {loading ? <div className="warehouse-empty-cell" role="status">{t("pages.warehousepage.zagruzka_skladskih_dannyh")}</div> : null}
           {error ? <div className="login-error" role="alert">{error}</div> : null}
           {!loading && !error ? (
             <div className={`settings-table-wrapper dish-grid-wrap${wasteEmpty ? " is-empty" : ""}`}>
-              <div className="dish-grid-scroll" role="region" aria-label="Отход товаров с прокруткой" tabIndex={0}>
-                <table className="settings-table dish-grid-table warehouse-journal-table wh-inventory-table wh-waste-table" aria-label="Отход товаров">
+              <div className="dish-grid-scroll" role="region" aria-label={t("pages.warehousepage.othod_tovarov_s_prokrutkoy")} tabIndex={0}>
+                <table className="settings-table dish-grid-table warehouse-journal-table wh-inventory-table wh-waste-table" aria-label={t("pages.warehousepage.othod_tovarov")}>
                   <thead>
                     <tr>
-                      <th>Блюдо</th>
-                      <th>Склад</th>
-                      <th>Продукт</th>
-                      <th>Дата регистрации</th>
-                      <th>Тип отхода</th>
-                      <th>Значение</th>
-                      <th>Кол-во отхода</th>
-                      <th>Сумма</th>
+                      <th>{t("pages.warehousepage.blyudo")}</th>
+                      <th>{t("pages.warehousepage.sklad")}</th>
+                      <th>{t("pages.warehousepage.produkt")}</th>
+                      <th>{t("pages.warehousepage.data_registratsii")}</th>
+                      <th>{t("pages.warehousepage.tip_othoda")}</th>
+                      <th>{t("pages.warehousepage.znachenie")}</th>
+                      <th>{t("pages.warehousepage.kol_vo_othoda")}</th>
+                      <th>{t("pages.warehousepage.summa")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3486,7 +3487,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
               </div>
               {wasteEmpty ? (
                 <div className="dish-empty-overlay">
-                  <ReportEmptyState title="Отходов пока нет." />
+                  <ReportEmptyState title={t("pages.warehousepage.othodov_poka_net")} />
                 </div>
               ) : null}
             </div>
@@ -3599,7 +3600,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
         if (manualCount > 0) {
           rows.push(
             <ExpenseDisclosureRow visible={expanded && !closing && open} key={`${itemKey}:manual`} className="wh-detail-line-row wh-detail-dish-row wh-detail-dish-row--manual">
-              <td>Ручной расход</td>
+              <td>{t("pages.warehousepage.ruchnoy_rashod")}</td>
               <td style={metaStyle(0)}>{manualCount > 1 ? `${manualCount} док.` : (item.manual[0]?.registeredAt || "документ")}</td>
               <td>{`${formatQty(item.manualQty)} ${item.unit}`}</td>
               <td>{formatAmount(item.manualSum)}</td>
@@ -3659,13 +3660,13 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
           <div className="settings-actions dish-header-actions">
             {onBack ? (
               <button type="button" className="dishes-filter-toggle" onClick={onBack}>
-                ← Назад
+               {t("pages.warehousepage.nazad")}
               </button>
             ) : null}
             {docRangeControl}
           </div>
         </header>
-        {loading ? <div className="warehouse-empty-cell" role="status">Загрузка складских данных...</div> : null}
+        {loading ? <div className="warehouse-empty-cell" role="status">{t("pages.warehousepage.zagruzka_skladskih_dannyh")}</div> : null}
         {error ? <div className="login-error" role="alert">{error}</div> : null}
         {!loading && !error && detail ? (
           <div className="settings-table-wrapper dish-grid-wrap">
@@ -3673,40 +3674,40 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
               <table className="settings-table dish-grid-table warehouse-stock-table wh-detail-table wh-expense-detail-table" aria-label={tableLabel}>
                 <thead>
                   <tr>
-                    <th className="wh-detail-col-name">Названия</th>
+                    <th className="wh-detail-col-name">{t("pages.warehousepage.nazvaniya")}</th>
                     <th aria-hidden="true" />
-                    <th className="wh-detail-col-qty">Расход</th>
-                    <th className="wh-detail-col-sum">Сумма</th>
+                    <th className="wh-detail-col-qty">{t("pages.warehousepage.rashod")}</th>
+                    <th className="wh-detail-col-sum">{t("pages.warehousepage.summa")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr className="wh-detail-total-row">
-                    <td>Всего</td>
+                    <td>{t("pages.warehousepage.vsego")}</td>
                     <td />
                     <td>{formatQty(detail.totalQty)}</td>
                     <td>{formatAmount(detail.totalSum)}</td>
                   </tr>
                   <tr className="wh-detail-total-row">
-                    <td>Продукты</td>
+                    <td>{t("pages.warehousepage.produkty")}</td>
                     <td />
                     <td>{formatQty(detail.productQty)}</td>
                     <td>{formatAmount(detail.productSum)}</td>
                   </tr>
                   <tr className="wh-detail-total-row">
-                    <td>Товары</td>
+                    <td>{t("pages.warehousepage.tovary")}</td>
                     <td />
                     <td>{formatQty(detail.tovarQty)}</td>
                     <td>{formatAmount(detail.tovarSum)}</td>
                   </tr>
                   {detail.productGroups.length > 0 ? (
                     <tr className="wh-detail-section-row">
-                      <td colSpan={4}>Продукты по категориям</td>
+                      <td colSpan={4}>{t("pages.warehousepage.produkty_po_kategoriyam")}</td>
                     </tr>
                   ) : null}
                   {detail.productGroups.map((group) => renderExpenseGroup(group, "product"))}
                   {detail.tovarGroups.length > 0 ? (
                     <tr className="wh-detail-section-row">
-                      <td colSpan={4}>Товары по категориям</td>
+                      <td colSpan={4}>{t("pages.warehousepage.tovary_po_kategoriyam")}</td>
                     </tr>
                   ) : null}
                   {detail.tovarGroups.map((group) => renderExpenseGroup(group, "tovar"))}
@@ -3737,8 +3738,8 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
         // Кнопки «← Назад» здесь нет: назад возвращает стрелка топбара
         // (открытие пушит history — см. openOutgoingDetail и popstate ниже).
         onBack: null,
-        regionLabel: detail ? `Расход склада ${detail.warehouse.name} с прокруткой` : undefined,
-        tableLabel: detail ? `Расход склада ${detail.warehouse.name}` : undefined,
+        regionLabel: detail ? t("pages.warehousepage.warehouse_scroll", { label: t("pages.warehousepage.rashod"), name: detail.warehouse.name }) : undefined,
+        tableLabel: detail ? t("pages.warehousepage.warehouse_table", { label: t("pages.warehousepage.rashod"), name: detail.warehouse.name }) : undefined,
       });
     }
     const selectedExpenseInventory = selectedExpenseInventoryWhId
@@ -3754,8 +3755,8 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
         // Кнопки «← Назад» здесь нет: назад возвращает стрелка топбара
         // (открытие пушит history — см. openExpenseInventoryDetail и popstate ниже).
         onBack: null,
-        regionLabel: detail ? `Инвентаризация склада ${detail.warehouse.name} с прокруткой` : undefined,
-        tableLabel: detail ? `Инвентаризация склада ${detail.warehouse.name}` : undefined,
+        regionLabel: detail ? t("pages.warehousepage.inventory_scroll_named", { name: detail.warehouse.name }) : undefined,
+        tableLabel: detail ? t("pages.warehousepage.inventory_table_named", { name: detail.warehouse.name }) : undefined,
       });
     }
     const outgoingEmpty = !loading && !error && !saleError && persistedOutgoing && outgoingSummary.length === 0;
@@ -3770,24 +3771,24 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
           <div className="settings-title-group">
             <span className="settings-accent-bar" aria-hidden="true" />
             <div>
-              <p>Склад</p>
-              <h1>Инвентаризация</h1>
+              <p>{t("pages.warehousepage.sklad")}</p>
+              <h1>{t("pages.warehousepage.inventarizatsiya")}</h1>
             </div>
           </div>
         </header>
-        {loading ? <div className="warehouse-empty-cell" role="status">Загрузка складских данных...</div> : null}
+        {loading ? <div className="warehouse-empty-cell" role="status">{t("pages.warehousepage.zagruzka_skladskih_dannyh")}</div> : null}
         {error ? <div className="login-error" role="alert">{error}</div> : null}
         {!loading && !error ? (
           <div className={`settings-table-wrapper dish-grid-wrap${expenseInventoryEmpty ? " is-empty" : ""}`}>
-            <div className="dish-grid-scroll" role="region" aria-label="Инвентаризация расходов по складам с прокруткой" tabIndex={0}>
-              <table className="settings-table dish-grid-table warehouse-stock-table" aria-label="Инвентаризация расходов по складам">
+            <div className="dish-grid-scroll" role="region" aria-label={t("pages.warehousepage.inventarizatsiya_rashodov_po_skladam_s_prokrutkoy")} tabIndex={0}>
+              <table className="settings-table dish-grid-table warehouse-stock-table" aria-label={t("pages.warehousepage.inventarizatsiya_rashodov_po_skladam")}>
                 <thead>
                   <tr>
                     <th className="wh-stock-col-num">№</th>
-                    <th className="wh-stock-col-name">Название</th>
-                    <th className="wh-stock-col-product"><span className="wh-shift-left">Продукт</span></th>
-                    <th className="wh-stock-col-tovar"><span className="wh-shift-right">Товар</span></th>
-                    <th className="wh-stock-col-sum"><span className="wh-shift-right">Сумма</span></th>
+                    <th className="wh-stock-col-name">{t("pages.warehousepage.nazvanie")}</th>
+                    <th className="wh-stock-col-product"><span className="wh-shift-left">{t("pages.warehousepage.produkt")}</span></th>
+                    <th className="wh-stock-col-tovar"><span className="wh-shift-right">{t("pages.warehousepage.tovar")}</span></th>
+                    <th className="wh-stock-col-sum"><span className="wh-shift-right">{t("pages.warehousepage.summa")}</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3813,7 +3814,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
                 {expenseInventorySummary.length > 0 ? (
                   <tfoot>
                     <tr className="wh-stock-total-row">
-                      <td className="wh-stock-col-num">Итого</td>
+                      <td className="wh-stock-col-num">{t("pages.warehousepage.itogo")}</td>
                       <td className="wh-stock-col-name" />
                       <td className="wh-stock-col-product"><span className="wh-shift-left">{formatAmount(expenseInventoryGrandProduct)}</span></td>
                       <td className="wh-stock-col-tovar"><span className="wh-shift-right">{formatAmount(expenseInventoryGrandTovar)}</span></td>
@@ -3825,7 +3826,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
             </div>
             {expenseInventoryEmpty ? (
               <div className="dish-empty-overlay">
-                <ReportEmptyState title="Недостач от инвентаризации пока нет." />
+                <ReportEmptyState title={t("pages.warehousepage.nedostach_ot_inventarizatsii_poka_net")} />
               </div>
             ) : null}
           </div>
@@ -3839,29 +3840,29 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
             <div className="settings-title-group">
               <span className="settings-accent-bar" aria-hidden="true" />
               <div>
-                <p>Склад</p>
-                <h1>{config.title}</h1>
+                <p>{t("pages.warehousepage.sklad")}</p>
+                <h1>{t(config.title)}</h1>
               </div>
             </div>
             <div className="settings-actions dish-header-actions">
               {docRangeControl}
             </div>
           </header>
-          {loading ? <div className="warehouse-empty-cell" role="status">Загрузка складских данных...</div> : null}
+          {loading ? <div className="warehouse-empty-cell" role="status">{t("pages.warehousepage.zagruzka_skladskih_dannyh")}</div> : null}
           {error ? <div className="login-error" role="alert">{error}</div> : null}
           {!loading && !error ? (
             <div className={`settings-table-wrapper dish-grid-wrap${outgoingEmpty ? " is-empty" : ""}`}>
               {saleError ? <div className="login-error" role="alert">{saleError}</div> : null}
-              {!persistedOutgoing && !saleError ? <div role="status">Загрузка фактического расхода...</div> : null}
-              <div className="dish-grid-scroll" role="region" aria-label="Расходы по складам с прокруткой" tabIndex={0}>
-                <table className="settings-table dish-grid-table warehouse-stock-table" aria-label="Расход по складам">
+              {!persistedOutgoing && !saleError ? <div role="status">{t("pages.warehousepage.zagruzka_fakticheskogo_rashoda")}</div> : null}
+              <div className="dish-grid-scroll" role="region" aria-label={t("pages.warehousepage.rashody_po_skladam_s_prokrutkoy")} tabIndex={0}>
+                <table className="settings-table dish-grid-table warehouse-stock-table" aria-label={t("pages.warehousepage.rashod_po_skladam")}>
                   <thead>
                     <tr>
                       <th className="wh-stock-col-num">№</th>
-                      <th className="wh-stock-col-name">Название</th>
-                      <th className="wh-stock-col-product"><span className="wh-shift-left">Продукт</span></th>
-                      <th className="wh-stock-col-tovar"><span className="wh-shift-right">Товар</span></th>
-                      <th className="wh-stock-col-sum"><span className="wh-shift-right">Сумма</span></th>
+                      <th className="wh-stock-col-name">{t("pages.warehousepage.nazvanie")}</th>
+                      <th className="wh-stock-col-product"><span className="wh-shift-left">{t("pages.warehousepage.produkt")}</span></th>
+                      <th className="wh-stock-col-tovar"><span className="wh-shift-right">{t("pages.warehousepage.tovar")}</span></th>
+                      <th className="wh-stock-col-sum"><span className="wh-shift-right">{t("pages.warehousepage.summa")}</span></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3887,7 +3888,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
                   {outgoingSummary.length > 0 ? (
                     <tfoot>
                       <tr className="wh-stock-total-row">
-                        <td className="wh-stock-col-num">Итого</td>
+                        <td className="wh-stock-col-num">{t("pages.warehousepage.itogo")}</td>
                         <td className="wh-stock-col-name" />
                         <td className="wh-stock-col-product"><span className="wh-shift-left">{formatAmount(outgoingGrandProduct)}</span></td>
                         <td className="wh-stock-col-tovar"><span className="wh-shift-right">{formatAmount(outgoingGrandTovar)}</span></td>
@@ -3899,7 +3900,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
               </div>
               {outgoingEmpty ? (
                 <div className="dish-empty-overlay">
-                  <ReportEmptyState title="Расходов пока нет." />
+                  <ReportEmptyState title={t("pages.warehousepage.rashodov_poka_net")} />
                 </div>
               ) : null}
             </div>
@@ -3923,7 +3924,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
       return (
         <section className="nomenclature-page dish-catalog-page owner-report-view warehouse-journal-page warehouse-create-page">
           <section className="dish-catalog-card owner-report-surface settings-card">
-            <div className="warehouse-empty-cell" role="status">Загрузка состава...</div>
+            <div className="warehouse-empty-cell" role="status">{t("pages.warehousepage.zagruzka_sostava")}</div>
           </section>
         </section>
       );
@@ -3943,41 +3944,41 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
           <section className="dish-catalog-card owner-report-surface settings-card">
             <div className="wh-create-toolbar">
               <div className="wh-create-field wh-create-field--supplier">
-                <span className="wh-create-field__label" aria-hidden="true">Поставщик</span>
+                <span className="wh-create-field__label" aria-hidden="true">{t("pages.warehousepage.postavschik")}</span>
                 <DishSingleSelect
-                  label="Поставщик"
-                  placeholder="Выберите поставщика"
+                  label={t("pages.warehousepage.postavschik")}
+                  placeholder={t("pages.warehousepage.vyberite_postavschika")}
                   options={supplierOpts}
                   value={supplierOpts.some((item) => item.value === createSupplier) ? createSupplier : ""}
                   onChange={readOnly ? () => {} : (next) => setCreateSupplier(next || "")}
                   disabled={readOnly}
                   loading={suppliersLoading}
-                  disabledLabel="Поставщики недоступны"
+                  disabledLabel={t("common.suppliers_unavailable")}
                   onCreateNew={readOnly ? null : handleCreateSupplier}
-                  createLabel="+ Новый поставщик"
+                  createLabel={t("pages.warehousepage.new_supplier")}
                 />
               </div>
               <div className="wh-create-field wh-create-field--warehouse">
-                <span className="wh-create-field__label" aria-hidden="true">Склад</span>
+                <span className="wh-create-field__label" aria-hidden="true">{t("pages.warehousepage.sklad")}</span>
                 <DishSingleSelect
-                  label="Выбор склада"
-                  placeholder="Выберите склад *"
+                  label={t("pages.warehousepage.vybor_sklada")}
+                  placeholder={t("pages.warehousepage.vyberite_sklad")}
                   options={warehouseOpts}
                   value={warehouseOpts.some((item) => item.value === createWarehouseId) ? createWarehouseId : ""}
                   onChange={readOnly ? () => {} : (next) => setCreateWarehouseId(next || "")}
                   disabled={readOnly || warehouseOpts.length === 0}
-                  disabledLabel="Склады недоступны"
+                  disabledLabel={t("common.warehouses_unavailable")}
                 />
               </div>
               <div className="wh-create-field wh-create-field--date">
-                <span className="wh-create-field__label" aria-hidden="true">Дата</span>
+                <span className="wh-create-field__label" aria-hidden="true">{t("pages.warehousepage.data")}</span>
                 <span className="wh-date-wrap">
                   <input
                     type="date"
                     value={createDate}
                     onChange={(e) => setCreateDate(e.target.value)}
                     disabled={readOnly}
-                    aria-label="Период"
+                    aria-label={t("pages.warehousepage.period")}
                   />
                   <span className="wh-date-icon" aria-hidden="true">
                     <Icon name="bi-calendar3" size={17} />
@@ -3987,7 +3988,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
               <div className="wh-create-side-group">
                 <div className="wh-create-field wh-create-field--side">
                   <div className="wh-create-total-card" aria-live="polite">
-                    <span>Всего</span>
+                    <span>{t("pages.warehousepage.vsego")}</span>
                     <strong>{formatAmount(createTotal)}</strong>
                   </div>
                 </div>
@@ -3999,7 +4000,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
                     aria-controls="create-products-filters"
                     onClick={() => setCreateFiltersOpen((open) => !open)}
                   >
-                    <Icon name="bi-sliders" size={17} /> Фильтровать
+                    <Icon name="bi-sliders" size={17} /> {t("pages.warehousepage.filtrovat")}
                   </button>
                 </div>
                 {readOnly ? null : (
@@ -4018,38 +4019,38 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
             </div>
             <div className={`orders-filter-collapse dish-filter-collapse${createFiltersOpen ? " is-open" : ""}`}>
               <div className="orders-filter-collapse__inner" inert={!createFiltersOpen ? true : undefined}>
-                <div className="report-filters-grid dish-filter-panel wh-create-filter-panel" id="create-products-filters" aria-label="Фильтры продуктов прихода">
+                <div className="report-filters-grid dish-filter-panel wh-create-filter-panel" id="create-products-filters" aria-label={t("pages.warehousepage.filtry_produktov_prihoda")}>
                   <label className="report-filter-input">
                     <Icon name="bi-search" size={17} />
                     <input
-                      aria-label="Поиск продуктов"
+                      aria-label={t("pages.warehousepage.poisk_produktov")}
                       value={createSearch}
                       onChange={(event) => setCreateSearch(event.target.value)}
-                      placeholder="Поиск"
+                      placeholder={t("pages.warehousepage.poisk")}
                     />
                   </label>
                   <DishSingleSelect
-                    label="Тип продуктов"
-                    placeholder="Тип"
+                    label={t("pages.warehousepage.tip_produktov")}
+                    placeholder={t("pages.warehousepage.tip")}
                     options={[
-                      { value: "Продукт", label: "Продукт" },
-                      { value: "Товар", label: "Товар" },
+                      { value: "Продукт", label: t("pages.warehousepage.produkt") },
+                      { value: "Товар", label: t("pages.warehousepage.tovar") },
                     ]}
                     value={createType}
                     onChange={(next) => setCreateType(next || "")}
                   />
                   <DishSingleSelect
-                    label="Категория продуктов"
-                    placeholder="Категория"
+                    label={t("pages.warehousepage.kategoriya_produktov")}
+                    placeholder={t("pages.warehousepage.kategoriya")}
                     options={createCategoryOptions.map((name) => ({ value: name, label: name }))}
                     value={createCategoryOptions.includes(createCategory) ? createCategory : ""}
                     onChange={(next) => setCreateCategory(next || "")}
                     disabled={createCategoryOptions.length === 0}
-                    disabledLabel="Категории недоступны"
+                    disabledLabel={t("common.categories_unavailable")}
                   />
                   <div className="report-filter-buttons dish-filter-actions">
                     <button type="button" className="report-filter-clear" onClick={clearCreateFilters}>
-                      <Icon name="bi-x-circle" size={17} /> Очистить
+                      <Icon name="bi-x-circle" size={17} /> {t("pages.warehousepage.ochistit")}
                     </button>
                   </div>
                 </div>
@@ -4057,27 +4058,27 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
             </div>
             {createError ? <Toast kind="error" message={createError} onClose={() => setCreateError("")} /> : null}
             <div className="settings-table-wrapper dish-grid-wrap">
-              <div className="dish-grid-scroll" role="region" aria-label="Таблица создания прихода с прокруткой" tabIndex={0}>
-                <table className={`settings-table dish-grid-table warehouse-journal-table wh-create-table${readOnly ? " wh-is-readonly" : ""}`} aria-label="Создать приход">
+              <div className="dish-grid-scroll" role="region" aria-label={t("pages.warehousepage.tablitsa_sozdaniya_prihoda_s_prokrutkoy")} tabIndex={0}>
+                <table className={`settings-table dish-grid-table warehouse-journal-table wh-create-table${readOnly ? " wh-is-readonly" : ""}`} aria-label={t("pages.warehousepage.sozdat_prihod")}>
                   <thead>
                     <tr>
-                      <th>Категория</th>
-                      <th>Названия</th>
-                      <th>Тип</th>
-                      <th>Цена</th>
-                      <th>Кол-во</th>
+                      <th>{t("pages.warehousepage.kategoriya")}</th>
+                      <th>{t("pages.warehousepage.nazvaniya")}</th>
+                      <th>{t("pages.warehousepage.tip")}</th>
+                      <th>{t("pages.warehousepage.tsena")}</th>
+                      <th>{t("pages.warehousepage.kol_vo")}</th>
                       <th>
                         {readOnly ? (
-                          <span>Итоговая сумма</span>
+                          <span>{t("pages.warehousepage.itogovaya_summa")}</span>
                         ) : (
                           <span className="wh-total-check">
                             <input
                               type="checkbox"
                               checked={createTotalMode}
                               onChange={(event) => applyTotalMode(event.target.checked)}
-                              aria-label="Вводить итоговую сумму"
+                              aria-label={t("pages.warehousepage.vvodit_itogovuyu_summu")}
                             />
-                            <span>Итоговая сумма</span>
+                            <span>{t("pages.warehousepage.itogovaya_summa")}</span>
                           </span>
                         )}
                       </th>
@@ -4085,7 +4086,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
                   </thead>
                   <tbody>
                     {docProductsLoading ? (
-                      <tr><td colSpan={6} className="warehouse-empty-cell" role="status">Загрузка продуктов...</td></tr>
+                      <tr><td colSpan={6} className="warehouse-empty-cell" role="status">{t("pages.warehousepage.zagruzka_produktov")}</td></tr>
                     ) : (
                       visibleCreateProducts.map((p) => {
                         const row = resolveRowNumbers(p);
@@ -4180,15 +4181,15 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
                       <tr>
                         <td colSpan={6} className="warehouse-empty-cell">
                           {readOnly && docItemsUnavailable
-                            ? "Состав документа недоступен: backend не вернул позиции. Обновите backend."
-                            : "Продукты пока не добавлены. Добавьте их в разделе Склад → Продукты."}
+                            ? t("pages.warehousepage.doc_items_unavailable")
+                            : t("pages.warehousepage.products_empty_hint")}
                         </td>
                       </tr>
                     ) : null}
                     {!docProductsLoading && docProducts.length > 0 && !visibleCreateProducts.length ? (
                       <tr>
                         <td colSpan={6} className="warehouse-empty-cell">
-                          По фильтру ничего не найдено.
+                         {t("pages.warehousepage.po_filtru_nichego_ne_naydeno")}
                         </td>
                       </tr>
                     ) : null}
@@ -4196,7 +4197,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
                   {docProducts.length > 0 ? (
                     <tfoot>
                       <tr className="wh-stock-total-row">
-                        <td>Итого</td>
+                        <td>{t("pages.warehousepage.itogo")}</td>
                         <td />
                         <td />
                         <td />
@@ -4220,31 +4221,31 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
             <div className="settings-title-group">
               <span className="settings-accent-bar" aria-hidden="true" />
               <div>
-                <p>Отчёт по складам</p>
-                <h1>Добавить продуктов</h1>
+                <p>{t("pages.warehousepage.otchet_po_skladam")}</p>
+                <h1>{t("pages.warehousepage.dobavit_produktov")}</h1>
               </div>
             </div>
             <div className="settings-actions dish-header-actions">
               {docRangeControl}
               <button type="button" className="dish-add-button" onClick={openCreateTable}>
-                <Icon name="bi-plus" size={18} /> Создать
+                <Icon name="bi-plus" size={18} /> {t("pages.warehousepage.sozdat")}
               </button>
             </div>
           </header>
-          {loading ? <div className="warehouse-empty-cell" role="status">Загрузка складских данных...</div> : null}
+          {loading ? <div className="warehouse-empty-cell" role="status">{t("pages.warehousepage.zagruzka_skladskih_dannyh")}</div> : null}
           {error ? <div className="login-error" role="alert">{error}</div> : null}
           {!loading && !error ? (
             <div className={`settings-table-wrapper dish-grid-wrap${journalEmpty ? " is-empty" : ""}`}>
-              <div className="dish-grid-scroll" role="region" aria-label="Таблица приходов с прокруткой" tabIndex={0}>
-                <table className="settings-table dish-grid-table warehouse-journal-table" aria-label="Добавить продуктов">
+              <div className="dish-grid-scroll" role="region" aria-label={t("pages.warehousepage.tablitsa_prihodov_s_prokrutkoy")} tabIndex={0}>
+                <table className="settings-table dish-grid-table warehouse-journal-table" aria-label={t("pages.warehousepage.dobavit_produktov")}>
                   <thead>
                     <tr>
                       <th>№</th>
-                      <th>Поставщик</th>
-                      <th>На склад</th>
-                      <th>Дата поступления</th>
-                      <th>Дата регистрации</th>
-                      <th>Итоговая сумма</th>
+                      <th>{t("pages.warehousepage.postavschik")}</th>
+                      <th>{t("pages.warehousepage.na_sklad")}</th>
+                      <th>{t("pages.warehousepage.data_postupleniya")}</th>
+                      <th>{t("pages.warehousepage.data_registratsii")}</th>
+                      <th>{t("pages.warehousepage.itogovaya_summa")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -4287,7 +4288,7 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
               </div>
               {journalEmpty ? (
                 <div className="dish-empty-overlay">
-                  <ReportEmptyState title="Приходов пока нет." />
+                  <ReportEmptyState title={t("pages.warehousepage.prihodov_poka_net")} />
                 </div>
               ) : null}
             </div>
@@ -4300,21 +4301,21 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
   return (
     <div className="warehouse-page">
       <section className="warehouse-card">
-        {loading ? <div className="warehouse-empty-cell" role="status">Загрузка складских данных...</div> : null}        {error ? <div className="login-error" role="alert">{error}</div> : null}
+        {loading ? <div className="warehouse-empty-cell" role="status">{t("pages.warehousepage.zagruzka_skladskih_dannyh")}</div> : null}        {error ? <div className="login-error" role="alert">{error}</div> : null}
         <header className="warehouse-header">
           <div className="warehouse-title-group">
             <span className="warehouse-accent-bar" />
             <div>
-              <p>Склад</p>
-              <h1>{config.title}</h1>
+              <p>{t("pages.warehousepage.sklad")}</p>
+              <h1>{t(config.title)}</h1>
             </div>
           </div>
           <div className="warehouse-actions">
-            {config.importExcel ? <button type="button" onClick={() => window.alert("Импорт Excel будет доступен в следующей версии")}><Icon name="bi-file-earmark-spreadsheet" size={17} />Импорт Excel</button> : null}
+            {config.importExcel ? <button type="button" onClick={() => window.alert("Импорт Excel будет доступен в следующей версии")}><Icon name="bi-file-earmark-spreadsheet" size={17} />{t("pages.warehousepage.import_excel")}</button> : null}
             {config.primaryAction ? (
               mutation
-                ? <button type="button" className="warehouse-primary-action" onClick={openDrawer}>{config.primaryAction}</button>
-                : <button type="button" className="warehouse-primary-action" disabled title={WAREHOUSE_WRITE_UNAVAILABLE}>{config.primaryAction}</button>
+                ? <button type="button" className="warehouse-primary-action" onClick={openDrawer}>{t(config.primaryAction)}</button>
+                : <button type="button" className="warehouse-primary-action" disabled title={t(WAREHOUSE_WRITE_UNAVAILABLE)}>{t(config.primaryAction)}</button>
             ) : null}
           </div>
         </header>
@@ -4322,9 +4323,9 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
         {computedSummary ? (
           <div className="warehouse-summary-grid">
             {computedSummary.map((item) => (
-              <article className={`warehouse-summary-card warehouse-summary-card--${item.tone}`} key={item.label}>
+              <article className={`warehouse-summary-card warehouse-summary-card--${item.tone}`} key={t(item.label)}>
                 <div>
-                  <span>{item.label}</span>
+                  <span>{t(item.label)}</span>
                   <strong>{item.value}</strong>
                 </div>
                 <i><Icon name={item.icon} size={25} /></i>
@@ -4335,43 +4336,43 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
 
         {config.tabs ? (
           <div className="warehouse-tabs">
-            <button type="button" className={activeTab === ACTIVE ? "is-active" : ""} onClick={() => setActiveTab(ACTIVE)}>Активные</button>
-            <button type="button" className={activeTab === ARCHIVE ? "is-active" : ""} disabled title={WAREHOUSE_WRITE_UNAVAILABLE}>Архив</button>
+            <button type="button" className={activeTab === ACTIVE ? "is-active" : ""} onClick={() => setActiveTab(ACTIVE)}>{t("pages.warehousepage.aktivnye")}</button>
+            <button type="button" className={activeTab === ARCHIVE ? "is-active" : ""} disabled title={t(WAREHOUSE_WRITE_UNAVAILABLE)}>{t("pages.warehousepage.arhiv")}</button>
           </div>
         ) : null}
 
         <div className="warehouse-filters">
           <label className="warehouse-search-control">
-            <span>Поиск</span>
-            <input value={draftFilters.search} onChange={(event) => setDraftFilters((current) => ({ ...current, search: event.target.value }))} placeholder="Документ, поставщик, товар..." />
+            <span>{t("pages.warehousepage.poisk")}</span>
+            <input value={draftFilters.search} onChange={(event) => setDraftFilters((current) => ({ ...current, search: event.target.value }))} placeholder={t("pages.warehousepage.dokument_postavschik_tovar")} />
           </label>
           {DOC_RANGE_SECTIONS.includes(section) ? (
             <div className="warehouse-period-filter">
-              <span>Период</span>
+              <span>{t("pages.warehousepage.period")}</span>
               {docRangeControl}
             </div>
           ) : null}
           {(config.filters || []).map(([key, label, placeholder]) => (
             <label key={key}>
-              <span>{label}</span>
-              <input value={draftFilters[key] || ""} onChange={(event) => setDraftFilters((current) => ({ ...current, [key]: event.target.value }))} placeholder={placeholder} />
+              <span>{t(label)}</span>
+              <input value={draftFilters[key] || ""} onChange={(event) => setDraftFilters((current) => ({ ...current, [key]: event.target.value }))} placeholder={t(placeholder)} />
             </label>
           ))}
           <div className="warehouse-filter-actions">
-            <button type="button" onClick={() => setFilters(draftFilters)}><Icon name="bi-funnel" size={15} />Фильтровать</button>
+            <button type="button" onClick={() => setFilters(draftFilters)}><Icon name="bi-funnel" size={15} />{t("pages.warehousepage.filtrovat")}</button>
             <button type="button" className="warehouse-clear-action" onClick={() => {
               const reset = { search: "", warehouse: "", supplier: "", status: "", receiver: "", category: "", author: "", from: "", to: "" };
               setDraftFilters(reset);
               setFilters(reset);
               setDocRange(defaultDocRange());
-            }}>Очистить</button>
+            }}>{t("pages.warehousepage.ochistit")}</button>
           </div>
         </div>
 
         <div className="warehouse-table-wrapper">
           <table className="warehouse-table">
             <thead>
-              <tr>{config.columns.map((column) => <th key={column}>{column}</th>)}</tr>
+              <tr>{config.columns.map((column) => <th key={column}>{t(column)}</th>)}</tr>
             </thead>
             <tbody>
               {visibleRows.map((row, index) => (
@@ -4379,17 +4380,17 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
                   {renderWarehouseCells(section, row, index, config.editable, { busyId, onAccept: handleAccept, onDelete: handleDelete })}
                 </tr>
               ))}
-              {!loading && !error && !visibleRows.length ? <tr><td className="warehouse-empty-cell" colSpan={config.columns.length}>Нет данных</td></tr> : null}
+              {!loading && !error && !visibleRows.length ? <tr><td className="warehouse-empty-cell" colSpan={config.columns.length}>{t("pages.warehousepage.net_dannyh")}</td></tr> : null}
             </tbody>
           </table>
         </div>
 
         <footer className="warehouse-pagination">
-          <span>Показано 1 - {Math.min(visibleRows.length, 10)} из {visibleRows.length}</span>
+          <span>{t("pages.warehousepage.pokazano_1")} {Math.min(visibleRows.length, 10)} {t("pages.warehousepage.iz")} {visibleRows.length}</span>
           <div>
             {[1, 2, 3, 4].map((page) => <button key={page} type="button" className={page === 1 ? "is-active" : ""}>{page}</button>)}
           </div>
-          <select defaultValue="10"><option value="10">10 / стр.</option><option value="20">20 / стр.</option></select>
+          <select defaultValue="10"><option value="10">{t("pages.warehousepage.10_str")}</option><option value="20">{t("pages.warehousepage.20_str")}</option></select>
         </footer>
       </section>
 
@@ -4434,8 +4435,8 @@ function renderWarehouseCells(section, row, index, editable, ctx = {}) {
   const actions = editable ? (
     <td>
       <div className="warehouse-row-actions">
-        <button type="button" className="edit-action-button" disabled title={WAREHOUSE_WRITE_UNAVAILABLE} aria-label="Редактирование недоступно"><Icon name="bi-pencil" size={15} /></button>
-        <button type="button" className={row.archiveState === ARCHIVE ? "is-restore" : "is-danger"} disabled title={WAREHOUSE_WRITE_UNAVAILABLE} aria-label="Архивирование недоступно">
+        <button type="button" className="edit-action-button" disabled title={t(WAREHOUSE_WRITE_UNAVAILABLE)} aria-label={t("pages.warehousepage.redaktirovanie_nedostupno")}><Icon name="bi-pencil" size={15} /></button>
+        <button type="button" className={row.archiveState === ARCHIVE ? "is-restore" : "is-danger"} disabled title={t(WAREHOUSE_WRITE_UNAVAILABLE)} aria-label={t("pages.warehousepage.arhivirovanie_nedostupno")}>
           <Icon name={row.archiveState === ARCHIVE ? "bi-recycle" : "bi-trash3"} size={15} />
         </button>
       </div>

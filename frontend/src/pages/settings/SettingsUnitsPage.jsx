@@ -4,6 +4,7 @@ import { settingsService } from "../../api/settings";
 import Icon from "../../components/Icon";
 import ReportEmptyState from "../../components/ReportEmptyState";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../../hooks/useAsyncSafety";
+import { t } from "../../i18n/t";
 import "./SettingsUnitsPage.css";
 
 const RESOURCE = "units";
@@ -219,21 +220,21 @@ function SettingsUnitsPage() {
           <div className="settings-title-group">
             <span className="settings-accent-bar" />
             <div>
-              <p>Настройки</p>
-              <h1>Единица измерения</h1>
+              <p>{t("pages.settings.settingsunitspage.nastroyki")}</p>
+              <h1>{t("pages.settings.settingsunitspage.edinitsa_izmereniya")}</h1>
             </div>
           </div>
           <div className="settings-actions">
-            <button type="button" onClick={openAdd}>Добавить единицу измерения</button>
+            <button type="button" onClick={openAdd}>{t("pages.settings.settingsunitspage.dobavit_edinitsu_izmereniya")}</button>
           </div>
         </header>
 
         {loading ? (
-          <div className="settings-empty-state" role="status">Загрузка...</div>
+          <div className="settings-empty-state" role="status">{t("pages.settings.settingsunitspage.zagruzka")}</div>
         ) : error && rows.length === 0 && cachedUnits === null ? (
           <div className="settings-empty-state" role="alert">
             {error}
-            <button type="button" className="settings-places-retry" onClick={load}>Повторить</button>
+            <button type="button" className="settings-places-retry" onClick={load}>{t("pages.settings.settingsunitspage.povtorit")}</button>
           </div>
         ) : rows.length === 0 ? (
           <>
@@ -251,17 +252,17 @@ function SettingsUnitsPage() {
                 </colgroup>
                 <thead>
                   <tr>
-                    <th>Сорт</th>
-                    <th>Название</th>
-                    <th>Короткое название</th>
-                    <th>Статус</th>
-                    <th>Действия</th>
+                    <th>{t("pages.settings.settingsunitspage.sort")}</th>
+                    <th>{t("pages.settings.settingsunitspage.nazvanie")}</th>
+                    <th>{t("pages.settings.settingsunitspage.korotkoe_nazvanie")}</th>
+                    <th>{t("pages.settings.settingsunitspage.status")}</th>
+                    <th>{t("pages.settings.settingsunitspage.deystviya")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr className="pm-empty-row">
                     <td colSpan={5} className="pm-empty-cell">
-                      <ReportEmptyState title="Единиц измерения пока нет" />
+                      <ReportEmptyState title={t("pages.settings.settingsunitspage.edinits_izmereniya_poka_net")} />
                     </td>
                   </tr>
                 </tbody>
@@ -284,11 +285,11 @@ function SettingsUnitsPage() {
                 </colgroup>
                 <thead>
                   <tr>
-                    <th>Сорт</th>
-                    <th>Название</th>
-                    <th>Короткое название</th>
-                    <th>Статус</th>
-                    <th>Действия</th>
+                    <th>{t("pages.settings.settingsunitspage.sort")}</th>
+                    <th>{t("pages.settings.settingsunitspage.nazvanie")}</th>
+                    <th>{t("pages.settings.settingsunitspage.korotkoe_nazvanie")}</th>
+                    <th>{t("pages.settings.settingsunitspage.status")}</th>
+                    <th>{t("pages.settings.settingsunitspage.deystviya")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -298,7 +299,7 @@ function SettingsUnitsPage() {
                       <td>
                         <span className="units-name-cell">
                           <span>{row.name || "—"}</span>
-                          {row.isGlobal ? <span className="units-system-badge">Системная</span> : null}
+                          {row.isGlobal ? <span className="units-system-badge">{t("pages.settings.settingsunitspage.sistemnaya")}</span> : null}
                         </span>
                       </td>
                       <td>{row.shortName || "—"}</td>
@@ -337,14 +338,14 @@ function SettingsUnitsPage() {
                   <p>{editingId ? "Редактирование" : "Новая запись"}</p>
                   <h2 id="unit-drawer-title">{editingId ? "Редактировать единицу измерения" : "Добавить единицу измерения"}</h2>
                 </div>
-                <button type="button" aria-label="Закрыть" disabled={saving} onClick={closeDrawer}>
+                <button type="button" aria-label={t("pages.settings.settingsunitspage.zakryt")} disabled={saving} onClick={closeDrawer}>
                   <Icon name="bi-x-lg" size={20} />
                 </button>
               </header>
               <div className="settings-form__body">
                 <div className="u-form-row">
                   <label>
-                    <span>Название</span>
+                    <span>{t("pages.settings.settingsunitspage.nazvanie")}</span>
                     <input
                       autoFocus
                       value={form.name}
@@ -352,7 +353,7 @@ function SettingsUnitsPage() {
                     />
                   </label>
                   <label>
-                    <span>Короткое название</span>
+                    <span>{t("pages.settings.settingsunitspage.korotkoe_nazvanie")}</span>
                     <input
                       value={form.shortName}
                       onChange={(event) => setForm((cur) => ({ ...cur, shortName: event.target.value }))}
@@ -360,7 +361,7 @@ function SettingsUnitsPage() {
                   </label>
                 </div>
                 <div className="settings-toggle-field settings-form__wide">
-                  <span>Статус</span>
+                  <span>{t("pages.settings.settingsunitspage.status")}</span>
                   <label className="settings-switch">
                     <input
                       type="checkbox"
@@ -376,7 +377,7 @@ function SettingsUnitsPage() {
               </div>
               {error ? <p className="settings-form__error" role="alert">{error}</p> : null}
               <footer className="settings-form__footer">
-                <button type="button" disabled={saving} onClick={closeDrawer}>Отмена</button>
+                <button type="button" disabled={saving} onClick={closeDrawer}>{t("pages.settings.settingsunitspage.otmena")}</button>
                 <button type="submit" disabled={saving}>{saving ? "Сохранение..." : "Сохранить"}</button>
               </footer>
             </form>
@@ -392,20 +393,20 @@ function SettingsUnitsPage() {
               <header className="settings-form__header">
                 <span className="settings-accent-bar" />
                 <div>
-                  <p>Удаление</p>
-                  <h2 id="unit-delete-title">Удалить единицу измерения?</h2>
+                  <p>{t("pages.settings.settingsunitspage.udalenie")}</p>
+                  <h2 id="unit-delete-title">{t("pages.settings.settingsunitspage.udalit_edinitsu_izmereniya")}</h2>
                 </div>
-                <button type="button" aria-label="Закрыть" disabled={deleting} onClick={() => setDeleteTarget(null)}>
+                <button type="button" aria-label={t("pages.settings.settingsunitspage.zakryt")} disabled={deleting} onClick={() => setDeleteTarget(null)}>
                   <Icon name="bi-x-lg" size={18} />
                 </button>
               </header>
               <div className="settings-form__body">
                 <p id="unit-delete-body" className="settings-confirm__text">
-                  «<strong>{deleteTarget.name}</strong>» будет удалена. Это действие необратимо.
+                  «<strong>{deleteTarget.name}</strong>{t("pages.settings.settingsunitspage.budet_udalena_eto_deystvie_neobratimo")}
                 </p>
               </div>
               <footer className="settings-form__footer">
-                <button type="button" autoFocus disabled={deleting} onClick={() => setDeleteTarget(null)}>Отмена</button>
+                <button type="button" autoFocus disabled={deleting} onClick={() => setDeleteTarget(null)}>{t("pages.settings.settingsunitspage.otmena")}</button>
                 <button type="button" className="settings-confirm__delete" disabled={deleting} onClick={confirmDelete}>
                   {deleting ? "Удаление..." : "Удалить"}
                 </button>

@@ -1,0 +1,302 @@
+﻿Разделители	Ajratgichlar	Separators
+Разделы настроек	Sozlamalar bo'limlari	Settings sections
+Размер	O'lcham	Size
+Размер текста	Matn o'lchami	Text size
+Район	Tuman	District
+Расположение номера заказа	Buyurtma raqamining joylashuvi	Order number position
+Рассчитать обслугу	Xizmat haqini hisoblash	Calculate service charge
+Расход по складам	Omborlar bo'yicha chiqim	Expenses by warehouse
+Расходов пока нет.	Hozircha chiqimlar yo'q.	No expenses yet.
+Расходы по складам с прокруткой	Omborlar bo'yicha chiqimlar (aylantirish bilan)	Expenses by warehouse with scrolling
+Реализация	Sotuv	Selling
+Редактирование заказа недоступно	Buyurtmani tahrirlash mavjud emas	Order editing is unavailable
+Редактирование недоступно	Tahrirlash mavjud emas	Editing is unavailable
+Редактировать единицу измерения	O'lchov birligini tahrirlash	Edit unit of measure
+Редактировать источник	Manbani tahrirlash	Edit source
+Редактировать категорию	Kategoriyani tahrirlash	Edit category
+Редактировать продукт	Mahsulotni tahrirlash	Edit product
+Редактировать транзакцию	Tranzaksiyani tahrirlash	Edit transaction
+Редактировать фон	Fonni tahrirlash	Edit background
+Режим	Rejim	Mode
+Результаты поиска	Qidiruv natijalari	Search results
+Рекомендуемое действие	Tavsiya etilgan amal	Recommended action
+Рецепты	Retseptlar	Recipes
+Рецепты (	Retseptlar (	Recipes (
+Российский рубль	Rossiya rubli	Russian ruble
+Ручной расход	Qo'lda chiqim	Manual expense
+РџСЂРѕРєСЂСѓС‚РёС‚СЊ РІР»РµРІРѕ	Chapga aylantirish	Scroll left
+РџСЂРѕРєСЂСѓС‚РёС‚СЊ РІРїСЂР°РІРѕ	O'ngga aylantirish	Scroll right
+Р“РѕСЂРёР·РѕРЅС‚Р°Р»СЊРЅР°СЏ РїСЂРѕРєСЂСѓС‚РєР° С‚Р°Р±Р»РёС†С‹	Jadvalni gorizontal aylantirish	Horizontal table scroll
+Самые частые операции владельца в одном месте	Egasining eng ko'p amallari bir joyda	The owner's most frequent operations in one place
+Сбросить	Tiklash	Reset
+Сбросить выбор официанта	Ofitsiant tanlovini tiklash	Reset waiter selection
+Сбросить привязку экрана	Ekran bog'lanishini tiklash	Reset screen binding
+Сбросить столбцы	Ustunlarni tiklash	Reset columns
+Сводка категорий	Kategoriyalar xulosasi	Category summary
+Сводка платежа	To'lov xulosasi	Payment summary
+Сводка склада и затрат	Ombor va xarajatlar xulosasi	Warehouse and costs summary
+Сводка смены	Smena xulosasi	Shift summary
+Сводные показатели платформы	Platformaning yig'ma ko'rsatkichlari	Platform summary metrics
+Себестоимость продаж	Savdo tannarxi	Cost of sales
+Сервер не отвечает	Server javob bermayapti	The server is not responding
+Сет	Set	Set
+Система	Tizim	System
+Системная	Tizimli	System
+Системная категория	Tizimli kategoriya	System category
+Скачать на EXCEL	EXCELga yuklab olish	Download to EXCEL
+Склад *	Ombor *	Warehouse *
+Склад / Инвентаризация	Ombor / Inventarizatsiya	Warehouse / Inventory
+Склад / Остаток	Ombor / Qoldiq	Warehouse / Stock
+Склад для расхода	Chiqim uchun ombor	Warehouse for expense
+Склад инвентаризации	Inventarizatsiya ombori	Inventory warehouse
+Склад списания *	Hisobdan chiqarish ombori *	Write-off warehouse *
+Складской отчёт	Ombor hisoboti	Warehouse report
+Склады пока не добавлены.	Hozircha omborlar qo'shilmagan.	No warehouses added yet.
+Скоро, эта категория в разработке	Tez orada, bu kategoriya ustida ishlanmoqda	Coming soon, this category is under development
+Следующий год	Keyingi yil	Next year
+Следующий месяц	Keyingi oy	Next month
+Сменить повара	Oshpazni almashtirish	Change cook
+Создание недоступно: HQ backend contract не подключён.	Yaratish mavjud emas: HQ backend shartnomasi ulanmagan.	Creation unavailable: the HQ backend contract is not connected.
+Создать инвентаризацию	Inventarizatsiya yaratish	Create inventory
+Создать приход	Kirim yaratish	Create receipt
+Создать продажу	Sotuv yaratish	Create sale
+Сообщение недоступно	Xabar mavjud emas	Message unavailable
+Сообщение:	Xabar:	Message:
+Сорт	Navi	Grade
+Сортировать по количеству	Miqdor bo'yicha saralash	Sort by quantity
+Сортировка	Saralash	Sorting
+Состав	Tarkib	Composition
+Состав блюд официанта	Ofitsiant taomlari tarkibi	Waiter dishes composition
+Состав будет списан со склада, остаток полуфабриката увеличится. Операция «всё или ничего».	Tarkib ombordan hisobdan chiqariladi, yarim tayyor mahsulot qoldig'i ortadi. «Hammasi yoki hech narsa» amali.	The composition will be written off from the warehouse and the semi-finished stock will increase. All-or-nothing operation.
+Состав заказа	Buyurtma tarkibi	Order composition
+Состав рецепта	Retsept tarkibi	Recipe composition
+Состав рецепта пока пуст	Retsept tarkibi hozircha bo'sh	The recipe composition is empty
+Состав сета	Set tarkibi	Set composition
+Состав сета пока пуст	Set tarkibi hozircha bo'sh	The set composition is empty
+Состояние	Holat	State
+Состояние организации	Tashkilot holati	Organization state
+Состояние:	Holat:	State:
+Сотрудник	Xodim	Employee
+Сотрудников пока нет.	Hozircha xodimlar yo'q.	No employees yet.
+Сохранить группу	Guruhni saqlash	Save group
+Список	Ro'yxat	List
+Список заказов	Buyurtmalar ro'yxati	Order list
+Список источников	Manbalar ro'yxati	Source list
+Список кассиров	Kassirlar ro'yxati	Cashier list
+Список категорий реализации	Sotuv kategoriyalari ro'yxati	Selling category list
+Список принтеров пуст	Printerlar ro'yxati bo'sh	The printer list is empty
+Список продуктов	Mahsulotlar ro'yxati	Product list
+Список пуст	Ro'yxat bo'sh	The list is empty
+Список пуст.	Ro'yxat bo'sh.	The list is empty.
+Список сотрудников недоступен: backend contract не подключён.	Xodimlar ro'yxati mavjud emas: backend shartnomasi ulanmagan.	The employee list is unavailable: the backend contract is not connected.
+Способ появится отдельной кнопкой на кассе. Название — до 30 символов (его увидит кассир и оно попадёт в отчёты по способам оплаты).	Usul kassada alohida tugma sifatida paydo bo'ladi. Nomi — 30 belgigacha (kassir uni ko'radi va u to'lov usullari hisobotlariga tushadi).	The method appears as a separate button at the cash register. The name is up to 30 characters (the cashier sees it and it goes into payment method reports).
+Способов оплаты пока нет	Hozircha to'lov usullari yo'q	No payment methods yet
+Способы оплаты не найдены.	To'lov usullari topilmadi.	No payment methods found.
+Справочник статусов недоступен: связанные значения показаны как ID.	Holatlar ma'lumotnomasi mavjud emas: bog'langan qiymatlar ID sifatida ko'rsatilgan.	The status reference is unavailable: linked values are shown as IDs.
+Среднее	O'rtacha	Average
+Среднее время	O'rtacha vaqt	Average time
+Среднее количество	O'rtacha miqdor	Average quantity
+Средний чек по местам	Joylar bo'yicha o'rtacha chek	Average check by place
+Средняя сумма одного заказа за выбранный день.	Tanlangan kun uchun bitta buyurtmaning o'rtacha summasi.	Average amount of one order for the selected day.
+Срез на	Kesim:	Snapshot as of
+Срок действия	Amal qilish muddati	Validity period
+Старая сумма	Eski summa	Old amount
+Статус active	Holat active	Status active
+Статус блюд	Taomlar holati	Dish status
+Статус заказа	Buyurtma holati	Order status
+Статус категорий	Kategoriyalar holati	Category status
+Статус организации	Tashkilot holati	Organization status
+Статус продуктов	Mahsulotlar holati	Product status
+Статус сотрудников	Xodimlar holati	Employee status
+Статус товаров	Mahsulotlar holati	Item status
+Статусы организаций	Tashkilotlar holatlari	Organization statuses
+Стереть	O'chirish	Erase
+Стереть последнюю цифру	Oxirgi raqamni o'chirish	Erase last digit
+Стиль разделителей	Ajratgichlar uslubi	Separator style
+Стол с таким номером уже есть в этом месте.	Bu joyda bunday raqamli stol allaqachon bor.	A table with this number already exists in this place.
+Стол №	Stol №	Table No.
+Столбцы	Ustunlar	Columns
+Столов пока нет	Hozircha stollar yo'q	No tables yet
+Столы заняты	Stollar band	Tables are occupied
+Столы не найдены	Stollar topilmadi	No tables found
+Страница	Sahifa	Page
+Страница использует данные продаж за выбранный день.	Sahifa tanlangan kun uchun savdo ma'lumotlaridan foydalanadi.	This page uses sales data for the selected day.
+Строк	Qatorlar	Rows
+Сумма (UZS)	Summa (UZS)	Amount (UZS)
+Сумма блюд	Taomlar summasi	Dishes amount
+Сумма в сете	Setdagi summa	Amount in set
+Сумма заказа	Buyurtma summasi	Order amount
+Сумма заказов	Buyurtmalar summasi	Orders amount
+Сумма заказов на вынос	Olib ketish buyurtmalari summasi	Takeaway orders amount
+Сумма набора	To'plam summasi	Set amount
+Сумма по составу	Tarkib bo'yicha summa	Amount by composition
+Сумма позиции	Pozitsiya summasi	Item amount
+Сумма продаж	Savdo summasi	Sales amount
+Сумма продаж, делённая на количество в выбранном периоде.	Savdo summasi tanlangan davrdagi miqdorga bo'lingan.	Sales amount divided by quantity for the selected period.
+Сумма услуги	Xizmat summasi	Service amount
+Сумма, UZS	Summa, UZS	Amount, UZS
+Таблица заказов	Buyurtmalar jadvali	Orders table
+Таблица приходов с прокруткой	Kirimlar jadvali (aylantirish bilan)	Receipts table with scrolling
+Таблица продаж — прокрутка	Savdolar jadvali — aylantirish	Sales table — scroll
+Таблица продуктов с прокруткой	Mahsulotlar jadvali (aylantirish bilan)	Products table with scrolling
+Таблица создания прихода с прокруткой	Kirim yaratish jadvali (aylantirish bilan)	Receipt creation table with scrolling
+Таблица сотрудников с прокруткой	Xodimlar jadvali (aylantirish bilan)	Employees table with scrolling
+Таблица стоп-листа с прокруткой	Stop-list jadvali (aylantirish bilan)	Stop-list table with scrolling
+Табличный отчёт по выбранному показателю склада за	Tanlangan ombor ko'rsatkichi bo'yicha jadval hisoboti:	Tabular report for the selected warehouse metric for
+Текущая дата и время	Joriy sana va vaqt	Current date and time
+Текущее время	Joriy vaqt	Current time
+Текущее кол-во	Joriy miqdor	Current quantity
+Текущий пароль	Joriy parol	Current password
+Текущий снимок	Joriy holat	Current snapshot
+Текущий тип:	Joriy tur:	Current type:
+Тест печати	Chop etish testi	Print test
+Тип зарплаты	Ish haqi turi	Salary type
+Тип заявки	So'rov turi	Request type
+Тип контрагента	Kontragent turi	Counterparty type
+Тип операции	Operatsiya turi	Operation type
+Тип отхода	Chiqit turi	Waste type
+Тип позиции	Pozitsiya turi	Item type
+Тип позиций	Pozitsiyalar turi	Item types
+Тип потери	Yo'qotish turi	Loss type
+Тип продуктов	Mahsulotlar turi	Product types
+Тип филиала	Filial turi	Branch type
+Товар *	Mahsulot *	Item *
+Товар...	Mahsulot...	Item...
+Товары по категориям	Mahsulotlar kategoriyalar bo'yicha	Items by category
+Только в стопе	Faqat stopda	Stop-list only
+Только подтверждённые данные	Faqat tasdiqlangan ma'lumotlar	Confirmed data only
+Топ-5 временно недоступен	Top-5 vaqtincha mavjud emas	Top-5 is temporarily unavailable
+Топ-5 продаж	Top-5 savdo	Top-5 sales
+Транзакции	Tranzaksiyalar	Transactions
+Транзакции не найдены.	Tranzaksiyalar topilmadi.	No transactions found.
+Убрать доп. цену	Qo'shimcha narxni olib tashlash	Remove extra price
+Убрать фото	Fotoni olib tashlash	Remove photo
+Увеличить процент обслуживания	Xizmat haqi foizini oshirish	Increase service charge percent
+Удаление	O'chirish	Deletion
+Удаление блюд	Taomlarni o'chirish	Dish deletion
+Удалить группу	Guruhni o'chirish	Delete group
+Удалить единицу измерения	O'lchov birligini o'chirish	Delete unit of measure
+Удалить единицу измерения?	O'lchov birligi o'chirilsinmi?	Delete the unit of measure?
+Удалить заказ	Buyurtmani o'chirish	Delete order
+Удалить ингредиент	Ingredientni o'chirish	Delete ingredient
+Удалить источник	Manbani o'chirish	Delete source
+Удалить категорию	Kategoriyani o'chirish	Delete category
+Удалить категорию навсегда?	Kategoriya butunlay o'chirilsinmi?	Delete the category permanently?
+Удалить место	Joyni o'chirish	Delete place
+Удалить место?	Joy o'chirilsinmi?	Delete the place?
+Удалить окончательно	Butunlay o'chirish	Delete permanently
+Удалить операцию	Operatsiyani o'chirish	Delete operation
+Удалить опцию	Opsiyani o'chirish	Delete option
+Удалить принтер?	Printer o'chirilsinmi?	Delete the printer?
+Удалить способ оплаты	To'lov usulini o'chirish	Delete payment method
+Удалить способ оплаты?	To'lov usuli o'chirilsinmi?	Delete the payment method?
+Удалить статус	Holatni o'chirish	Delete status
+Удалить фон	Fonni o'chirish	Delete background
+Удалить фото	Fotoni o'chirish	Delete photo
+Удалить фото блюда	Taom fotosini o'chirish	Delete dish photo
+Удалить фото?	Foto o'chirilsinmi?	Delete the photo?
+Удобное пополнение баланса	Balansni qulay to'ldirish	Convenient balance top-up
+Улица, дом	Ko'cha, uy	Street, house
+Уменьшить процент обслуживания	Xizmat haqi foizini kamaytirish	Decrease service charge percent
+Управление заказами	Buyurtmalarni boshqarish	Order management
+Управление лимитами	Limitlarni boshqarish	Limit management
+Управление сменой	Smenani boshqarish	Shift management
+Установлена	O'rnatilgan	Installed
+Установщик Marjon Desktop для Windows: касса, моноблок, кухня и склад. Для работы нужен интернет — приложение подключается к серверу Marjon.	Windows uchun Marjon Desktop o'rnatuvchisi: kassa, monoblok, oshxona va ombor. Ishlash uchun internet kerak — ilova Marjon serveriga ulanadi.	Marjon Desktop installer for Windows: cash register, monoblock, kitchen and warehouse. Internet is required — the app connects to the Marjon server.
+Учётная запись сотрудника	Xodim hisob yozuvi	Employee account
+ФИО / название	F.I.Sh. / nomi	Full name / title
+ФИО или телефон	F.I.Sh. yoki telefon	Full name or phone
+Файл	Fayl	File
+Файл логотипа	Logotip fayli	Logo file
+Файлов для скачивания пока нет.	Hozircha yuklab olish uchun fayllar yo'q.	No files to download yet.
+Фактически полученные деньги за выбранную дату.	Tanlangan sana uchun haqiqatda olingan pul.	Money actually received for the selected date.
+Фиксированная	Belgilangan	Fixed
+Филиал	Filial	Branch
+Филиал:	Filial:	Branch:
+Филиалов пока нет	Hozircha filiallar yo'q	No branches yet
+Фильтр	Filtr	Filter
+Фильтр заказов	Buyurtmalar filtri	Order filter
+Фильтр по категории	Kategoriya bo'yicha filtr	Filter by category
+Фильтр по контрагентам	Kontragentlar bo'yicha filtr	Filter by counterparty
+Фильтр по статусу	Holat bo'yicha filtr	Filter by status
+Фильтры каталога блюд	Taomlar katalogi filtrlari	Dish catalog filters
+Фильтры отчёта по блюдам	Taomlar hisoboti filtrlari	Dish report filters
+Фильтры отчёта по заказам	Buyurtmalar hisoboti filtrlari	Order report filters
+Фильтры отчёта по отменённым блюдам	Bekor qilingan taomlar hisoboti filtrlari	Cancelled dishes report filters
+Фильтры отчёта по столам	Stollar hisoboti filtrlari	Table report filters
+Фильтры продаж	Savdo filtrlari	Sales filters
+Фильтры продуктов	Mahsulot filtrlari	Product filters
+Фильтры продуктов прихода	Kirim mahsulotlari filtrlari	Receipt product filters
+Финансовая история недоступна: backend contract для транзакций контрагента не подключён.	Moliyaviy tarix mavjud emas: kontragent tranzaksiyalari uchun backend shartnomasi ulanmagan.	Financial history unavailable: the backend contract for counterparty transactions is not connected.
+Финансовая сводка за	Moliyaviy xulosa:	Financial summary for
+Фон для кассира	Kassir uchun fon	Cashier background
+Фоны для кассира	Kassir uchun fonlar	Cashier backgrounds
+Фоны для кассира не найдены.	Kassir uchun fonlar topilmadi.	No cashier backgrounds found.
+Фото / avatar upload	Foto / avatar yuklash	Photo / avatar upload
+Фото блюда будет удалено без возможности восстановления.	Taom fotosi qaytarib bo'lmaydigan tarzda o'chiriladi.	The dish photo will be deleted without the ability to restore it.
+Фото профиля	Profil fotosi	Profile photo
+Функция пока недоступна: Inventory Core отложен.	Funksiya hozircha mavjud emas: Inventory Core kechiktirilgan.	The feature is unavailable: Inventory Core is postponed.
+Целые	Butun	Whole
+Целые (1)	Butun (1)	Whole (1)
+Цена (UZS)	Narx (UZS)	Price (UZS)
+Цена в сете	Setdagi narx	Price in set
+Цена всего	Umumiy narx	Total price
+Цена места	Joy narxi	Place price
+Цена обслуживания	Xizmat narxi	Service price
+Цена по FIFO при проведении	O'tkazishda FIFO bo'yicha narx	FIFO price on posting
+Цена позиции	Pozitsiya narxi	Item price
+Цена позиции в заказе	Buyurtmadagi pozitsiya narxi	Item price in order
+Цена посчитается автоматически по FIFO.	Narx FIFO bo'yicha avtomatik hisoblanadi.	The price is calculated automatically by FIFO.
+Цена посчитается автоматически по FIFO: старые партии списываются первыми.	Narx FIFO bo'yicha avtomatik hisoblanadi: eski partiyalar birinchi hisobdan chiqariladi.	The price is calculated automatically by FIFO: older batches are written off first.
+Цена продажи	Sotuv narxi	Selling price
+Цена тарифа	Tarif narxi	Tariff price
+Цена: FIFO авто	Narx: FIFO avto	Price: FIFO auto
+Часы	Soat	Hours
+Чек заказа	Buyurtma cheki	Order receipt
+Четыре цифры —	To'rt raqam —	Four digits —
+Чистая прибыль	Sof foyda	Net profit
+Шаг порции	Porsiya qadami	Portion step
+Экран кухни	Oshxona ekrani	Kitchen screen
+Это логин и пароль	Bu login va parol	This is the login and password
+Этот продукт пока не используется в блюдах	Bu mahsulot hozircha taomlarda ishlatilmaydi	This product is not used in dishes yet
+Я ознакомлен с	Men tanishdim:	I have read
+активные	faol	active
+активных на странице	sahifada faol	active on the page
+блюд в меню	menyudagi taomlar	dishes in the menu
+будет перемещена в архив.	arxivga o'tkaziladi.	will be moved to the archive.
+будет перемещено в архив.	arxivga o'tkaziladi.	will be moved to the archive.
+будет перемещён в архив.	arxivga o'tkaziladi.	will be moved to the archive.
+будет удалена без возможности восстановления.	qaytarib bo'lmaydigan tarzda o'chiriladi.	will be deleted without the ability to restore it.
+будет удалён без возможности восстановления.	qaytarib bo'lmaydigan tarzda o'chiriladi.	will be deleted without the ability to restore it.
+в команде	jamoada	in the team
+вернётся в список активных.	faollar ro'yxatiga qaytadi.	will return to the active list.
+всего	jami	total
+дальше — только PIN	keyin — faqat PIN	then only the PIN
+ед. изм	o'lchov birligi	unit
+записей журнала.	jurnal yozuvlari.	journal entries.
+и кухня под контролем	va oshxona nazoratda	and the kitchen under control
+из карточки филиала (Настройки → Филиалы), а не пароль повара. По ним экран находит свою кухню; повара входят по PIN.	filial kartasidan (Sozlamalar → Filiallar), oshpaz paroli emas. Ular bo'yicha ekran o'z oshxonasini topadi; oshpazlar PIN bilan kiradi.	from the branch card (Settings → Branches), not the cook's password. The screen uses them to find its kitchen; cooks sign in with a PIN.
+из мин.	daqiqadan	from min.
+кг	kg	kg
+кухонный экран	oshxona ekrani	kitchen screen
+на странице	sahifada	on the page
+не задан	belgilanmagan	not set
+недопустимое значение	noto'g'ri qiymat	invalid value
+онлайн-меню на странице	onlayn menyu sahifasida	online menu on the page
+отменён	bekor qilingan	cancelled
+последняя синхронизация	oxirgi sinxronizatsiya	last synchronization
+публичной офертой	ommaviy oferta bilan	public offer
+с собой	olib ketish	takeaway
+свои	o'z	own
+системные	tizimli	system
+способов,	usullar,	methods,
+сум	so'm	UZS
+филиала	filial	branch
+фонов для кассового экрана.	kassa ekrani uchun fonlar.	backgrounds for the cash register screen.
+шт)	ta)	pcs)
+шт.	ta.	pcs.
+— отмена	— bekor qilish	— cancel
+— только просмотр	— faqat ko'rish	— view only
+№ заказа	Buyurtma №	Order No.
+№ стола	Stol №	Table No.
+← Назад	← Orqaga	← Back

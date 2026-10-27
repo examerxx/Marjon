@@ -12,6 +12,7 @@ import { isAbortError, useLatestRequest, useMutationLocks } from "../../hooks/us
 import { mapNomenclatureProduct, unitDisplayLabel, unitOptionLabel } from "./nomenclatureData";
 import { formatQuantity, parseQuantityInput } from "./stopListFormat";
 import { roundScale3, visibleTopups } from "./stopListHistory";
+import { t } from "../../i18n/t";
 
 // Ре-экспорт для совместимости (тесты/импорты): только то, что реально
 // используется вне хука. Без транзитивного ре-экспорта history-модуля:
@@ -313,7 +314,7 @@ export function useStopList() {
   // глобальный баннер не ставим, чтобы он не просвечивал за модалкой.
   const zeroAllowance = useCallback(async (id) => {
     const row = rowById(id);
-    if (!row) return { ok: false, error: "Блюдо не найдено.", status: null };
+    if (!row) return { ok: false, error: t("pages.nomenclature.usestoplist.blyudo_ne_naydeno"), status: null };
     const lockKey = `stoplist-zero:${id}`;
     if (!acquire(lockKey)) return { ok: false, error: null, status: null };
     setSavingId(String(id));
@@ -338,7 +339,7 @@ export function useStopList() {
   // Ошибка — локально вызывателю, как выше.
   const resetHistory = useCallback(async (id) => {
     const row = rowById(id);
-    if (!row) return { ok: false, error: "Блюдо не найдено.", status: null };
+    if (!row) return { ok: false, error: t("pages.nomenclature.usestoplist.blyudo_ne_naydeno"), status: null };
     const lockKey = `stoplist-histreset:${id}`;
     if (!acquire(lockKey)) return { ok: false, error: null, status: null };
     setSavingId(String(id));

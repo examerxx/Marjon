@@ -7,6 +7,7 @@ import { useAnchoredDialogMotion } from "../../hooks/useAnchoredDialogMotion";
 import { nomenclatureService } from "../../api/nomenclature";
 import DishSingleSelect from "./DishSingleSelect";
 import recipeBookPng from "../../assets/recipes-cook-book.png";
+import { t } from "../../i18n/t";
 
 function parseQuantity(raw) {
   const text = String(raw ?? "").trim().replace(",", ".");
@@ -60,13 +61,13 @@ export function IngredientDishesBadge({ count, onClick }) {
   if (amount > 0) {
     return (
       <button type="button" className="dish-recipe-link is-filled" onClick={onClick} aria-haspopup="dialog">
-        <UsagePngIcon />Блюда ({amount} шт)
+        <UsagePngIcon />{t("pages.nomenclature.rawingredientdishesdialog.blyuda")}{amount} {t("pages.nomenclature.rawingredientdishesdialog.sht")}
       </button>
     );
   }
   return (
     <button type="button" className="dish-recipe-link is-empty" onClick={onClick} aria-haspopup="dialog">
-      <UsagePngIcon />Блюда
+      <UsagePngIcon />{t("pages.nomenclature.rawingredientdishesdialog.blyuda_2")}
     </button>
   );
 }
@@ -170,7 +171,7 @@ export default function RawIngredientDishesDialog({ ingredient, products, produc
       if (onChanged) onChanged(productId, fresh);
       return true;
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || "Не удалось сохранить использование.");
+      setError(err.response?.data?.detail || err.message || t("pages.nomenclature.rawingredientdishesdialog.error.save"));
       return false;
     } finally {
       setSaving(false);
@@ -212,11 +213,11 @@ export default function RawIngredientDishesDialog({ ingredient, products, produc
     const product = productById.get(String(productId));
     if (!product) return "—";
     const name = String(product.name || "—");
-    return product.is_active === false ? `${name} (архив)` : name;
+    return product.is_active === false ? `${name} (${t("common.archived_suffix")})` : name;
   };
   // NULL-склад = списание с главного (та же логика, что у deduct_for_order).
   const warehouseNameOf = (warehouseId) => {
-    if (!warehouseId) return "Основной";
+    if (!warehouseId) return t("pages.nomenclature.rawingredientdishesdialog.osnovnoy");
     const found = warehouses.find((item) => String(item?.id) === String(warehouseId));
     return found?.name || "—";
   };
@@ -228,44 +229,44 @@ export default function RawIngredientDishesDialog({ ingredient, products, produc
         aria-modal="true" aria-labelledby="raw-dishes-title" aria-describedby="raw-dishes-ingredient"
         onMouseDown={(event) => event.stopPropagation()} onKeyDown={trapFocus}>
         <header className="kpi-info-window__head dish-recipes-head">
-          <div><h2 id="raw-dishes-title">Блюда</h2><p id="raw-dishes-ingredient">{ingredient?.name || "—"}</p></div>
-          <button type="button" className="kpi-info-window__close" aria-label="Закрыть блюда" onClick={requestClose}>
+          <div><h2 id="raw-dishes-title">{t("pages.nomenclature.rawingredientdishesdialog.blyuda_2")}</h2><p id="raw-dishes-ingredient">{ingredient?.name || "—"}</p></div>
+          <button type="button" className="kpi-info-window__close" aria-label={t("pages.nomenclature.rawingredientdishesdialog.zakryt_blyuda")} onClick={requestClose}>
             <Icon name="bi-x-lg" size={20} />
           </button>
         </header>
-        <div className="dish-recipes-body" tabIndex={0} role="region" aria-label="Использование сырья в блюдах">
+        <div className="dish-recipes-body" tabIndex={0} role="region" aria-label={t("pages.nomenclature.rawingredientdishesdialog.ispolzovanie_syrya_v_blyudah")}>
           <form className="dish-recipes-add-row" onSubmit={handleAdd}>
             <div className="dish-recipes-field">
-              <span className="dish-recipes-field-label">Склад</span>
+              <span className="dish-recipes-field-label">{t("pages.nomenclature.rawingredientdishesdialog.sklad")}</span>
               <DishSingleSelect
-                label="Склад"
-                placeholder="Основной"
+                label={t("pages.nomenclature.rawingredientdishesdialog.sklad")}
+                placeholder={t("pages.nomenclature.rawingredientdishesdialog.osnovnoy")}
                 options={warehouses.map((item) => ({ value: String(item.id), label: item.name }))}
                 value={selectedWarehouse}
                 onChange={setSelectedWarehouse}
                 disabled={saving}
-                disabledLabel="Склады недоступны"
+                disabledLabel={t("common.warehouses_unavailable")}
               />
             </div>
             <div className="dish-recipes-field dish-recipes-field--product">
-              <span className="dish-recipes-field-label">Блюдо</span>
+              <span className="dish-recipes-field-label">{t("pages.nomenclature.rawingredientdishesdialog.blyudo")}</span>
               <DishSingleSelect
-                label="Блюдо"
-                placeholder="Выберите блюдо"
+                label={t("pages.nomenclature.rawingredientdishesdialog.blyudo")}
+                placeholder={t("pages.nomenclature.rawingredientdishesdialog.vyberite_blyudo")}
                 options={dishOptions.map((item) => ({ value: String(item.id), label: item.name }))}
                 value={selectedDish}
                 onChange={setSelectedDish}
                 disabled={saving}
-                disabledLabel="Блюда недоступны"
+                disabledLabel={t("common.dishes_unavailable")}
               />
             </div>
             <label className="dish-recipes-field">
-              <span className="dish-recipes-field-label">Кол-во</span>
+              <span className="dish-recipes-field-label">{t("pages.nomenclature.rawingredientdishesdialog.kol_vo")}</span>
               <span className="dish-recipes-qty-wrap">
                 <input
                   inputMode="decimal"
                   placeholder="0"
-                  aria-label="Количество"
+                  aria-label={t("pages.nomenclature.rawingredientdishesdialog.kolichestvo")}
                   value={qty}
                   disabled={saving}
                   onChange={(event) => setQty(event.target.value)}
@@ -276,16 +277,16 @@ export default function RawIngredientDishesDialog({ ingredient, products, produc
               </span>
             </label>
             <button type="submit" className="dish-add-button dish-recipes-add" disabled={!canAdd}>
-              {saving ? "Сохранение…" : "Добавить"}
+              {saving ? t("staff.saving") : t("common.add")}
             </button>
           </form>
           {productsError ? <Toast kind="error" message={productsError} onClose={onClearProductsError || undefined} /> : null}
           {error ? <Toast kind="error" message={error} onClose={() => setError("")} /> : null}
           <div className="settings-table-wrapper dish-recipes-table-wrap">
             <div className="dish-recipes-table-scroll">
-              <table className="settings-table dish-recipes-table" aria-label="Блюда из продуктов">
+              <table className="settings-table dish-recipes-table" aria-label={t("pages.nomenclature.rawingredientdishesdialog.blyuda_iz_produktov")}>
                 <colgroup>{[8, 20, 32, 20, 20].map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}</colgroup>
-                <thead><tr>{["№", "Склад", "Блюдо", "Кол-во", "Действия"].map((title) => <th key={title}>{title}</th>)}</tr></thead>
+                <thead><tr><th>{t("common.number_sign")}</th><th>{t("pages.nomenclature.rawingredientdishesdialog.sklad")}</th><th>{t("pages.nomenclature.rawingredientdishesdialog.blyudo")}</th><th>{t("pages.nomenclature.rawingredientdishesdialog.kol_vo")}</th><th>{t("common.actions")}</th></tr></thead>
                 <tbody>
                   {lines.length > 0 ? lines.map((line, index) => (
                     <tr key={`${line.product_id}-${index}`}>
@@ -294,11 +295,11 @@ export default function RawIngredientDishesDialog({ ingredient, products, produc
                       <td>{nameOf(line.product_id)}</td>
                       <td>{formatQuantity(line.quantity)}{ingredient?.unit ? ` ${ingredient.unit}` : ""}</td>
                       <td><div className="dish-row-actions">
-                        <button type="button" className="danger" disabled={saving || removingIndex === index} onClick={() => handleRemove(index)} aria-label="Удалить"><Icon name="bi-trash3" size={15} /></button>
+                        <button type="button" className="danger" disabled={saving || removingIndex === index} onClick={() => handleRemove(index)} aria-label={t("pages.nomenclature.rawingredientdishesdialog.udalit")}><Icon name="bi-trash3" size={15} /></button>
                       </div></td>
                     </tr>
                   )) : <tr><td colSpan={5} className="dish-recipes-empty-cell">
-                    <ReportEmptyState title="Этот продукт пока не используется в блюдах" />
+                    <ReportEmptyState title={t("pages.nomenclature.rawingredientdishesdialog.etot_produkt_poka_ne_ispolzuetsya_v_blyudah")} />
                   </td></tr>}
                 </tbody>
               </table>

@@ -13,6 +13,7 @@ import SidebarNav from "./sidebar/SidebarNav";
 import SidebarAccount from "./sidebar/SidebarAccount";
 import SidebarMobileNav from "./sidebar/SidebarMobileNav";
 import DarkShellWaves from "./preview/DarkShellWaves";
+import { t } from "../i18n/t";
 
 // Оркестратор сайдбара OWNER. Владеет состоянием и обработчиками навигации,
 // аккаунт-меню и мобильной панели; рендер разнесён по презентационным
@@ -161,7 +162,7 @@ export default function Sidebar({ user, collapsed, onToggle }) {
             className="brand-mark brand-mark--button"
             type="button"
             onClick={onToggle}
-            aria-label={collapsed ? "Открыть меню" : "Свернуть меню"}
+            aria-label={collapsed ? t("sidebar.open_menu") : t("sidebar.collapse_menu")}
           >
             <img src={brandLogo} alt="MARJON" className="marjon-logo" decoding="async" />
           </button>

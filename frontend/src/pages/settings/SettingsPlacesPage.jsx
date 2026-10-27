@@ -22,6 +22,7 @@ import { settingsService } from "../../api/settings";
 import Icon from "../../components/Icon";
 import ReportEmptyState from "../../components/ReportEmptyState";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../../hooks/useAsyncSafety";
+import { t as tr } from "../../i18n/t";
 
 // "Доп. цена" = additional-price model. Canonical Hall.pricing_type values
 // (Marjon-backend-integration halls/schemas.py: percent|hourly|fixed|time_based).
@@ -252,7 +253,7 @@ function MarjonSelect({
         <button
           type="button"
           className="settings-select__clear"
-          aria-label="Убрать доп. цену"
+          aria-label={tr("pages.settings.settingsplacespage.ubrat_dop_tsenu")}
           onClick={() => { onClear(); setOpen(false); }}
         >
           <Icon name="bi-x-lg" size={13} />
@@ -355,15 +356,15 @@ function SortablePlaceRow({
           className="settings-place__grip"
           ref={setActivatorNodeRef}
           aria-label={`Переместить место: ${hall.name}`}
-          title="Перетащите, чтобы изменить порядок"
+          title={tr("pages.settings.settingsplacespage.peretaschite_chtoby_izmenit_poryadok")}
           {...attributes}
           {...listeners}
         >
           <Icon name="bi-grip-vertical" size={16} />
         </button>
         <StatusBadge active={active} />
-        <button type="button" className="settings-place__edit" onClick={() => onEdit(hall)}>Редактировать</button>
-        <button type="button" className="settings-action-delete" onClick={() => onDelete(hall)} aria-label="Удалить место"><Icon name="bi-trash3" size={15} /></button>
+        <button type="button" className="settings-place__edit" onClick={() => onEdit(hall)}>{tr("pages.settings.settingsplacespage.redaktirovat")}</button>
+        <button type="button" className="settings-action-delete" onClick={() => onDelete(hall)} aria-label={tr("pages.settings.settingsplacespage.udalit_mesto")}><Icon name="bi-trash3" size={15} /></button>
       </div>
     </article>
   );
@@ -816,24 +817,24 @@ export default function SettingsPlacesPage() {
           <div className="settings-title-group">
             <span className="settings-accent-bar" />
             <div>
-              <p>Настройки</p>
-              <h1>Места</h1>
+              <p>{tr("pages.settings.settingsplacespage.nastroyki")}</p>
+              <h1>{tr("pages.settings.settingsplacespage.mesta")}</h1>
             </div>
           </div>
           <div className="settings-actions">
-            <button type="button" onClick={openAddHall}>Добавить место</button>
+            <button type="button" onClick={openAddHall}>{tr("pages.settings.settingsplacespage.dobavit_mesto")}</button>
           </div>
         </header>
         {loading ? (
-          <div className="settings-empty-state" role="status">Загрузка...</div>
+          <div className="settings-empty-state" role="status">{tr("pages.settings.settingsplacespage.zagruzka")}</div>
         ) : error && halls.length === 0 && cachedPlaces === null ? (
-          <div className="settings-empty-state" role="alert">{error} <button type="button" className="settings-places-retry" onClick={load}>Повторить</button></div>
+          <div className="settings-empty-state" role="alert">{error} <button type="button" className="settings-places-retry" onClick={load}>{tr("pages.settings.settingsplacespage.povtorit")}</button></div>
         ) : !halls.length ? (
           <>
             {error ? <p className="settings-form__error" role="alert">{error}</p> : null}
             <div className="settings-empty-state settings-places-empty" role="status">
-              <ReportEmptyState title="Мест пока нет" />
-              <span>Добавьте первое место, чтобы начать работу со столами.</span>
+              <ReportEmptyState title={tr("pages.settings.settingsplacespage.mest_poka_net")} />
+              <span>{tr("pages.settings.settingsplacespage.dobavte_pervoe_mesto_chtoby_nachat_rabotu_so_stolami")}</span>
             </div>
           </>
         ) : (
@@ -882,7 +883,7 @@ export default function SettingsPlacesPage() {
           <div className="settings-title-group">
             <span className="settings-accent-bar" />
             <div>
-              <p>Настройки</p>
+              <p>{tr("pages.settings.settingsplacespage.nastroyki")}</p>
               <h1>{selectedHall.name}</h1>
             </div>
           </div>
@@ -893,7 +894,7 @@ export default function SettingsPlacesPage() {
               disabled={!hallIsActive}
               title={hallIsActive ? undefined : "Сначала активируйте место"}
             >
-              Добавить стол
+             {tr("pages.settings.settingsplacespage.dobavit_stol")}
             </button>
           </div>
         </header>
@@ -901,26 +902,26 @@ export default function SettingsPlacesPage() {
         {tables.length ? (
           <div className="settings-tbl">
             <div className="settings-tbl__row settings-tbl__head" aria-hidden="true">
-              <span>№ стола</span><span>Вместимость</span><span>Статус</span><span>Действия</span>
+              <span>{tr("pages.settings.settingsplacespage.stola")}</span><span>{tr("pages.settings.settingsplacespage.vmestimost")}</span><span>{tr("pages.settings.settingsplacespage.status")}</span><span>{tr("pages.settings.settingsplacespage.deystviya")}</span>
             </div>
             {tables.map((t) => {
               const active = t.is_active !== false;
               return (
               <div className={`settings-tbl__row${active ? "" : " is-inactive"}`} key={t.id}>
-                <div className="settings-tbl__cell"><span className="settings-tbl__label">Стол</span><strong>№{t.number}</strong></div>
-                <div className="settings-tbl__cell"><span className="settings-tbl__label">Вместимость</span>{t.capacity}</div>
+                <div className="settings-tbl__cell"><span className="settings-tbl__label">{tr("pages.settings.settingsplacespage.stol")}</span><strong>№{t.number}</strong></div>
+                <div className="settings-tbl__cell"><span className="settings-tbl__label">{tr("pages.settings.settingsplacespage.vmestimost")}</span>{t.capacity}</div>
                 <div className="settings-tbl__cell"><StatusBadge active={active} /></div>
                 <div className="settings-tbl__cell settings-tbl__act">
-                  <button type="button" className="settings-place__edit" onClick={() => openEditTable(t)}>Редактировать</button>
+                  <button type="button" className="settings-place__edit" onClick={() => openEditTable(t)}>{tr("pages.settings.settingsplacespage.redaktirovat")}</button>
                   {active ? (
-                    <button type="button" className="settings-action-delete" onClick={() => deactivateTable(t)} aria-label="Деактивировать стол"><Icon name="bi-trash3" size={15} /></button>
+                    <button type="button" className="settings-action-delete" onClick={() => deactivateTable(t)} aria-label={tr("pages.settings.settingsplacespage.deaktivirovat_stol")}><Icon name="bi-trash3" size={15} /></button>
                   ) : (
                     <button
                       type="button"
                       className="settings-action-restore"
                       onClick={() => reactivateTable(t)}
                       disabled={!hallIsActive}
-                      aria-label="Активировать стол"
+                      aria-label={tr("pages.settings.settingsplacespage.aktivirovat_stol")}
                       title={hallIsActive ? undefined : "Сначала активируйте место"}
                     >
                       <Icon name="bi-arrow-counterclockwise" size={15} />
@@ -933,8 +934,8 @@ export default function SettingsPlacesPage() {
           </div>
         ) : (
           <div className="settings-empty-state settings-places-empty" role="status">
-            <ReportEmptyState title="Столов пока нет" />
-            <span>Добавьте первый стол для этого места.</span>
+            <ReportEmptyState title={tr("pages.settings.settingsplacespage.stolov_poka_net")} />
+            <span>{tr("pages.settings.settingsplacespage.dobavte_pervyy_stol_dlya_etogo_mesta")}</span>
           </div>
         )}
       </>
@@ -961,19 +962,19 @@ export default function SettingsPlacesPage() {
             <header className="settings-form__header">
               <span className="settings-accent-bar" />
               <div><p>{hallDrawer.mode === "edit" ? "Редактировать" : "Добавить"}</p><h2 id="settings-hall-modal-title">{hallDrawer.mode === "edit" ? "Редактировать место" : "Добавить место"}</h2></div>
-              <button type="button" disabled={saving} onClick={requestClose} aria-label="Закрыть"><Icon name="bi-x-lg" size={20} /></button>
+              <button type="button" disabled={saving} onClick={requestClose} aria-label={tr("pages.settings.settingsplacespage.zakryt")}><Icon name="bi-x-lg" size={20} /></button>
             </header>
             <div className="settings-form__body">
-              <label className="settings-form__wide"><span>Название места</span><input autoFocus value={hallForm.name} placeholder="Введите название места" onChange={(e) => setHallForm((f) => ({ ...f, name: e.target.value }))} /></label>
+              <label className="settings-form__wide"><span>{tr("pages.settings.settingsplacespage.nazvanie_mesta")}</span><input autoFocus value={hallForm.name} placeholder={tr("pages.settings.settingsplacespage.vvedite_nazvanie_mesta")} onChange={(e) => setHallForm((f) => ({ ...f, name: e.target.value }))} /></label>
               {/* Phase 5C-1: only shown when there is a real choice to make. With
                   a single active branch the backend resolves it server-side. */}
               {hallDrawer.mode === "create" && needsBranchChoice ? (
                 <div className="settings-form__wide settings-field">
-                  <label className="settings-field__label" htmlFor="hall-branch-select">Филиал</label>
+                  <label className="settings-field__label" htmlFor="hall-branch-select">{tr("pages.settings.settingsplacespage.filial")}</label>
                   <MarjonSelect
                     id="hall-branch-select"
-                    label="Филиал"
-                    placeholder="Выберите филиал..."
+                    label={tr("pages.settings.settingsplacespage.filial")}
+                    placeholder={tr("pages.settings.settingsplacespage.vyberite_filial")}
                     value={hallForm.branch_id}
                     options={activeBranches.map((b) => ({ value: b.id, label: b.name }))}
                     onChange={(next) => setHallForm((f) => ({ ...f, branch_id: next }))}
@@ -981,17 +982,17 @@ export default function SettingsPlacesPage() {
                 </div>
               ) : null}
               {hallDrawer.mode === "edit" && branchName(hallDrawer.branch_id) ? (
-                <p className="settings-form__context settings-form__wide">Филиал: <strong>{branchName(hallDrawer.branch_id)}</strong></p>
+                <p className="settings-form__context settings-form__wide">{tr("pages.settings.settingsplacespage.filial_2")} <strong>{branchName(hallDrawer.branch_id)}</strong></p>
               ) : null}
-              <label className="settings-form__wide"><span>% обслуживания в заведении</span><input value={hallForm.percent} inputMode="decimal" placeholder="Введите %" onChange={(e) => setHallForm((f) => ({ ...f, percent: e.target.value }))} /></label>
+              <label className="settings-form__wide"><span>{tr("pages.settings.settingsplacespage.obsluzhivaniya_v_zavedenii")}</span><input value={hallForm.percent} inputMode="decimal" placeholder={tr("pages.settings.settingsplacespage.vvedite")} onChange={(e) => setHallForm((f) => ({ ...f, percent: e.target.value }))} /></label>
               {/* The hint is trigger text, not a row in the panel, so it can
                   never be chosen. Clearing goes through the × control, which is
                   what produces the explicit Phase 5C-2 nulls. */}
               <div className="settings-form__wide settings-field">
-                <label className="settings-field__label" htmlFor="hall-pricing-select">Доп. цена</label>
+                <label className="settings-field__label" htmlFor="hall-pricing-select">{tr("pages.settings.settingsplacespage.dop_tsena")}</label>
                 <MarjonSelect
                   id="hall-pricing-select"
-                  label="Доп. цена"
+                  label={tr("pages.settings.settingsplacespage.dop_tsena")}
                   placeholder={PRICING_PLACEHOLDER}
                   value={hallForm.pricing_type}
                   options={ADDITIONAL_PRICE_TYPES}
@@ -1000,14 +1001,14 @@ export default function SettingsPlacesPage() {
                 />
               </div>
               {hallForm.pricing_type ? (
-                <label className="settings-form__wide settings-form__conditional"><span>{additionalPriceLabel(hallForm.pricing_type)}</span><input value={formatMoneyInput(hallForm.price)} inputMode="numeric" placeholder="Введите цену" onChange={(e) => setHallForm((f) => ({ ...f, price: parseMoneyInput(e.target.value) }))} /></label>
+                <label className="settings-form__wide settings-form__conditional"><span>{additionalPriceLabel(hallForm.pricing_type)}</span><input value={formatMoneyInput(hallForm.price)} inputMode="numeric" placeholder={tr("pages.settings.settingsplacespage.vvedite_tsenu")} onChange={(e) => setHallForm((f) => ({ ...f, price: parseMoneyInput(e.target.value) }))} /></label>
               ) : null}
               {/* Status is interactive in BOTH modes. HallCreate has no
                   is_active field, so "create as inactive" is honoured as
                   POST (active) → PATCH {is_active:false} on the returned id —
                   see saveHall. Never a frontend-only pretend state. */}
               <div className="settings-toggle-field settings-form__wide">
-                <span>Статус</span>
+                <span>{tr("pages.settings.settingsplacespage.status")}</span>
                 <label className="settings-switch">
                   <input type="checkbox" checked={hallForm.is_active} onChange={(e) => setHallForm((f) => ({ ...f, is_active: e.target.checked }))} />
                   <span className="settings-switch__track" aria-hidden="true"><span className="settings-switch__thumb" /></span>
@@ -1017,7 +1018,7 @@ export default function SettingsPlacesPage() {
             </div>
             {drawerError ? <p className="settings-form__error" role="alert">{drawerError}</p> : null}
             <footer className="settings-form__footer">
-              <button type="button" disabled={saving} onClick={requestClose}>Отмена</button>
+              <button type="button" disabled={saving} onClick={requestClose}>{tr("pages.settings.settingsplacespage.otmena")}</button>
               <button type="submit" disabled={saving}>{saving ? "Сохранение..." : hallDrawer.mode === "edit" ? "Сохранить" : "Добавить"}</button>
             </footer>
           </form>
@@ -1034,18 +1035,18 @@ export default function SettingsPlacesPage() {
             <header className="settings-form__header">
               <span className="settings-accent-bar" />
               <div><p>{tableDrawer.mode === "edit" ? "Редактировать" : "Добавить"}</p><h2 id="settings-table-modal-title">{tableDrawer.mode === "edit" ? "Редактировать стол" : "Добавить стол"}</h2></div>
-              <button type="button" disabled={saving} onClick={requestClose} aria-label="Закрыть"><Icon name="bi-x-lg" size={20} /></button>
+              <button type="button" disabled={saving} onClick={requestClose} aria-label={tr("pages.settings.settingsplacespage.zakryt")}><Icon name="bi-x-lg" size={20} /></button>
             </header>
             <div className="settings-form__body">
-              <p className="settings-form__context">Место: <strong>{selectedHall.name}</strong></p>
+              <p className="settings-form__context">{tr("pages.settings.settingsplacespage.mesto")} <strong>{selectedHall.name}</strong></p>
               {!hallIsActive ? (
-                <p className="settings-form__hint" role="status">Место неактивно — сначала активируйте место.</p>
+                <p className="settings-form__hint" role="status">{tr("pages.settings.settingsplacespage.mesto_neaktivno_snachala_aktiviruyte_mesto")}</p>
               ) : null}
-              <label className="settings-form__wide"><span>Номер стола</span><input autoFocus value={tableForm.number} inputMode="numeric" placeholder="Введите номер" aria-invalid={numberConflict || undefined} onChange={(e) => { setNumberConflict(false); setTableForm((f) => ({ ...f, number: e.target.value })); }} /></label>
-              <label className="settings-form__wide"><span>Вместимость</span><input value={tableForm.capacity} inputMode="numeric" onChange={(e) => setTableForm((f) => ({ ...f, capacity: e.target.value }))} /></label>
+              <label className="settings-form__wide"><span>{tr("pages.settings.settingsplacespage.nomer_stola")}</span><input autoFocus value={tableForm.number} inputMode="numeric" placeholder={tr("pages.settings.settingsplacespage.vvedite_nomer")} aria-invalid={numberConflict || undefined} onChange={(e) => { setNumberConflict(false); setTableForm((f) => ({ ...f, number: e.target.value })); }} /></label>
+              <label className="settings-form__wide"><span>{tr("pages.settings.settingsplacespage.vmestimost")}</span><input value={tableForm.capacity} inputMode="numeric" onChange={(e) => setTableForm((f) => ({ ...f, capacity: e.target.value }))} /></label>
               {tableDrawer.mode === "edit" ? (
                 <div className="settings-toggle-field settings-form__wide">
-                  <span>Статус</span>
+                  <span>{tr("pages.settings.settingsplacespage.status")}</span>
                   <label className="settings-switch">
                     <input
                       type="checkbox"
@@ -1059,10 +1060,10 @@ export default function SettingsPlacesPage() {
                 </div>
               ) : null}
             </div>
-            {duplicateTableHint ? <p className="settings-form__hint" role="status">Стол с таким номером уже есть в этом месте.</p> : null}
+            {duplicateTableHint ? <p className="settings-form__hint" role="status">{tr("pages.settings.settingsplacespage.stol_s_takim_nomerom_uzhe_est_v_etom_meste")}</p> : null}
             {drawerError ? <p className="settings-form__error" role="alert">{drawerError}</p> : null}
             <footer className="settings-form__footer">
-              <button type="button" disabled={saving} onClick={requestClose}>Отмена</button>
+              <button type="button" disabled={saving} onClick={requestClose}>{tr("pages.settings.settingsplacespage.otmena")}</button>
               <button type="submit" disabled={saving}>{saving ? "Сохранение..." : tableDrawer.mode === "edit" ? "Сохранить" : "Добавить"}</button>
             </footer>
           </form>
@@ -1082,17 +1083,17 @@ export default function SettingsPlacesPage() {
           <div className="settings-form settings-modal settings-confirm" role="dialog" aria-modal="true" aria-labelledby="settings-delete-modal-title" aria-describedby="settings-delete-modal-body">
             <header className="settings-form__header">
               <span className="settings-accent-bar" />
-              <div><p>Удаление</p><h2 id="settings-delete-modal-title">Удалить место?</h2></div>
-              <button type="button" disabled={deleting} onClick={requestClose} aria-label="Закрыть"><Icon name="bi-x-lg" size={20} /></button>
+              <div><p>{tr("pages.settings.settingsplacespage.udalenie")}</p><h2 id="settings-delete-modal-title">{tr("pages.settings.settingsplacespage.udalit_mesto_2")}</h2></div>
+              <button type="button" disabled={deleting} onClick={requestClose} aria-label={tr("pages.settings.settingsplacespage.zakryt")}><Icon name="bi-x-lg" size={20} /></button>
             </header>
             <div className="settings-form__body">
               <p id="settings-delete-modal-body" className="settings-confirm__text">
-                Вы уверены, что хотите удалить «<strong>{deleteTarget.name}</strong>»?
+               {tr("pages.settings.settingsplacespage.vy_uvereny_chto_hotite_udalit")}<strong>{deleteTarget.name}</strong>»?
               </p>
             </div>
             {deleteError ? <p className="settings-form__error" role="alert">{deleteError}</p> : null}
             <footer className="settings-form__footer">
-              <button type="button" autoFocus disabled={deleting} onClick={requestClose}>Отмена</button>
+              <button type="button" autoFocus disabled={deleting} onClick={requestClose}>{tr("pages.settings.settingsplacespage.otmena")}</button>
               <button type="button" className="settings-confirm__delete" disabled={deleting} onClick={confirmDelete}>{deleting ? "Удаление..." : "Удалить"}</button>
             </footer>
           </div>

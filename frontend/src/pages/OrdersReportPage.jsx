@@ -16,6 +16,7 @@ import { paymentMethodLabel } from "./dashboard/analyticsData";
 import { webFormat } from "../utils/webTime";
 import OrderStatus from "./reports/OrderStatus";
 import OrderReceiptDialog from "./dashboard/OrderReceiptDialog";
+import { t } from "../i18n/t";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -526,16 +527,16 @@ export default function OrdersReportPage() {
     const totalAmountTotal = exportRows.reduce((sum, row) => sum + (Number(row.totalAmount) || 0), 0);
     exportToExcel(exportRows, [
       { key: "id", label: "ID", width: 14 },
-      { key: "orderNumber", label: "Номер заказа", width: 16 },
-      { key: "createdAt", label: "Дата", type: "date", format: "dd.mm.yyyy hh:mm", width: 18 },
-      { key: "orderType", label: "Тип", width: 13 },
-      { key: "place", label: "Место", width: 22 },
-      { key: "waiterName", label: "Официант", width: 18 },
-      { key: "cashiers", label: "Кассир", width: 24 },
-      { key: "serviceFee", label: "Цена обслуживания", type: "number", format: "#,##0", width: 20 },
-      { key: "totalAmount", label: "Цена всего", type: "number", format: "#,##0", width: 16 },
-      { key: "payments", label: "Тип оплаты", width: 20 },
-      { key: "status", label: "Статус", width: 14, statusColors: true },
+      { key: "orderNumber", label: t("pages.ordersreportpage.nomer_zakaza"), width: 16 },
+      { key: "createdAt", label: t("pages.ordersreportpage.data"), type: "date", format: "dd.mm.yyyy hh:mm", width: 18 },
+      { key: "orderType", label: t("pages.ordersreportpage.tip"), width: 13 },
+      { key: "place", label: t("pages.ordersreportpage.mesto"), width: 22 },
+      { key: "waiterName", label: t("pages.ordersreportpage.ofitsiant"), width: 18 },
+      { key: "cashiers", label: t("pages.ordersreportpage.kassir"), width: 24 },
+      { key: "serviceFee", label: t("pages.ordersreportpage.tsena_obsluzhivaniya"), type: "number", format: "#,##0", width: 20 },
+      { key: "totalAmount", label: t("pages.ordersreportpage.tsena_vsego"), type: "number", format: "#,##0", width: 16 },
+      { key: "payments", label: t("pages.ordersreportpage.tip_oplaty"), width: 20 },
+      { key: "status", label: t("pages.ordersreportpage.status"), width: 14, statusColors: true },
     ], "orders-report", {
       sheetName: "Отчёт по заказам",
       autofilter: true,
@@ -545,7 +546,7 @@ export default function OrdersReportPage() {
       // population (appliedFilters drives the request); only the visible
       // metadata rows are omitted from the workbook.
       totals: {
-        label: "Итого:",
+        label: t("pages.ordersreportpage.itogo"),
         values: { serviceFee: serviceFeeTotal, totalAmount: totalAmountTotal },
       },
     });
@@ -561,7 +562,7 @@ export default function OrdersReportPage() {
     <section className="orders-report-page owner-report-view">
       <article className="report-page-card owner-report-surface">
         <div className="report-page-header owner-report-header">
-          <div className="report-title-group owner-report-heading"><span className="report-accent-bar" aria-hidden="true" /><div><span className="report-eyebrow owner-report-kicker">Отчёты</span><h1>Отчёт по заказам</h1></div></div>
+          <div className="report-title-group owner-report-heading"><span className="report-accent-bar" aria-hidden="true" /><div><span className="report-eyebrow owner-report-kicker">{t("pages.ordersreportpage.otchety")}</span><h1>{t("pages.ordersreportpage.otchet_po_zakazam")}</h1></div></div>
           <div className="report-actions owner-report-actions">
             <ReportDateRangePicker
               variant="canonical"
@@ -571,7 +572,7 @@ export default function OrdersReportPage() {
               open={panelState.active === "period"}
               onOpenChange={(nextOpen) => requestPanel(nextOpen ? "period" : "")}
               onExitComplete={() => completePanelExit("period")}
-              buttonAriaLabel="Период отчёта по заказам"
+              buttonAriaLabel={t("report_period.orders")}
             />
             <button
               className="orders-filter-toggle"
@@ -582,41 +583,41 @@ export default function OrdersReportPage() {
                 if (filtersOpen) requestPanel("");
                 setFiltersOpen((value) => !value);
               }}
-            ><Icon name="bi-sliders" size={17} /> Фильтровать</button>
-            <button className="report-excel-button owner-report-excel" type="button" onClick={downloadExcel}><Icon name="bi-filetype-xlsx" size={19} strokeWidth={1.9} className="owner-report-xlsx-icon" /> Скачать Excel</button>
+            ><Icon name="bi-sliders" size={17} /> {t("pages.ordersreportpage.filtrovat")}</button>
+            <button className="report-excel-button owner-report-excel" type="button" onClick={downloadExcel}><Icon name="bi-filetype-xlsx" size={19} strokeWidth={1.9} className="owner-report-xlsx-icon" /> {t("pages.ordersreportpage.skachat_excel")}</button>
           </div>
         </div>
 
         <div className={`orders-filter-collapse${filtersOpen ? " is-open" : ""}`}>
           <div className="orders-filter-collapse__inner" inert={!filtersOpen ? true : undefined}>
-            <div className="report-filters-grid orders-filter-panel" id="orders-report-filters" aria-label="Фильтры отчёта по заказам">
+            <div className="report-filters-grid orders-filter-panel" id="orders-report-filters" aria-label={t("pages.ordersreportpage.filtry_otcheta_po_zakazam")}>
               <label className="report-filter-input">
                 <Icon name="bi-search" size={17} />
-                <input aria-label="Номер заказа" value={filters.orderNumber} onChange={(event) => updateFilter("orderNumber", event.target.value)} placeholder="Введите номер заказа" />
+                <input aria-label={t("pages.ordersreportpage.nomer_zakaza")} value={filters.orderNumber} onChange={(event) => updateFilter("orderNumber", event.target.value)} placeholder={t("pages.ordersreportpage.vvedite_nomer_zakaza")} />
               </label>
-              <FilterMultiSelect label="Официант" placeholder="Выберите официанта" options={filterOptions.waiters} selected={filters.waiterId} onToggle={(v) => toggleFilterValue("waiterId", v)} disabled={filterOptionsLoading || !filterOptions.waiters.length} {...filterPanelProps("waiterId")} />
-              <FilterMultiSelect label="Кассир" placeholder="Выберите кассира" options={filterOptions.cashiers} selected={filters.cashierId} onToggle={(v) => toggleFilterValue("cashierId", v)} disabled={filterOptionsLoading || !filterOptions.cashiers.length} {...filterPanelProps("cashierId")} />
-              <FilterMultiSelect label="Блюда" placeholder="Выберите блюдо" options={filterOptions.products} selected={filters.productId} onToggle={(v) => toggleFilterValue("productId", v)} disabled={filterOptionsLoading || !filterOptions.products.length} {...filterPanelProps("productId")} />
-              <FilterMultiSelect label="Тип заказа" placeholder="Выберите тип заказа" options={filterOptions.order_types} selected={filters.orderType} onToggle={(v) => toggleFilterValue("orderType", v)} disabled={filterOptionsLoading || !filterOptions.order_types.length} {...filterPanelProps("orderType")} />
-              <FilterMultiSelect label="Статус заказа" placeholder="Выберите статус заказа" options={filterOptions.order_statuses} selected={filters.orderStatus} onToggle={(v) => toggleFilterValue("orderStatus", v)} disabled={filterOptionsLoading || !filterOptions.order_statuses.length} {...filterPanelProps("orderStatus")} />
-              <FilterMultiSelect label="Тип оплаты" placeholder="Выберите тип оплаты" options={filterOptions.payment_methods} selected={filters.paymentMethod} onToggle={(v) => toggleFilterValue("paymentMethod", v)} disabled={filterOptionsLoading || !filterOptions.payment_methods.length} {...filterPanelProps("paymentMethod")} />
+              <FilterMultiSelect label={t("pages.ordersreportpage.ofitsiant")} placeholder={t("pages.ordersreportpage.vyberite_ofitsianta")} options={filterOptions.waiters} selected={filters.waiterId} onToggle={(v) => toggleFilterValue("waiterId", v)} disabled={filterOptionsLoading || !filterOptions.waiters.length} {...filterPanelProps("waiterId")} />
+              <FilterMultiSelect label={t("pages.ordersreportpage.kassir")} placeholder={t("pages.ordersreportpage.vyberite_kassira")} options={filterOptions.cashiers} selected={filters.cashierId} onToggle={(v) => toggleFilterValue("cashierId", v)} disabled={filterOptionsLoading || !filterOptions.cashiers.length} {...filterPanelProps("cashierId")} />
+              <FilterMultiSelect label={t("pages.ordersreportpage.blyuda")} placeholder={t("pages.ordersreportpage.vyberite_blyudo")} options={filterOptions.products} selected={filters.productId} onToggle={(v) => toggleFilterValue("productId", v)} disabled={filterOptionsLoading || !filterOptions.products.length} {...filterPanelProps("productId")} />
+              <FilterMultiSelect label={t("pages.ordersreportpage.tip_zakaza")} placeholder={t("pages.ordersreportpage.vyberite_tip_zakaza")} options={filterOptions.order_types} selected={filters.orderType} onToggle={(v) => toggleFilterValue("orderType", v)} disabled={filterOptionsLoading || !filterOptions.order_types.length} {...filterPanelProps("orderType")} />
+              <FilterMultiSelect label={t("pages.ordersreportpage.status_zakaza")} placeholder={t("pages.ordersreportpage.vyberite_status_zakaza")} options={filterOptions.order_statuses} selected={filters.orderStatus} onToggle={(v) => toggleFilterValue("orderStatus", v)} disabled={filterOptionsLoading || !filterOptions.order_statuses.length} {...filterPanelProps("orderStatus")} />
+              <FilterMultiSelect label={t("pages.ordersreportpage.tip_oplaty")} placeholder={t("pages.ordersreportpage.vyberite_tip_oplaty")} options={filterOptions.payment_methods} selected={filters.paymentMethod} onToggle={(v) => toggleFilterValue("paymentMethod", v)} disabled={filterOptionsLoading || !filterOptions.payment_methods.length} {...filterPanelProps("paymentMethod")} />
               <div className="report-filter-buttons">
-                <button type="button" className="report-filter-apply" onClick={applyFilters}><Icon name="bi-sliders" size={17} /> Фильтровать</button>
-                <button type="button" className="report-filter-clear" onClick={clearFilters}><Icon name="bi-x-circle" size={17} /> Очистить</button>
+                <button type="button" className="report-filter-apply" onClick={applyFilters}><Icon name="bi-sliders" size={17} /> {t("pages.ordersreportpage.filtrovat")}</button>
+                <button type="button" className="report-filter-clear" onClick={clearFilters}><Icon name="bi-x-circle" size={17} /> {t("pages.ordersreportpage.ochistit")}</button>
               </div>
             </div>
           </div>
         </div>
 
         {activeFilterEntries.length ? (
-          <div className="report-active-filters" aria-label="Активные фильтры">
+          <div className="report-active-filters" aria-label={t("pages.ordersreportpage.aktivnye_filtry")}>
             {activeFilterEntries.map(([key, value]) => <span key={key}>{filterNames[key]}: {optionLabel(key, value, filterOptions)}</span>)}
           </div>
         ) : null}
 
         <div className="report-table-wrapper owner-report-table-scroll" aria-busy={loading ? "true" : "false"}>
-          <table className="report-table owner-report-table" aria-label="Отчёт по заказам">
-            <thead><tr><th>Номер заказа</th><th>Тип</th><th>Дата</th><th>Место</th><th>Цена всего</th><th>Тип оплаты</th><th>Официант</th><th>Кассир</th><th>Статус</th></tr></thead>
+          <table className="report-table owner-report-table" aria-label={t("pages.ordersreportpage.otchet_po_zakazam")}>
+            <thead><tr><th>{t("pages.ordersreportpage.nomer_zakaza")}</th><th>{t("pages.ordersreportpage.tip")}</th><th>{t("pages.ordersreportpage.data")}</th><th>{t("pages.ordersreportpage.mesto")}</th><th>{t("pages.ordersreportpage.tsena_vsego")}</th><th>{t("pages.ordersreportpage.tip_oplaty")}</th><th>{t("pages.ordersreportpage.ofitsiant")}</th><th>{t("pages.ordersreportpage.kassir")}</th><th>{t("pages.ordersreportpage.status")}</th></tr></thead>
             <tbody>
               {visibleRows.map((row) => (
                 <tr
@@ -636,7 +637,7 @@ export default function OrdersReportPage() {
                   <td><strong>{row.orderNumber}</strong></td><td>{orderTypeLabel(row.orderType)}</td><td>{formatDate(row.createdAt)}</td><td>{formatPlace(row.hallName, row.tableNumber) || "—"}</td><td className="report-total-price">{formatMoney(row.totalAmount)}</td><td>{joinPaymentMethods(row.paymentMethods) || "—"}</td><td>{row.waiterName ?? "—"}</td><td>{formatCashierNames(row.cashierNames)}</td><td><OrderStatus value={row.status} /></td>
                 </tr>
               ))}
-              {!visibleRows.length ? <tr className="report-empty-row"><td colSpan={9}><ReportEmptyState title="Заказов не найдено" loading={loading} /></td></tr> : null}
+              {!visibleRows.length ? <tr className="report-empty-row"><td colSpan={9}><ReportEmptyState title={t("pages.ordersreportpage.zakazov_ne_naydeno")} loading={loading} /></td></tr> : null}
             </tbody>
           </table>
         </div>

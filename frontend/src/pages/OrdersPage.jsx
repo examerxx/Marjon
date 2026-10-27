@@ -5,6 +5,7 @@ import { ordersService } from "../api/orders";
 import { printKitchenReceipt, printOrderReceipt } from "../api/receipt";
 import { formatDateLabel, todayInputValue } from "../utils/date";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../hooks/useAsyncSafety";
+import { t } from "../i18n/t";
 
 function orderItemsLabel(order) {
   const items = order.items || [];
@@ -58,7 +59,7 @@ export default function OrdersPage() {
     setPrintState({ id: order.id, type, loading: true, message: "", error: "" });
     try {
       await (type === "kitchen" ? printKitchenReceipt(order.id) : printOrderReceipt(order.id));
-      setPrintState({ id: order.id, type, loading: false, message: "Печать отправлена.", error: "" });
+      setPrintState({ id: order.id, type, loading: false, message: t("pages.orderspage.pechat_otpravlena"), error: "" });
     } catch (error) {
       setPrintState({
         id: order.id,
@@ -76,8 +77,8 @@ export default function OrdersPage() {
     <section className="card card-pad">
       <div className="section-header">
         <div>
-          <span className="eyebrow">Orders</span>
-          <h2>Заказы за {formatDateLabel(selectedDate)}</h2>
+          <span className="eyebrow">{t("eyebrow.orders")}</span>
+          <h2>{t("pages.orderspage.zakazy_za")} {formatDateLabel(selectedDate)}</h2>
         </div>
       </div>
       {error ? <div className="login-error" role="alert">{error}</div> : null}
@@ -87,16 +88,16 @@ export default function OrdersPage() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Номер</th>
-              <th>Тип</th>
-              <th>Статус</th>
-              <th>Стол</th>
-              <th>Сумма</th>
-              <th>Действия</th>
+              <th>{t("pages.orderspage.nomer")}</th>
+              <th>{t("pages.orderspage.tip")}</th>
+              <th>{t("pages.orderspage.status")}</th>
+              <th>{t("pages.orderspage.stol")}</th>
+              <th>{t("pages.orderspage.summa")}</th>
+              <th>{t("pages.orderspage.deystviya")}</th>
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td colSpan="6" role="status">Загрузка...</td></tr> : orders.map((order) => {
+            {loading ? <tr><td colSpan="6" role="status">{t("pages.orderspage.zagruzka")}</td></tr> : orders.map((order) => {
               const printing = printState.loading && printState.id === order.id;
               return (
                 <tr key={order.id}>
@@ -108,7 +109,7 @@ export default function OrdersPage() {
                   <td>
                     <div className="order-row-actions">
                       <button className="receipt-mini-btn" type="button" onClick={() => setSelectedOrderId(order.id)}>
-                        Детали
+                       {t("pages.orderspage.detali")}
                       </button>
                       <button className="receipt-mini-btn" type="button" disabled={printing} onClick={() => handlePrint(order, "customer")}>
                         {printing && printState.type === "customer" ? "Печать..." : "Печать"}
@@ -118,7 +119,7 @@ export default function OrdersPage() {
                 </tr>
               );
             })}
-            {!loading && !error && !orders.length ? <tr><td colSpan="6">Заказов за этот день нет.</td></tr> : null}
+            {!loading && !error && !orders.length ? <tr><td colSpan="6">{t("pages.orderspage.zakazov_za_etot_den_net")}</td></tr> : null}
           </tbody>
         </table>
       </div>
@@ -127,9 +128,9 @@ export default function OrdersPage() {
         <aside className="order-details-panel">
           <div className="order-details-panel__head">
             <div>
-              <span className="eyebrow">Детали заказа</span>
-              <h3>Заказ #{selectedOrder.order_number}</h3>
-              <p className="muted">Стол {selectedOrder.table_number || "-"} · {selectedOrder.status}</p>
+              <span className="eyebrow">{t("pages.orderspage.detali_zakaza")}</span>
+              <h3>{t("pages.orderspage.zakaz")}{selectedOrder.order_number}</h3>
+              <p className="muted">{t("pages.orderspage.stol")} {selectedOrder.table_number || "-"} · {selectedOrder.status}</p>
             </div>
             <strong>{formatMoney(selectedOrder.total_amount)}</strong>
           </div>
@@ -142,14 +143,14 @@ export default function OrdersPage() {
             ))}
             {!selectedOrder.items?.length ? <div className="muted">{orderItemsLabel(selectedOrder)}</div> : null}
           </div>
-          {selectedOrder.note ? <p className="muted">Комментарий: {selectedOrder.note}</p> : null}
+          {selectedOrder.note ? <p className="muted">{t("pages.orderspage.kommentariy")} {selectedOrder.note}</p> : null}
           <div className="order-details-panel__actions">
             <div className="receipt-inline-actions">
               <button className="btn btn-primary" type="button" disabled={printState.loading} onClick={() => handlePrint(selectedOrder, "customer")}>
-                Печать клиентского чека
+               {t("pages.orderspage.pechat_klientskogo_cheka")}
               </button>
               <button className="btn btn-ghost" type="button" disabled={printState.loading} onClick={() => handlePrint(selectedOrder, "kitchen")}>
-                Печать кухонного чека
+               {t("pages.orderspage.pechat_kuhonnogo_cheka")}
               </button>
             </div>
           </div>

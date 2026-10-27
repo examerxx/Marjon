@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Icon from '../components/Icon';
+import { t } from "../i18n/t";
 
 export default function SectionPage({ eyebrow, title, description, items = [], sectionKey }) {
   const [activeTile, setActiveTile] = useState(null);
@@ -17,11 +18,11 @@ export default function SectionPage({ eyebrow, title, description, items = [], s
           </div>
           <button type="button" className="dashboard-back-button" onClick={() => setActiveTile(null)}>
             <Icon name="bi-arrow-left" size={18} />
-            <span>Назад</span>
+            <span>{t("pages.sectionpage.nazad")}</span>
           </button>
         </div>
         <div className="dashboard-empty" role="status">
-          <p>Данные недоступны: backend contract для этого отчёта пока не подключён.</p>
+          <p>{t("pages.sectionpage.dannye_nedostupny_backend_contract_dlya_etogo")}</p>
         </div>
       </section>
     );

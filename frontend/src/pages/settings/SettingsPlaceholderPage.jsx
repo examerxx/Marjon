@@ -1,4 +1,5 @@
 import Icon from "../../components/Icon";
+import { t } from "../../i18n/t";
 import "./SettingsPlaceholderPage.css";
 
 // Общая временная заглушка подкатегорий (финансы и аналогичные):
@@ -11,7 +12,7 @@ export default function SettingsPlaceholderPage({ title, description, icon = "bi
       <section className="settings-card">
         <div className="section-header">
           <div>
-            <span className="eyebrow">Настройки</span>
+            <span className="eyebrow">{t("pages.settings.settingsplaceholderpage.nastroyki")}</span>
             <h2>{title}</h2>
             {description ? <p className="section-window__description">{description}</p> : null}
           </div>
@@ -21,7 +22,7 @@ export default function SettingsPlaceholderPage({ title, description, icon = "bi
           <span className="settings-placeholder-icon" aria-hidden="true">
             <Icon name={icon} size={44} />
           </span>
-          <strong className="settings-placeholder-title">Скоро, эта категория в разработке</strong>
+          <strong className="settings-placeholder-title">{t("pages.settings.settingsplaceholderpage.skoro_eta_kategoriya_v_razrabotke")}</strong>
         </div>
       </section>
     </div>

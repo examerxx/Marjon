@@ -1,4 +1,5 @@
 import { TableLoader } from "./Loader";
+import { t } from "../i18n/t";
 
 export default function DataTableView({
   columns = [],
@@ -33,7 +34,7 @@ export default function DataTableView({
               </tr>
             ))
           ) : (
-            <tr><td colSpan={colCount}>{emptyText}</td></tr>
+            <tr><td colSpan={colCount}>{t(emptyText)}</td></tr>
           )}
         </tbody>
       </table>

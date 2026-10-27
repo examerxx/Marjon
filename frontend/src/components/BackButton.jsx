@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import Icon from "./Icon";
+import { t } from "../i18n/t";
 
 export default function BackButton({ className = "", iconName = "bi-arrow-left", label = "" }) {
   const navigate = useNavigate();
@@ -12,13 +13,13 @@ export default function BackButton({ className = "", iconName = "bi-arrow-left",
     }
   }
 
-  const buttonLabel = label || "Назад";
+  const buttonLabel = label || t("common.back");
   const buttonClassName = ["dashboard-back-button", className].filter(Boolean).join(" ");
 
   return (
     <button className={buttonClassName} type="button" onClick={handleBack} aria-label={buttonLabel}>
       <Icon name={iconName} size={18} />
-      {label ? <span>{label}</span> : null}
+      {label ? <span>{t(label)}</span> : null}
     </button>
   );
 }

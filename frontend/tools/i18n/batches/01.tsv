@@ -1,0 +1,120 @@
+﻿% обслуживания в заведении	% xizmat haqi (muassasada)	% service charge in venue
+. Сохраняются только поля канонического контракта.	. Faqat kanonik shartnoma maydonlari saqlanadi.	. Only canonical contract fields are saved.
+0 сум	0 so'm	0 UZS
+10 / стр.	10 / sahifa	10 / page
+20 / стр.	20 / sahifa	20 / page
+4 цифры	4 raqam	4 digits
+: дефицит	: kamomad	: shortage
+Backend contract отсутствует	Backend shartnomasi yo'q	Backend contract missing
+Backend источник не подключён.	Backend manbasi ulanmagan.	Backend source is not connected.
+Backend удаляет запись статуса без архива. Ссылки организаций будут очищены.	Backend holat yozuvini arxivsiz o'chiradi. Tashkilot havolalari tozalanadi.	The backend deletes the status record without archiving. Organization links will be cleared.
+Backend-контракт для этого раздела не зафиксирован.	Bu bo'lim uchun backend shartnomasi belgilanmagan.	The backend contract for this section is not fixed.
+Dashboard недоступен	Dashboard mavjud emas	Dashboard is unavailable
+Email	Email	Email
+HQ-контракт сообщений отсутствует	Xabarlarning HQ shartnomasi yo'q	HQ message contract is missing
+ID Организация	Tashkilot ID	Organization ID
+ID контрагента	Kontragent ID	Counterparty ID
+ID платежа	To'lov ID	Payment ID
+IP адрес	IP manzil	IP address
+IP адрес виртуальной кассы	Virtual kassa IP manzili	Virtual cash register IP address
+IP виртуальной кассы	Virtual kassa IP	Virtual cash register IP
+IP устройство	Qurilma IP	Device IP
+MARJON POS · кухня	MARJON POS · oshxona	MARJON POS · kitchen
+PIN повара, 4 цифры	Oshpaz PIN, 4 raqam	Cook PIN, 4 digits
+UZS	UZS	UZS
+Z-отчёт	Z-hisobot	Z-report
+· расход	· chiqim	· expense
+» будет удалена. Это действие необратимо.	» o'chiriladi. Bu amalni qaytarib bo'lmaydi.	» will be deleted. This action is irreversible.
+» будет удалён из настроек.	» sozlamalardan o'chiriladi.	» will be removed from settings.
+» будет удалён. Это действие необратимо.	» o'chiriladi. Bu amalni qaytarib bo'lmaydi.	» will be deleted. This action is irreversible.
+Автоблокировка биллинга	Billing avtoblokirovkasi	Billing auto-lock
+Автоматически	Avtomatik	Automatically
+Автор	Muallif	Author
+Администратор	Administrator	Administrator
+Акт сверки	Solishirma dalolatnomasi	Reconciliation act
+Активировать стол	Stolni faollashtirish	Activate table
+Активна	Faol	Active
+Активность статуса	Holat faolligi	Status activity
+Активные фильтры	Faol filtrlar	Active filters
+Активный	Faol	Active
+Архив	Arxiv	Archive
+Архивация	Arxivlash	Archiving
+Архивирование недоступно	Arxivlash mavjud emas	Archiving is unavailable
+Архивированные	Arxivlangan	Archived
+Архивировать	Arxivlash	Archive
+Архивировать категорию	Kategoriyani arxivlash	Archive category
+Архивировать категорию?	Kategoriya arxivlansinmi?	Archive the category?
+Без категории	Kategoriyasiz	Uncategorized
+Блюд за период нет.	Bu davr uchun taomlar yo'q.	No dishes for this period.
+Блюд и товаров пока нет	Hozircha taom va mahsulotlar yo'q	No dishes or products yet
+Блюд не найдено	Taomlar topilmadi	No dishes found
+Блюда (	Taomlar (	Dishes (
+Блюда из продуктов	Mahsulotlardan taomlar	Dishes from products
+Блюда официанта	Ofitsiant taomlari	Waiter's dishes
+Блюдо	Taom	Dish
+Блюдо / товар	Taom / mahsulot	Dish / product
+Блюдо не найдено.	Taom topilmadi.	Dish not found.
+Будет удалена вся история добавления продуктов. Остатки на складах не изменятся. Это действие необратимо.	Mahsulot qo'shish tarixi to'liq o'chiriladi. Ombor qoldiqlari o'zgarmaydi. Bu amalni qaytarib bo'lmaydi.	The entire product addition history will be deleted. Warehouse stock will not change. This action is irreversible.
+Будут удалены ВСЕ заказы, платежи, чеки и доставки. Все отчёты в категории «Отчёты» станут пустыми. Склад не чистится: списания по проданным блюдам останутся в «Складе → Расход», но потеряют привязку к заказам. Это действие необратимо.	BARCHA buyurtmalar, to'lovlar, cheklar va yetkazib berishlar o'chiriladi. «Hisobotlar» bo'limidagi barcha hisobotlar bo'sh bo'ladi. Ombor tozalanmaydi: sotilgan taomlar bo'yicha chiqimlar «Ombor → Chiqim»da qoladi, lekin buyurtmalarga bog'lanishini yo'qotadi. Bu amalni qaytarib bo'lmaydi.	ALL orders, payments, receipts and deliveries will be deleted. Every report in the Reports section will become empty. The warehouse is not cleared: write-offs for sold dishes stay in Warehouse → Expense but lose their link to orders. This action is irreversible.
+Быстрая и безопасная оплата для бесперебойной работы вашего ресторана.	Restoraningiz uzluksiz ishlashi uchun tez va xavfsiz to'lov.	Fast and secure payment for uninterrupted operation of your restaurant.
+Важно	Muhim	Important
+Введите	Kiriting	Enter
+Введите %	% kiriting	Enter %
+Введите IP адрес	IP manzilni kiriting	Enter the IP address
+Введите PIN из четырёх цифр — вход произойдёт сам.	To'rt xonali PIN kiriting — kirish avtomatik amalga oshadi.	Enter the 4-digit PIN — sign-in happens automatically.
+Введите имя	Ismni kiriting	Enter name
+Введите имя профиля	Profil nomini kiriting	Enter profile name
+Введите название	Nomini kiriting	Enter a name
+Введите название места	Joy nomini kiriting	Enter place name
+Введите название способа оплаты	To'lov usuli nomini kiriting	Enter payment method name
+Введите название фона	Fon nomini kiriting	Enter background name
+Введите новый пароль	Yangi parolni kiriting	Enter the new password
+Введите номер	Raqamni kiriting	Enter number
+Введите номер заказа	Buyurtma raqamini kiriting	Enter order number
+Введите номер стола	Stol raqamini kiriting	Enter table number
+Введите сумму	Summani kiriting	Enter amount
+Введите текущий пароль	Joriy parolni kiriting	Enter current password
+Введите целое число от 0 до 100.	0 dan 100 gacha butun son kiriting.	Enter a whole number from 0 to 100.
+Введите цену	Narxni kiriting	Enter price
+Вверху	Yuqorida	Top
+Вводить итоговую сумму	Yakuniy summani kiritish	Enter the final total
+Вернуться к сети	Tarmoqqa qaytish	Back to network
+Версия	Versiya	Version
+Виртуальная касса	Virtual kassa	Virtual cash register
+Виртуальная касса номер	Virtual kassa raqami	Virtual cash register number
+Владелец	Egasi	Owner
+Вместимость	Sig'im	Capacity
+Внизу	Pastda	Bottom
+Во весь экран	Butun ekran	Full screen
+Войдите в рабочее место суперадминки.	Superadmin ish joyiga kiring.	Sign in to the superadmin workspace.
+Восстановить	Tiklash	Restore
+Восстановить категорию	Kategoriyani tiklash	Restore category
+Временно недоступные блюда	Vaqtincha mavjud bo'lmagan taomlar	Temporarily unavailable dishes
+Время открытия	Ochilish vaqti	Opening time
+Время прихода	Kelish vaqti	Check-in time
+Время с момента заказа	Buyurtmadan beri o'tgan vaqt	Time since order
+Время ухода	Ketish vaqti	Check-out time
+Все блюда	Barcha taomlar	All dishes
+Все категории · по дате оплаты	Barcha kategoriyalar · to'lov sanasi bo'yicha	All categories · by payment date
+Все категории · по дате отмены	Barcha kategoriyalar · bekor qilish sanasi bo'yicha	All categories · by cancellation date
+Все роли	Barcha rollar	All roles
+Все состояния	Barcha holatlar	All states
+Все статусы	Barcha holatlar	All statuses
+Всего	Jami	Total
+Вход по email	Email bilan kirish	Sign in with email
+Вход повара	Oshpaz kirishi	Cook sign-in
+Вход филиала	Filial kirishi	Branch sign-in
+Вы в филиале «	Siz « filialidasiz	You are in branch «
+Вы ещё не нажали «Ознакомлен»	Siz hali «Tanishdim» tugmasini bosmadingiz	You have not pressed "Acknowledged" yet
+Вы уверены, что хотите удалить «	« ni o'chirishga ishonchingiz komilmi?	Are you sure you want to delete «
+Выберите	Tanlang	Select
+Выберите автора	Muallifni tanlang	Select author
+Выберите блюда	Taomlarni tanlang	Select dishes
+Выберите блюдо	Taomni tanlang	Select a dish
+Выберите ед. изм	O'lchov birligini tanlang	Select unit
+Выберите единицу измерения	O'lchov birligini tanlang	Select unit of measure
+Выберите зал	Zalni tanlang	Select hall
+Выберите кассира	Kassirni tanlang	Select cashier
+Выберите категорию	Kategoriyani tanlang	Select category
+Выберите официанта	Ofitsiantni tanlang	Select waiter
+Выберите поставщика	Ta'minotchini tanlang	Select supplier

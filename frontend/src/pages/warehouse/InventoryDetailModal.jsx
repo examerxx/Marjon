@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { warehouseService } from "../../api/warehouse";
 import Icon from "../../components/Icon";
 import Toast from "../../components/Toast";
+import { t } from "../../i18n/t";
 
 // Инвентаризация — просмотр корректировок проверки (V42): клик по строке
 // таблицы открывает компактную центрированную модалку
@@ -117,25 +118,25 @@ export default function InventoryDetailModal({ check, onClose, onSaved }) {
           <header className="settings-form__header">
             <span className="settings-accent-bar" />
             <div>
-              <p>Склад / Инвентаризация</p>
-              <h2 id="inventory-detail-title">Корректировки — {check.warehouse || "—"}</h2>
+              <p>{t("pages.warehouse.inventorydetailmodal.sklad_inventarizatsiya")}</p>
+              <h2 id="inventory-detail-title">{t("pages.warehouse.inventorydetailmodal.korrektirovki")} {check.warehouse || "—"}</h2>
             </div>
-            <button type="button" onClick={requestClose} aria-label="Закрыть">
+            <button type="button" onClick={requestClose} aria-label={t("pages.warehouse.inventorydetailmodal.zakryt")}>
               <Icon name="bi-x-lg" size={20} />
             </button>
           </header>
           <div className="settings-form__body">
-            {loading ? <div className="warehouse-empty-cell" role="status">Загрузка корректировок...</div> : null}
+            {loading ? <div className="warehouse-empty-cell" role="status">{t("pages.warehouse.inventorydetailmodal.zagruzka_korrektirovok")}</div> : null}
             {!loading && error ? <div className="login-error" role="alert">{error}</div> : null}
             {!loading && !error ? (
               <div className="settings-table-wrapper dish-grid-wrap">
-                <div className="dish-grid-scroll" role="region" aria-label="Корректировки с прокруткой" tabIndex={0}>
-                  <table className="settings-table dish-grid-table" aria-label="Корректировки инвентаризации">
+                <div className="dish-grid-scroll" role="region" aria-label={t("pages.warehouse.inventorydetailmodal.korrektirovki_s_prokrutkoy")} tabIndex={0}>
+                  <table className="settings-table dish-grid-table" aria-label={t("pages.warehouse.inventorydetailmodal.korrektirovki_inventarizatsii")}>
                     <thead>
                       <tr>
-                        <th>Дата регистрации</th>
-                        <th>Название</th>
-                        <th>Корректировка</th>
+                        <th>{t("pages.warehouse.inventorydetailmodal.data_registratsii")}</th>
+                        <th>{t("pages.warehouse.inventorydetailmodal.nazvanie")}</th>
+                        <th>{t("pages.warehouse.inventorydetailmodal.korrektirovka")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -149,7 +150,7 @@ export default function InventoryDetailModal({ check, onClose, onSaved }) {
                         </tr>
                       ))}
                       {!items.length ? (
-                        <tr><td colSpan={3} className="warehouse-empty-cell">Корректировок нет.</td></tr>
+                        <tr><td colSpan={3} className="warehouse-empty-cell">{t("pages.warehouse.inventorydetailmodal.korrektirovok_net")}</td></tr>
                       ) : null}
                     </tbody>
                   </table>
@@ -161,8 +162,8 @@ export default function InventoryDetailModal({ check, onClose, onSaved }) {
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
-                placeholder="Комментарий"
-                aria-label="Комментарий инвентаризации"
+                placeholder={t("pages.warehouse.inventorydetailmodal.kommentariy")}
+                aria-label={t("pages.warehouse.inventorydetailmodal.kommentariy_inventarizatsii")}
               />
               <button type="button" onClick={handleSave} disabled={saving}>
                 {saving ? "Сохранение…" : "Сохранить"}

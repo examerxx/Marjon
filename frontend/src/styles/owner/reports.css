@@ -3235,6 +3235,52 @@
 .cancelled-report-page .cancelled-table thead th { font-size: 14px; text-align: center; }
 .cancelled-report-page .cancelled-table tbody td { font-size: 15px; text-align: center; }
 .cancelled-report-page .cancelled-table tfoot td { font-size: 16px; font-weight: 750; }
+
+/* STICKY-FIRST-COL-01: номер заказа закреплён у левого края.
+   В отчёте по отменённым блюдам таблица шире экрана на узких окнах, и при
+   горизонтальной прокрутке первая колонка уезжала — по номеру нельзя было
+   сопоставить строку. Липнет только первая колонка: остальные скроллятся.
+   Фон обязан быть непрозрачным, иначе сквозь ячейку видны уезжающие данные. */
+.cancelled-report-page .cancelled-table th:first-child,
+.cancelled-report-page .cancelled-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: #ffffff;
+}
+
+/* Шапка липнет и по вертикали, и по горизонтали — её слой выше тела. */
+.cancelled-report-page .cancelled-table thead th:first-child {
+  z-index: 5;
+  background: #f3f6fa;
+}
+
+/* Ховер строки перекрывал бы фон закреплённой ячейки полупрозрачным слоем —
+   задаём тот же оттенок, но плотный. */
+.cancelled-report-page .cancelled-table tbody tr:hover td:first-child {
+  background: #f2fafa;
+}
+
+/* Тонкий разделитель: без него закреплённая колонка сливается с уезжающими. */
+.cancelled-report-page .cancelled-table th:first-child::after,
+.cancelled-report-page .cancelled-table td:first-child::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: -1px;
+  width: 1px;
+  background: rgba(15, 35, 60, 0.09);
+}
+
+/* Пустая строка «нет данных» занимает всю ширину — ей закрепление не нужно. */
+.cancelled-report-page .cancelled-table .cancelled-empty-row td:first-child {
+  position: static;
+}
+.cancelled-report-page .cancelled-table .cancelled-empty-row td:first-child::after {
+  content: none;
+}
+
 .orders-report-page .owner-report-table thead th { font-size: 14px; }
 .orders-report-page .owner-report-table tbody td,
 .orders-report-page .owner-report-table tbody td .report-order-status { font-size: 14px; }

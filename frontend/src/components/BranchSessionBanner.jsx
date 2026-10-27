@@ -1,5 +1,6 @@
 import { getActiveBranch, returnToNetwork, clearBranchSession } from "../auth/branchSession";
 import { useAuth } from "../hooks/useAuth";
+import { t } from "../i18n/t";
 
 // Плашка «вы работаете в филиале»: видна во всей админке, пока активна сессия
 // филиала. Для владельца (пришёл из сети по кнопке «Войти») — «Вернуться к
@@ -31,7 +32,7 @@ export default function BranchSessionBanner() {
       }}
     >
       <span>
-        Вы в филиале «{active.name || "—"}»
+       {t("components.branchsessionbanner.vy_v_filiale")}{active.name || "—"}»
       </span>
       {active.canReturn ? (
         <button
@@ -39,7 +40,7 @@ export default function BranchSessionBanner() {
           onClick={returnToNetwork}
           style={{ background: "#fff", color: "var(--color-brand-dark)", border: "none", borderRadius: 8, padding: "4px 12px", fontWeight: 600, cursor: "pointer" }}
         >
-          Вернуться к сети
+         {t("components.branchsessionbanner.vernutsya_k_seti")}
         </button>
       ) : (
         <button
@@ -47,7 +48,7 @@ export default function BranchSessionBanner() {
           onClick={exit}
           style={{ background: "#fff", color: "var(--color-brand-dark)", border: "none", borderRadius: 8, padding: "4px 12px", fontWeight: 600, cursor: "pointer" }}
         >
-          Выйти
+         {t("components.branchsessionbanner.vyyti")}
         </button>
       )}
     </div>

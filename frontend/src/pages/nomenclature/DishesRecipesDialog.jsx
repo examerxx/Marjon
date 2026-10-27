@@ -7,6 +7,7 @@ import { useAnchoredDialogMotion } from "../../hooks/useAnchoredDialogMotion";
 import { nomenclatureService } from "../../api/nomenclature";
 import { catalogService } from "../../api/catalog";
 import DishSingleSelect from "./DishSingleSelect";
+import { t } from "../../i18n/t";
 
 const money = (value) => value ? String(value).replace(/\s*UZS$/i, " сум") : "—";
 
@@ -342,12 +343,12 @@ export default function DishesRecipesDialog({ dish, onClose, returnFocusRef, onS
         aria-modal="true" aria-labelledby="dish-recipes-title" aria-describedby="dish-recipes-dish"
         onMouseDown={(event) => event.stopPropagation()} onKeyDown={trapFocus}>
         <header className="kpi-info-window__head dish-recipes-head">
-          <div><h2 id="dish-recipes-title">Рецепты</h2><p id="dish-recipes-dish">{dish.name || "—"}</p></div>
+          <div><h2 id="dish-recipes-title">{t("pages.nomenclature.dishesrecipesdialog.retsepty")}</h2><p id="dish-recipes-dish">{dish.name || "—"}</p></div>
           <dl className="dish-recipes-metric dish-recipes-metric--cost">
-            <dt>Себестоимость</dt><dd title={costBreakdown}>{money(costTotal)}</dd>
+            <dt>{t("pages.nomenclature.dishesrecipesdialog.sebestoimost")}</dt><dd title={costBreakdown}>{money(costTotal)}</dd>
           </dl>
           <dl className="dish-recipes-metric dish-recipes-metric--price">
-            <dt>Цена продажи</dt><dd>{money(dish.price)}</dd>
+            <dt>{t("pages.nomenclature.dishesrecipesdialog.tsena_prodazhi")}</dt><dd>{money(dish.price)}</dd>
           </dl>
           <button
             type="button"
@@ -357,17 +358,17 @@ export default function DishesRecipesDialog({ dish, onClose, returnFocusRef, onS
           >
             {dish.photo ? <img src={dish.photo} alt="" /> : <Icon name="bi-image" size={22} />}
           </button>
-          <button type="button" className="kpi-info-window__close" aria-label="Закрыть рецепты" onClick={requestClose}>
+          <button type="button" className="kpi-info-window__close" aria-label={t("pages.nomenclature.dishesrecipesdialog.zakryt_retsepty")} onClick={requestClose}>
             <Icon name="bi-x-lg" size={20} />
           </button>
         </header>
-        <div className="dish-recipes-body" tabIndex={0} role="region" aria-label="Данные рецепта">
+        <div className="dish-recipes-body" tabIndex={0} role="region" aria-label={t("pages.nomenclature.dishesrecipesdialog.dannye_retsepta")}>
           <form className="dish-recipes-add-row dish-recipes-add-row--composition" onSubmit={handleAdd}>
             <div className="dish-recipes-field">
-              <span className="dish-recipes-field-label">Склад</span>
+              <span className="dish-recipes-field-label">{t("pages.nomenclature.dishesrecipesdialog.sklad")}</span>
               <DishSingleSelect
-                label="Склад"
-                placeholder="Выберите склад"
+                label={t("pages.nomenclature.dishesrecipesdialog.sklad")}
+                placeholder={t("pages.nomenclature.dishesrecipesdialog.vyberite_sklad")}
                 options={warehouses.map((item) => ({ value: String(item.id), label: item.name }))}
                 value={selectedWarehouse}
                 onChange={(next) => { setSelectedWarehouse(next || ""); setSelectedId(""); }}
@@ -375,10 +376,10 @@ export default function DishesRecipesDialog({ dish, onClose, returnFocusRef, onS
               />
             </div>
             <div className="dish-recipes-field">
-              <span className="dish-recipes-field-label">Категория</span>
+              <span className="dish-recipes-field-label">{t("pages.nomenclature.dishesrecipesdialog.kategoriya")}</span>
               <DishSingleSelect
-                label="Категория"
-                placeholder="Выберите категорию"
+                label={t("pages.nomenclature.dishesrecipesdialog.kategoriya")}
+                placeholder={t("pages.nomenclature.dishesrecipesdialog.vyberite_kategoriyu")}
                 options={categoryOptions}
                 value={selectedCategory}
                 onChange={(next) => { setSelectedCategory(next || ""); setSelectedId(""); }}
@@ -386,10 +387,10 @@ export default function DishesRecipesDialog({ dish, onClose, returnFocusRef, onS
               />
             </div>
             <div className="dish-recipes-field dish-recipes-field--product">
-              <span className="dish-recipes-field-label">Продукт</span>
+              <span className="dish-recipes-field-label">{t("pages.nomenclature.dishesrecipesdialog.produkt")}</span>
               <DishSingleSelect
-                label="Продукт"
-                placeholder="Выберите продукт"
+                label={t("pages.nomenclature.dishesrecipesdialog.produkt")}
+                placeholder={t("pages.nomenclature.dishesrecipesdialog.vyberite_produkt")}
                 options={activeOptions.map((item) => ({
                   value: String(item.id),
                   label: item.name,
@@ -406,13 +407,13 @@ export default function DishesRecipesDialog({ dish, onClose, returnFocusRef, onS
               />
             </div>
             <label className="dish-recipes-field">
-              <span className="dish-recipes-field-label">Кол-во</span>
+              <span className="dish-recipes-field-label">{t("pages.nomenclature.dishesrecipesdialog.kol_vo")}</span>
               <span className="dish-recipes-qty-wrap">
                 <input
                   ref={qtyRef}
                   inputMode="decimal"
                   placeholder="0"
-                  aria-label="Количество"
+                  aria-label={t("pages.nomenclature.dishesrecipesdialog.kolichestvo")}
                   value={qty}
                   disabled={saving}
                   onChange={(event) => setQty(event.target.value)}
@@ -428,7 +429,7 @@ export default function DishesRecipesDialog({ dish, onClose, returnFocusRef, onS
           {error ? <Toast kind="error" message={error} onClose={() => setError("")} /> : null}
           <div className="settings-table-wrapper dish-recipes-table-wrap">
             <div className="dish-recipes-table-scroll">
-              <table className="settings-table dish-recipes-table" aria-label="Состав рецепта">
+              <table className="settings-table dish-recipes-table" aria-label={t("pages.nomenclature.dishesrecipesdialog.sostav_retsepta")}>
                 <colgroup>{[8, 20, 36, 16, 20].map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}</colgroup>
                 <thead><tr>{["№", "Склад", "Продукт", "Кол-во", "Действия"].map((title) => <th key={title}>{title}</th>)}</tr></thead>
                 <tbody>
@@ -439,19 +440,19 @@ export default function DishesRecipesDialog({ dish, onClose, returnFocusRef, onS
                       <td>{nameOf(line.ingredient_id)}</td>
                       <td>{formatQuantity(line.quantity)}{unitOf(line.ingredient_id) ? ` ${unitOf(line.ingredient_id)}` : ""}</td>
                       <td><div className="dish-row-actions">
-                        <button type="button" disabled={saving} onClick={() => openEdit(index)} aria-label="Изменить ингредиент"><Icon name="bi-pencil" size={15} /></button>
-                        <button type="button" className="danger" disabled={saving || removingIndex === index} onClick={() => handleRemove(index)} aria-label="Удалить ингредиент"><Icon name="bi-trash3" size={15} /></button>
+                        <button type="button" disabled={saving} onClick={() => openEdit(index)} aria-label={t("pages.nomenclature.dishesrecipesdialog.izmenit_ingredient")}><Icon name="bi-pencil" size={15} /></button>
+                        <button type="button" className="danger" disabled={saving || removingIndex === index} onClick={() => handleRemove(index)} aria-label={t("pages.nomenclature.dishesrecipesdialog.udalit_ingredient")}><Icon name="bi-trash3" size={15} /></button>
                       </div></td>
                     </tr>
                   )) : <tr><td colSpan={5} className="dish-recipes-empty-cell">
-                    <ReportEmptyState title="Состав рецепта пока пуст" />
+                    <ReportEmptyState title={t("pages.nomenclature.dishesrecipesdialog.sostav_retsepta_poka_pust")} />
                   </td></tr>}
                 </tbody>
                 {lines.length > 0 ? (
                   <tfoot>
                     <tr className="dish-recipes-total-row">
-                      <td colSpan={3} className="dish-recipes-total-label">Итого</td>
-                      <td className="dish-recipes-total-value" aria-label="Сумма по составу">{recipeTotals || "—"}</td>
+                      <td colSpan={3} className="dish-recipes-total-label">{t("pages.nomenclature.dishesrecipesdialog.itogo")}</td>
+                      <td className="dish-recipes-total-value" aria-label={t("pages.nomenclature.dishesrecipesdialog.summa_po_sostavu")}>{recipeTotals || "—"}</td>
                       <td aria-hidden="true" />
                     </tr>
                   </tfoot>
@@ -466,7 +467,7 @@ export default function DishesRecipesDialog({ dish, onClose, returnFocusRef, onS
                 className="dish-edit-card"
                 role="dialog"
                 aria-modal="true"
-                aria-label="Изменить ингредиент"
+                aria-label={t("pages.nomenclature.dishesrecipesdialog.izmenit_ingredient")}
                 onMouseDown={(event) => event.stopPropagation()}
                 // Enter в поле количества = «Сохранить»: панель не форма,
                 // поэтому без этого клавиша не делала ничего. Кнопки Enter
@@ -477,15 +478,15 @@ export default function DishesRecipesDialog({ dish, onClose, returnFocusRef, onS
                   saveEdit();
                 }}
               >
-                <h3>Изменить ингредиент</h3>
+                <h3>{t("pages.nomenclature.dishesrecipesdialog.izmenit_ingredient")}</h3>
                 <p>{nameOf(editLine.ingredient_id)}</p>
                 <label className="dish-recipes-field">
-                  <span className="dish-recipes-field-label">Кол-во</span>
+                  <span className="dish-recipes-field-label">{t("pages.nomenclature.dishesrecipesdialog.kol_vo")}</span>
                   <span className="dish-recipes-qty-wrap">
                     <input
                       inputMode="decimal"
                       placeholder="0"
-                      aria-label="Количество ингредиента"
+                      aria-label={t("pages.nomenclature.dishesrecipesdialog.kolichestvo_ingredienta")}
                       value={editQty}
                       disabled={saving}
                       onChange={(event) => setEditQty(event.target.value)}
@@ -500,7 +501,7 @@ export default function DishesRecipesDialog({ dish, onClose, returnFocusRef, onS
                     {saving ? "Сохранение…" : "Сохранить"}
                   </button>
                   <button type="button" className="dish-recipes-clear" disabled={saving} onClick={cancelEdit}>
-                    Отмена
+                   {t("pages.nomenclature.dishesrecipesdialog.otmena")}
                   </button>
                 </div>
               </section>
@@ -523,7 +524,7 @@ export default function DishesRecipesDialog({ dish, onClose, returnFocusRef, onS
                   type="button"
                   className="dish-photo-viewer__close"
                   onClick={closeZoom}
-                  aria-label="Закрыть фото"
+                  aria-label={t("pages.nomenclature.dishesrecipesdialog.zakryt_foto")}
                 >
                   <Icon name="bi-x-lg" size={18} />
                 </button>

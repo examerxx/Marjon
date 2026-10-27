@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Icon from "../../components/Icon";
 import Toast from "../../components/Toast";
+import { t } from "../../i18n/t";
 
 // Одиночный dropdown формы блюда (V18): Категория / Принтер.
 // Та же визуальная семья, что фильтр каталога и Reports (триггер
@@ -300,7 +301,7 @@ export default function DishSingleSelect({
                     <button
                       type="button"
                       className="orders-filter-select__search-clear"
-                      aria-label="Очистить поиск"
+                      aria-label={t("pages.nomenclature.dishsingleselect.ochistit_poisk")}
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => { setQuery(""); setActiveIndex(-1); searchRef.current?.focus(); }}
                     >
@@ -393,8 +394,8 @@ export default function DishSingleSelect({
                         e.stopPropagation();
                       }
                     }}
-                    placeholder="Название категории"
-                    aria-label="Новая категория"
+                    placeholder={t("pages.nomenclature.dishsingleselect.nazvanie_kategorii")}
+                    aria-label={t("pages.nomenclature.dishsingleselect.novaya_kategoriya")}
                     disabled={createSaving}
                   />
                   <div className="orders-filter-select__create-actions">
@@ -408,7 +409,7 @@ export default function DishSingleSelect({
                         setCreateError("");
                       }}
                     >
-                      Отмена
+                     {t("pages.nomenclature.dishsingleselect.otmena")}
                     </button>
                     <button
                       type="button"

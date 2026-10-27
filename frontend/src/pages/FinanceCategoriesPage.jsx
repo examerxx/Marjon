@@ -3,6 +3,7 @@ import { formatMoney } from "../api/client";
 import { financeService } from "../api/finance";
 import Icon from "../components/Icon";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../hooks/useAsyncSafety";
+import { t } from "../i18n/t";
 
 function FinanceCategoriesPage({ title, kind }) {
   const [rows, setRows] = useState([]);
@@ -124,12 +125,12 @@ function FinanceCategoriesPage({ title, kind }) {
           <div className="settings-title-group finance-title-group">
             <span className="settings-accent-bar finance-accent-bar" aria-hidden="true" />
             <div>
-              <p>Финансы</p>
+              <p>{t("pages.financecategoriespage.finansy")}</p>
               <h1>{title}</h1>
             </div>
           </div>
           <div className="settings-actions finance-actions">
-            <button type="button" className="finance-primary-action" onClick={openCreate}>Добавить категорию +</button>
+            <button type="button" className="finance-primary-action" onClick={openCreate}>{t("pages.financecategoriespage.dobavit_kategoriyu")}</button>
           </div>
         </header>
 
@@ -142,23 +143,23 @@ function FinanceCategoriesPage({ title, kind }) {
         </div>
 
         <div className="finance-filters finance-filters--categories">
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Поиск по названию" />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("pages.financecategoriespage.poisk_po_nazvaniyu")} />
         </div>
 
         <div className="finance-table-wrapper">
           <table className="finance-table">
             <thead>
               <tr>
-                <th>Название</th>
-                <th>Описание</th>
-                <th>Кол-во операций</th>
-                <th>Сумма</th>
-                <th>Статус</th>
-                <th>Действия</th>
+                <th>{t("pages.financecategoriespage.nazvanie")}</th>
+                <th>{t("pages.financecategoriespage.opisanie")}</th>
+                <th>{t("pages.financecategoriespage.kol_vo_operatsiy")}</th>
+                <th>{t("pages.financecategoriespage.summa")}</th>
+                <th>{t("pages.financecategoriespage.status")}</th>
+                <th>{t("pages.financecategoriespage.deystviya")}</th>
               </tr>
             </thead>
             <tbody>
-              {loading ? <tr><td colSpan={6}>Загрузка...</td></tr> : null}
+              {loading ? <tr><td colSpan={6}>{t("pages.financecategoriespage.zagruzka")}</td></tr> : null}
               {!loading && error ? <tr><td colSpan={6}><div className="login-error" role="alert">{error}</div></td></tr> : null}
               {visibleRows.map((row) => (
                 <tr key={row.id}>
@@ -177,7 +178,7 @@ function FinanceCategoriesPage({ title, kind }) {
                   </td>
                 </tr>
               ))}
-              {!loading && !error && !visibleRows.length ? <tr><td colSpan={6}>Категорий нет.</td></tr> : null}
+              {!loading && !error && !visibleRows.length ? <tr><td colSpan={6}>{t("pages.financecategoriespage.kategoriy_net")}</td></tr> : null}
             </tbody>
           </table>
         </div>
@@ -190,17 +191,17 @@ function FinanceCategoriesPage({ title, kind }) {
             <header className="finance-form__header">
               <span className="finance-accent-bar" />
               <div>
-                <p>Категория</p>
+                <p>{t("pages.financecategoriespage.kategoriya")}</p>
                 <h2>{title}</h2>
               </div>
               <button type="button" disabled={saving} onClick={() => setDrawerOpen(false)}><Icon name="bi-x-lg" size={20} /></button>
             </header>
             <div className="finance-form__grid">
-              <label><span>Название</span><input required value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></label>
-              <label className="finance-form__wide"><span>Описание</span><textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></label>
+              <label><span>{t("pages.financecategoriespage.nazvanie")}</span><input required value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></label>
+              <label className="finance-form__wide"><span>{t("pages.financecategoriespage.opisanie")}</span><textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></label>
             </div>
             <footer className="finance-form__footer">
-              <button type="button" disabled={saving} onClick={() => setDrawerOpen(false)}>Отмена</button>
+              <button type="button" disabled={saving} onClick={() => setDrawerOpen(false)}>{t("pages.financecategoriespage.otmena")}</button>
               <button type="submit" disabled={saving}>{saving ? "Сохранение..." : "Сохранить"}</button>
             </footer>
           </form>

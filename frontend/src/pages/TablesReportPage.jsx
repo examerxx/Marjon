@@ -14,6 +14,7 @@ import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/use
 import { formatDateLabel, todayInputValue } from "../utils/date";
 import { toApiDate } from "./reports/reportPeriod";
 import { formatMoney } from "./reports/reportMoney";
+import { t } from "../i18n/t";
 
 const initialFilters = {
   tableNumber: "",
@@ -357,12 +358,12 @@ export default function TablesReportPage() {
     // they arrive null → BLANK cells (never fabricated 0). A completeness gate
     // per money column decides whether its Итого is numeric or blank.
     const cols = [
-      { key: "table", label: "Номер стола", width: 20 },
-      { key: "date", label: "Дата", type: "date", format: "dd.mm.yyyy hh:mm", width: 18 },
-      { key: "serviceFee", label: "Цена обслуживания", type: "number", format: "#,##0", width: 20 },
-      { key: "placeFee", label: "Цена места", type: "number", format: "#,##0", width: 16 },
-      { key: "dishes", label: "Сумма блюд", type: "number", format: "#,##0", width: 16 },
-      { key: "total", label: "Сумма", type: "number", format: "#,##0", width: 16 },
+      { key: "table", label: t("pages.tablesreportpage.nomer_stola"), width: 20 },
+      { key: "date", label: t("pages.tablesreportpage.data"), type: "date", format: "dd.mm.yyyy hh:mm", width: 18 },
+      { key: "serviceFee", label: t("pages.tablesreportpage.tsena_obsluzhivaniya"), type: "number", format: "#,##0", width: 20 },
+      { key: "placeFee", label: t("pages.tablesreportpage.tsena_mesta"), type: "number", format: "#,##0", width: 16 },
+      { key: "dishes", label: t("pages.tablesreportpage.summa_blyud"), type: "number", format: "#,##0", width: 16 },
+      { key: "total", label: t("pages.tablesreportpage.summa"), type: "number", format: "#,##0", width: 16 },
     ];
     const lines = [];
     filteredRows.forEach((row) => {
@@ -393,7 +394,7 @@ export default function TablesReportPage() {
     exportToExcel(lines, cols, "tables-report", {
       sheetName: "Отчёт по столам",
       totals: {
-        label: "Итого",
+        label: t("pages.tablesreportpage.itogo"),
         values: {
           serviceFee: columnTotal("serviceFee"),
           placeFee: columnTotal("placeFee"),
@@ -414,36 +415,36 @@ export default function TablesReportPage() {
     <section className="tables-report-page owner-report-view">
       <article className="report-page-card owner-report-surface">
         <div className="report-page-header owner-report-header">
-          <div className="report-title-group owner-report-heading"><span className="report-accent-bar" aria-hidden="true" /><div><span className="report-eyebrow owner-report-kicker">Отчёты</span><h1>Отчёт по столам</h1></div></div>
+          <div className="report-title-group owner-report-heading"><span className="report-accent-bar" aria-hidden="true" /><div><span className="report-eyebrow owner-report-kicker">{t("pages.tablesreportpage.otchety")}</span><h1>{t("pages.tablesreportpage.otchet_po_stolam")}</h1></div></div>
           <div className="report-actions owner-report-actions">
-            <ReportDateRangePicker variant="canonical" animateExit value={dateRange} onChange={setDateRange} open={panelState.active === "period"} onOpenChange={(nextOpen) => requestPanel(nextOpen ? "period" : "")} onExitComplete={() => completePanelExit("period")} buttonAriaLabel="Период отчёта по столам" />
-            <button className="tables-filter-toggle" type="button" aria-expanded={filtersOpen} aria-controls="tables-report-filters" onClick={() => { if (filtersOpen) requestPanel(""); setFiltersOpen((current) => !current); }}><Icon name="bi-sliders" size={17} /> Фильтровать</button>
-            <button className="report-excel-button owner-report-excel" type="button" onClick={downloadExcel}><Icon name="bi-filetype-xlsx" size={19} strokeWidth={1.9} className="owner-report-xlsx-icon" /> Скачать Excel</button>
+            <ReportDateRangePicker variant="canonical" animateExit value={dateRange} onChange={setDateRange} open={panelState.active === "period"} onOpenChange={(nextOpen) => requestPanel(nextOpen ? "period" : "")} onExitComplete={() => completePanelExit("period")} buttonAriaLabel={t("report_period.tables")} />
+            <button className="tables-filter-toggle" type="button" aria-expanded={filtersOpen} aria-controls="tables-report-filters" onClick={() => { if (filtersOpen) requestPanel(""); setFiltersOpen((current) => !current); }}><Icon name="bi-sliders" size={17} /> {t("pages.tablesreportpage.filtrovat")}</button>
+            <button className="report-excel-button owner-report-excel" type="button" onClick={downloadExcel}><Icon name="bi-filetype-xlsx" size={19} strokeWidth={1.9} className="owner-report-xlsx-icon" /> {t("pages.tablesreportpage.skachat_excel")}</button>
           </div>
         </div>
 
         <div className={`orders-filter-collapse${filtersOpen ? " is-open" : ""}`}>
           <div className="orders-filter-collapse__inner" inert={!filtersOpen ? true : undefined}>
-        <div className="report-filters-grid tables-filter-panel" id="tables-report-filters" aria-label="Фильтры отчёта по столам">
+        <div className="report-filters-grid tables-filter-panel" id="tables-report-filters" aria-label={t("pages.tablesreportpage.filtry_otcheta_po_stolam")}>
           <label className="report-filter-input">
             <Icon name="bi-search" size={17} />
-            <input aria-label="Номер стола" value={filters.tableNumber} onChange={(event) => updateFilter("tableNumber", event.target.value)} placeholder="Введите номер стола" />
+            <input aria-label={t("pages.tablesreportpage.nomer_stola")} value={filters.tableNumber} onChange={(event) => updateFilter("tableNumber", event.target.value)} placeholder={t("pages.tablesreportpage.vvedite_nomer_stola")} />
           </label>
-          <ReportMultiSelect filterKey="waiterId" label="Официант" placeholder="Выберите официанта" options={filterOptions.waiters} selected={filters.waiterId} onToggle={(value) => toggleFilterValue("waiterId", value)} disabled={filterOptionsLoading || !filterOptions.waiters.length} {...tableFilterPanelProps("waiterId")} />
-          <ReportMultiSelect filterKey="hallId" label="Зал" placeholder="Выберите зал" options={filterOptions.places} selected={filters.hallId} onToggle={(value) => toggleFilterValue("hallId", value)} disabled={!filterOptions.place_filter_supported || filterOptionsLoading || !filterOptions.places.length} {...tableFilterPanelProps("hallId")} />
-          <ReportMultiSelect filterKey="cashierId" label="Кассир" placeholder="Выберите кассира" options={filterOptions.cashiers} selected={filters.cashierId} onToggle={(value) => toggleFilterValue("cashierId", value)} disabled={filterOptionsLoading || !filterOptions.cashiers.length} {...tableFilterPanelProps("cashierId")} />
-          <ReportMultiSelect filterKey="paymentMethod" label="Тип оплаты" placeholder="Выберите тип оплаты" options={filterOptions.payment_methods} selected={filters.paymentMethod} onToggle={(value) => toggleFilterValue("paymentMethod", value)} disabled={filterOptionsLoading || !filterOptions.payment_methods.length} {...tableFilterPanelProps("paymentMethod")} />
+          <ReportMultiSelect filterKey="waiterId" label={t("pages.tablesreportpage.ofitsiant")} placeholder={t("pages.tablesreportpage.vyberite_ofitsianta")} options={filterOptions.waiters} selected={filters.waiterId} onToggle={(value) => toggleFilterValue("waiterId", value)} disabled={filterOptionsLoading || !filterOptions.waiters.length} {...tableFilterPanelProps("waiterId")} />
+          <ReportMultiSelect filterKey="hallId" label={t("pages.tablesreportpage.zal")} placeholder={t("pages.tablesreportpage.vyberite_zal")} options={filterOptions.places} selected={filters.hallId} onToggle={(value) => toggleFilterValue("hallId", value)} disabled={!filterOptions.place_filter_supported || filterOptionsLoading || !filterOptions.places.length} {...tableFilterPanelProps("hallId")} />
+          <ReportMultiSelect filterKey="cashierId" label={t("pages.tablesreportpage.kassir")} placeholder={t("pages.tablesreportpage.vyberite_kassira")} options={filterOptions.cashiers} selected={filters.cashierId} onToggle={(value) => toggleFilterValue("cashierId", value)} disabled={filterOptionsLoading || !filterOptions.cashiers.length} {...tableFilterPanelProps("cashierId")} />
+          <ReportMultiSelect filterKey="paymentMethod" label={t("pages.tablesreportpage.tip_oplaty")} placeholder={t("pages.tablesreportpage.vyberite_tip_oplaty")} options={filterOptions.payment_methods} selected={filters.paymentMethod} onToggle={(value) => toggleFilterValue("paymentMethod", value)} disabled={filterOptionsLoading || !filterOptions.payment_methods.length} {...tableFilterPanelProps("paymentMethod")} />
           <div className="report-filter-buttons">
-            <button type="button" className="report-filter-apply" onClick={applyFilters}><Icon name="bi-sliders" size={17} /> Фильтровать</button>
-            <button type="button" className="report-filter-clear" onClick={clearFilters}><Icon name="bi-x-circle" size={17} /> Очистить</button>
+            <button type="button" className="report-filter-apply" onClick={applyFilters}><Icon name="bi-sliders" size={17} /> {t("pages.tablesreportpage.filtrovat")}</button>
+            <button type="button" className="report-filter-clear" onClick={clearFilters}><Icon name="bi-x-circle" size={17} /> {t("pages.tablesreportpage.ochistit")}</button>
           </div>
         </div>
           </div>
         </div>
 
         <div className="report-table-wrapper owner-report-table-scroll" aria-busy={loading ? "true" : "false"}>
-          <table className="report-table owner-report-table" aria-label="Отчёт по столам">
-            <thead><tr><th>Номер стола</th><th>Дата</th><th>Сумма</th><th>Транзакции</th></tr></thead>
+          <table className="report-table owner-report-table" aria-label={t("pages.tablesreportpage.otchet_po_stolam")}>
+            <thead><tr><th>{t("pages.tablesreportpage.nomer_stola")}</th><th>{t("pages.tablesreportpage.data")}</th><th>{t("pages.tablesreportpage.summa")}</th><th>{t("pages.tablesreportpage.tranzaktsii")}</th></tr></thead>
             <tbody>
               {filteredRows.map((row) => (
                 <tr key={row.id}>
@@ -462,12 +463,12 @@ export default function TablesReportPage() {
                       disabled={!row.orders.length}
                       aria-label={`Посмотреть заказы стола ${tableDisplayLabel(row)}`}
                     >
-                      Посмотреть заказы
+                     {t("pages.tablesreportpage.posmotret_zakazy")}
                     </button>
                   </td>
                 </tr>
               ))}
-              {!filteredRows.length ? <tr className="report-empty-row"><td colSpan={4}><ReportEmptyState title="Столы не найдены" loading={loading} /></td></tr> : null}
+              {!filteredRows.length ? <tr className="report-empty-row"><td colSpan={4}><ReportEmptyState title={t("pages.tablesreportpage.stoly_ne_naydeny")} loading={loading} /></td></tr> : null}
             </tbody>
           </table>
         </div>
@@ -484,11 +485,11 @@ export default function TablesReportPage() {
           <aside className="order-details-drawer__panel">
             <div className="order-details-drawer__head">
               <div>
-                <span>Отчёт по столам</span>
-                <h3>Стол №{selectedTable.tableNumber}</h3>
-                {selectedTable.hallName ? <span>Зал: {selectedTable.hallName}</span> : null}
+                <span>{t("pages.tablesreportpage.otchet_po_stolam")}</span>
+                <h3>{t("pages.tablesreportpage.stol")}{selectedTable.tableNumber}</h3>
+                {selectedTable.hallName ? <span>{t("pages.tablesreportpage.zal_2")} {selectedTable.hallName}</span> : null}
               </div>
-              <button type="button" ref={drawerCloseRef} onClick={closeTableOrders} aria-label="Закрыть"><Icon name="bi-x-lg" size={18} /></button>
+              <button type="button" ref={drawerCloseRef} onClick={closeTableOrders} aria-label={t("pages.tablesreportpage.zakryt")}><Icon name="bi-x-lg" size={18} /></button>
             </div>
             {selectedTable.orders.map((order) => {
               const expanded = expandedOrder === order.id;
@@ -496,40 +497,40 @@ export default function TablesReportPage() {
               return (
                 <div key={order.id} className="order-details-drawer__dishes">
                   <div className="order-details-drawer__order-title">
-                    <span>Заказ №{order.number}</span>
+                    <span>{t("pages.tablesreportpage.zakaz")}{order.number}</span>
                   </div>
                   <div className="order-details-drawer__grid">
-                    <div><span>Дата</span><strong>{formatTableDateTime(order.date)}</strong></div>
-                    <div><span>Официант</span><strong>{order.waiter || "—"}</strong></div>
-                    <div><span>Тип заказа</span><strong>{ORDER_TYPE_LABELS[order.type] || order.type || "—"}</strong></div>
-                    <div><span>Статус</span><strong>{ORDER_STATUS_LABELS[order.status] || order.status || "—"}</strong></div>
-                    <div><span>Сумма</span><strong>{formatMoney(order.amount)}</strong></div>
+                    <div><span>{t("pages.tablesreportpage.data")}</span><strong>{formatTableDateTime(order.date)}</strong></div>
+                    <div><span>{t("pages.tablesreportpage.ofitsiant")}</span><strong>{order.waiter || "—"}</strong></div>
+                    <div><span>{t("pages.tablesreportpage.tip_zakaza")}</span><strong>{ORDER_TYPE_LABELS[order.type] || order.type || "—"}</strong></div>
+                    <div><span>{t("pages.tablesreportpage.status")}</span><strong>{ORDER_STATUS_LABELS[order.status] || order.status || "—"}</strong></div>
+                    <div><span>{t("pages.tablesreportpage.summa")}</span><strong>{formatMoney(order.amount)}</strong></div>
                   </div>
                   {expanded ? null : (
                     <>
                       {/* Подытог виден в свёрнутой карточке — до кнопки «Подробнее» */}
                       <div className="order-details-drawer__totals">
-                        <div><span>Подытог</span><strong>{formatMoney(order.subtotal)}</strong></div>
+                        <div><span>{t("pages.tablesreportpage.podytog")}</span><strong>{formatMoney(order.subtotal)}</strong></div>
                       </div>
                       <button
                         type="button"
                         className="order-details-drawer__more"
                         onClick={() => toggleOrderDetail(selectedTable, order.id)}
                       >
-                        Подробнее
+                       {t("pages.tablesreportpage.podrobnee")}
                       </button>
                     </>
                   )}
                   {expanded ? (
                     <div className="order-details-drawer__detail">
                       {!detail ? (
-                        <div role="status">Загрузка деталей заказа…</div>
+                        <div role="status">{t("pages.tablesreportpage.zagruzka_detaley_zakaza")}</div>
                       ) : detail.error ? (
-                        <div role="alert">Не удалось загрузить детали заказа.</div>
+                        <div role="alert">{t("pages.tablesreportpage.ne_udalos_zagruzit_detali_zakaza")}</div>
                       ) : (
                         <>
                           <table className="order-details-drawer__items" aria-label={`Позиции заказа №${order.number}`}>
-                            <thead><tr><th>Название</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead>
+                            <thead><tr><th>{t("pages.tablesreportpage.nazvanie")}</th><th>{t("pages.tablesreportpage.kol_vo")}</th><th>{t("pages.tablesreportpage.tsena")}</th><th>{t("pages.tablesreportpage.summa")}</th></tr></thead>
                             <tbody>
                               {(detail.data.order.items || []).map((item, index) => (
                                 <tr key={`${item.product_id || index}`}>
@@ -542,24 +543,24 @@ export default function TablesReportPage() {
                             </tbody>
                           </table>
                           <div className="order-details-drawer__totals">
-                            <div><span>Подытог</span><strong>{formatMoney(detail.data.order.subtotal)}</strong></div>
+                            <div><span>{t("pages.tablesreportpage.podytog")}</span><strong>{formatMoney(detail.data.order.subtotal)}</strong></div>
                             {/* Скидку показываем только когда она есть (не 0) */}
                             {Number(detail.data.order.discount_amount) > 0 ? (
-                              <div><span>Скидка</span><strong>{formatMoney(detail.data.order.discount_amount)}</strong></div>
+                              <div><span>{t("pages.tablesreportpage.skidka")}</span><strong>{formatMoney(detail.data.order.discount_amount)}</strong></div>
                             ) : null}
                             {/* Налог скрыт полностью по требованию */}
-                            <div><span>Обслуживание</span><strong>{formatMoney(detail.data.order.service_fee)}</strong></div>
-                            <div><span>Итого</span><strong>{formatMoney(detail.data.order.total_amount)}</strong></div>
+                            <div><span>{t("pages.tablesreportpage.obsluzhivanie")}</span><strong>{formatMoney(detail.data.order.service_fee)}</strong></div>
+                            <div><span>{t("pages.tablesreportpage.itogo")}</span><strong>{formatMoney(detail.data.order.total_amount)}</strong></div>
                           </div>
                           <div className="order-details-drawer__payments">
-                            <span>Оплата</span>
+                            <span>{t("pages.tablesreportpage.oplata")}</span>
                             {(detail.data.payments || []).length ? (detail.data.payments || []).map((payment, index) => (
                               <div key={payment.id || index}>
                                 <span>{payment.method}</span>
                                 <strong>{formatMoney(payment.amount)}</strong>
                                 <span>{payment.status}</span>
                               </div>
-                            )) : <div>Платежи не найдены.</div>}
+                            )) : <div>{t("pages.tablesreportpage.platezhi_ne_naydeny")}</div>}
                           </div>
                         </>
                       )}

@@ -5,6 +5,7 @@ import { hqService } from "./hqService";
 import { normalizePaginatedList } from "../api/normalizers";
 
 import { keepWheelInsideScroller } from "./AdminShared";
+import { t } from "../i18n/t";
 
 const adminHandbookActiveKind = {
   "hb-countries": "countries",
@@ -89,8 +90,8 @@ export function TruthfulHandbookLocationPage({ active, search }) {
     <section className={`admin-handbook-page admin-handbook-page--${kind}`}>
       <div className="admin-handbook-card">
         <div className="admin-handbook-head"><div className="admin-handbook-title"><span aria-hidden="true" /><h2>{config.title}</h2></div></div>
-        {loadState === "loading" ? <div className="admin-data-state" role="status">Загрузка справочника...</div> : null}
-        {loadState === "error" ? <div className="admin-data-state" role="alert">Не удалось загрузить справочник.</div> : null}
+        {loadState === "loading" ? <div className="admin-data-state" role="status">{t("admin.adminhandbook.zagruzka_spravochnika")}</div> : null}
+        {loadState === "error" ? <div className="admin-data-state" role="alert">{t("admin.adminhandbook.ne_udalos_zagruzit_spravochnik")}</div> : null}
         {loadState === "success" ? <div className="admin-handbook-table-wrap" onWheelCapture={keepWheelInsideScroller}>
           <table className={`admin-handbook-table admin-handbook-table--${kind}`}>
             <thead><tr>{config.columns.map((column) => <th key={column}>{column}</th>)}</tr></thead>

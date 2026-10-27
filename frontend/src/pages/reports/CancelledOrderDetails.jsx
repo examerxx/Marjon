@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { isCancellationAcknowledged, useCancellationAcknowledgements } from "../../hooks/useCancellationAcknowledgements";
 import { formatMoney } from "./reportMoney";
+import { t } from "../../i18n/t";
 import "./cancelledOrderDetails.css";
 
 const orderTypes = { dine_in: "На месте", takeaway: "На вынос", delivery: "Доставка", qr: "QR" };
@@ -27,7 +28,7 @@ export default function CancelledOrderDetails({ order }) {
   }, [order.id]);
   return <section className="cancelled-report-page cancelled-order-details owner-report-view">
     <article className="cancelled-report-card owner-report-surface">
-      <header className="owner-report-header"><div className="owner-report-heading"><span className="report-accent-bar" aria-hidden="true" /><div><span className="owner-report-kicker">Отчёты / Отменённые блюда</span><h1 ref={heading} tabIndex={-1}>Заказ №{order.orderNumber}</h1></div></div>
+      <header className="owner-report-header"><div className="owner-report-heading"><span className="report-accent-bar" aria-hidden="true" /><div><span className="owner-report-kicker">{t("pages.reports.cancelledorderdetails.otchety_otmenennye_blyuda")}</span><h1 ref={heading} tabIndex={-1}>{t("pages.reports.cancelledorderdetails.zakaz")}{order.orderNumber}</h1></div></div>
         <button type="button" className="cancelled-order-ack" onClick={handleAcknowledge} disabled={!order.orderId || saving || acknowledged}>{saving ? "Сохранение…" : acknowledged ? "Ознакомлен ✓" : "Ознакомлен"}</button>
       </header>
       {error ? <div role="alert" className="login-error">{error}</div> : null}
@@ -39,7 +40,7 @@ export default function CancelledOrderDetails({ order }) {
             <td>{item.tableNumber ?? "—"}</td><td>{item.quantity}</td><td>{item.authorName ?? "—"}</td>
             <td>{orderTypes[item.orderType] || item.orderType || "—"}</td><td>{item.amount == null ? "—" : formatMoney(item.amount)}</td>
           </tr>)}</tbody>
-          <tfoot><tr><td colSpan={7}>Итого</td><td>{order.amount == null ? "—" : formatMoney(order.amount)}</td></tr></tfoot>
+          <tfoot><tr><td colSpan={7}>{t("pages.reports.cancelledorderdetails.itogo")}</td><td>{order.amount == null ? "—" : formatMoney(order.amount)}</td></tr></tfoot>
         </table>
       </div>
     </article>

@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import Icon from "./Icon";
 import { webCalendarToday } from "../utils/webTime";
+import { t } from "../i18n/t";
 
 const datePresets = [
   "Сегодня",
@@ -38,12 +39,12 @@ function formatShortDate(value) {
   }
 
   const date = parseDate(value);
-  return `${date.getDate()} ${shortMonths[date.getMonth()]} ${date.getFullYear()}`;
+  return `${date.getDate()} ${t(shortMonths[date.getMonth()])} ${date.getFullYear()}`;
 }
 
 function formatPeriodLabel(range = {}) {
   if (!range.start || !range.end) {
-    return "Выберите дату";
+    return t("date_picker.select_date");
   }
 
   return `${formatShortDate(range.start)} - ${formatShortDate(range.end)}`;
@@ -161,7 +162,7 @@ const canonicalDatePresets = [
 ];
 
 export function formatCanonicalReportPeriodLabel(range = {}) {
-  if (!range.start || !range.end) return "Выберите дату";
+  if (!range.start || !range.end) return t("date_picker.select_date");
   return range.start === range.end ? range.start : `${range.start} – ${range.end}`;
 }
 
@@ -284,7 +285,9 @@ export default function ReportDateRangePicker({
   const effectiveBlockPageScrollOnWheel = canonical || blockPageScrollOnWheel;
   const effectiveTrailingIconName = canonical ? "bi-calendar3" : trailingIconName;
   const effectiveTrailingIconSize = canonical ? 16 : trailingIconSize;
-  const effectiveDateFieldLabels = canonical ? { start: "Дата с", end: "Дата по" } : dateFieldLabels;
+  const effectiveDateFieldLabels = canonical
+    ? { start: t("date_picker.date_from"), end: t("date_picker.date_to") }
+    : dateFieldLabels;
   const effectiveValidateRange = validateRange || (canonical ? validateCanonicalReportPeriod : undefined);
   const effectiveEnableEscapeClose = canonical || enableEscapeClose;
   const effectiveRestoreFocusOnApply = canonical || restoreFocusOnApply;
@@ -715,15 +718,15 @@ export default function ReportDateRangePicker({
           <div className="report-date-presets">
             {presetOptions.map((preset) => (
               <button className={draft.preset === preset.label ? "is-active" : ""} type="button" key={preset.value || preset.label} onClick={() => selectPreset(preset)}>
-                {preset.label}
+                {t(preset.label)}
               </button>
             ))}
           </div>
           <div className={`report-date-range${effectiveDateFieldLabels ? " report-date-range--labeled" : ""}`}>
-            {effectiveDateFieldLabels ? <label className={`report-date-field${activePicker === "start" ? " is-active" : ""}`}><span>{effectiveDateFieldLabels.start}</span>{renderDateInput("start", "Начало периода")}</label> : renderDateInput("start", "Начало периода")}
+            {effectiveDateFieldLabels ? <label className={`report-date-field${activePicker === "start" ? " is-active" : ""}`}><span>{effectiveDateFieldLabels.start}</span>{renderDateInput("start", t("date_picker.period_start"))}</label> : renderDateInput("start", t("date_picker.period_start"))}
             <span>-</span>
-            {effectiveDateFieldLabels ? <label className={`report-date-field${activePicker === "end" ? " is-active" : ""}`}><span>{effectiveDateFieldLabels.end}</span>{renderDateInput("end", "Конец периода")}</label> : renderDateInput("end", "Конец периода")}
-            {showMenuOk ? <button ref={menuOkRef} className="report-date-ok" type="button" onClick={applyDraft}>ОК</button> : null}
+            {effectiveDateFieldLabels ? <label className={`report-date-field${activePicker === "end" ? " is-active" : ""}`}><span>{effectiveDateFieldLabels.end}</span>{renderDateInput("end", t("date_picker.period_end"))}</label> : renderDateInput("end", t("date_picker.period_end"))}
+            {showMenuOk ? <button ref={menuOkRef} className="report-date-ok" type="button" onClick={applyDraft}>{t("components.reportdaterangepicker.ok")}</button> : null}
           </div>
           {validationError ? <div className="report-date-error" role="alert">{validationError}</div> : null}
           {activePicker || effectiveCollapseCalendarOnOk ? (
@@ -741,12 +744,12 @@ export default function ReportDateRangePicker({
               <div className={`report-date-picker-body ${effectiveShowTime ? "" : "report-date-picker-body--date-only"}`.trim()}>
                 <div className="report-date-calendar-panel">
                   <div className="report-date-calendar-toolbar" ref={calendarToolbarRef}>
-                    <button type="button" onClick={() => { setOpenCalendarSelect(null); setCalendarView(new Date(calendarView.getFullYear(), calendarView.getMonth() - 1, 1)); }} aria-label="Предыдущий месяц">
+                    <button type="button" onClick={() => { setOpenCalendarSelect(null); setCalendarView(new Date(calendarView.getFullYear(), calendarView.getMonth() - 1, 1)); }} aria-label={t("components.reportdaterangepicker.predyduschiy_mesyats")}>
                       <Icon name="bi-chevron-left" size={17} />
                     </button>
                     {effectiveUseCustomCalendarSelects ? (
                       <CalendarToolbarSelect
-                        label="Год"
+                        label={t("components.reportdaterangepicker.god")}
                         value={calendarView.getFullYear()}
                         options={calendarYearSelectOptions}
                         open={openCalendarSelect === "year"}
@@ -757,13 +760,13 @@ export default function ReportDateRangePicker({
                         onListKeyDown={(event) => handleCalendarSelectKeyDown(event, "year")}
                       />
                     ) : (
-                      <select value={calendarView.getFullYear()} onChange={(event) => updateCalendarYear(event.target.value)} aria-label="Год">
+                      <select value={calendarView.getFullYear()} onChange={(event) => updateCalendarYear(event.target.value)} aria-label={t("components.reportdaterangepicker.god")}>
                         {yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
                       </select>
                     )}
                     {effectiveUseCustomCalendarSelects ? (
                       <CalendarToolbarSelect
-                        label="Месяц"
+                        label={t("components.reportdaterangepicker.mesyats")}
                         value={calendarView.getMonth()}
                         options={calendarMonthSelectOptions}
                         open={openCalendarSelect === "month"}
@@ -774,16 +777,16 @@ export default function ReportDateRangePicker({
                         onListKeyDown={(event) => handleCalendarSelectKeyDown(event, "month")}
                       />
                     ) : (
-                      <select value={calendarView.getMonth()} onChange={(event) => updateCalendarMonth(event.target.value)} aria-label="Месяц">
-                        {monthNames.map((month, index) => <option key={month} value={index}>{month}</option>)}
+                      <select value={calendarView.getMonth()} onChange={(event) => updateCalendarMonth(event.target.value)} aria-label={t("components.reportdaterangepicker.mesyats")}>
+                        {monthNames.map((month, index) => <option key={month} value={index}>{t(month)}</option>)}
                       </select>
                     )}
-                    <button type="button" onClick={() => { setOpenCalendarSelect(null); setCalendarView(new Date(calendarView.getFullYear(), calendarView.getMonth() + 1, 1)); }} aria-label="Следующий месяц">
+                    <button type="button" onClick={() => { setOpenCalendarSelect(null); setCalendarView(new Date(calendarView.getFullYear(), calendarView.getMonth() + 1, 1)); }} aria-label={t("components.reportdaterangepicker.sleduyuschiy_mesyats")}>
                       <Icon name="bi-chevron-right" size={17} />
                     </button>
                   </div>
                   <div className="report-date-calendar-week">
-                    {weekDays.map((day) => <span key={day}>{day}</span>)}
+                    {weekDays.map((day) => <span key={day}>{t(day)}</span>)}
                   </div>
                   <div className="report-date-calendar-grid">
                     {calendarDays(calendarView).map((day) => {
@@ -826,11 +829,11 @@ export default function ReportDateRangePicker({
                 {effectiveShowTime ? <div className="report-date-time-panel">
                   <div className="report-date-time-title">
                     <Icon name="bi-clock" size={18} />
-                    <span>Время</span>
+                    <span>{t("components.reportdaterangepicker.vremya")}</span>
                   </div>
                   <div className="report-date-time-columns">
                     <div className="report-date-time-column">
-                      <span className="report-date-time-column-label">Часы</span>
+                      <span className="report-date-time-column-label">{t("components.reportdaterangepicker.chasy")}</span>
                       <div className="report-date-time-list" ref={hourListRef}>
                         {hourOptions.map((hour) => (
                           <button
@@ -846,7 +849,7 @@ export default function ReportDateRangePicker({
                       </div>
                     </div>
                     <div className="report-date-time-column">
-                      <span className="report-date-time-column-label">Минуты</span>
+                      <span className="report-date-time-column-label">{t("components.reportdaterangepicker.minuty")}</span>
                       <div className="report-date-time-list" ref={minuteListRef}>
                         {minuteOptions.map((minute) => (
                           <button
@@ -867,9 +870,9 @@ export default function ReportDateRangePicker({
               <div className="report-date-calendar-footer">
                 <button className="report-date-today-button" type="button" onClick={selectToday}>
                   <Icon name="bi-calendar3" size={17} />
-                  <span>Сегодня</span>
+                  <span>{t("components.reportdaterangepicker.segodnya")}</span>
                 </button>
-                <button className="report-date-calendar-ok" type="button" onClick={handleCalendarOk}>ОК</button>
+                <button className="report-date-calendar-ok" type="button" onClick={handleCalendarOk}>{t("components.reportdaterangepicker.ok")}</button>
               </div>
             </div>
               </div>

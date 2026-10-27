@@ -6,6 +6,7 @@ import { catalogService } from "../../api/catalog";
 import Icon from "../../components/Icon";
 import DishSingleSelect from "../nomenclature/DishSingleSelect";
 import Toast from "../../components/Toast";
+import { t } from "../../i18n/t";
 
 // Инвентаризация — модалка «Создать» (V42): структура как на референсе
 // (склад + комментарий, фильтры тип/категория/поиск, слева таблица,
@@ -60,9 +61,9 @@ function formatSaveError(err) {
     });
     return parts.join("; ");
   }
-  if (err?.request && !err?.response) return "Нет связи с сервером. Проверьте подключение.";
-  if (status) return `Не удалось сохранить инвентаризацию (код ${status}).`;
-  return "Не удалось сохранить инвентаризацию.";
+  if (err?.request && !err?.response) return t("pages.warehouse.inventorymodal.error.connection");
+  if (status) return t("pages.warehouse.inventorymodal.error.save_status", { status });
+  return t("pages.warehouse.inventorymodal.error.save_generic");
 }
 
 export default function InventoryModal({ onClose, onSaved }) {
@@ -252,7 +253,7 @@ export default function InventoryModal({ onClose, onSaved }) {
       setLoading(false);
     }).catch(() => {
       if (cancelled) return;
-      setLoadError("Не удалось загрузить остатки.");
+      setLoadError(t("pages.warehouse.inventorymodal.error.load_stock"));
       setLoading(false);
     });
     return () => { cancelled = true; };
@@ -328,7 +329,7 @@ export default function InventoryModal({ onClose, onSaved }) {
   const handleSave = async () => {
     if (saving) return;
     if (!warehouseId) {
-      setSaveError("Выберите склад.");
+      setSaveError(t("pages.warehouse.inventorymodal.error.select_warehouse"));
       return;
     }
     const items = [];
@@ -341,7 +342,7 @@ export default function InventoryModal({ onClose, onSaved }) {
       if (item.ingredient_id || item.product_id) items.push(item);
     });
     if (!items.length) {
-      setSaveError("Введите фактическое количество хотя бы для одной позиции.");
+      setSaveError(t("pages.warehouse.inventorymodal.error.no_items"));
       return;
     }
     setSaving(true);
@@ -376,8 +377,8 @@ export default function InventoryModal({ onClose, onSaved }) {
         >
           <header className="settings-form__header wh-inv-modal__header">
             <div>
-              <p>Склад</p>
-              <h2 id="inventory-modal-title">Создать инвентаризацию</h2>
+              <p>{t("pages.warehouse.inventorymodal.sklad")}</p>
+              <h2 id="inventory-modal-title">{t("pages.warehouse.inventorymodal.sozdat_inventarizatsiyu")}</h2>
             </div>
             <div className="wh-inv-top-actions">
               <button
@@ -386,7 +387,7 @@ export default function InventoryModal({ onClose, onSaved }) {
                 onClick={requestClose}
                 disabled={saving}
               >
-                Выйти
+               {t("pages.warehouse.inventorymodal.vyyti")}
               </button>
               <button
                 type="button"
@@ -394,74 +395,74 @@ export default function InventoryModal({ onClose, onSaved }) {
                 onClick={handleSave}
                 disabled={saving || loading}
               >
-                {saving ? "Сохранение…" : "Сохранить"}
+                {saving ? t("staff.saving") : t("common.save")}
               </button>
             </div>
           </header>
           <div className="settings-form__body">
             <div className="wh-inv-top">
               <div className="wh-inv-field">
-                <span className="wh-create-field__label" aria-hidden="true">Склад *</span>
+                <span className="wh-create-field__label" aria-hidden="true">{t("pages.warehouse.inventorymodal.sklad_2")}</span>
                 <DishSingleSelect
-                  label="Склад инвентаризации"
-                  placeholder="Выберите склад *"
+                  label={t("pages.warehouse.inventorymodal.sklad_inventarizatsii")}
+                  placeholder={t("pages.warehouse.inventorymodal.vyberite_sklad")}
                   options={warehouseOptions}
                   value={warehouseOptions.some((o) => o.value === warehouseId) ? warehouseId : ""}
                   onChange={(next) => setWarehouseId(next || "")}
                   disabled={warehouseOptions.length === 0}
-                  disabledLabel="Склады недоступны"
+                  disabledLabel={t("common.warehouses_unavailable")}
                 />
               </div>
               <div className="wh-inv-field">
-                <span className="wh-create-field__label" aria-hidden="true">Тип</span>
+                <span className="wh-create-field__label" aria-hidden="true">{t("pages.warehouse.inventorymodal.tip")}</span>
                 <DishSingleSelect
-                  label="Тип позиций"
-                  placeholder="Выберите тип"
+                  label={t("pages.warehouse.inventorymodal.tip_pozitsiy")}
+                  placeholder={t("pages.warehouse.inventorymodal.vyberite_tip")}
                   options={[
-                    { value: "Продукт", label: "Продукт" },
-                    { value: "Товар", label: "Товар" },
+                    { value: "Продукт", label: t("pages.warehouse.inventorymodal.produkt") },
+                    { value: "Товар", label: t("pages.warehouse.inventorymodal.tovar") },
                   ]}
                   value={typeFilter}
                   onChange={(next) => setTypeFilter(next || "")}
                 />
               </div>
               <div className="wh-inv-field">
-                <span className="wh-create-field__label" aria-hidden="true">Категория</span>
+                <span className="wh-create-field__label" aria-hidden="true">{t("pages.warehouse.inventorymodal.kategoriya")}</span>
                 <DishSingleSelect
-                  label="Категория позиций"
-                  placeholder="Категория"
+                  label={t("pages.warehouse.inventorymodal.kategoriya_pozitsiy")}
+                  placeholder={t("pages.warehouse.inventorymodal.kategoriya")}
                   options={categoryOptions.map((name) => ({ value: name, label: name }))}
                   value={categoryOptions.includes(categoryFilter) ? categoryFilter : ""}
                   onChange={(next) => setCategoryFilter(next || "")}
                   disabled={categoryOptions.length === 0}
-                  disabledLabel="Категории недоступны"
+                  disabledLabel={t("common.categories_unavailable")}
                 />
               </div>
               <div className="wh-inv-field">
-                <span className="wh-create-field__label" aria-hidden="true">Поиск</span>
+                <span className="wh-create-field__label" aria-hidden="true">{t("pages.warehouse.inventorymodal.poisk")}</span>
                 <label className="report-filter-input">
                   <Icon name="bi-search" size={17} />
                   <input
-                    aria-label="Поиск позиций"
+                    aria-label={t("pages.warehouse.inventorymodal.poisk_pozitsiy")}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Поиск"
+                    placeholder={t("pages.warehouse.inventorymodal.poisk")}
                   />
                 </label>
               </div>
             </div>
             <div className="wh-inv-filters">
               <label className="wh-inv-field wh-inv-field--comment">
-                <span className="wh-create-field__label" aria-hidden="true">Комментарий</span>
+                <span className="wh-create-field__label" aria-hidden="true">{t("pages.warehouse.inventorymodal.kommentariy")}</span>
                 <input
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder="Комментарий"
-                  aria-label="Комментарий"
+                  placeholder={t("pages.warehouse.inventorymodal.kommentariy")}
+                  aria-label={t("pages.warehouse.inventorymodal.kommentariy")}
                 />
               </label>
               <button type="button" className="report-filter-clear" onClick={clearInvFilters}>
-                <Icon name="bi-x-circle" size={17} /> Очистить
+                <Icon name="bi-x-circle" size={17} /> {t("pages.warehouse.inventorymodal.ochistit")}
               </button>
             </div>
             {/* Загрузочный текст не показываем: данные долетают за миг,
@@ -472,14 +473,14 @@ export default function InventoryModal({ onClose, onSaved }) {
             ) : (warehouseId || shownWhId) ? (
               <div className={`wh-inv-panels${panelsClosing ? " is-closing" : ""}`} key={shownWhId || warehouseId}>
                 <div className="wh-inv-stock">
-                  <table className="settings-table dish-grid-table wh-create-table wh-inv-table" aria-label="Остатки для инвентаризации">
+                  <table className="settings-table dish-grid-table wh-create-table wh-inv-table" aria-label={t("pages.warehouse.inventorymodal.ostatki_dlya_inventarizatsii")}>
                     <thead>
                       <tr>
-                        <th>Категория</th>
-                        <th>Названия</th>
-                        <th>Тип</th>
-                        <th>Остаток</th>
-                        <th>Текущее кол-во</th>
+                        <th>{t("pages.warehouse.inventorymodal.kategoriya")}</th>
+                        <th>{t("pages.warehouse.inventorymodal.nazvaniya")}</th>
+                        <th>{t("pages.warehouse.inventorymodal.tip")}</th>
+                        <th>{t("pages.warehouse.inventorymodal.ostatok")}</th>
+                        <th>{t("pages.warehouse.inventorymodal.tekuschee_kol_vo")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -498,7 +499,7 @@ export default function InventoryModal({ onClose, onSaved }) {
                                 placeholder="0"
                                 onChange={(e) => setFactMap((cur) => ({ ...cur, [r.key]: e.target.value }))}
                                 onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
-                                aria-label={`Факт ${r.name}`}
+                                aria-label={t("pages.warehouse.inventorymodal.fact_aria", { name: r.name })}
                               />
                               <span>{r.unit}</span>
                             </label>
@@ -506,17 +507,17 @@ export default function InventoryModal({ onClose, onSaved }) {
                         </tr>
                       ))}
                       {!visibleRows.length ? (
-                        <tr><td colSpan={5} className="warehouse-empty-cell">По фильтру ничего не найдено.</td></tr>
+                        <tr><td colSpan={5} className="warehouse-empty-cell">{t("pages.warehouse.inventorymodal.po_filtru_nichego_ne_naydeno")}</td></tr>
                       ) : null}
                     </tbody>
                   </table>
                 </div>
                 <div className="wh-inv-corr">
-                  <table className="settings-table dish-grid-table wh-create-table" aria-label="Корректировка">
+                  <table className="settings-table dish-grid-table wh-create-table" aria-label={t("pages.warehouse.inventorymodal.korrektirovka")}>
                     <thead>
                       <tr>
-                        <th>Название</th>
-                        <th>Корректировка</th>
+                        <th>{t("pages.warehouse.inventorymodal.nazvanie")}</th>
+                        <th>{t("pages.warehouse.inventorymodal.korrektirovka")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -529,7 +530,7 @@ export default function InventoryModal({ onClose, onSaved }) {
                         </tr>
                       ))}
                       {!corrections.length ? (
-                        <tr className="wh-inv-corr-empty"><td colSpan={2} className="warehouse-empty-cell">Список пуст</td></tr>
+                        <tr className="wh-inv-corr-empty"><td colSpan={2} className="warehouse-empty-cell">{t("pages.warehouse.inventorymodal.spisok_pust")}</td></tr>
                       ) : null}
                     </tbody>
                   </table>

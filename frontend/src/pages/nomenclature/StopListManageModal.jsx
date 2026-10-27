@@ -11,6 +11,7 @@ import { createPortal } from "react-dom";
 import Icon from "../../components/Icon";
 import { formatQuantity } from "./stopListFormat";
 import { historyView } from "./stopListHistory";
+import { t as tr } from "../../i18n/t";
 
 function HistoryText({ row }) {
   const view = historyView(row.recentTopups, { allowance: row.allowance, resetSeq: row.historyResetSeq });
@@ -120,15 +121,15 @@ export default function StopListManageModal({
           <header className="settings-form__header">
             <span className="settings-accent-bar" aria-hidden="true" />
             <div>
-              <p>Меню</p>
-              <h2 id="stoplist-manage-title">Управление лимитами</h2>
+              <p>{tr("pages.nomenclature.stoplistmanagemodal.menyu")}</p>
+              <h2 id="stoplist-manage-title">{tr("pages.nomenclature.stoplistmanagemodal.upravlenie_limitami")}</h2>
             </div>
             <button
               ref={closeRef}
               type="button"
               disabled={busy}
               onClick={onClose}
-              aria-label="Закрыть управление лимитами"
+              aria-label={tr("pages.nomenclature.stoplistmanagemodal.zakryt_upravlenie_limitami")}
             >
               <Icon name="bi-x-lg" size={20} />
             </button>
@@ -139,7 +140,7 @@ export default function StopListManageModal({
           <div className="stoplist-manage-block" data-block="remainder">
             <div className="stoplist-manage-row">
               <div className="stoplist-manage-info">
-                <span className="stoplist-manage-label">Остаток</span>
+                <span className="stoplist-manage-label">{tr("pages.nomenclature.stoplistmanagemodal.ostatok")}</span>
                 <span
                   className={`stoplist-manage-value${doneFlash === "remainder" ? " is-fresh" : ""}`}
                   title={row.remainderHint || undefined}
@@ -163,7 +164,7 @@ export default function StopListManageModal({
           <div className="stoplist-manage-block" data-block="history">
             <div className="stoplist-manage-row">
               <div className="stoplist-manage-info">
-                <span className="stoplist-manage-label">Предыдущий лимит</span>
+                <span className="stoplist-manage-label">{tr("pages.nomenclature.stoplistmanagemodal.predyduschiy_limit")}</span>
                 <span className={`stoplist-manage-value${doneFlash === "history" ? " is-fresh" : ""}`}>
                   <HistoryText row={row} />
                 </span>
@@ -183,7 +184,7 @@ export default function StopListManageModal({
 
           <footer className="settings-form__footer stoplist-manage-footer">
             <button type="button" disabled={busy} onClick={onClose}>
-              Закрыть
+             {tr("pages.nomenclature.stoplistmanagemodal.zakryt")}
             </button>
           </footer>
         </section>

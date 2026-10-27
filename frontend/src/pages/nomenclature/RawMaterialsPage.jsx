@@ -9,6 +9,7 @@ import ReportEmptyState from "../../components/ReportEmptyState";
 import DishSingleSelect from "./DishSingleSelect";
 import RawIngredientDishesDialog, { IngredientDishesBadge } from "./RawIngredientDishesDialog";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../../hooks/useAsyncSafety";
+import { t } from "../../i18n/t";
 import "../../styles/owner/raw-materials.css";
 
 // Ед.изм — ТОЛЬКО живой справочник Настройки → Единицы (GET /units),
@@ -140,7 +141,7 @@ export default function RawMaterialsPage() {
     } catch (err) {
       if (!request.isCurrent() || isAbortError(err)) return;
       setRows([]);
-      setError(err.response?.data?.detail || "Не удалось загрузить продукты.");
+      setError(err.response?.data?.detail || t("pages.nomenclature.rawmaterialspage.error.load_products"));
     } finally {
       if (request.isCurrent()) setLoading(false);
     }
@@ -193,7 +194,7 @@ export default function RawMaterialsPage() {
       .catch((err) => {
         if (!request.isCurrent() || isAbortError(err)) return;
         setProducts([]);
-        setProductsError(err.response?.data?.detail || "Не удалось загрузить блюда.");
+        setProductsError(err.response?.data?.detail || t("pages.nomenclature.rawmaterialspage.error.load_dishes"));
       });
   }, [beginProductsRequest]);
 
@@ -320,11 +321,11 @@ export default function RawMaterialsPage() {
   async function save(event) {
     event.preventDefault();
     if (!form.name.trim()) {
-      setActionError("Укажите название.");
+      setActionError(t("pages.nomenclature.rawmaterialspage.error.name_required"));
       return;
     }
     if (!String(form.unit || "").trim()) {
-      setActionError("Выберите единицу измерения.");
+      setActionError(t("pages.nomenclature.rawmaterialspage.error.unit_required"));
       return;
     }
     // Нормы остатка — справочные: пустое поле сохраняется как NULL, а не
@@ -338,12 +339,12 @@ export default function RawMaterialsPage() {
     };
     const avgNorm = parseNorm(form.avg_quantity);
     if (avgNorm.invalid) {
-      setActionError("Среднее количество — неотрицательное число.");
+      setActionError(t("pages.nomenclature.rawmaterialspage.error.avg_invalid"));
       return;
     }
     const deficitNorm = parseNorm(form.deficit_threshold);
     if (deficitNorm.invalid) {
-      setActionError("Порог дефицита — неотрицательное число.");
+      setActionError(t("pages.nomenclature.rawmaterialspage.error.deficit_invalid"));
       return;
     }
     if (!acquire("ingredient-save")) return;
@@ -356,12 +357,12 @@ export default function RawMaterialsPage() {
     if (rawLoss !== "") {
       const parsed = Number(rawLoss);
       if (!Number.isFinite(parsed) || parsed < 0) {
-        setActionError("Значение потери — неотрицательное число.");
+        setActionError(t("pages.nomenclature.rawmaterialspage.error.loss_value_invalid"));
         release("ingredient-save");
         return;
       }
       if ((lossType || "") === "percent" && parsed > 100) {
-        setActionError("Процент потери — от 0 до 100.");
+        setActionError(t("pages.nomenclature.rawmaterialspage.error.loss_percent_invalid"));
         release("ingredient-save");
         return;
       }
@@ -371,7 +372,7 @@ export default function RawMaterialsPage() {
     // (тип, значение), а «0.3» само по себе не говорит, проценты это или кг.
     // Пустое значение при выбранном типе — наоборот, законное «нормы нет».
     if (lossValue !== null && !lossType) {
-      setActionError("Выберите тип потери.");
+      setActionError(t("pages.nomenclature.rawmaterialspage.error.loss_type_required"));
       release("ingredient-save");
       return;
     }
@@ -409,7 +410,7 @@ export default function RawMaterialsPage() {
       }
       ok = true;
     } catch (err) {
-      setActionError(err.response?.data?.detail || err.message || "Не удалось сохранить ингредиент.");
+      setActionError(err.response?.data?.detail || err.message || t("pages.nomenclature.rawmaterialspage.error.save_generic"));
     } finally {
       setSaving(false);
       release("ingredient-save");
@@ -428,7 +429,7 @@ export default function RawMaterialsPage() {
         : await nomenclatureService.restoreIngredient(row.id);
       setRows((cur) => cur.map((r) => (r.id === row.id ? { ...r, ...(data || { is_active: !archiving }) } : r)));
     } catch (err) {
-      setActionError(err.response?.data?.detail || "Не удалось изменить статус ингредиента.");
+      setActionError(err.response?.data?.detail || t("pages.nomenclature.rawmaterialspage.error.toggle_status"));
     } finally {
       setBusyId(null);
       release(`ingredient-${row.id}`);
@@ -475,7 +476,7 @@ export default function RawMaterialsPage() {
   }
 
   const isEmpty = !loading && !error && visible.length === 0;
-  const emptyTitle = showArchived ? "Архив продуктов пуст." : "Продукты пока не добавлены.";
+  const emptyTitle = t(showArchived ? "pages.nomenclature.products_archive_empty" : "pages.nomenclature.products_empty");
 
   // Живые единицы + неслетаемое текущее значение (legacy free-text из
   // старых строк дописывается как неактивное — паттерн архивных
@@ -498,7 +499,7 @@ export default function RawMaterialsPage() {
   // Подпись и суффикс поля потери: «Количество» → «Потери» + ед. изм
   // («0.1 Лт»), «Процент» → суффикс «%» («10%»).
   // Без выбранного типа суффикса нет — появляется только после выбора типа.
-  const lossLabel = form.loss_type === "amount" ? "Потери" : form.loss_type === "percent" ? "Процент потери" : "Значение потери";
+  const lossLabel = form.loss_type === "amount" ? t("pages.nomenclature.rawmaterialspage.loss_label_amount") : form.loss_type === "percent" ? t("pages.nomenclature.rawmaterialspage.loss_label_percent") : t("pages.nomenclature.rawmaterialspage.loss_label_generic");
   const lossSuffix = form.loss_type === "percent" ? "%" : form.loss_type === "amount" ? form.unit : "";
   const lossValueText = form.loss_value === null || form.loss_value === undefined ? "" : String(form.loss_value);
 
@@ -515,12 +516,12 @@ export default function RawMaterialsPage() {
           <div className="settings-title-group">
             <span className="settings-accent-bar" aria-hidden="true" />
             <div>
-              <p>Склад</p>
-              <h1>Продукты</h1>
+              <p>{t("pages.nomenclature.rawmaterialspage.sklad")}</p>
+              <h1>{t("pages.nomenclature.rawmaterialspage.produkty")}</h1>
             </div>
           </div>
           <div className="settings-actions dish-header-actions">
-            <div className="dish-status-tabs" role="tablist" aria-label="Статус продуктов" ref={tabsRef}>
+            <div className="dish-status-tabs" role="tablist" aria-label={t("pages.nomenclature.rawmaterialspage.status_produktov")} ref={tabsRef}>
               <span
                 className="dish-status-tabs__indicator"
                 aria-hidden="true"
@@ -537,7 +538,7 @@ export default function RawMaterialsPage() {
                 className={showArchived ? "" : "is-active"}
                 onClick={() => setShowArchived(false)}
               >
-                Активные
+               {t("pages.nomenclature.rawmaterialspage.aktivnye")}
               </button>
               <button
                 type="button"
@@ -547,7 +548,7 @@ export default function RawMaterialsPage() {
                 className={showArchived ? "is-active" : ""}
                 onClick={() => setShowArchived(true)}
               >
-                Архивированные
+               {t("pages.nomenclature.rawmaterialspage.arhivirovannye")}
               </button>
             </div>
             <button
@@ -557,10 +558,10 @@ export default function RawMaterialsPage() {
               aria-controls="raw-materials-filters"
               onClick={() => setFiltersOpen((open) => !open)}
             >
-              <Icon name="bi-sliders" size={17} /> Фильтровать
+              <Icon name="bi-sliders" size={17} /> {t("pages.nomenclature.rawmaterialspage.filtrovat")}
             </button>
             <button type="button" className="dish-add-button" onClick={openCreate}>
-              <Icon name="bi-plus" size={18} /> Добавить
+              <Icon name="bi-plus" size={18} /> {t("pages.nomenclature.rawmaterialspage.dobavit")}
             </button>
           </div>
         </header>
@@ -569,31 +570,31 @@ export default function RawMaterialsPage() {
 
         <div className={`orders-filter-collapse dish-filter-collapse raw-filter-collapse${filtersOpen ? " is-open" : ""}`}>
           <div className="orders-filter-collapse__inner" inert={!filtersOpen ? true : undefined}>
-            <div className="report-filters-grid dish-filter-panel raw-filter-panel" id="raw-materials-filters" aria-label="Фильтры продуктов">
+            <div className="report-filters-grid dish-filter-panel raw-filter-panel" id="raw-materials-filters" aria-label={t("pages.nomenclature.rawmaterialspage.filtry_produktov")}>
               <label className="report-filter-input">
                 <Icon name="bi-search" size={17} />
                 <input
-                  aria-label="Поиск продуктов"
+                  aria-label={t("pages.nomenclature.rawmaterialspage.poisk_produktov")}
                   value={draftFilters.search}
                   onChange={(event) => setDraftFilters((prev) => ({ ...prev, search: event.target.value }))}
-                  placeholder="Поиск продуктов"
+                  placeholder={t("pages.nomenclature.rawmaterialspage.poisk_produktov")}
                 />
               </label>
               <DishSingleSelect
-                label="Категория продуктов"
-                placeholder="Выберите категорию"
+                label={t("pages.nomenclature.rawmaterialspage.kategoriya_produktov")}
+                placeholder={t("pages.nomenclature.rawmaterialspage.vyberite_kategoriyu")}
                 options={visibleCategoryOptions.map((name) => ({ value: name, label: name }))}
                 value={visibleCategoryOptions.includes(draftFilters.category) ? draftFilters.category : ""}
                 onChange={(next) => setDraftFilters((prev) => ({ ...prev, category: next || "" }))}
                 disabled={categoriesUnavailable && visibleCategoryOptions.length === 0}
-                disabledLabel="Категории недоступны"
+                disabledLabel={t("common.categories_unavailable")}
               />
               <div className="report-filter-buttons dish-filter-actions">
                 <button type="button" className="report-filter-apply" onClick={applyFilters}>
-                  <Icon name="bi-sliders" size={17} /> Фильтровать
+                  <Icon name="bi-sliders" size={17} /> {t("pages.nomenclature.rawmaterialspage.filtrovat")}
                 </button>
                 <button type="button" className="report-filter-clear" onClick={clearFilters}>
-                  <Icon name="bi-x-circle" size={17} /> Очистить
+                  <Icon name="bi-x-circle" size={17} /> {t("pages.nomenclature.rawmaterialspage.ochistit")}
                 </button>
               </div>
             </div>
@@ -604,23 +605,23 @@ export default function RawMaterialsPage() {
           <div className="login-error" role="alert">{error}</div>
         ) : (
           <div className={`settings-table-wrapper dish-grid-wrap raw-grid-wrap${isEmpty ? " is-empty" : ""}`}>
-            <div className="dish-grid-scroll" role="region" aria-label="Таблица продуктов с прокруткой" tabIndex={0}>
-              <table className="settings-table dish-grid-table raw-grid-table" aria-label="Продукты">
+            <div className="dish-grid-scroll" role="region" aria-label={t("pages.nomenclature.rawmaterialspage.tablitsa_produktov_s_prokrutkoy")} tabIndex={0}>
+              <table className="settings-table dish-grid-table raw-grid-table" aria-label={t("pages.nomenclature.rawmaterialspage.produkty")}>
                 <thead>
                   <tr>
                     <th className="raw-col-num">№</th>
-                    <th className="raw-col-name">Название</th>
-                    <th className="raw-col-category">Категория</th>
-                    <th className="raw-col-unit">Ед. изм</th>
-                    <th className="raw-col-dishes">Блюда</th>
-                    <th className="raw-col-loss">Потери</th>
-                    <th className="raw-col-status">Статус</th>
-                    <th className="raw-col-actions">Действия</th>
+                    <th className="raw-col-name">{t("pages.nomenclature.rawmaterialspage.nazvanie")}</th>
+                    <th className="raw-col-category">{t("pages.nomenclature.rawmaterialspage.kategoriya")}</th>
+                    <th className="raw-col-unit">{t("pages.nomenclature.rawmaterialspage.ed_izm")}</th>
+                    <th className="raw-col-dishes">{t("pages.nomenclature.rawmaterialspage.blyuda")}</th>
+                    <th className="raw-col-loss">{t("pages.nomenclature.rawmaterialspage.poteri")}</th>
+                    <th className="raw-col-status">{t("pages.nomenclature.rawmaterialspage.status")}</th>
+                    <th className="raw-col-actions">{t("pages.nomenclature.rawmaterialspage.deystviya")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td className="raw-empty-cell" colSpan={8} role="status" aria-busy="true">Загрузка…</td></tr>
+                    <tr><td className="raw-empty-cell" colSpan={8} role="status" aria-busy="true">{t("pages.nomenclature.rawmaterialspage.zagruzka")}</td></tr>
                   ) : (
                     visible.map((row, index) => (
                       <tr key={row.id}>
@@ -641,15 +642,15 @@ export default function RawMaterialsPage() {
                         <td className="raw-col-status"><span className={`raw-status-badge ${row.is_active === false ? "is-archived" : ""}`}>{row.is_active === false ? "Архив" : "Активно"}</span></td>
                         <td className="raw-col-actions">
                           <div className="dish-row-actions">
-                            <button type="button" onClick={() => openEdit(row)} disabled={busyId === row.id} aria-label="Редактировать">
+                            <button type="button" onClick={() => openEdit(row)} disabled={busyId === row.id} aria-label={t("pages.nomenclature.rawmaterialspage.redaktirovat")}>
                               <Icon name="bi-pencil" size={15} />
                             </button>
                             {row.is_active === false ? (
-                              <button type="button" className="dish-restore-action" onClick={() => toggleArchive(row)} disabled={busyId === row.id} aria-label="Восстановить" title="Восстановить">
+                              <button type="button" className="dish-restore-action" onClick={() => toggleArchive(row)} disabled={busyId === row.id} aria-label={t("pages.nomenclature.rawmaterialspage.vosstanovit")} title={t("pages.nomenclature.rawmaterialspage.vosstanovit")}>
                                 <Icon name="bi-arrow-counterclockwise" size={15} />
                               </button>
                             ) : (
-                              <button type="button" className="danger" onClick={() => toggleArchive(row)} disabled={busyId === row.id} aria-label="Архивировать" title="Архивировать">
+                              <button type="button" className="danger" onClick={() => toggleArchive(row)} disabled={busyId === row.id} aria-label={t("pages.nomenclature.rawmaterialspage.arhivirovat")} title={t("pages.nomenclature.rawmaterialspage.arhivirovat")}>
                                 <Icon name="bi-trash3" size={15} />
                               </button>
                             )}
@@ -675,28 +676,28 @@ export default function RawMaterialsPage() {
           className={`staff-modal staff-modal--cashier-full dish-drawer${drawerClosing ? " is-closing" : ""}`}
           role="dialog"
           aria-modal="true"
-          aria-label={editing ? "Редактировать продукты" : "Добавить продукты"}
+          aria-label={editing ? t("pages.nomenclature.rawmaterialspage.redaktirovat_produkty") : t("pages.nomenclature.rawmaterialspage.dobavit_produkty")}
         >
           <div className="staff-modal__backdrop" onClick={requestCloseDrawer} />
           <form className="staff-form staff-form--cashier" onSubmit={save}>
             <div className="staff-form__header">
               <div>
-                <p>{editing ? "Редактирование" : "Новые продукты"}</p>
-                <h2>{editing ? "Редактировать продукты" : "Добавить продукты"}</h2>
+                <p>{editing ? t("pages.nomenclature.rawmaterialspage.editing") : t("pages.nomenclature.rawmaterialspage.new_products")}</p>
+                <h2>{editing ? t("pages.nomenclature.rawmaterialspage.redaktirovat_produkty") : t("pages.nomenclature.rawmaterialspage.dobavit_produkty")}</h2>
               </div>
-              <button type="button" disabled={saving} onClick={requestCloseDrawer} aria-label="Закрыть"><Icon name="bi-x-lg" size={20} /></button>
+              <button type="button" disabled={saving} onClick={requestCloseDrawer} aria-label={t("pages.nomenclature.rawmaterialspage.zakryt")}><Icon name="bi-x-lg" size={20} /></button>
             </div>
             <div className="dish-drawer__body">
               <div className="staff-form__grid">
                 <label className="staff-form__comment dish-name-field">
-                  <span>Название</span>
-                  <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Напр. Помидор" />
+                  <span>{t("pages.nomenclature.rawmaterialspage.nazvanie")}</span>
+                  <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder={t("pages.nomenclature.rawmaterialspage.napr_pomidor")} />
                 </label>
                 <div className="dish-form-field">
-                  <span className="dish-form-field__label" aria-hidden="true">Ед. изм</span>
+                  <span className="dish-form-field__label" aria-hidden="true">{t("pages.nomenclature.rawmaterialspage.ed_izm")}</span>
                   <DishSingleSelect
-                    label="Ед. изм"
-                    placeholder="Выберите ед. изм"
+                    label={t("pages.nomenclature.rawmaterialspage.ed_izm")}
+                    placeholder={t("pages.nomenclature.rawmaterialspage.vyberite_ed_izm")}
                     options={selectableUnits.map((item) => ({
                       value: item.value,
                       label: item.active ? item.label : `${item.label} (не активна)`,
@@ -705,54 +706,54 @@ export default function RawMaterialsPage() {
                     onChange={(next) => setForm((f) => ({ ...f, unit: next || "" }))}
                     disabled={unitsUnavailable || saving}
                     loading={unitsLoading}
-                    disabledLabel="Единицы измерения недоступны"
+                    disabledLabel={t("common.units_unavailable")}
                   />
                 </div>
                 <div className="dish-form-field">
-                  <span className="dish-form-field__label" aria-hidden="true">Категория</span>
+                  <span className="dish-form-field__label" aria-hidden="true">{t("pages.nomenclature.rawmaterialspage.kategoriya")}</span>
                   <DishSingleSelect
-                    label="Категория"
-                    placeholder="Категория"
+                    label={t("pages.nomenclature.rawmaterialspage.kategoriya")}
+                    placeholder={t("pages.nomenclature.rawmaterialspage.kategoriya")}
                     options={visibleCategoryOptions.map((name) => ({ value: name, label: name }))}
                     value={visibleCategoryOptions.includes(form.category) ? form.category : ""}
                     onChange={(next) => setForm((f) => ({ ...f, category: next || "" }))}
                     disabled={(visibleCategoryOptions.length === 0 && !form.category) || saving}
-                    disabledLabel="Категории недоступны"
+                    disabledLabel={t("common.categories_unavailable")}
                   />
                 </div>
                 <div className="dish-form-field">
-                  <span className="dish-form-field__label" aria-hidden="true">Среднее количество</span>
+                  <span className="dish-form-field__label" aria-hidden="true">{t("pages.nomenclature.rawmaterialspage.srednee_kolichestvo")}</span>
                   <div className="dish-form-field__wrap">
                     <input
                       className="dish-form-field__input"
-                      aria-label="Среднее количество"
+                      aria-label={t("pages.nomenclature.rawmaterialspage.srednee_kolichestvo")}
                       value={form.avg_quantity}
                       onChange={(e) => setForm((f) => ({ ...f, avg_quantity: e.target.value }))}
-                      placeholder="Среднее количество"
+                      placeholder={t("pages.nomenclature.rawmaterialspage.srednee_kolichestvo")}
                       disabled={saving}
                       inputMode="decimal"
                     />
                   </div>
                 </div>
                 <div className="dish-form-field">
-                  <span className="dish-form-field__label" aria-hidden="true">Порог дефицита</span>
+                  <span className="dish-form-field__label" aria-hidden="true">{t("pages.nomenclature.rawmaterialspage.porog_defitsita")}</span>
                   <div className="dish-form-field__wrap">
                     <input
                       className="dish-form-field__input"
-                      aria-label="Порог дефицита"
+                      aria-label={t("pages.nomenclature.rawmaterialspage.porog_defitsita")}
                       value={form.deficit_threshold}
                       onChange={(e) => setForm((f) => ({ ...f, deficit_threshold: e.target.value }))}
-                      placeholder="Порог дефицита"
+                      placeholder={t("pages.nomenclature.rawmaterialspage.porog_defitsita")}
                       disabled={saving}
                       inputMode="decimal"
                     />
                   </div>
                 </div>
                 <div className="dish-form-field">
-                  <span className="dish-form-field__label" aria-hidden="true">Тип потери</span>
+                  <span className="dish-form-field__label" aria-hidden="true">{t("pages.nomenclature.rawmaterialspage.tip_poteri")}</span>
                   <DishSingleSelect
-                    label="Тип потери"
-                    placeholder="Выберите тип"
+                    label={t("pages.nomenclature.rawmaterialspage.tip_poteri")}
+                    placeholder={t("pages.nomenclature.rawmaterialspage.vyberite_tip")}
                     options={LOSS_TYPE_OPTIONS}
                     value={form.loss_type}
                     onChange={(next) => setForm((f) => ({ ...f, loss_type: next || "" }))}
@@ -767,7 +768,7 @@ export default function RawMaterialsPage() {
                       aria-label={lossLabel}
                       value={form.loss_value}
                       onChange={(e) => setForm((f) => ({ ...f, loss_value: e.target.value }))}
-                      placeholder={form.loss_type === "amount" ? "Например: 0.2 (на 1 кг)" : form.loss_type === "percent" ? "Например: 10" : "Значение потери"}
+                      placeholder={form.loss_type === "amount" ? t("pages.nomenclature.rawmaterialspage.placeholder_loss_amount") : form.loss_type === "percent" ? t("pages.nomenclature.rawmaterialspage.placeholder_loss_percent") : t("pages.nomenclature.rawmaterialspage.placeholder_loss_generic")}
                       disabled={!form.loss_type || saving}
                       inputMode="decimal"
                     />
@@ -786,12 +787,12 @@ export default function RawMaterialsPage() {
               </div>
               <div className="dish-form-switches">
                 <div className="dish-form-switch-row">
-                  <span className="dish-form-switch-label">Статус</span>
+                  <span className="dish-form-switch-label">{t("pages.nomenclature.rawmaterialspage.status")}</span>
                   <div className="dish-form-switch-control">
                     <button
                       type="button"
                       role="switch"
-                      aria-label="Статус"
+                      aria-label={t("pages.nomenclature.rawmaterialspage.status")}
                       aria-checked={statusOn}
                       className={`dish-form-switch${statusOn ? " is-on" : ""}`}
                       disabled={saving}
@@ -800,7 +801,7 @@ export default function RawMaterialsPage() {
                       <span aria-hidden="true" />
                     </button>
                     <span className={`dish-form-status${statusOn ? " is-active" : ""}`}>
-                      {statusOn ? "Активен" : "Неактивен"}
+                      {statusOn ? t("staff.active") : t("staff.inactive")}
                     </span>
                   </div>
                 </div>
@@ -808,8 +809,8 @@ export default function RawMaterialsPage() {
               {actionError ? <div className="login-error" role="alert">{actionError}</div> : null}
             </div>
             <div className="staff-form__footer">
-              <button type="button" onClick={requestCloseDrawer} disabled={saving}>Отменить</button>
-              <button type="submit" disabled={saving || !form.name.trim()}>{saving ? "Сохранение…" : editing ? "Сохранить" : "Добавить"}</button>
+              <button type="button" onClick={requestCloseDrawer} disabled={saving}>{t("pages.nomenclature.rawmaterialspage.otmenit")}</button>
+              <button type="submit" disabled={saving || !form.name.trim()}>{saving ? t("staff.saving") : editing ? t("common.save") : t("common.add")}</button>
             </div>
           </form>
         </div>,

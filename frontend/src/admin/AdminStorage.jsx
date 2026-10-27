@@ -5,12 +5,13 @@ import Icon from '../components/Icon';
 import { createPortal } from "react-dom";
 
 import { formatCurrency } from "./AdminShared";
+import { t } from "../i18n/t";
 
 export function StorageIncomePage() {
   return (
     <section className="admin-storage-income-page">
       <div className="admin-data-state" role="status">
-        Данные прихода недоступны до завершения Inventory Core. Backend contract не подключён.
+       {t("admin.adminstorage.dannye_prihoda_nedostupny_do_zaversheniya_inventory")}
       </div>
     </section>
   );
@@ -20,7 +21,7 @@ export function StorageIncomeJournalPage() {
   return (
     <section className="admin-storage-income-page admin-storage-income-journal-page">
       <div className="admin-data-state" role="status">
-        Журнал прихода недоступен до завершения Inventory Core. Backend contract не подключён.
+       {t("admin.adminstorage.zhurnal_prihoda_nedostupen_do_zaversheniya")}
       </div>
     </section>
   );
@@ -32,15 +33,15 @@ export function StorageWriteoffPage({ search, onNotify }) {
   const [sortState, setSortState] = useState({ key: "number", direction: "desc" });
   const query = search.trim().toLowerCase();
   const columns = [
-    { key: "number", label: "Номер", sortable: true },
-    { key: "supplier", label: "Поставщик", sortable: false },
-    { key: "warehouse", label: "На склад", sortable: false },
-    { key: "incomingDate", label: "Дата поступление", sortable: true },
-    { key: "registeredAt", label: "Дата регистрации", sortable: false },
-    { key: "acceptedAt", label: "Дата приема", sortable: false },
-    { key: "itemCount", label: "Кол-во наименование", sortable: true },
-    { key: "total", label: "Итоговая сумма", sortable: true },
-    { key: "status", label: "Статус", sortable: true },
+    { key: "number", label: t("admin.adminstorage.nomer"), sortable: true },
+    { key: "supplier", label: t("admin.adminstorage.postavschik"), sortable: false },
+    { key: "warehouse", label: t("admin.adminstorage.na_sklad"), sortable: false },
+    { key: "incomingDate", label: t("admin.adminstorage.data_postuplenie"), sortable: true },
+    { key: "registeredAt", label: t("admin.adminstorage.data_registratsii"), sortable: false },
+    { key: "acceptedAt", label: t("admin.adminstorage.data_priema"), sortable: false },
+    { key: "itemCount", label: t("admin.adminstorage.kol_vo_naimenovanie"), sortable: true },
+    { key: "total", label: t("admin.adminstorage.itogovaya_summa"), sortable: true },
+    { key: "status", label: t("admin.adminstorage.status"), sortable: true },
   ];
 
   const filteredRows = useMemo(() => {
@@ -89,14 +90,14 @@ export function StorageWriteoffPage({ search, onNotify }) {
 
   return (
     <section className="admin-storage-income-page admin-storage-writeoff-page">
-      {loadState === "loading" ? <div className="admin-data-state" role="status">Загрузка списаний...</div> : null}
-      {loadState === "error" ? <div className="admin-data-state" role="alert">Не удалось загрузить списания.</div> : null}
-      {loadState === "unsupported" ? <div className="admin-data-state" role="status">Документы списания недоступны до подключения подтверждённого HQ backend contract.</div> : null}
+      {loadState === "loading" ? <div className="admin-data-state" role="status">{t("admin.adminstorage.zagruzka_spisaniy")}</div> : null}
+      {loadState === "error" ? <div className="admin-data-state" role="alert">{t("admin.adminstorage.ne_udalos_zagruzit_spisaniya")}</div> : null}
+      {loadState === "unsupported" ? <div className="admin-data-state" role="status">{t("admin.adminstorage.dokumenty_spisaniya_nedostupny_do_podklyucheniya")}</div> : null}
       <div className="admin-storage-writeoff-card">
         <div className="admin-storage-writeoff-head">
           <div className="admin-storage-writeoff-title">
             <span aria-hidden="true" />
-            <h2>Отход товаров</h2>
+            <h2>{t("admin.adminstorage.othod_tovarov")}</h2>
           </div>
         </div>
 
@@ -146,7 +147,7 @@ export function StorageWriteoffPage({ search, onNotify }) {
                           <path className="admin-storage-writeoff-empty-fold" d="M59 6v13h13" />
                         </svg>
                       </div>
-                      <strong>Список пуст</strong>
+                      <strong>{t("admin.adminstorage.spisok_pust")}</strong>
                     </div>
                   </td>
                 </tr>
@@ -167,11 +168,11 @@ export function StorageInventoryPage({ search, onNotify, onInnerBackChange }) {
   const query = search.trim().toLowerCase();
   const columns = [
     { key: "id", label: "ID", sortable: true },
-    { key: "registeredAt", label: "Дата регистрации", sortable: true },
-    { key: "warehouse", label: "Склад", sortable: false },
-    { key: "comment", label: "Комментарие", sortable: false },
-    { key: "type", label: "Тип", sortable: false },
-    { key: "status", label: "Статус", sortable: true },
+    { key: "registeredAt", label: t("admin.adminstorage.data_registratsii"), sortable: true },
+    { key: "warehouse", label: t("admin.adminstorage.sklad"), sortable: false },
+    { key: "comment", label: t("admin.adminstorage.kommentarie"), sortable: false },
+    { key: "type", label: t("admin.adminstorage.tip"), sortable: false },
+    { key: "status", label: t("admin.adminstorage.status"), sortable: true },
     { key: "actions", label: "", sortable: false },
   ];
 
@@ -259,22 +260,22 @@ export function StorageInventoryPage({ search, onNotify, onInnerBackChange }) {
 
   return (
     <section className="admin-storage-income-page admin-storage-inventory-page">
-      {loadState === "loading" ? <div className="admin-data-state" role="status">Загрузка складов...</div> : null}
-      {loadState === "error" ? <div className="admin-data-state" role="alert">Не удалось загрузить склады.</div> : null}
-      {loadState === "unsupported" ? <div className="admin-data-state" role="status">Инвентаризация недоступна до подключения подтверждённого HQ backend contract.</div> : null}
+      {loadState === "loading" ? <div className="admin-data-state" role="status">{t("admin.adminstorage.zagruzka_skladov")}</div> : null}
+      {loadState === "error" ? <div className="admin-data-state" role="alert">{t("admin.adminstorage.ne_udalos_zagruzit_sklady")}</div> : null}
+      {loadState === "unsupported" ? <div className="admin-data-state" role="status">{t("admin.adminstorage.inventarizatsiya_nedostupna_do_podklyucheniya")}</div> : null}
       <div className="admin-storage-inventory-card">
         <div className="admin-storage-inventory-head">
           <div className="admin-storage-inventory-title">
             <span aria-hidden="true" />
-            <h2>Инвентаризация</h2>
+            <h2>{t("admin.adminstorage.inventarizatsiya")}</h2>
           </div>
           <button
             type="button"
             className="admin-storage-inventory-create"
             disabled
-            title="Создание недоступно: HQ backend contract не подключён."
+            title={t("admin.adminstorage.sozdanie_nedostupno_hq_backend_contract_ne")}
           >
-            <span>Создать</span>
+            <span>{t("admin.adminstorage.sozdat")}</span>
             <Icon name="bi-plus" size={15} />
           </button>
         </div>
@@ -327,7 +328,7 @@ export function StorageInventoryPage({ search, onNotify, onInnerBackChange }) {
               ))}
               {(loadState === "empty" || loadState === "success") && !filteredRows.length ? (
                 <tr className="admin-storage-inventory-empty-row">
-                  <td colSpan={columns.length}>Инвентаризации не найдены.</td>
+                  <td colSpan={columns.length}>{t("admin.adminstorage.inventarizatsii_ne_naydeny")}</td>
                 </tr>
               ) : null}
             </tbody>
@@ -345,8 +346,8 @@ export function StorageInventoryPage({ search, onNotify, onInnerBackChange }) {
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="admin-storage-inventory-dialog-head">
-              <h3>Список</h3>
-              <button type="button" onClick={() => setSelectedRow(null)} aria-label="Закрыть список">
+              <h3>{t("admin.adminstorage.spisok")}</h3>
+              <button type="button" onClick={() => setSelectedRow(null)} aria-label={t("admin.adminstorage.zakryt_spisok")}>
                 <Icon name="bi-x-lg" size={17} />
               </button>
             </div>
@@ -355,16 +356,16 @@ export function StorageInventoryPage({ search, onNotify, onInnerBackChange }) {
               <div className="admin-storage-inventory-dialog-actions">
                 <button type="button" onClick={() => downloadInventory(selectedRow)}>
                   <Icon name="bi-file-earmark-spreadsheet" size={18} />
-                  <span>Скачать</span>
+                  <span>{t("admin.adminstorage.skachat")}</span>
                 </button>
               </div>
 
               <table className="admin-storage-inventory-list-table">
                 <thead>
                   <tr>
-                    <th>Название</th>
-                    <th>Кол-во</th>
-                    <th>Ед. изм</th>
+                    <th>{t("admin.adminstorage.nazvanie")}</th>
+                    <th>{t("admin.adminstorage.kol_vo")}</th>
+                    <th>{t("admin.adminstorage.ed_izm")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -377,7 +378,7 @@ export function StorageInventoryPage({ search, onNotify, onInnerBackChange }) {
                   ))}
                   {!selectedRow.items.length ? (
                     <tr>
-                      <td colSpan="3" className="admin-storage-inventory-list-empty">Список пуст</td>
+                      <td colSpan="3" className="admin-storage-inventory-list-empty">{t("admin.adminstorage.spisok_pust")}</td>
                     </tr>
                   ) : null}
                 </tbody>
@@ -394,7 +395,7 @@ export function StorageExpensePage() {
   return (
     <section className="admin-storage-income-page admin-storage-expense-page">
       <div className="admin-data-state" role="status">
-        Данные расхода недоступны до завершения Inventory Core. Backend contract не подключён.
+       {t("admin.adminstorage.dannye_rashoda_nedostupny_do_zaversheniya_inventory")}
       </div>
     </section>
   );
@@ -404,7 +405,7 @@ export function StorageBalancePage() {
   return (
     <section className="admin-storage-income-page admin-storage-balance-page">
       <div className="admin-data-state" role="status">
-        Остатки недоступны до завершения Inventory Core. Backend contract не подключён.
+       {t("admin.adminstorage.ostatki_nedostupny_do_zaversheniya_inventory_core")}
       </div>
     </section>
   );

@@ -1,0 +1,213 @@
+﻿Выберите продукт	Mahsulotni tanlang	Select product
+Выберите склад	Omborni tanlang	Select warehouse
+Выберите склад *	Omborni tanlang *	Select warehouse *
+Выберите сотрудника	Xodimni tanlang	Select employee
+Выберите способ оплаты	To'lov usulini tanlang	Select payment method
+Выберите статус	Holatni tanlang	Select status
+Выберите статус заказа	Buyurtma holatini tanlang	Select order status
+Выберите тип	Turni tanlang	Select type
+Выберите тип заказа	Buyurtma turini tanlang	Select order type
+Выберите тип оплаты	To'lov turini tanlang	Select payment type
+Выберите товар	Mahsulotni tanlang	Select item
+Выберите филиал	Filialni tanlang	Select branch
+Выберите филиал...	Filialni tanlang...	Select branch...
+Выбор даты	Sana tanlash	Date selection
+Выбор склада	Ombor tanlash	Warehouse selection
+Выбранный способ оплаты:	Tanlangan to'lov usuli:	Selected payment method:
+Выбрать изображение	Rasm tanlash	Choose image
+Выбрать страну	Mamlakatni tanlash	Choose country
+Выбрать фото	Foto tanlash	Choose photo
+Выключенные типы пропадают из кассы, приложения официанта и курьерской панели.	O'chirilgan turlar kassadan, ofitsiant ilovasidan va kuryer panelidan yo'qoladi.	Disabled types disappear from the cash register, waiter app and courier panel.
+Выравнивание	Tekislash	Alignment
+Выручка за день	Kunlik tushum	Daily revenue
+Главный	Asosiy	Main
+Главный моноблок	Asosiy monoblok	Main monoblock
+Год	Yil	Year
+Готовим	Tayyorlanmoqda	Preparing
+График появится после подключения серверного ряда данных	Grafik server ma'lumotlari ulangandan keyin paydo bo'ladi	The chart appears once the server data series is connected
+Данные карты	Karta ma'lumotlari	Card data
+Данные недоступны: backend contract для этого отчёта пока не подключён.	Ma'lumotlar mavjud emas: bu hisobot uchun backend shartnomasi hali ulanmagan.	Data unavailable: the backend contract for this report is not connected yet.
+Данные прихода недоступны до завершения Inventory Core. Backend contract не подключён.	Kirim ma'lumotlari Inventory Core tugagunga qadar mavjud emas. Backend shartnomasi ulanmagan.	Receipt data is unavailable until Inventory Core is complete. The backend contract is not connected.
+Данные расхода недоступны до завершения Inventory Core. Backend contract не подключён.	Chiqim ma'lumotlari Inventory Core tugagunga qadar mavjud emas. Backend shartnomasi ulanmagan.	Expense data is unavailable until Inventory Core is complete. The backend contract is not connected.
+Данные рецепта	Retsept ma'lumotlari	Recipe data
+Данных о посещаемости пока нет.	Hozircha davomat ma'lumotlari yo'q.	No attendance data yet.
+Данных по продажам за этот день нет.	Bu kun uchun savdo ma'lumotlari yo'q.	No sales data for this day.
+Дата и время	Sana va vaqt	Date and time
+Дата и время входа	Kirish sanasi va vaqti	Sign-in date and time
+Дата найма	Ishga qabul sanasi	Hire date
+Дата поступление	Kelib tushgan sana	Receipt date
+Дата поступления	Kelib tushgan sana	Receipt date
+Дата приема	Qabul sanasi	Acceptance date
+Дата регистрации	Ro'yxatdan o'tish sanasi	Registration date
+Дата создания	Yaratilgan sana	Created date
+Дата установки	O'rnatilgan sana	Install date
+Деактивировать стол	Stolni o'chirish	Deactivate table
+Дебет	Debet	Debit
+Дебиторка	Debitorlik	Receivables
+Денежные расходы	Pul chiqimlari	Cash expenses
+Денежный приход	Pul kirimi	Cash inflow
+Денежный приход / количество оплаченных завершённых заказов за период.	Pul kirimi / davr uchun to'langan yakunlangan buyurtmalar soni.	Cash inflow / number of paid completed orders for the period.
+Денежный приход за	Pul kirimi:	Cash inflow for
+Денежный приход − себестоимость блюд	Pul kirimi − taomlar tannarxi	Cash inflow − cost of dishes
+Детали	Tafsilotlar	Details
+Детали заказа	Buyurtma tafsilotlari	Order details
+Детализированные отчёты	Batafsil hisobotlar	Detailed reports
+Детальные права доступа недоступны до BI-06. Изменения здесь не сохраняются.	Batafsil kirish huquqlari BI-06 gacha mavjud emas. Bu yerdagi o'zgarishlar saqlanmaydi.	Detailed access rights are unavailable until BI-06. Changes here are not saved.
+Динамика оборота платформы	Platforma aylanmasi dinamikasi	Platform turnover dynamics
+Дневная выручка по всем закрытым заказам за выбранную дату.	Tanlangan sana uchun barcha yopilgan buyurtmalar bo'yicha kunlik tushum.	Daily revenue for all closed orders on the selected date.
+Добавить +	Qo'shish +	Add +
+Добавить группу	Guruh qo'shish	Add group
+Добавить единицу измерения	O'lchov birligini qo'shish	Add unit of measure
+Добавить ингредиент +	Ingredient qo'shish +	Add ingredient +
+Добавить категорию	Kategoriya qo'shish	Add category
+Добавить категорию +	Kategoriya qo'shish +	Add category +
+Добавить отход	Chiqit qo'shish	Add waste
+Добавить позицию +	Pozitsiya qo'shish +	Add item +
+Добавить принтер	Printer qo'shish	Add printer
+Добавить стол	Stol qo'shish	Add table
+Добавки	Qo'shimchalar	Add-ons
+Добавление заказа недоступно	Buyurtma qo'shish mavjud emas	Adding orders is unavailable
+Добавьте первое место, чтобы начать работу со столами.	Stollar bilan ishlashni boshlash uchun birinchi joyni qo'shing.	Add the first place to start working with tables.
+Добавьте первый стол для этого места.	Bu joy uchun birinchi stolni qo'shing.	Add the first table for this place.
+Документ	Hujjat	Document
+Документ, поставщик, товар...	Hujjat, ta'minotchi, mahsulot...	Document, supplier, item...
+Документы списания недоступны до подключения подтверждённого HQ backend contract.	Hisobdan chiqarish hujjatlari tasdiqlangan HQ backend shartnomasi ulanmaguncha mavjud emas.	Write-off documents are unavailable until the approved HQ backend contract is connected.
+Доллар США	AQSh dollari	US dollar
+Доп. цена	Qo'shimcha narx	Extra price
+Дополнительные настройки	Qo'shimcha sozlamalar	Additional settings
+Доступ	Kirish	Access
+Доступы / permissions	Kirish huquqlari / permissions	Access / permissions
+Ед изм	O'lchov birligi	Unit
+Ед. изм	O'lchov birligi	Unit
+Единиц измерения пока нет	Hozircha o'lchov birliklari yo'q	No units of measure yet
+Жирность	Yog'lilik	Fat content
+Журнал прихода недоступен до завершения Inventory Core. Backend contract не подключён.	Kirim jurnali Inventory Core tugagunga qadar mavjud emas. Backend shartnomasi ulanmagan.	The receipt journal is unavailable until Inventory Core is complete. The backend contract is not connected.
+Заблокирована	Bloklangan	Blocked
+Заблокированные	Bloklangan	Blocked
+Загружаем заказы	Buyurtmalar yuklanmoqda	Loading orders
+Загруженность зала	Zal bandligi	Hall occupancy
+Загрузить изображение	Rasm yuklash	Upload image
+Загрузить фото	Foto yuklash	Upload photo
+Загрузить фото блюда	Taom fotosini yuklash	Upload dish photo
+Загрузка данных...	Ma'lumotlar yuklanmoqda...	Loading data...
+Загрузка денежных операций...	Pul operatsiyalari yuklanmoqda...	Loading cash operations...
+Загрузка деталей заказа…	Buyurtma tafsilotlari yuklanmoqda…	Loading order details…
+Загрузка добавок…	Qo'shimchalar yuklanmoqda…	Loading add-ons…
+Загрузка единиц измерения...	O'lchov birliklari yuklanmoqda...	Loading units of measure...
+Загрузка заказов...	Buyurtmalar yuklanmoqda...	Loading orders...
+Загрузка источников...	Manbalar yuklanmoqda...	Loading sources...
+Загрузка категорий...	Kategoriyalar yuklanmoqda...	Loading categories...
+Загрузка количества организаций...	Tashkilotlar soni yuklanmoqda...	Loading organization count...
+Загрузка корректировок...	Korrektirovkalar yuklanmoqda...	Loading adjustments...
+Загрузка организаций...	Tashkilotlar yuklanmoqda...	Loading organizations...
+Загрузка отчёта...	Hisobot yuklanmoqda...	Loading report...
+Загрузка официантов...	Ofitsiantlar yuklanmoqda...	Loading waiters...
+Загрузка продуктов...	Mahsulotlar yuklanmoqda...	Loading products...
+Загрузка складов...	Omborlar yuklanmoqda...	Loading warehouses...
+Загрузка складских данных...	Ombor ma'lumotlari yuklanmoqda...	Loading warehouse data...
+Загрузка состава...	Tarkib yuklanmoqda...	Loading composition...
+Загрузка сотрудников...	Xodimlar yuklanmoqda...	Loading employees...
+Загрузка списаний...	Hisobdan chiqarishlar yuklanmoqda...	Loading write-offs...
+Загрузка списка файлов...	Fayllar ro'yxati yuklanmoqda...	Loading file list...
+Загрузка справочника...	Ma'lumotnoma yuklanmoqda...	Loading reference...
+Загрузка статусов...	Holatlar yuklanmoqda...	Loading statuses...
+Загрузка транзакций...	Tranzaksiyalar yuklanmoqda...	Loading transactions...
+Загрузка фактического расхода...	Haqiqiy chiqim yuklanmoqda...	Loading actual expense...
+Загрузка финансов...	Moliya yuklanmoqda...	Loading finance...
+Загрузка…	Yuklanmoqda…	Loading…
+Заказ #	Buyurtma #	Order #
+Заказ на вынос за столом	Stolda olib ketish buyurtmasi	Takeaway order at table
+Заказ №	Buyurtma №	Order No.
+Заказов	Buyurtmalar	Orders
+Заказов за этот день нет.	Bu kun uchun buyurtmalar yo'q.	No orders for this day.
+Заказов не найдено	Buyurtmalar topilmadi	No orders found
+Заказы за	Buyurtmalar:	Orders for
+Заказы не загрузились. Проверьте интернет — экран сам подхватит очередь, как только связь вернётся.	Buyurtmalar yuklanmadi. Internetni tekshiring — aloqa tiklangach ekran navbatni o'zi qabul qiladi.	Orders failed to load. Check your internet — the screen will pick up the queue as soon as the connection returns.
+Заказы с отменами, включая отдельные позиции. Для старых отмен без даты используется дата создания заказа.	Bekor qilishlar bilan buyurtmalar, shu jumladan alohida pozitsiyalar. Sanasiz eski bekor qilishlar uchun buyurtma yaratilgan sana ishlatiladi.	Orders with cancellations, including individual items. For old cancellations without a date, the order creation date is used.
+Заказы с этой позицией	Bu pozitsiyali buyurtmalar	Orders with this item
+Закрыть блюда	Taomlarni yopish	Close dishes
+Закрыть рецепты	Retseptlarni yopish	Close recipes
+Закрыть сет	Setni yopish	Close set
+Закрыть список	Ro'yxatni yopish	Close list
+Закрыть уведомление	Bildirishnomani yopish	Close notification
+Закрыть управление лимитами	Limitlarni boshqarishni yopish	Close limit management
+Закрыть форму	Formani yopish	Close form
+Закрыть фото	Fotoni yopish	Close photo
+Закрыть чек	Chekni yopish	Close receipt
+Зал	Zal	Hall
+Зал:	Zal:	Hall:
+Заменить	Almashtirish	Replace
+Заметка по сотруднику	Xodim bo'yicha izoh	Employee note
+Здесь пока пусто	Hozircha bu yerda bo'sh	Nothing here yet
+Здесь появятся важные события по заказам.	Bu yerda buyurtmalar bo'yicha muhim voqealar paydo bo'ladi.	Important order events will appear here.
+Значение	Qiymat	Value
+ИНН	STIR	TIN
+ИНН организации	Tashkilot STIRi	Organization TIN
+Изменить	O'zgartirish	Edit
+Изменить ингредиент	Ingredientni o'zgartirish	Edit ingredient
+Изменить категорию	Kategoriyani o'zgartirish	Edit category
+Изменить код маркировки	Markirovka kodini o'zgartirish	Edit marking code
+Изменить организацию	Tashkilotni o'zgartirish	Edit organization
+Изменить позицию	Pozitsiyani o'zgartirish	Edit item
+Изменить способ оплаты	To'lov usulini o'zgartirish	Edit payment method
+Изменить тип заказа	Buyurtma turini o'zgartirish	Edit order type
+Изображение категории	Kategoriya rasmi	Category image
+Импорт Excel	Excel import	Excel import
+Имя	Ism	Name
+Имя *	Ism *	Name *
+Имя профиля	Profil nomi	Profile name
+Имя сотрудника	Xodim ismi	Employee name
+Инвентаризации не найдены.	Inventarizatsiyalar topilmadi.	No inventories found.
+Инвентаризаций пока нет.	Hozircha inventarizatsiyalar yo'q.	No inventories yet.
+Инвентаризация недоступна до подключения подтверждённого HQ backend contract.	Inventarizatsiya tasdiqlangan HQ backend shartnomasi ulanmaguncha mavjud emas.	Inventory is unavailable until the approved HQ backend contract is connected.
+Инвентаризация по складам	Omborlar bo'yicha inventarizatsiya	Inventory by warehouse
+Инвентаризация по складам с прокруткой	Omborlar bo'yicha inventarizatsiya (aylantirish bilan)	Inventory by warehouse with scrolling
+Инвентаризация расходов по складам	Omborlar bo'yicha chiqim inventarizatsiyasi	Expense inventory by warehouse
+Инвентаризация расходов по складам с прокруткой	Omborlar bo'yicha chiqim inventarizatsiyasi (aylantirish bilan)	Expense inventory by warehouse with scrolling
+Ингредиент	Ingredient	Ingredient
+Ингредиент…	Ingredient…	Ingredient…
+Интеграция склада	Ombor integratsiyasi	Warehouse integration
+Информационные виджеты	Axborot vidjetlari	Information widgets
+Использование сырья в блюдах	Taomlarda xomashyo ishlatilishi	Raw material usage in dishes
+Истории входов пока нет.	Hozircha kirishlar tarixi yo'q.	No sign-in history yet.
+История	Tarix	History
+История изменений	O'zgarishlar tarixi	Change history
+История изменений не найдена.	O'zgarishlar tarixi topilmadi.	No change history found.
+История недоступна: backend contract для транзакций не подключён.	Tarix mavjud emas: tranzaksiyalar uchun backend shartnomasi ulanmagan.	History unavailable: the backend contract for transactions is not connected.
+История сообщений недоступна: канонический HQ-контракт сообщений ещё не подключён.	Xabarlar tarixi mavjud emas: kanonik HQ xabarlar shartnomasi hali ulanmagan.	Message history unavailable: the canonical HQ message contract is not connected yet.
+История транзакций	Tranzaksiyalar tarixi	Transaction history
+Источник: cbu.uz	Manba: cbu.uz	Source: cbu.uz
+Источники не найдены	Manbalar topilmadi	No sources found
+Итоги отчёта	Hisobot yakunlari	Report totals
+Итого:	Jami:	Total:
+Итоговая сумма	Yakuniy summa	Final total
+К отдаче	Berishga	To serve
+Казахстанский тенге	Qozog'iston tengesi	Kazakhstani tenge
+Каналы привлечения клиентов	Mijozlarni jalb qilish kanallari	Customer acquisition channels
+Канонический total	Kanonik total	Canonical total
+Канонический реестр клиентов HQ с серверной пагинацией.	HQ mijozlarining kanonik reyestri, server paginatsiyasi bilan.	Canonical HQ customer registry with server-side pagination.
+Канонический справочник состояний подключения и обслуживания.	Ulanish va xizmat ko'rsatish holatlarining kanonik ma'lumotnomasi.	Canonical reference of connection and service states.
+Карточка продукта	Mahsulot kartasi	Product card
+Касса	Kassa	Cash register
+Категории приходов	Kirim kategoriyalari	Income categories
+Категории приходов не найдены.	Kirim kategoriyalari topilmadi.	No income categories found.
+Категории продуктов	Mahsulot kategoriyalari	Product categories
+Категории расходов	Chiqim kategoriyalari	Expense categories
+Категории расходов не найдены.	Chiqim kategoriyalari topilmadi.	No expense categories found.
+Категорий нет.	Kategoriyalar yo'q.	No categories.
+Категория / Поставщик	Kategoriya / Ta'minotchi	Category / Supplier
+Категория позиций	Pozitsiyalar kategoriyasi	Item category
+Категория продаж	Savdo kategoriyasi	Sales category
+Категория реализации	Sotuv kategoriyasi	Selling category
+Категория товара	Mahsulot kategoriyasi	Product category
+Киргизский сом	Qirg'iz somi	Kyrgyz som
+Код для входа на кассе. Можно оставить пустым.	Kassaga kirish kodi. Bo'sh qoldirish mumkin.	Cash register sign-in code. Can be left empty.
+Кол-во наименование	Soni / nomi	Qty / name
+Кол-во операций	Operatsiyalar soni	Number of operations
+Кол-во отхода	Chiqit soni	Waste quantity
+Количество *	Miqdor *	Quantity *
+Количество заказов за день.	Kunlik buyurtmalar soni.	Number of orders per day.
+Количество ингредиента	Ingredient miqdori	Ingredient quantity
+Количество позиции	Pozitsiya miqdori	Item quantity
+Количество позиции / сумма её продаж в этом заказе	Pozitsiya miqdori / uning shu buyurtmadagi savdo summasi	Item quantity / its sales amount in this order
+Количество строк	Qatorlar soni	Number of rows

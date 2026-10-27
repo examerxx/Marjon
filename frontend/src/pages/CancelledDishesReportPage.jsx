@@ -15,6 +15,7 @@ import { formatMoney } from "./reports/reportMoney";
 import { groupCancelledOrders } from "./reports/cancelledOrderGroups";
 import CancelledOrderDetails from "./reports/CancelledOrderDetails";
 import { isCancellationAcknowledged, useCancellationAcknowledgements } from "../hooks/useCancellationAcknowledgements";
+import { t } from "../i18n/t";
 
 // Cancelled Dishes Phase 1B: OWNER truthful report on the Phase 1A backend
 // contract. Waiter (Order.waiter_id) and Author (scope-aware cancelled_by)
@@ -146,15 +147,15 @@ function normalizeCancelledReportResponse(data) {
 // Тип is screen-only and is not exported.
 export function cancelledExcelColumns() {
   return [
-    { key: "date", label: "Дата", type: "date", format: "dd.mm.yyyy hh:mm", width: 18 },
-    { key: "orderNumber", label: "Номер заказа", width: 16 },
-    { key: "tableNumber", label: "Номер стола", width: 14 },
-    { key: "name", label: "Название", width: 28 },
-    { key: "unit", label: "Ед. изм", width: 10 },
-    { key: "quantity", label: "Кол-во", type: "number", format: "#,##0.###", width: 12 },
-    { key: "price", label: "Цена", type: "number", format: "#,##0", width: 14 },
-    { key: "amount", label: "Сумма", type: "number", format: "#,##0", width: 16 },
-    { key: "authorName", label: "Автор", width: 22 },
+    { key: "date", label: t("pages.cancelleddishesreportpage.data"), type: "date", format: "dd.mm.yyyy hh:mm", width: 18 },
+    { key: "orderNumber", label: t("pages.cancelleddishesreportpage.nomer_zakaza"), width: 16 },
+    { key: "tableNumber", label: t("pages.cancelleddishesreportpage.nomer_stola"), width: 14 },
+    { key: "name", label: t("pages.cancelleddishesreportpage.nazvanie"), width: 28 },
+    { key: "unit", label: t("pages.cancelleddishesreportpage.ed_izm"), width: 10 },
+    { key: "quantity", label: t("pages.cancelleddishesreportpage.kol_vo"), type: "number", format: "#,##0.###", width: 12 },
+    { key: "price", label: t("pages.cancelleddishesreportpage.tsena"), type: "number", format: "#,##0", width: 14 },
+    { key: "amount", label: t("pages.cancelleddishesreportpage.summa"), type: "number", format: "#,##0", width: 16 },
+    { key: "authorName", label: t("pages.cancelleddishesreportpage.avtor"), width: 22 },
   ];
 }
 
@@ -422,7 +423,7 @@ export default function CancelledDishesReportPage() {
     exportToExcel(lines, cancelledExcelColumns(), "cancelled-dishes-report", {
       sheetName: "Отчёт по отменённым блюдам",
       totals: {
-        label: "Итого",
+        label: t("pages.cancelleddishesreportpage.itogo"),
         values: {
           quantity: columnTotal("quantity"),
           amount: columnTotal("amount"),
@@ -445,12 +446,12 @@ export default function CancelledDishesReportPage() {
           <div className="cancelled-report-title owner-report-heading">
             <span className="report-accent-bar" aria-hidden="true" />
             <div>
-              <span className="cancelled-report-eyebrow owner-report-kicker">Отчёты</span>
-              <h1>Отчёт по отменённым блюдам</h1>
+              <span className="cancelled-report-eyebrow owner-report-kicker">{t("pages.cancelleddishesreportpage.otchety")}</span>
+              <h1>{t("pages.cancelleddishesreportpage.otchet_po_otmenennym_blyudam")}</h1>
             </div>
           </div>
           <div className="report-actions owner-report-actions">
-            <ReportDateRangePicker variant="canonical" animateExit value={periodValue} onChange={updatePeriod} open={panelState.active === "period"} onOpenChange={(nextOpen) => requestPanel(nextOpen ? "period" : "")} onExitComplete={() => completePanelExit("period")} buttonAriaLabel="Период отчёта по отменённым блюдам" />
+            <ReportDateRangePicker variant="canonical" animateExit value={periodValue} onChange={updatePeriod} open={panelState.active === "period"} onOpenChange={(nextOpen) => requestPanel(nextOpen ? "period" : "")} onExitComplete={() => completePanelExit("period")} buttonAriaLabel={t("report_period.cancelled")} />
             <button
               className="cancelled-filter-toggle"
               type="button"
@@ -462,11 +463,11 @@ export default function CancelledDishesReportPage() {
               }}
             >
               <Icon name="bi-sliders" size={17} />
-              Фильтровать
+             {t("pages.cancelleddishesreportpage.filtrovat")}
             </button>
             <button className="report-excel-button owner-report-excel" type="button" onClick={downloadExcel}>
               <Icon name="bi-filetype-xlsx" size={19} strokeWidth={1.9} className="owner-report-xlsx-icon" />
-              Скачать Excel
+             {t("pages.cancelleddishesreportpage.skachat_excel")}
             </button>
           </div>
         </div>
@@ -476,22 +477,22 @@ export default function CancelledDishesReportPage() {
             <div
               className="report-filters-grid cancelled-filter-grid"
               id="cancelled-report-filters"
-              aria-label="Фильтры отчёта по отменённым блюдам"
+              aria-label={t("pages.cancelleddishesreportpage.filtry_otcheta_po_otmenennym_blyudam")}
             >
               <label className="report-filter-input">
                 <Icon name="bi-search" size={17} />
-                <input aria-label="Номер заказа" value={filters.orderNumber} onChange={(event) => updateFilter("orderNumber", event.target.value)} placeholder="Введите номер заказа" />
+                <input aria-label={t("pages.cancelleddishesreportpage.nomer_zakaza")} value={filters.orderNumber} onChange={(event) => updateFilter("orderNumber", event.target.value)} placeholder={t("pages.cancelleddishesreportpage.vvedite_nomer_zakaza")} />
               </label>
-              <ReportMultiSelect filterKey="authorId" label="Автор" placeholder="Выберите автора" options={normalizeAuthorOptions(filterOptions.authors)} selected={filters.authorId} onToggle={(value) => toggleFilterValue("authorId", value)} disabled={filterOptionsLoading || !normalizeAuthorOptions(filterOptions.authors).length} {...cancelledFilterPanelProps("authorId")} />
-              <ReportMultiSelect filterKey="dishName" label="Блюда" placeholder="Выберите блюда" options={normalizeDishOptions(filterOptions.dishes)} selected={filters.dishName} onToggle={(value) => toggleFilterValue("dishName", value)} disabled={filterOptionsLoading || !normalizeDishOptions(filterOptions.dishes).length} {...cancelledFilterPanelProps("dishName")} />
+              <ReportMultiSelect filterKey="authorId" label={t("pages.cancelleddishesreportpage.avtor")} placeholder={t("pages.cancelleddishesreportpage.vyberite_avtora")} options={normalizeAuthorOptions(filterOptions.authors)} selected={filters.authorId} onToggle={(value) => toggleFilterValue("authorId", value)} disabled={filterOptionsLoading || !normalizeAuthorOptions(filterOptions.authors).length} {...cancelledFilterPanelProps("authorId")} />
+              <ReportMultiSelect filterKey="dishName" label={t("pages.cancelleddishesreportpage.blyuda")} placeholder={t("pages.cancelleddishesreportpage.vyberite_blyuda")} options={normalizeDishOptions(filterOptions.dishes)} selected={filters.dishName} onToggle={(value) => toggleFilterValue("dishName", value)} disabled={filterOptionsLoading || !normalizeDishOptions(filterOptions.dishes).length} {...cancelledFilterPanelProps("dishName")} />
               <div className="report-filter-buttons">
                 <button type="button" className="report-filter-apply" onClick={applyFilters}>
                   <Icon name="bi-sliders" size={17} />
-                  Фильтровать
+                 {t("pages.cancelleddishesreportpage.filtrovat")}
                 </button>
                 <button type="button" className="report-filter-clear" onClick={clearFilters}>
                   <Icon name="bi-x-circle" size={17} />
-                  Очистить
+                 {t("pages.cancelleddishesreportpage.ochistit")}
                 </button>
               </div>
             </div>
@@ -499,7 +500,7 @@ export default function CancelledDishesReportPage() {
         </div>
 
         {activeFilterEntries.length ? (
-          <div className="report-active-filters" aria-label="Активные фильтры">
+          <div className="report-active-filters" aria-label={t("pages.cancelleddishesreportpage.aktivnye_filtry")}>
             {activeFilterEntries.map(([key, value]) => (
               <span key={key}>{filterNames[key]}: {optionLabel(key, value, {
                 authors: normalizeAuthorOptions(filterOptions.authors),
@@ -512,16 +513,16 @@ export default function CancelledDishesReportPage() {
         {error ? <div className="login-error" role="alert">{error}</div> : null}
 
         <div className="cancelled-table-wrap owner-report-table-scroll" aria-busy={loading ? "true" : "false"}>
-          <table className="cancelled-table owner-report-table" aria-label="Отчёт по отменённым блюдам">
+          <table className="cancelled-table owner-report-table" aria-label={t("pages.cancelleddishesreportpage.otchet_po_otmenennym_blyudam")}>
             <thead>
               <tr>
-                <th>Номер заказа</th>
-                <th>Дата</th>
-                <th>Номер стола</th>
-                <th>Кол-во</th>
-                <th>Автор</th>
-                <th>Тип</th>
-                <th>Сумма</th>
+                <th>{t("pages.cancelleddishesreportpage.nomer_zakaza")}</th>
+                <th>{t("pages.cancelleddishesreportpage.data")}</th>
+                <th>{t("pages.cancelleddishesreportpage.nomer_stola")}</th>
+                <th>{t("pages.cancelleddishesreportpage.kol_vo")}</th>
+                <th>{t("pages.cancelleddishesreportpage.avtor")}</th>
+                <th>{t("pages.cancelleddishesreportpage.tip")}</th>
+                <th>{t("pages.cancelleddishesreportpage.summa")}</th>
               </tr>
             </thead>
             <tbody>
@@ -529,7 +530,7 @@ export default function CancelledDishesReportPage() {
                 <tr key={row.id} className="cancelled-order-row" tabIndex={0} aria-label={`Заказ №${row.orderNumber}`} onClick={() => openOrder(row)} onKeyDown={(event) => {
                   if (event.target === event.currentTarget && ["Enter", " "].includes(event.key)) { event.preventDefault(); openOrder(row); }
                 }}>
-                  <td><span className="cancelled-order-number">{row.orderNumber}{acknowledgementsLoaded && row.orderId && row.items.some(item => !isCancellationAcknowledged(receipts, row.orderId, item.reportEventAt)) ? <span className="cancelled-order-unread" role="img" aria-label="Не ознакомлен" title="Вы ещё не нажали «Ознакомлен»" /> : null}</span></td>
+                  <td><span className="cancelled-order-number">{row.orderNumber}{acknowledgementsLoaded && row.orderId && row.items.some(item => !isCancellationAcknowledged(receipts, row.orderId, item.reportEventAt)) ? <span className="cancelled-order-unread" role="img" aria-label={t("pages.cancelleddishesreportpage.ne_oznakomlen")} title={t("pages.cancelleddishesreportpage.vy_esche_ne_nazhali_oznakomlen")} /> : null}</span></td>
                   <td>{row.date}</td>
                   <td>{row.tableNumber ?? "—"}</td>
                   <td>{row.quantity ?? "—"}</td>
@@ -541,7 +542,7 @@ export default function CancelledDishesReportPage() {
               {!filteredRows.length ? (
                 <tr className="cancelled-empty-row">
                   <td colSpan={7}>
-                    <ReportEmptyState title="Отменённых блюд нет" loading={loading} />
+                    <ReportEmptyState title={t("pages.cancelleddishesreportpage.otmenennyh_blyud_net")} loading={loading} />
                   </td>
                 </tr>
               ) : null}

@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import Icon from "../Icon";
+import { t } from "../../i18n/t";
 
 // OWNER sidebar navigation search. Scope is intentionally the OWNER navigation
 // tree only (parents + children from navConfig) — NOT a fabricated global data
@@ -109,8 +110,8 @@ export default function SidebarSearch({ navItems, navigate, setPinnedMenu, setOp
           ref={inputRef}
           type="search"
           className="sidebar-search__input"
-          placeholder="Поиск"
-          aria-label="Поиск по навигации"
+          placeholder={t("components.sidebar.sidebarsearch.poisk")}
+          aria-label={t("components.sidebar.sidebarsearch.poisk_po_navigatsii")}
           role="combobox"
           aria-expanded={showResults}
           aria-controls="sidebar-search-results"
@@ -124,7 +125,7 @@ export default function SidebarSearch({ navItems, navigate, setPinnedMenu, setOp
           <button
             type="button"
             className="sidebar-search__clear"
-            aria-label="Очистить поиск"
+            aria-label={t("components.sidebar.sidebarsearch.ochistit_poisk")}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => { clearAll(); inputRef.current?.focus(); }}
           >
@@ -136,11 +137,11 @@ export default function SidebarSearch({ navItems, navigate, setPinnedMenu, setOp
       {/* Separate flow space preserves the input's original collapse sizing. */}
       <div ref={resultsRef} className={`sidebar-search__results-slot${showResults ? " is-open" : ""}`} inert={!showResults} aria-hidden={!showResults}>
         <div className="sidebar-search__results-clip">
-        <div className="sidebar-search__results" id="sidebar-search-results" role="listbox" aria-label="Результаты поиска">
+        <div className="sidebar-search__results" id="sidebar-search-results" role="listbox" aria-label={t("components.sidebar.sidebarsearch.rezultaty_poiska")}>
           {displayResults.length === 0 ? (
             <div className="sidebar-search__empty">
-              <div className="sidebar-search__empty-title">Ничего не найдено</div>
-              <div className="sidebar-search__empty-sub">Попробуйте другой запрос</div>
+              <div className="sidebar-search__empty-title">{t("components.sidebar.sidebarsearch.nichego_ne_naydeno")}</div>
+              <div className="sidebar-search__empty-sub">{t("components.sidebar.sidebarsearch.poprobuyte_drugoy_zapros")}</div>
             </div>
           ) : displayResults.map((entry, i) => (
             <button

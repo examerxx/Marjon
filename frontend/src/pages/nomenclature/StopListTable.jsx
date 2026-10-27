@@ -15,6 +15,7 @@ import ReportEmptyState from "../../components/ReportEmptyState";
 import StopListManageModal from "./StopListManageModal";
 import { applyLiveMask, formatQuantity, parseQuantityInput } from "./stopListFormat";
 import { historyView } from "./stopListHistory";
+import { t as tr } from "../../i18n/t";
 
 const FLY_MS = 300;
 const SLIDE_MS = 300;
@@ -238,20 +239,20 @@ export default function StopListTable({
       <div
         className="stoplist-grid-scroll"
         role="region"
-        aria-label="Таблица стоп-листа с прокруткой"
+        aria-label={tr("pages.nomenclature.stoplisttable.tablitsa_stop_lista_s_prokrutkoy")}
         tabIndex={0}
         onScroll={handleScroll}
       >
-        <table className="settings-table stoplist-grid-table" aria-label="Стоп-лист">
+        <table className="settings-table stoplist-grid-table" aria-label={tr("pages.nomenclature.stoplisttable.stop_list")}>
           <thead>
             <tr>
               <th className="stoplist-col-index">№</th>
-              <th className="stoplist-col-photo">Фото</th>
-              <th className="stoplist-col-name">Блюдо / товар</th>
-              <th className="stoplist-col-stock">Остаток</th>
-              <th className="stoplist-col-prev">Предыдущий лимит</th>
-              <th className="stoplist-col-new">Новый лимит</th>
-              <th className="stoplist-col-actions">Действия</th>
+              <th className="stoplist-col-photo">{tr("pages.nomenclature.stoplisttable.foto")}</th>
+              <th className="stoplist-col-name">{tr("pages.nomenclature.stoplisttable.blyudo_tovar")}</th>
+              <th className="stoplist-col-stock">{tr("pages.nomenclature.stoplisttable.ostatok")}</th>
+              <th className="stoplist-col-prev">{tr("pages.nomenclature.stoplisttable.predyduschiy_limit")}</th>
+              <th className="stoplist-col-new">{tr("pages.nomenclature.stoplisttable.novyy_limit")}</th>
+              <th className="stoplist-col-actions">{tr("pages.nomenclature.stoplisttable.deystviya")}</th>
             </tr>
           </thead>
           <tbody>
@@ -318,7 +319,7 @@ export default function StopListTable({
                       {row.unitLabel ? (
                         <span className="stoplist-unit-text">{row.unitLabel}</span>
                       ) : (
-                        <span className="stoplist-unit-placeholder">ед. изм</span>
+                        <span className="stoplist-unit-placeholder">{tr("pages.nomenclature.stoplisttable.ed_izm")}</span>
                       )}
                     </span>
                   </td>
@@ -344,7 +345,7 @@ export default function StopListTable({
                         disabled={saving}
                         onClick={() => setManageId(id)}
                         aria-label={`Управление лимитами: ${row.name}`}
-                        title="Управление лимитами"
+                        title={tr("pages.nomenclature.stoplisttable.upravlenie_limitami")}
                       >
                         <Icon name="bi-arrow-counterclockwise" size={15} />
                       </button>
@@ -358,7 +359,7 @@ export default function StopListTable({
       </div>
       {isEmpty ? (
         <div className="stoplist-empty-overlay">
-          <ReportEmptyState title="Блюд и товаров пока нет" />
+          <ReportEmptyState title={tr("pages.nomenclature.stoplisttable.blyud_i_tovarov_poka_net")} />
         </div>
       ) : null}
       <FlyChips flights={flights} />

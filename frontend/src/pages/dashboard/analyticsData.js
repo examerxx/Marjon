@@ -1,5 +1,6 @@
 import { formatMoney, formatNumber } from "../../api/client";
 import { formatDateLabel, todayInputValue, toDateInputValue } from "../../utils/date";
+import { t } from "../../i18n/t";
 
 // Реальные аналитические преобразования OWNER-дашборда: нормализация строк
 // оплат/заказов/среднего чека, сборка KPI и складской сводки.
@@ -100,7 +101,7 @@ export function normalizePaymentRows(rows = [], total = 0) {
 export function paymentMethodLabel(value) {
   const key = String(value || "").trim().toLowerCase();
   const labels = {
-    cash: "Наличные",
+    cash: t("dashboard.cash_revenue"),
     card: "Карта",
     click: "CLICK",
     payme: "Pay me",
@@ -389,16 +390,16 @@ export function buildRealKpis(dash, sales, selectedDate, placeSettings = [], fin
       className: "premium-kpi--revenue",
       icon: "bi-wallet2",
       badge: formatDateLabel(selectedDate),
-      label: "Чистая прибыль",
+      label: t("pages.dashboard.analyticsdata.chistaya_pribyl"),
       value: formatNumber(revenue),
       suffix: "UZS",
       note: hasHistory ? `${signed(revChange)}% к вчерашнему дню` : "Нет данных для сравнения",
       noteClass: hasHistory ? noteClassFor(revChange) : "kpi-note--neutral",
       progress: Math.max(8, Math.min(100, 72)),
-      description: "Дневная выручка по всем закрытым заказам за выбранную дату.",
+      description: t("pages.dashboard.analyticsdata.dnevnaya_vyruchka_po_vsem_zakrytym_zakazam_za"),
       details: [
-        ["Наличные", cashTotal == null ? "Недоступно" : `${formatNumber(cashTotal)} UZS`],
-        ["Безнал", nonCashTotal == null ? "Недоступно" : `${formatNumber(nonCashTotal)} UZS`],
+        [t("dashboard.cash_revenue"), cashTotal == null ? t("common.unavailable") : `${formatNumber(cashTotal)} UZS`],
+        [t("common.noncash"), nonCashTotal == null ? t("common.unavailable") : `${formatNumber(nonCashTotal)} UZS`],
         ["Активные заказы", `${activeOrders}`],
       ],
       paymentRows: realPaymentRows(dash, revenue),
@@ -412,13 +413,13 @@ export function buildRealKpis(dash, sales, selectedDate, placeSettings = [], fin
       className: "premium-kpi--orders",
       icon: "bi-receipt",
       badge: "Live",
-      label: "Заказы",
+      label: t("pages.dashboard.analyticsdata.zakazy"),
       value: formatNumber(orders),
       dialogSuffix: "шт",
       note: hasHistory ? `${signed(ordChange)} к вчерашнему дню` : "Заказов пока нет",
       noteClass: hasHistory ? noteClassFor(ordChange) : "kpi-note--neutral",
       progress: Math.max(8, Math.min(100, Math.round((orders / Math.max(orders + 28, 1)) * 100))),
-      description: "Количество заказов за день.",
+      description: t("pages.dashboard.analyticsdata.kolichestvo_zakazov_za_den"),
       details: [
         ["Активные заказы", `${activeOrders}`],
         ["Завершённых", `${Math.max(0, orders - activeOrders)}`],
@@ -430,13 +431,13 @@ export function buildRealKpis(dash, sales, selectedDate, placeSettings = [], fin
       className: "premium-kpi--avg",
       icon: "bi-file-earmark-bar-graph",
       badge: "Среднее",
-      label: "Средний чек",
+      label: t("pages.dashboard.analyticsdata.sredniy_chek"),
       value: formatNumber(avgCheck),
       suffix: "UZS",
       note: hasHistory ? `${signed(avgChange)}% к вчерашнему дню` : "Появится после первых заказов",
       noteClass: hasHistory ? noteClassFor(avgChange) : "kpi-note--neutral",
       progress: Math.max(8, 65),
-      description: "Средняя сумма одного заказа за выбранный день.",
+      description: t("pages.dashboard.analyticsdata.srednyaya_summa_odnogo_zakaza_za_vybrannyy_den"),
       details: [],
       table: {
         rows: realAverageRows(dash, avgCheck, placeSettings),
@@ -444,7 +445,7 @@ export function buildRealKpis(dash, sales, selectedDate, placeSettings = [], fin
         valueColumn: "Средний чек",
         shareColumn: "Индекс",
         formatValue: formatMoney,
-        emptyText: "Нет данных по среднему чеку",
+        emptyText: t("pages.dashboard.analyticsdata.net_dannyh_po_srednemu_cheku"),
       },
       insight: "Средний чек по всем каналам продаж.",
     },
@@ -452,16 +453,16 @@ export function buildRealKpis(dash, sales, selectedDate, placeSettings = [], fin
       className: "premium-kpi--tables",
       icon: "bi-arrow-down-left-circle",
       badge: "Приход",
-      label: "Денежный приход",
+      label: t("pages.dashboard.analyticsdata.denezhnyy_prihod"),
       value: formatNumber(income),
       suffix: "UZS",
       note: "",
       noteClass: "kpi-note--neutral",
       progress: Math.max(8, Math.min(100, Math.round((income / Math.max(revenue, 1)) * 100))),
-      description: "Фактически полученные деньги за выбранную дату.",
+      description: t("pages.dashboard.analyticsdata.fakticheski_poluchennye_dengi_za_vybrannuyu_datu"),
       details: [
-        ["Наличные", cashTotal == null ? "Недоступно" : `${formatNumber(cashTotal)} UZS`],
-        ["Безнал", nonCashTotal == null ? "Недоступно" : `${formatNumber(nonCashTotal)} UZS`],
+        [t("dashboard.cash_revenue"), cashTotal == null ? t("common.unavailable") : `${formatNumber(cashTotal)} UZS`],
+        [t("common.noncash"), nonCashTotal == null ? t("common.unavailable") : `${formatNumber(nonCashTotal)} UZS`],
       ],
       table: {
         rows: realIncomeRows(dash, income, financeRows),
@@ -469,16 +470,16 @@ export function buildRealKpis(dash, sales, selectedDate, placeSettings = [], fin
         valueColumn: "Приход",
         shareColumn: "Доля",
         formatValue: formatMoney,
-        emptyText: "Нет приходов за выбранный день",
+        emptyText: t("pages.dashboard.analyticsdata.net_prihodov_za_vybrannyy_den"),
       },
-      insight: "Денежный приход показывает поступления, прошедшие через оплату.",
+      insight: t("pages.dashboard.analyticsdata.denezhnyy_prihod_pokazyvaet_postupleniya_proshedshie_cherez_oplatu"),
     },
     {
       className: "premium-kpi--expense",
       icon: "bi-arrow-up-right-circle",
       badge: "Расход",
-      label: "Денежные расходы",
-      value: "Скоро",
+      label: t("pages.dashboard.analyticsdata.denezhnye_rashody"),
+      value: t("common.soon"),
       suffix: "",
       comingSoon: true,
       hideDescription: true,
@@ -496,46 +497,46 @@ export function buildRealKpis(dash, sales, selectedDate, placeSettings = [], fin
   if (dash.metric_basis === "completed_income_minus_snapshot_cogs") {
     const unavailable = Boolean(dash.financial_unavailable);
     const unknownCost = dash.today_revenue == null;
-    const moneyOrUnknown = (amount) => amount == null ? "Неизвестно" : formatMoney(amount);
-    const reason = dash.profit_unavailable_reason || "Денежный приход минус историческая себестоимость оплаченных позиций.";
+    const moneyOrUnknown = (amount) => amount == null ? t("common.unknown") : formatMoney(amount);
+    const reason = dash.profit_unavailable_reason || t("pages.dashboard.analyticsdata.denezhnyy_prihod_minus_istoricheskaya_sebestoimost_oplachennyh_pozitsiy");
     Object.assign(revenueKpi, {
       // Под этой базой расчёта today_revenue — это приход минус себестоимость,
       // то есть чистая прибыль, а не выручка. Ярлык обязан совпадать с числом.
-      label: "Чистая прибыль",
+      label: t("pages.dashboard.analyticsdata.chistaya_pribyl"),
       badge: dash.date_from && dash.date_to && dash.date_from !== dash.date_to
         ? `${formatDateLabel(dash.date_from)} – ${formatDateLabel(dash.date_to)}`
         : formatDateLabel(dash.date_to || selectedDate),
-      value: unknownCost ? "Недоступно" : formatNumber(dash.today_revenue), suffix: unknownCost ? "" : "UZS",
+      value: unknownCost ? t("common.unavailable") : formatNumber(dash.today_revenue), suffix: unknownCost ? "" : "UZS",
       description: reason, note: "", insight: reason,
       productReport: Array.isArray(dash.product_rows) || unavailable ? {
         rows: dash.product_rows || [], income: dash.income_total, cogs: dash.cogs_total,
         revenue: dash.today_revenue, unavailable,
       } : null,
       table: { rows: [
-        { name: "Денежный приход", amount: dash.income_total },
-        { name: "Себестоимость оплаченных позиций (вычитается)", amount: dash.cogs_total },
-        { name: "Выручка = приход − себестоимость", amount: dash.today_revenue },
-      ], labelColumn: "Расчёт", valueColumn: "Сумма", showShare: false, formatValue: moneyOrUnknown },
+        { name: t("pages.dashboard.dashboarddialogs.denezhnyy_prihod"), amount: dash.income_total },
+        { name: t("pages.dashboard.analyticsdata.sebestoimost_oplachennyh_pozitsiy_rychitaetsya"), amount: dash.cogs_total },
+        { name: t("pages.dashboard.analyticsdata.vyruchka_prihod_minus_sebestoimost"), amount: dash.today_revenue },
+      ], labelColumn: t("common.calculation"), valueColumn: "Сумма", showShare: false, formatValue: moneyOrUnknown },
     });
-    Object.assign(ordersKpi, { value: unavailable ? "Недоступно" : formatNumber(dash.today_orders),
+    Object.assign(ordersKpi, { value: unavailable ? t("common.unavailable") : formatNumber(dash.today_orders),
       dialogSuffix: unavailable ? "" : "шт",
       orderReport: {
         rows: dash.order_rows || [], total: dash.orders_total ?? (Number(dash.today_orders) === 0 ? "0" : null),
         unavailable: unavailable || (!Array.isArray(dash.order_rows) && Number(dash.today_orders) > 0),
       },
       hideDescription: true,
-      description: "Полностью оплаченные завершённые заказы за выбранный период.",
-      details: [["Завершённых и оплаченных", unavailable ? "Недоступно" : String(dash.today_orders)]], note: "" });
-    Object.assign(avgKpi, { value: unavailable ? "Недоступно" : new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(Number(dash.avg_check)),
+      description: t("pages.dashboard.analyticsdata.polnostyu_oplachennye_zavershennye_zakazy_za"),
+      details: [[t("pages.dashboard.analyticsdata.zavershennyh_i_oplachennyh"), unavailable ? t("common.unavailable") : String(dash.today_orders)]], note: "" });
+    Object.assign(avgKpi, { value: unavailable ? t("common.unavailable") : new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(Number(dash.avg_check)),
       averageReport: {
         rows: dash.average_check_rows || [], count: dash.today_orders, income: dash.income_total, average: dash.avg_check,
         unavailable: unavailable || (!Array.isArray(dash.average_check_rows) && Number(dash.today_orders) > 0),
       },
       hideDescription: true,
-      suffix: unavailable ? "" : "UZS", note: "", description: "Денежный приход / количество оплаченных завершённых заказов за период." });
-    Object.assign(incomeKpi, { value: unavailable ? "Недоступно" : formatNumber(dash.income_total),
+      suffix: unavailable ? "" : "UZS", note: "", description: t("pages.dashboard.analyticsdata.denezhnyy_prihod_kolichestvo_oplachennyh") });
+    Object.assign(incomeKpi, { value: unavailable ? t("common.unavailable") : formatNumber(dash.income_total),
       productReport: revenueKpi.productReport ? { ...revenueKpi.productReport, incomeLast: true } : null,
-      suffix: unavailable ? "" : "UZS", description: "Подтверждённые оплаты полностью завершённых заказов за выбранный период. Финансовые операции повторно не прибавляются.",
+      suffix: unavailable ? "" : "UZS", description: t("pages.dashboard.analyticsdata.podtverzhdennye_oplaty_polnostyu_zavershennyh"),
       table: { ...incomeKpi.table, rows: unavailable ? [] : realPaymentRows(dash, dash.income_total),
         emptyText: unavailable ? "Не удалось загрузить подтверждённые оплаты" : "Нет оплат завершённых заказов за выбранный период" },
     });
@@ -607,23 +608,23 @@ export function buildWarehouseSummary(reports = EMPTY_WAREHOUSE_REPORTS, finance
   );
 
   return [
-    { label: "Приход товаров", value: incomeTotal, icon: "bi-download", tone: "income", rows: incomeRows, to: "/stock-report/incoming" },
-    { label: "Расход товаров", value: expenseTotal, icon: "bi-upload", tone: "expense", rows: expenseRows, to: "/stock-report/outgoing" },
-    { label: "Остаток склада", value: stockBalance, icon: "bi-box", tone: "stock", rows: stockRows, to: "/stock-report/stock" },
-    { label: "Общие затраты", value: totalCosts, icon: "bi-wallet2", tone: "costs", rows: totalCostRows },
-    { label: "Кредиторка", value: creditorTotal, icon: "bi-arrow-up-right-circle", tone: "creditor", rows: creditorRows },
-    { label: "Дебиторка", value: debtorTotal, icon: "bi-arrow-down-left-circle", tone: "debtor", rows: debtorRows },
+    { label: t("pages.dashboard.analyticsdata.prihod_tovarov"), value: incomeTotal, icon: "bi-download", tone: "income", rows: incomeRows, to: "/stock-report/incoming" },
+    { label: t("pages.dashboard.analyticsdata.rashod_tovarov"), value: expenseTotal, icon: "bi-upload", tone: "expense", rows: expenseRows, to: "/stock-report/outgoing" },
+    { label: t("pages.dashboard.analyticsdata.ostatok_sklada"), value: stockBalance, icon: "bi-box", tone: "stock", rows: stockRows, to: "/stock-report/stock" },
+    { label: t("pages.dashboard.analyticsdata.obschie_zatraty"), value: totalCosts, icon: "bi-wallet2", tone: "costs", rows: totalCostRows },
+    { label: t("pages.dashboard.analyticsdata.kreditorka"), value: creditorTotal, icon: "bi-arrow-up-right-circle", tone: "creditor", rows: creditorRows },
+    { label: t("pages.dashboard.analyticsdata.debitorka"), value: debtorTotal, icon: "bi-arrow-down-left-circle", tone: "debtor", rows: debtorRows },
   ];
 }
 
 export function buildUnavailableWarehouseSummary() {
   return [
-    { label: "Приход товаров", icon: "bi-download", tone: "income" },
-    { label: "Расход товаров", icon: "bi-upload", tone: "expense" },
-    { label: "Остаток склада", icon: "bi-box", tone: "stock" },
-    { label: "Общие затраты", icon: "bi-wallet2", tone: "costs" },
-    { label: "Кредиторка", icon: "bi-arrow-up-right-circle", tone: "creditor" },
-    { label: "Дебиторка", icon: "bi-arrow-down-left-circle", tone: "debtor" },
+    { label: t("pages.dashboard.analyticsdata.prihod_tovarov"), icon: "bi-download", tone: "income" },
+    { label: t("pages.dashboard.analyticsdata.rashod_tovarov"), icon: "bi-upload", tone: "expense" },
+    { label: t("pages.dashboard.analyticsdata.ostatok_sklada"), icon: "bi-box", tone: "stock" },
+    { label: t("pages.dashboard.analyticsdata.obschie_zatraty"), icon: "bi-wallet2", tone: "costs" },
+    { label: t("pages.dashboard.analyticsdata.kreditorka"), icon: "bi-arrow-up-right-circle", tone: "creditor" },
+    { label: t("pages.dashboard.analyticsdata.debitorka"), icon: "bi-arrow-down-left-circle", tone: "debtor" },
   ].map((item) => ({ ...item, value: null, rows: [], unavailable: true }));
 }
 

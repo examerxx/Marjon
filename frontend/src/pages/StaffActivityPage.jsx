@@ -3,6 +3,7 @@ import { staffService } from "../api/staff";
 import ReportEmptyState from "../components/ReportEmptyState";
 import staffDefaultAvatar from "../assets/staff/staff-default-avatar.png";
 import { isAbortError, useLatestRequest } from "../hooks/useAsyncSafety";
+import { t } from "../i18n/t";
 
 // Ячейка «Сотрудник» в журналах: аватар + имя в одну строку, слева (как в
 // реестре). Фото — avatar_url с бэкенда; при отсутствии — дефолтная заглушка.
@@ -28,8 +29,8 @@ function JournalNameCell({ name, photo }) {
 // no fake enrichment, no drawers, no action buttons.
 function StaffActivityPage({ type = "login-history" }) {
   const isAttendance = type === "attendance";
-  const title = isAttendance ? "Посещаемость" : "История входа";
-  const eyebrow = isAttendance ? "Смены сотрудников" : "Безопасность";
+  const title = isAttendance ? t("staff.attendance") : t("staff.activity.title_login_history");
+  const eyebrow = isAttendance ? t("staff.attendance_shifts") : t("staff.security");
   const [loginRows, setLoginRows] = useState([]);
   const [shiftRows, setShiftRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,7 +88,7 @@ function StaffActivityPage({ type = "login-history" }) {
         if (!request.isCurrent() || isAbortError(err)) return;
         if (isAttendance) setShiftRows([]);
         else setLoginRows([]);
-        setError("Не удалось загрузить данные активности сотрудников.");
+        setError(t("staff.activity.load_failed"));
       })
       .finally(() => { if (request.isCurrent()) setLoading(false); });
   }, [beginRequest, isAttendance, type]);
@@ -116,13 +117,13 @@ function StaffActivityPage({ type = "login-history" }) {
             <table className="staff-table staff-table--attendance">
               <thead>
                 <tr>
-                  <th>Сотрудник</th>
-                  <th>Роль</th>
-                  <th>Дата</th>
-                  <th>Время прихода</th>
-                  <th>Время ухода</th>
-                  <th>Отработано</th>
-                  <th>Статус</th>
+                  <th>{t("pages.staffactivitypage.sotrudnik")}</th>
+                  <th>{t("pages.staffactivitypage.rol")}</th>
+                  <th>{t("pages.staffactivitypage.data")}</th>
+                  <th>{t("pages.staffactivitypage.vremya_prihoda")}</th>
+                  <th>{t("pages.staffactivitypage.vremya_uhoda")}</th>
+                  <th>{t("pages.staffactivitypage.otrabotano")}</th>
+                  <th>{t("pages.staffactivitypage.status")}</th>
                   <th>IP</th>
                 </tr>
               </thead>
@@ -131,7 +132,7 @@ function StaffActivityPage({ type = "login-history" }) {
                   <tr key={`${row.employee}-${row.date}-${row.start}-${index}`}>
                     <JournalNameCell name={row.employee} photo={row.photo} />
                     <td>
-                      <span className="staff-role-badge">{row.role}</span>
+                      <span className="staff-role-badge">{t(row.role)}</span>
                     </td>
                     <td>{row.date}</td>
                     <td>{row.start}</td>
@@ -144,7 +145,7 @@ function StaffActivityPage({ type = "login-history" }) {
                 {!loading && !error && !displayAttendanceRows.length ? (
                   <tr className="staff-empty-row">
                     <td colSpan={8} className="staff-empty-cell">
-                      <ReportEmptyState title="Данных о посещаемости пока нет." />
+                      <ReportEmptyState title={t("pages.staffactivitypage.dannyh_o_poseschaemosti_poka_net")} />
                     </td>
                   </tr>
                 ) : null}
@@ -154,12 +155,12 @@ function StaffActivityPage({ type = "login-history" }) {
             <table className="staff-table staff-table--login-history">
               <thead>
                 <tr>
-                  <th>Сотрудник</th>
-                  <th>Роль</th>
-                  <th>Телефон</th>
-                  <th>Дата и время входа</th>
-                  <th>Устройство</th>
-                  <th>IP устройство</th>
+                  <th>{t("pages.staffactivitypage.sotrudnik")}</th>
+                  <th>{t("pages.staffactivitypage.rol")}</th>
+                  <th>{t("pages.staffactivitypage.telefon")}</th>
+                  <th>{t("pages.staffactivitypage.data_i_vremya_vhoda")}</th>
+                  <th>{t("pages.staffactivitypage.ustroystvo")}</th>
+                  <th>{t("pages.staffactivitypage.ip_ustroystvo")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -167,7 +168,7 @@ function StaffActivityPage({ type = "login-history" }) {
                   <tr key={`${row.employee}-${row.datetime}-${index}`}>
                     <JournalNameCell name={row.employee} photo={row.photo} />
                     <td>
-                      <span className="staff-role-badge">{row.role}</span>
+                      <span className="staff-role-badge">{t(row.role)}</span>
                     </td>
                     <td>{row.phone}</td>
                     <td>{row.datetime}</td>
@@ -178,7 +179,7 @@ function StaffActivityPage({ type = "login-history" }) {
                 {!loading && !error && !displayLoginRows.length ? (
                   <tr className="staff-empty-row">
                     <td colSpan={6} className="staff-empty-cell">
-                      <ReportEmptyState title="Истории входов пока нет." />
+                      <ReportEmptyState title={t("pages.staffactivitypage.istorii_vhodov_poka_net")} />
                     </td>
                   </tr>
                 ) : null}
@@ -190,7 +191,7 @@ function StaffActivityPage({ type = "login-history" }) {
             таблицы была видна сразу, а «Загрузка…» не выталкивала её вниз. */}
         {loading && !error ? (
           <div className="staff-empty-cell" role="status">
-            {isAttendance ? "Загрузка посещаемости..." : "Загрузка истории входов..."}
+            {isAttendance ? t("staff.activity.loading_attendance") : t("staff.activity.loading_login_history")}
           </div>
         ) : null}
       </section>

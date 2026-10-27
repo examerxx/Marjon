@@ -8,6 +8,7 @@ import { formatDateLabel, todayInputValue } from "../utils/date";
 import { toApiDate } from "./reports/reportPeriod";
 import { reportCacheKey, readReportCache, writeReportCache } from "./reports/reportResultCache";
 import { formatMoney } from "./reports/reportMoney";
+import { t } from "../i18n/t";
 
 export const defaultWaiterFilters = Object.freeze({
   // 0% is the real initial value AND the muted default look: the initial DATA
@@ -37,11 +38,11 @@ const emptyTotals = Object.freeze({
 export function normalizeServicePercent(rawValue) {
   const normalized = String(rawValue ?? "").trim();
   if (!/^\d+$/.test(normalized)) {
-    return { value: "", error: "Введите целое число от 0 до 100." };
+    return { value: "", error: t("pages.waitersreportpage.vvedite_tseloe_chislo_ot_0_do_100") };
   }
   const number = Number(normalized);
   if (!Number.isFinite(number) || number < 0 || number > 100) {
-    return { value: "", error: "Процент должен быть от 0 до 100." };
+    return { value: "", error: t("pages.waitersreportpage.protsent_dolzhen_byt_ot_0_do_100") };
   }
   return { value: String(Math.trunc(number)), error: "" };
 }
@@ -160,11 +161,11 @@ function WaiterSingleSelect({
       <button type="button" ref={triggerRef} className={`orders-filter-select__trigger${selectedLabel ? " has-value" : " is-placeholder"}`}
         role="combobox" aria-haspopup="listbox" aria-expanded={open} aria-controls={listId}
         aria-activedescendant={open && activeIndex >= 0 ? `${listId}-option-${activeIndex}` : undefined}
-        aria-label="Официант" disabled={disabled} onClick={() => (open ? onClose() : onOpen())}>
-        <span className="orders-filter-select__value">{selectedLabel || "Выберите официанта"}</span>
+        aria-label={t("pages.waitersreportpage.ofitsiant")} disabled={disabled} onClick={() => (open ? onClose() : onOpen())}>
+        <span className="orders-filter-select__value">{selectedLabel || t("pages.ordersreportpage.vyberite_ofitsianta")}</span>
         <span className="orders-filter-select__chevron" aria-hidden="true"><Icon name="bi-chevron-down" size={16} /></span>
       </button>
-      {selectedLabel ? <button type="button" className="waiters-filter-select__clear" aria-label="Сбросить выбор официанта"
+      {selectedLabel ? <button type="button" className="waiters-filter-select__clear" aria-label={t("pages.waitersreportpage.sbrosit_vybor_ofitsianta")}
         disabled={disabled} onMouseDown={(event) => event.preventDefault()} onClick={clearSelection}>
         <span aria-hidden="true">×</span>
       </button> : null}
@@ -172,20 +173,20 @@ function WaiterSingleSelect({
         <div className={`orders-filter-select__panel${closing ? " is-closing" : ""}`}
           aria-hidden={closing ? true : undefined} {...(closing ? { inert: true } : {})}
           onAnimationEnd={closing ? handlePanelAnimationEnd : undefined}>
-          <ul className="orders-filter-select__menu" id={listId} role="listbox" aria-label="Официант">
+          <ul className="orders-filter-select__menu" id={listId} role="listbox" aria-label={t("pages.waitersreportpage.ofitsiant")}>
             {loading ? <li role="presentation">
-              <span className="orders-filter-select__option waiters-filter-select__state" role="status">Загрузка официантов...</span>
+              <span className="orders-filter-select__option waiters-filter-select__state" role="status">{t("pages.waitersreportpage.zagruzka_ofitsiantov")}</span>
             </li> : error ? <li role="presentation">
               <span className="orders-filter-select__option waiters-filter-select__state is-error" role="alert">{error}</span>
             </li> : !options.length ? <li role="presentation">
-              <span className="orders-filter-select__option waiters-filter-select__state">Официанты не найдены</span>
+              <span className="orders-filter-select__option waiters-filter-select__state">{t("pages.waitersreportpage.ofitsianty_ne_naydeny")}</span>
             </li> : options.map((option, index) => {
               const selected = option.value === value;
               return <li key={option.value}>
                 <button type="button" id={`${listId}-option-${index}`} role="option" aria-selected={selected}
                   className={`orders-filter-select__option waiters-filter-select__option${selected ? " is-checked" : ""}${index === activeIndex ? " is-active" : ""}`}
                   onMouseEnter={() => setActiveIndex(index)} onClick={() => choose(option.value)}>
-                  <span>{option.label}</span>
+                  <span>{t(option.label)}</span>
                   <span className="waiters-filter-select__choice" aria-hidden="true">{selected ? "✓" : null}</span>
                 </button>
               </li>;
@@ -395,15 +396,15 @@ export default function WaitersReportPage() {
     // shared `totals` option renders the Итого row directly after the data
     // (numeric totals, never summed together).
     exportToExcel(rows, [
-      { key: "name", label: "Имя", width: 24 },
-      { key: "ordersTotal", label: "Сумма заказов", type: "number", format: "#,##0", width: 20 },
-      { key: "takeawayDeliveryTotal", label: "Сумма заказов на вынос", type: "number", format: "#,##0", width: 24 },
-      { key: "serviceTotal", label: "Сумма услуги", type: "number", format: "#,##0", width: 18 },
-      { key: "waiterServiceTotal", label: "Обслуга официанта", type: "number", format: "#,##0", width: 20 },
+      { key: "name", label: t("pages.waitersreportpage.imya"), width: 24 },
+      { key: "ordersTotal", label: t("pages.waitersreportpage.summa_zakazov"), type: "number", format: "#,##0", width: 20 },
+      { key: "takeawayDeliveryTotal", label: t("pages.waitersreportpage.summa_zakazov_na_vynos"), type: "number", format: "#,##0", width: 24 },
+      { key: "serviceTotal", label: t("pages.waitersreportpage.summa_uslugi"), type: "number", format: "#,##0", width: 18 },
+      { key: "waiterServiceTotal", label: t("pages.waitersreportpage.obsluga_ofitsianta"), type: "number", format: "#,##0", width: 20 },
     ], "waiters-report", {
       sheetName: "Отчёт по официантам",
       totals: {
-        label: "Итого:",
+        label: t("pages.waitersreportpage.itogo"),
         values: {
           ordersTotal: totals.ordersTotal,
           takeawayDeliveryTotal: totals.takeawayDeliveryTotal,
@@ -425,15 +426,15 @@ export default function WaitersReportPage() {
         <div className="report-page-header owner-report-header waiters-report-header">
           <div className="report-title-group owner-report-heading">
             <span className="report-accent-bar" aria-hidden="true" />
-            <div><span className="report-eyebrow owner-report-kicker">Отчёты</span><h1>Отчёт по официантам</h1></div>
+            <div><span className="report-eyebrow owner-report-kicker">{t("pages.waitersreportpage.otchety")}</span><h1>{t("pages.waitersreportpage.otchet_po_ofitsiantam")}</h1></div>
           </div>
           <div className="report-actions owner-report-actions waiters-report-actions">
             <ReportDateRangePicker variant="canonical" animateExit value={dateRange} onChange={setDateRange}
               open={panelState.active === "period"} onOpenChange={(nextOpen) => requestPanel(nextOpen ? "period" : "")}
-              onExitComplete={() => completePanelExit("period")} buttonAriaLabel="Период отчёта по официантам" />
+              onExitComplete={() => completePanelExit("period")} buttonAriaLabel={t("report_period.waiters")} />
             <div className="waiters-percent-control-wrap">
               <div className={`waiters-percent-stepper${percentError ? " is-invalid" : ""}${!filters.servicePercent || Number(filters.servicePercent) === 0 ? " is-empty" : ""}`}>
-                <input ref={percentInputRef} type="number" min="0" max="100" step="1" inputMode="numeric" aria-label="Процент обслуживания" placeholder="0"
+                <input ref={percentInputRef} type="number" min="0" max="100" step="1" inputMode="numeric" aria-label={t("pages.waitersreportpage.protsent_obsluzhivaniya")} placeholder="0"
                   aria-invalid={percentError ? true : undefined} aria-describedby={percentError ? "waiters-percent-error" : undefined}
                   value={filters.servicePercent} onChange={(event) => updateServicePercent(event.target.value)} onBlur={commitServicePercent}
                   onKeyDown={(event) => {
@@ -449,10 +450,10 @@ export default function WaitersReportPage() {
                 <span className="waiters-percent-stepper__suffix" aria-hidden="true"
                   style={{ left: "calc(33px + 0.5ch)" }}>%</span>
                 <span className="waiters-percent-stepper__controls">
-                  <button type="button" className="waiters-percent-stepper__up" aria-label="Увеличить процент обслуживания"
+                  <button type="button" className="waiters-percent-stepper__up" aria-label={t("pages.waitersreportpage.uvelichit_protsent_obsluzhivaniya")}
                     disabled={!percentError && Number(filters.servicePercent) >= 100}
                     onClick={() => stepServicePercent(1)} />
-                  <button type="button" className="waiters-percent-stepper__down" aria-label="Уменьшить процент обслуживания"
+                  <button type="button" className="waiters-percent-stepper__down" aria-label={t("pages.waitersreportpage.umenshit_protsent_obsluzhivaniya")}
                     disabled={!percentError && Number(filters.servicePercent) <= 0}
                     onClick={() => stepServicePercent(-1)} />
                 </span>
@@ -463,7 +464,7 @@ export default function WaitersReportPage() {
               onChange={(value) => updateFilter("waiterId", value)} loading={optionsLoading} error={optionsError}
               {...panelProps("waiter")} />
             <button className="report-excel-button owner-report-excel" type="button" onClick={downloadExcel}>
-              <Icon name="bi-filetype-xlsx" size={19} strokeWidth={1.9} className="owner-report-xlsx-icon" /> Скачать Excel
+              <Icon name="bi-filetype-xlsx" size={19} strokeWidth={1.9} className="owner-report-xlsx-icon" /> {t("pages.waitersreportpage.skachat_excel")}
             </button>
           </div>
         </div>
@@ -471,26 +472,26 @@ export default function WaitersReportPage() {
         {error ? <div className="login-error waiters-report-error" role="alert">{error}</div> : null}
 
         <div className="report-table-wrapper owner-report-table-scroll" aria-busy={loading ? "true" : "false"}>
-          <table className="report-table owner-report-table" aria-label="Отчёт по официантам">
-            <thead><tr><th>Имя</th>{calculationOptions.map((option) => <th key={option.key}>
+          <table className="report-table owner-report-table" aria-label={t("pages.waitersreportpage.otchet_po_ofitsiantam")}>
+            <thead><tr><th>{t("pages.waitersreportpage.imya")}</th>{calculationOptions.map((option) => <th key={option.key}>
               <label className={`waiters-table-toggle${filters[option.key] ? " is-checked" : ""}`}>
                 <input type="checkbox" checked={filters[option.key]}
                   onChange={(event) => updateFilter(option.key, event.target.checked)} />
                 <span className="waiters-table-toggle__box" aria-hidden="true">
                   {filters[option.key] ? <span className="waiters-table-toggle__tick">✓</span> : null}
                 </span>
-                <span>{option.label}</span>
+                <span>{t(option.label)}</span>
               </label>
-            </th>)}<th>Обслуживание официанта</th><th>Блюда</th></tr></thead>
+            </th>)}<th>{t("pages.waitersreportpage.obsluzhivanie_ofitsianta")}</th><th>{t("pages.waitersreportpage.blyuda")}</th></tr></thead>
             <tbody>
-              <tr className="report-total-row"><td><strong>Всего</strong></td><td>{formatMoney(totals.ordersTotal)}</td>
+              <tr className="report-total-row"><td><strong>{t("pages.waitersreportpage.vsego")}</strong></td><td>{formatMoney(totals.ordersTotal)}</td>
                 <td>{formatMoney(totals.takeawayDeliveryTotal)}</td><td>{formatMoney(totals.serviceTotal)}</td>
                 <td>{formatMoney(totals.waiterServiceTotal)}</td><td>{formatQuantity(totals.dishesCount)}</td></tr>
               {rows.map((waiter) => <tr key={waiter.waiterId}><td><strong>{waiter.name}</strong></td><td>{formatMoney(waiter.ordersTotal)}</td>
                 <td>{formatMoney(waiter.takeawayDeliveryTotal)}</td><td>{formatMoney(waiter.serviceTotal)}</td>
                 <td className="report-total-price">{formatMoney(waiter.waiterServiceTotal)}</td><td>
                   <button type="button" className="waiters-dishes-button" aria-label={`Блюда официанта ${waiter.name}`} onClick={() => setSelectedWaiter(waiter)}>
-                    {formatQuantity(waiter.dishesCount)} <span>шт.</span>
+                    {formatQuantity(waiter.dishesCount)} <span>{t("pages.waitersreportpage.sht")}</span>
                   </button>
                 </td></tr>)}
             </tbody>
@@ -501,13 +502,13 @@ export default function WaitersReportPage() {
       {selectedWaiter ? <div className="waiter-dishes-drawer" role="dialog" aria-modal="true" aria-label={`Блюда официанта ${selectedWaiter.name}`}>
         <div className="waiter-dishes-drawer__backdrop" onClick={() => setSelectedWaiter(null)} />
         <aside className="waiter-dishes-drawer__panel">
-          <div className="waiter-dishes-drawer__head"><div><span>Блюда официанта</span><h3>{selectedWaiter.name}</h3></div>
-            <button type="button" ref={drawerCloseRef} onClick={() => setSelectedWaiter(null)} aria-label="Закрыть"><Icon name="bi-x-lg" size={18} /></button></div>
-          <div className="waiter-dishes-drawer__period">Период: {dateRange.start === dateRange.end ? dateRange.start : `${dateRange.start} – ${dateRange.end}`}</div>
-          <div className="waiter-dishes-drawer__table-wrap"><table aria-label="Состав блюд официанта">
-            <thead><tr><th>Блюдо</th><th>Количество</th><th>Сумма</th></tr></thead><tbody>
+          <div className="waiter-dishes-drawer__head"><div><span>{t("pages.waitersreportpage.blyuda_ofitsianta")}</span><h3>{selectedWaiter.name}</h3></div>
+            <button type="button" ref={drawerCloseRef} onClick={() => setSelectedWaiter(null)} aria-label={t("pages.waitersreportpage.zakryt")}><Icon name="bi-x-lg" size={18} /></button></div>
+          <div className="waiter-dishes-drawer__period">{t("pages.waitersreportpage.period")} {dateRange.start === dateRange.end ? dateRange.start : `${dateRange.start} – ${dateRange.end}`}</div>
+          <div className="waiter-dishes-drawer__table-wrap"><table aria-label={t("pages.waitersreportpage.sostav_blyud_ofitsianta")}>
+            <thead><tr><th>{t("pages.waitersreportpage.blyudo")}</th><th>{t("pages.waitersreportpage.kolichestvo")}</th><th>{t("pages.waitersreportpage.summa")}</th></tr></thead><tbody>
               {selectedWaiter.dishes.map((dish) => <tr key={`${dish.productId}-${dish.name}`}><td>{dish.name}</td><td>{formatQuantity(dish.quantity)}</td><td>{formatMoney(dish.amount)}</td></tr>)}
-              {!selectedWaiter.dishes.length ? <tr><td colSpan={3}>Блюд за период нет.</td></tr> : null}
+              {!selectedWaiter.dishes.length ? <tr><td colSpan={3}>{t("pages.waitersreportpage.blyud_za_period_net")}</td></tr> : null}
             </tbody></table></div>
         </aside>
       </div> : null}

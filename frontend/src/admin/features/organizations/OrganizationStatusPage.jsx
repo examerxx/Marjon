@@ -6,6 +6,7 @@ import { AdminPageSizeDropdown, getPageList } from "../../AdminShared";
 import { normalizeOrganizationStatus } from "./OrganizationDirectoryPage";
 import { organizationErrorMessage } from "./organizationErrors";
 import { organizationsApi } from "./organizationsApi";
+import { t } from "../../../i18n/t";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -39,13 +40,13 @@ function StatusDeleteDialog({ row, busy, error, onClose, onConfirm }) {
     }}>
       <section ref={panelRef} className="admin-modal__panel org-directory-modal__panel is-danger" role="dialog" aria-modal="true" aria-labelledby="status-delete-title" aria-describedby="status-delete-description" onKeyDown={onKeyDown}>
         <div className="admin-modal__head">
-          <div><h3 id="status-delete-title">Удалить статус</h3><p id="status-delete-description">Backend удаляет запись статуса без архива. Ссылки организаций будут очищены.</p></div>
-          <button type="button" className="admin-modal__close" onClick={onClose} disabled={busy} aria-label="Закрыть"><Icon name="bi-x-lg" size={16} /></button>
+          <div><h3 id="status-delete-title">{t("admin.features.organizations.organizationstatuspage.udalit_status")}</h3><p id="status-delete-description">{t("admin.features.organizations.organizationstatuspage.backend_udalyaet_zapis_statusa_bez_arhiva_ssylki")}</p></div>
+          <button type="button" className="admin-modal__close" onClick={onClose} disabled={busy} aria-label={t("admin.features.organizations.organizationstatuspage.zakryt")}><Icon name="bi-x-lg" size={16} /></button>
         </div>
         <p className="org-directory-modal__confirmation">{row.name}</p>
         {error ? <div className="org-directory-modal__error" role="alert">{error}</div> : null}
         <div className="admin-modal__actions">
-          <button type="button" className="admin-modal__btn is-ghost" onClick={onClose} disabled={busy}>Отмена</button>
+          <button type="button" className="admin-modal__btn is-ghost" onClick={onClose} disabled={busy}>{t("admin.features.organizations.organizationstatuspage.otmena")}</button>
           <button type="button" className="admin-modal__btn is-primary" onClick={onConfirm} disabled={busy}>{busy ? "Удаление..." : "Удалить"}</button>
         </div>
       </section>
@@ -196,36 +197,36 @@ export function OrganizationStatusPage({ search = "", onNotify }) {
   return (
     <section className="org-status-page">
       <div className="org-status-header">
-        <div className="org-status-title"><span aria-hidden="true" /><div><h2>Статусы организаций</h2><p>Канонический справочник состояний подключения и обслуживания.</p></div></div>
+        <div className="org-status-title"><span aria-hidden="true" /><div><h2>{t("admin.features.organizations.organizationstatuspage.statusy_organizatsiy")}</h2><p>{t("admin.features.organizations.organizationstatuspage.kanonicheskiy_spravochnik_sostoyaniy_podklyucheniya")}</p></div></div>
         <div className="org-status-actions">
-          <button type="button" className="org-status-refresh" onClick={() => setReloadKey((value) => value + 1)} disabled={loadState === "loading"}><Icon name="bi-arrow-repeat" size={15} /> Обновить</button>
-          <button type="button" className="org-status-add" onClick={openCreate}>Добавить <Icon name="bi-plus-lg" size={15} /></button>
+          <button type="button" className="org-status-refresh" onClick={() => setReloadKey((value) => value + 1)} disabled={loadState === "loading"}><Icon name="bi-arrow-repeat" size={15} /> {t("admin.features.organizations.organizationstatuspage.obnovit")}</button>
+          <button type="button" className="org-status-add" onClick={openCreate}>{t("admin.features.organizations.organizationstatuspage.dobavit")} <Icon name="bi-plus-lg" size={15} /></button>
         </div>
       </div>
 
-      <div className="org-status-summary"><span><b>{pageMeta.total}</b> всего</span><span><b>{rows.length}</b> на странице</span><span><b>{rows.filter((row) => row.active).length}</b> активных на странице</span></div>
+      <div className="org-status-summary"><span><b>{pageMeta.total}</b> {t("admin.features.organizations.organizationstatuspage.vsego")}</span><span><b>{rows.length}</b> {t("admin.features.organizations.organizationstatuspage.na_stranitse")}</span><span><b>{rows.filter((row) => row.active).length}</b> {t("admin.features.organizations.organizationstatuspage.aktivnyh_na_stranitse")}</span></div>
 
       <form className="org-status-filters" onSubmit={applyFilters}>
-        <label><Icon name="bi-search" size={15} /><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Поиск по названию" /></label>
-        <select value={activeDraft} onChange={(event) => setActiveDraft(event.target.value)} aria-label="Активность статуса"><option value="">Все статусы</option><option value="true">Активные</option><option value="false">Неактивные</option></select>
-        <button type="submit" className="org-status-refresh">Применить</button>
-        <button type="button" className="org-status-refresh" onClick={resetFilters}>Сбросить</button>
+        <label><Icon name="bi-search" size={15} /><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder={t("admin.features.organizations.organizationstatuspage.poisk_po_nazvaniyu")} /></label>
+        <select value={activeDraft} onChange={(event) => setActiveDraft(event.target.value)} aria-label={t("admin.features.organizations.organizationstatuspage.aktivnost_statusa")}><option value="">{t("admin.features.organizations.organizationstatuspage.vse_statusy")}</option><option value="true">{t("admin.features.organizations.organizationstatuspage.aktivnye")}</option><option value="false">{t("admin.features.organizations.organizationstatuspage.neaktivnye")}</option></select>
+        <button type="submit" className="org-status-refresh">{t("admin.features.organizations.organizationstatuspage.primenit")}</button>
+        <button type="button" className="org-status-refresh" onClick={resetFilters}>{t("admin.features.organizations.organizationstatuspage.sbrosit")}</button>
       </form>
 
       {editor ? <form className="org-status-editor" onSubmit={saveEditor}>
-        <label><span>Название</span><input value={editor.name} onChange={(event) => { setEditor((current) => ({ ...current, name: event.target.value })); setMutationError(""); }} placeholder="Название статуса" autoFocus required /></label>
-        <label><span>Порядок</span><input type="number" value={editor.sort} onChange={(event) => { setEditor((current) => ({ ...current, sort: event.target.value })); setMutationError(""); }} /></label>
+        <label><span>{t("admin.features.organizations.organizationstatuspage.nazvanie")}</span><input value={editor.name} onChange={(event) => { setEditor((current) => ({ ...current, name: event.target.value })); setMutationError(""); }} placeholder={t("admin.features.organizations.organizationstatuspage.nazvanie_statusa")} autoFocus required /></label>
+        <label><span>{t("admin.features.organizations.organizationstatuspage.poryadok")}</span><input type="number" value={editor.sort} onChange={(event) => { setEditor((current) => ({ ...current, sort: event.target.value })); setMutationError(""); }} /></label>
         <button type="button" className={`org-status-toggle ${editor.active ? "is-on" : ""}`} onClick={() => setEditor((current) => ({ ...current, active: !current.active }))} disabled={mutationBusy}><span /> {editor.active ? "Активно" : "Неактивно"}</button>
-        <div><button type="submit" className="org-status-save" disabled={mutationBusy}>{mutationBusy ? "Сохранение..." : "Сохранить"}</button><button type="button" className="org-status-cancel" onClick={() => setEditor(null)} disabled={mutationBusy}>Отмена</button></div>
+        <div><button type="submit" className="org-status-save" disabled={mutationBusy}>{mutationBusy ? "Сохранение..." : "Сохранить"}</button><button type="button" className="org-status-cancel" onClick={() => setEditor(null)} disabled={mutationBusy}>{t("admin.features.organizations.organizationstatuspage.otmena")}</button></div>
         {mutationError ? <div className="org-status-mutation-error" role="alert">{mutationError}</div> : null}
       </form> : mutationError && !deleteRow ? <div className="org-status-mutation-error" role="alert">{mutationError}</div> : null}
 
-      {loadState === "loading" ? <div className="admin-data-state" role="status">Загрузка статусов...</div> : null}
+      {loadState === "loading" ? <div className="admin-data-state" role="status">{t("admin.features.organizations.organizationstatuspage.zagruzka_statusov")}</div> : null}
       {loadState === "error" ? <div className="admin-data-state" role="alert">{loadError}</div> : null}
 
       {loadState !== "error" ? <div className="org-status-table-shell">
         <table className="org-status-table">
-          <thead><tr><th>№</th><th>Название</th><th><button type="button" onClick={() => { setPage(1); setSortDirection((value) => value === "asc" ? "desc" : "asc"); }}>Порядок <Icon name="bi-sort-down" size={14} /></button></th><th>Статус</th><th aria-label="Действия" /></tr></thead>
+          <thead><tr><th>№</th><th>{t("admin.features.organizations.organizationstatuspage.nazvanie")}</th><th><button type="button" onClick={() => { setPage(1); setSortDirection((value) => value === "asc" ? "desc" : "asc"); }}>{t("admin.features.organizations.organizationstatuspage.poryadok")} <Icon name="bi-sort-down" size={14} /></button></th><th>{t("admin.features.organizations.organizationstatuspage.status")}</th><th aria-label={t("admin.features.organizations.organizationstatuspage.deystviya")} /></tr></thead>
           <tbody>{rows.map((row, index) => <tr key={row.id}>
             <td>{startIndex + index + 1}</td><td><strong>{row.name}</strong></td><td><b>{row.sort ?? "—"}</b></td>
             <td><button type="button" className={`org-status-badge ${row.active ? "is-active" : "is-disabled"}`} onClick={() => toggleActive(row)} disabled={mutationBusy}>{row.active ? "#активно" : "#неактивно"}</button></td>
@@ -236,8 +237,8 @@ export function OrganizationStatusPage({ search = "", onNotify }) {
       </div> : null}
 
       <div className="admin-data-footer org-status-footer">
-        <span className="admin-data-footer__summary">{pageMeta.total ? `${startIndex + 1}-${endIndex} из ${pageMeta.total}` : "0 из 0"}<small>Страница {pageMeta.page} из {pageMeta.pages}</small></span>
-        <div className="admin-data-pager"><AdminPageSizeDropdown value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={(value) => { setPageSize(value); setPage(1); }} /><button type="button" disabled={pageMeta.page === 1 || loadState === "loading"} onClick={() => setPage((value) => Math.max(1, value - 1))} aria-label="Предыдущая страница"><Icon name="bi-chevron-left" size={15} /></button>{pageList.map((item, index) => item === "…" ? <span className="admin-data-ellipsis" key={`gap-${index}`}>…</span> : <button type="button" className={`admin-data-page-btn ${item === pageMeta.page ? "is-active" : ""}`} key={item} onClick={() => setPage(item)} aria-current={item === pageMeta.page ? "page" : undefined}>{item}</button>)}<button type="button" disabled={pageMeta.page === pageMeta.pages || loadState === "loading"} onClick={() => setPage((value) => Math.min(pageMeta.pages, value + 1))} aria-label="Следующая страница"><Icon name="bi-chevron-right" size={15} /></button></div>
+        <span className="admin-data-footer__summary">{pageMeta.total ? `${startIndex + 1}-${endIndex} из ${pageMeta.total}` : "0 из 0"}<small>{t("admin.features.organizations.organizationstatuspage.stranitsa")} {pageMeta.page} {t("admin.features.organizations.organizationstatuspage.iz")} {pageMeta.pages}</small></span>
+        <div className="admin-data-pager"><AdminPageSizeDropdown value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={(value) => { setPageSize(value); setPage(1); }} /><button type="button" disabled={pageMeta.page === 1 || loadState === "loading"} onClick={() => setPage((value) => Math.max(1, value - 1))} aria-label={t("admin.features.organizations.organizationstatuspage.predyduschaya_stranitsa")}><Icon name="bi-chevron-left" size={15} /></button>{pageList.map((item, index) => item === "…" ? <span className="admin-data-ellipsis" key={`gap-${index}`}>…</span> : <button type="button" className={`admin-data-page-btn ${item === pageMeta.page ? "is-active" : ""}`} key={item} onClick={() => setPage(item)} aria-current={item === pageMeta.page ? "page" : undefined}>{item}</button>)}<button type="button" disabled={pageMeta.page === pageMeta.pages || loadState === "loading"} onClick={() => setPage((value) => Math.min(pageMeta.pages, value + 1))} aria-label={t("admin.features.organizations.organizationstatuspage.sleduyuschaya_stranitsa")}><Icon name="bi-chevron-right" size={15} /></button></div>
       </div>
 
       {deleteRow ? <StatusDeleteDialog row={deleteRow} busy={mutationBusy} error={mutationError} onClose={() => { if (!mutationBusy) setDeleteRow(null); }} onConfirm={confirmDelete} /> : null}

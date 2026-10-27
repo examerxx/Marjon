@@ -16,6 +16,7 @@ import {
 } from "../staff/staffPhone";
 import ReportEmptyState from "../../components/ReportEmptyState";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../../hooks/useAsyncSafety";
+import { t } from "../../i18n/t";
 
 const STATUS_ACTIVE = "#активно";
 const STATUS_INACTIVE = "#не активно";
@@ -419,19 +420,19 @@ function SettingsResourcePage({
             className="sidebar-search__input"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder={searchPlaceholder}
-            aria-label={searchPlaceholder}
+            placeholder={t(searchPlaceholder)}
+            aria-label={t(searchPlaceholder)}
           />
         </div>
       );
     }
-    return <input className="settings-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholder} aria-label={searchPlaceholder} />;
+    return <input className="settings-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t(searchPlaceholder)} aria-label={t(searchPlaceholder)} />;
   };
 
   const renderAddButton = () => (
     <button type="button" className={staffVariant ? "staff-add-button staff-add-button--cashier" : "settings-add-button"} onClick={openAdd} disabled={!canMutate}>
       {staffVariant ? <Icon name="bi-plus" size={18} /> : null}
-      {addLabel}
+      {t(addLabel)}
     </button>
   );
 
@@ -440,7 +441,7 @@ function SettingsResourcePage({
       {renderSearch()}
       {filterOptions ? (
         <select className="settings-search" value={filter} onChange={(event) => setFilter(event.target.value)}>
-          <option value="">Все</option>
+          <option value="">{t("pages.settings.settingsresourcepage.vse")}</option>
           {filterOptions.map((option) => <option key={option} value={option}>{option}</option>)}
         </select>
       ) : null}
@@ -458,13 +459,13 @@ function SettingsResourcePage({
             style={{ transform: `translateX(${pill.left}px)`, width: pill.width }}
           />
           {tabs.map((tab) => (
-            <button key={tab.key} type="button" data-tab={tab.key} className={activeTab === tab.key ? "is-active" : ""} onClick={() => setActiveTab(tab.key)}>{tab.label}</button>
+            <button key={tab.key} type="button" data-tab={tab.key} className={activeTab === tab.key ? "is-active" : ""} onClick={() => setActiveTab(tab.key)}>{t(tab.label)}</button>
           ))}
         </div>
       ) : (
         <div className="settings-tabs">
           {tabs.map((tab) => (
-            <button key={tab.key} type="button" className={activeTab === tab.key ? "is-active" : ""} onClick={() => setActiveTab(tab.key)}>{tab.label}</button>
+            <button key={tab.key} type="button" className={activeTab === tab.key ? "is-active" : ""} onClick={() => setActiveTab(tab.key)}>{t(tab.label)}</button>
           ))}
         </div>
       )
@@ -478,7 +479,7 @@ function SettingsResourcePage({
         <section className="client-statement-card">
           <header className="client-statement-toolbar">
             <div className="client-statement-left">
-              <button type="button" className="client-statement-back" onClick={closeHistory} aria-label="Назад">
+              <button type="button" className="client-statement-back" onClick={closeHistory} aria-label={t("pages.settings.settingsresourcepage.nazad")}>
                 <Icon name="bi-chevron-left" size={18} />
               </button>
             </div>
@@ -486,12 +487,12 @@ function SettingsResourcePage({
 
           <div className="client-statement-panel">
             <div className="client-statement-heading">
-              <span>История транзакций</span>
-              <h1>Акт сверки</h1>
+              <span>{t("pages.settings.settingsresourcepage.istoriya_tranzaktsiy")}</span>
+              <h1>{t("pages.settings.settingsresourcepage.akt_sverki")}</h1>
               <strong>{historyRow.name}</strong>
             </div>
             <div className="settings-empty-state" role="status">
-              Финансовая история недоступна: backend contract для транзакций контрагента не подключён.
+             {t("pages.settings.settingsresourcepage.finansovaya_istoriya_nedostupna_backend_contract")}
             </div>
           </div>
         </section>
@@ -557,7 +558,7 @@ function SettingsResourcePage({
         type="button"
         ref={pillRef}
         onClick={() => setPhoneCountryOpen((value) => !value)}
-        aria-label="Выбрать страну"
+        aria-label={t("pages.settings.settingsresourcepage.vybrat_stranu")}
         aria-expanded={phoneCountryOpen}
         aria-haspopup="listbox"
       >
@@ -575,7 +576,7 @@ function SettingsResourcePage({
             className="staff-phone-country-menu"
             ref={menuRef}
             role="listbox"
-            aria-label="Выбрать страну"
+            aria-label={t("pages.settings.settingsresourcepage.vybrat_stranu")}
             style={{
               position: "fixed",
               top: menuPos.top,
@@ -594,7 +595,7 @@ function SettingsResourcePage({
                 onClick={() => selectClientsPhoneCountry(field.key, country.key)}
               >
               <img src={getPhoneFlag(country.key)} alt="" width={28} height={19} loading="eager" decoding="async" />
-              <span>{country.label}</span>
+              <span>{t(country.label)}</span>
               <b>+{country.dialCode}</b>
             </button>
           ))}
@@ -603,7 +604,7 @@ function SettingsResourcePage({
       ) : null) : (
         // Non-portaled fallback (consumers without usePortal): in-flow menu,
         // same Staff classes. The Clients modal always portals (see above).
-        <div className="staff-phone-country-menu" ref={menuRef} role="listbox" aria-label="Выбрать страну">
+        <div className="staff-phone-country-menu" ref={menuRef} role="listbox" aria-label={t("pages.settings.settingsresourcepage.vybrat_stranu")}>
           {phoneCountries.map((country) => (
             <button
               className={phoneCountry === country.key ? "is-active" : ""}
@@ -614,7 +615,7 @@ function SettingsResourcePage({
               onClick={() => selectClientsPhoneCountry(field.key, country.key)}
             >
               <img src={getPhoneFlag(country.key)} alt="" width={28} height={19} loading="eager" decoding="async" />
-                <span>{country.label}</span>
+                <span>{t(country.label)}</span>
                 <b>+{country.dialCode}</b>
               </button>
             ))}
@@ -625,10 +626,10 @@ function SettingsResourcePage({
         autoComplete="off"
         inputMode="tel"
         ref={phoneInputRef}
-        aria-label="Номер телефона без кода страны"
+        aria-label={t("pages.settings.settingsresourcepage.nomer_telefona_bez_koda_strany")}
         value={formatLocalUZ(getPhoneLocal(form.phone, phoneCountry))}
         onChange={handleClientsPhoneChange(field.key)}
-        placeholder="Введите номер"
+        placeholder={t("pages.settings.settingsresourcepage.vvedite_nomer")}
       />
     </div>
   );
@@ -645,11 +646,11 @@ function SettingsResourcePage({
         // (STATUS_BACKEND_SUPPORTED = NO): never mapped into the payload,
         // never persisted, reset on every open.
         <div className="settings-field" key={field.key}>
-          <label className="settings-field__label" htmlFor={`clients-${field.key}`}>{field.label}</label>
+          <label className="settings-field__label" htmlFor={`clients-${field.key}`}>{t(field.label)}</label>
           <MarjonSelect
             id={`clients-${field.key}`}
             label={field.label}
-            placeholder="Выберите статус"
+            placeholder={t("pages.settings.settingsresourcepage.vyberite_status")}
             value={form[field.key] || CLIENT_STATUS_DEFAULT}
             options={CLIENT_STATUS_OPTIONS}
             onChange={(next) => setForm((current) => ({ ...current, [field.key]: next }))}
@@ -699,11 +700,11 @@ function SettingsResourcePage({
             <p>{editingId ? "Редактирование" : "Новая запись"}</p>
             <h2>{formTitle}</h2>
           </div>
-          <button type="button" disabled={saving} onClick={closeModal} aria-label="Закрыть"><Icon name="bi-x-lg" size={20} /></button>
+          <button type="button" disabled={saving} onClick={closeModal} aria-label={t("pages.settings.settingsresourcepage.zakryt")}><Icon name="bi-x-lg" size={20} /></button>
         </header>
         {renderFormFields()}
         <footer className="settings-form__footer">
-          <button type="button" disabled={saving} onClick={closeModal}>Отмена</button>
+          <button type="button" disabled={saving} onClick={closeModal}>{t("pages.settings.settingsresourcepage.otmena")}</button>
           <button type="submit" disabled={saving}>{saving ? "Сохранение..." : "Сохранить"}</button>
         </footer>
       </form>
@@ -720,13 +721,13 @@ function SettingsResourcePage({
             <p>{editingId ? "Редактирование" : "Новая запись"}</p>
             <h2 id="clients-modal-title">{formTitle}</h2>
           </div>
-          <button type="button" aria-label="Закрыть" disabled={saving} onClick={closeModal}><Icon name="bi-x-lg" size={20} /></button>
+          <button type="button" aria-label={t("pages.settings.settingsresourcepage.zakryt")} disabled={saving} onClick={closeModal}><Icon name="bi-x-lg" size={20} /></button>
         </header>
         <div className="settings-form__body">
           {renderFormFields()}
         </div>
         <footer className="settings-form__footer">
-          <button type="button" disabled={saving} onClick={closeModal}>Отмена</button>
+          <button type="button" disabled={saving} onClick={closeModal}>{t("pages.settings.settingsresourcepage.otmena")}</button>
           <button type="submit" disabled={saving}>{saving ? "Сохранение..." : "Сохранить"}</button>
         </footer>
       </form>
@@ -740,13 +741,13 @@ function SettingsResourcePage({
         <header className="settings-form__header">
           <span className="settings-accent-bar" />
           <div>
-            <p>История</p>
+            <p>{t("pages.settings.settingsresourcepage.istoriya")}</p>
             <h2>{historyRow.name}</h2>
           </div>
           <button type="button" onClick={closeHistory}><Icon name="bi-x-lg" size={20} /></button>
         </header>
         <div className="settings-empty-state" role="status">
-          История недоступна: backend contract для транзакций не подключён.
+         {t("pages.settings.settingsresourcepage.istoriya_nedostupna_backend_contract_dlya")}
         </div>
       </aside>
     </div>
@@ -778,7 +779,7 @@ function SettingsResourcePage({
               <div className="settings-title-group">
                 <span className="settings-accent-bar" />
                 <div>
-                  <p>{eyebrow}</p>
+                  <p>{t(eyebrow)}</p>
                   <h1>{title}</h1>
                 </div>
               </div>
@@ -797,7 +798,7 @@ function SettingsResourcePage({
               <div className="settings-title-group">
                 <span className="settings-accent-bar" />
                 <div>
-                  <p>Настройки</p>
+                  <p>{t("pages.settings.settingsresourcepage.nastroyki")}</p>
                   <h1>{title}</h1>
                 </div>
               </div>
@@ -813,7 +814,7 @@ function SettingsResourcePage({
             <thead>
               <tr>
                 {columns.map((column) => <th key={column.key}>{column.label}</th>)}
-                <th>{actionsLabel}</th>
+                <th>{t(actionsLabel)}</th>
               </tr>
             </thead>
             <tbody>
@@ -825,34 +826,34 @@ function SettingsResourcePage({
                         <StatusBadge status={row.status} />
                       ) : column.key === "history" && transactionHistory ? (
                         <button className="settings-history-button" type="button" onClick={() => openHistory(row)}>
-                          История транзакций <Icon name="bi-arrow-right" size={15} />
+                         {t("pages.settings.settingsresourcepage.istoriya_tranzaktsiy")} <Icon name="bi-arrow-right" size={15} />
                         </button>
                       ) : renderCell(column, row, setForm)}
                     </td>
                   ))}
                   <td>
                     <div className={staffVariant ? "staff-actions" : "settings-row-actions"}>
-                      {row.testPrint ? <button type="button" onClick={() => window.alert("Тест печати будет доступен в следующей версии")}>Тест печати</button> : null}
-                      <button type="button" disabled={!canMutate || saving} className={staffVariant ? "edit-action-button" : "settings-action-edit"} onClick={() => openEdit(row)} aria-label="Редактировать" title="Редактировать"><Icon name="bi-pencil" size={15} /></button>
+                      {row.testPrint ? <button type="button" onClick={() => window.alert("Тест печати будет доступен в следующей версии")}>{t("pages.settings.settingsresourcepage.test_pechati")}</button> : null}
+                      <button type="button" disabled={!canMutate || saving} className={staffVariant ? "edit-action-button" : "settings-action-edit"} onClick={() => openEdit(row)} aria-label={t("pages.settings.settingsresourcepage.redaktirovat")} title={t("pages.settings.settingsresourcepage.redaktirovat")}><Icon name="bi-pencil" size={15} /></button>
                       {requireDeleteConfirm && pendingDeleteId === String(row.id) ? (
                         <>
                           <span className="settings-delete-confirm" role="alert">{deleteConfirmText}</span>
-                          <button type="button" className={staffVariant ? "staff-delete-action is-confirm" : "settings-action-delete is-confirm"} onClick={() => archive(row)}>Да</button>
-                          <button type="button" className="settings-action-cancel" onClick={() => setPendingDeleteId("")}>Нет</button>
+                          <button type="button" className={staffVariant ? "staff-delete-action is-confirm" : "settings-action-delete is-confirm"} onClick={() => archive(row)}>{t("pages.settings.settingsresourcepage.da")}</button>
+                          <button type="button" className="settings-action-cancel" onClick={() => setPendingDeleteId("")}>{t("pages.settings.settingsresourcepage.net")}</button>
                         </>
                       ) : (
-                        <button type="button" disabled={!canMutate || pendingDeleteId === String(row.id)} className={staffVariant ? "staff-delete-action" : "settings-action-delete"} onClick={() => archive(row)} aria-label="Удалить" title="Удалить"><Icon name="bi-trash3" size={15} /></button>
+                        <button type="button" disabled={!canMutate || pendingDeleteId === String(row.id)} className={staffVariant ? "staff-delete-action" : "settings-action-delete"} onClick={() => archive(row)} aria-label={t("pages.settings.settingsresourcepage.udalit")} title={t("pages.settings.settingsresourcepage.udalit")}><Icon name="bi-trash3" size={15} /></button>
                       )}
                     </div>
                   </td>
                 </tr>
               ))}
-              {apiLoading ? <tr className={staffVariant ? "staff-empty-row" : ""}><td colSpan={columns.length + 1} className={staffVariant ? "staff-empty-cell" : ""}><div className="settings-empty-state">Загрузка...</div></td></tr> : null}
+              {apiLoading ? <tr className={staffVariant ? "staff-empty-row" : ""}><td colSpan={columns.length + 1} className={staffVariant ? "staff-empty-cell" : ""}><div className="settings-empty-state">{t("pages.settings.settingsresourcepage.zagruzka")}</div></td></tr> : null}
               {!apiLoading && apiError ? <tr className={staffVariant ? "staff-empty-row" : ""}><td colSpan={columns.length + 1} className={staffVariant ? "staff-empty-cell" : ""}><div className="settings-empty-state" role="alert">{apiError}</div></td></tr> : null}
               {!apiLoading && !apiError && !visibleRows.length ? (
                 <tr className={staffVariant ? "staff-empty-row" : ""}>
                   <td colSpan={columns.length + 1} className={staffVariant ? "staff-empty-cell" : ""}>
-                    {staffVariant ? <ReportEmptyState title={emptyText} /> : <div className="settings-empty-state">{emptyText}</div>}
+                    {staffVariant ? <ReportEmptyState title={t(emptyText)} /> : <div className="settings-empty-state">{t(emptyText)}</div>}
                   </td>
                 </tr>
               ) : null}

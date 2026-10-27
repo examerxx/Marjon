@@ -6,6 +6,7 @@ import ReportDateRangePicker from "../components/ReportDateRangePicker";
 import { exportToExcel } from "../utils/excel";
 import { isAbortError, isOrderedDateRange, useLatestRequest, useMutationLocks } from "../hooks/useAsyncSafety";
 import { emptyForm, currentMonthRange, toApiDate, parseAmount, formatMoney, formatDate, itemsOf, mapTransactions } from "./finance/financeTransactionsData";
+import { t } from "../i18n/t";
 
 export default function FinanceTransactionsPage() {
   const [rows, setRows] = useState([]);
@@ -154,26 +155,26 @@ export default function FinanceTransactionsPage() {
           <div className="settings-title-group">
             <span className="settings-accent-bar" aria-hidden="true" />
             <div>
-              <p>Финансы</p>
-              <h1>Денежные операции</h1>
+              <p>{t("pages.financetransactionspage.finansy")}</p>
+              <h1>{t("pages.financetransactionspage.denezhnye_operatsii")}</h1>
             </div>
           </div>
           <div className="settings-actions finance-actions">
             <div className="report-actions finance-date-range"><ReportDateRangePicker value={dateRange} onChange={setDateRange} /></div>
-            <button type="button" className="finance-income-action" onClick={() => openCreate("income")}><span>+</span> ПРИХОД</button>
-            <button type="button" className="finance-expense-action" onClick={() => openCreate("expense")}><span>-</span> РАСХОД</button>
-            <button type="button" className="finance-excel-action" onClick={() => exportToExcel(rows, [{ key: "date", label: "Дата" }, { key: "amount", label: "Сумма" }, { key: "type", label: "Направление" }, { key: "paymentType", label: "Тип оплаты" }, { key: "counterparty", label: "Контрагент" }, { key: "category", label: "Категория" }, { key: "comment", label: "Комментарий" }], "finance-transactions")}>Скачать Excel</button>
-            <label><span className="visually-hidden">Направление</span><select aria-label="Направление" value={direction} onChange={(event) => setDirection(event.target.value)}><option value="all">Все операции</option><option value="income">Приход</option><option value="expense">Расход</option></select></label>
+            <button type="button" className="finance-income-action" onClick={() => openCreate("income")}><span>+</span> {t("pages.financetransactionspage.prihod")}</button>
+            <button type="button" className="finance-expense-action" onClick={() => openCreate("expense")}><span>-</span> {t("pages.financetransactionspage.rashod")}</button>
+            <button type="button" className="finance-excel-action" onClick={() => exportToExcel(rows, [{ key: "date", label: t("pages.financetransactionspage.data") }, { key: "amount", label: t("pages.financetransactionspage.summa") }, { key: "type", label: t("pages.financetransactionspage.napravlenie") }, { key: "paymentType", label: t("pages.financetransactionspage.tip_oplaty") }, { key: "counterparty", label: t("pages.financetransactionspage.kontragent") }, { key: "category", label: t("pages.financetransactionspage.kategoriya") }, { key: "comment", label: t("pages.financetransactionspage.kommentariy") }], "finance-transactions")}>{t("pages.financetransactionspage.skachat_excel")}</button>
+            <label><span className="visually-hidden">{t("pages.financetransactionspage.napravlenie")}</span><select aria-label={t("pages.financetransactionspage.napravlenie")} value={direction} onChange={(event) => setDirection(event.target.value)}><option value="all">{t("pages.financetransactionspage.vse_operatsii")}</option><option value="income">{t("pages.financetransactionspage.prihod_2")}</option><option value="expense">{t("pages.financetransactionspage.rashod_2")}</option></select></label>
           </div>
         </header>
-        <div className="finance-summary-row"><article className="finance-summary-pill finance-income-pill"><span>Приход</span><strong>{error ? "Недоступно" : formatMoney(totals.income)}</strong></article><article className="finance-summary-pill finance-expense-pill"><span>Расход</span><strong>{error ? "Недоступно" : formatMoney(totals.expense)}</strong></article></div>
+        <div className="finance-summary-row"><article className="finance-summary-pill finance-income-pill"><span>{t("pages.financetransactionspage.prihod_2")}</span><strong>{error ? "Недоступно" : formatMoney(totals.income)}</strong></article><article className="finance-summary-pill finance-expense-pill"><span>{t("pages.financetransactionspage.rashod_2")}</span><strong>{error ? "Недоступно" : formatMoney(totals.expense)}</strong></article></div>
 
         <div className="finance-table-wrapper">
           <table className="finance-table">
-            <thead><tr><th>Дата</th><th>Сумма</th><th>Тип оплаты</th><th>Контрагент</th><th>Категория</th><th>Комментарий</th><th>Действия</th></tr></thead>
+            <thead><tr><th>{t("pages.financetransactionspage.data")}</th><th>{t("pages.financetransactionspage.summa")}</th><th>{t("pages.financetransactionspage.tip_oplaty")}</th><th>{t("pages.financetransactionspage.kontragent")}</th><th>{t("pages.financetransactionspage.kategoriya")}</th><th>{t("pages.financetransactionspage.kommentariy")}</th><th>{t("pages.financetransactionspage.deystviya")}</th></tr></thead>
             <tbody>
-              {loading ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 24 }}>Загрузка...</td></tr> : error ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 24 }}><div className="login-error" role="alert">{error}</div></td></tr> : rows.map((row) => <tr key={row.id}><td>{formatDate(row.date)}</td><td className={row.type === "income" ? "finance-amount-income" : "finance-amount-expense"}>{row.type === "income" ? "+" : "-"} {formatMoney(row.amount)}</td><td>{row.paymentType}</td><td>{row.counterparty}</td><td>{row.category}</td><td>{row.comment}</td><td><button type="button" className="finance-action-edit" aria-label={`Редактировать транзакцию ${row.id}`} onClick={() => openEdit(row)}><Icon name="bi-pencil" size={15} /></button></td></tr>)}
-              {!loading && !error && !rows.length ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 24 }}>Транзакций нет.</td></tr> : null}
+              {loading ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 24 }}>{t("pages.financetransactionspage.zagruzka")}</td></tr> : error ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 24 }}><div className="login-error" role="alert">{error}</div></td></tr> : rows.map((row) => <tr key={row.id}><td>{formatDate(row.date)}</td><td className={row.type === "income" ? "finance-amount-income" : "finance-amount-expense"}>{row.type === "income" ? "+" : "-"} {formatMoney(row.amount)}</td><td>{row.paymentType}</td><td>{row.counterparty}</td><td>{row.category}</td><td>{row.comment}</td><td><button type="button" className="finance-action-edit" aria-label={`Редактировать транзакцию ${row.id}`} onClick={() => openEdit(row)}><Icon name="bi-pencil" size={15} /></button></td></tr>)}
+              {!loading && !error && !rows.length ? <tr><td colSpan={7} style={{ textAlign: "center", padding: 24 }}>{t("pages.financetransactionspage.tranzaktsiy_net")}</td></tr> : null}
             </tbody>
           </table>
         </div>

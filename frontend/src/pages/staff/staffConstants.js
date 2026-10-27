@@ -2,6 +2,11 @@
 // Вынесено из StaffRolePage.jsx (FE-07B). Значения и структуры сохранены 1:1;
 // операционные роли (кассир/официант/курьер/моноблок/повар/менеджер/завсклад)
 // остаются выбираемыми — веб-клиент им по-прежнему не выдаётся.
+// ВАЖНО (i18n): русские строки здесь — ИДЕНТИФИКАТОРЫ, а не готовый текст.
+// Переводить их на этапе импорта нельзя (значение застынет на языке бандла),
+// поэтому подписи оборачиваются в t() уже в рендере.
+import { t } from "../../i18n/t";
+
 export const roleOptions = [
   { key: "cashier", label: "Кассир", title: "Кассиры" },
   { key: "waiter", label: "Официант", title: "Официанты" },
@@ -120,21 +125,24 @@ export function buildStaffPermissionsForSave(form, fields = []) {
 }
 
 export const getPermissionSummary = (values) => {
+  // Подписи переводим здесь, а не в конфиге: функция вызывается из рендера,
+  // поэтому t() видит актуальный язык. Русский литерал остаётся в коде как
+  // идентификатор права и как фолбэк для ключей, которых ещё нет в словаре.
   const permissions = [
-    values.canDeleteDishes && "Удаление блюд",
+    values.canDeleteDishes && t("staff.perm.delete_dishes"),
     // WAITER-01: waiter-only switch, truthful summary like other form-state permissions.
-    values.canChangeMarkingCode && "Изменение кода маркировки",
-    values.canTakeawayAtTable && "Заказ на вынос",
-    values.canChangeOrderType && "Изменение типа заказа",
-    values.canCloseBill && "Закрытие счета",
-    values.canManageOrders && "Управление заказами",
-    values.canOpenCashDrawerAfterPayment && "Открытие денежного ящика",
-    values.canViewClosedOrders && "Просмотр закрытых заказов",
-    values.canViewFinance && "Просмотр финансов",
-    values.canApproveAttendance && "Посещаемость (приход/уход)",
+    values.canChangeMarkingCode && t("staff.perm.change_marking_code"),
+    values.canTakeawayAtTable && t("staff.perm.takeaway_at_table"),
+    values.canChangeOrderType && t("staff.perm.change_order_type"),
+    values.canCloseBill && t("staff.perm.close_bill"),
+    values.canManageOrders && t("staff.perm.manage_orders"),
+    values.canOpenCashDrawerAfterPayment && t("staff.perm.open_cash_drawer"),
+    values.canViewClosedOrders && t("staff.perm.view_closed_orders"),
+    values.canViewFinance && t("staff.perm.view_finance"),
+    values.canApproveAttendance && t("staff.perm.approve_attendance"),
   ].filter(Boolean);
 
-  return permissions.join(", ") || values.permission || "Базовый доступ";
+  return permissions.join(", ") || values.permission || t("staff.base_access");
 };
 
 // Тумблеры формы → ключи легаси-JSON User.permissions на бэкенде.

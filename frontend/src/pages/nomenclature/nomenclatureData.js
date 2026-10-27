@@ -1,3 +1,4 @@
+import { t } from "../../i18n/t";
 // Чистые преобразования и справочные функции раздела «Блюда» OWNER.
 // Вынесено из NomenclaturePage.jsx (FE-07B) без изменения логики: маппинг
 // backend-ответа, парсинг чисел и сборка payload сохранены 1:1.
@@ -173,7 +174,7 @@ export function demoDishRows() {
       name: "Плов",
       sort: "1",
       type: "Блюда",
-      unit: "порция",
+      unit: t("pages.nomenclature.nomenclaturedata.portsiya"),
       cost: "18 000 UZS",
       price: "45000",
       menu: "Горячие блюда",
@@ -192,7 +193,7 @@ export function demoDishRows() {
       name: "Шашлык",
       sort: "2",
       type: "Блюда",
-      unit: "порция",
+      unit: t("pages.nomenclature.nomenclaturedata.portsiya"),
       cost: "32 000 UZS",
       price: "60000",
       menu: "Гриль",
@@ -211,7 +212,7 @@ export function demoDishRows() {
       name: "Лагман",
       sort: "3",
       type: "Блюда",
-      unit: "порция",
+      unit: t("pages.nomenclature.nomenclaturedata.portsiya"),
       cost: "16 000 UZS",
       price: "35000",
       menu: "Горячие блюда",
@@ -230,7 +231,7 @@ export function demoDishRows() {
       name: "Салат микс",
       sort: "4",
       type: "Блюда",
-      unit: "порция",
+      unit: t("pages.nomenclature.nomenclaturedata.portsiya"),
       cost: "11 000 UZS",
       price: "30000",
       menu: "Салаты",
@@ -249,7 +250,7 @@ export function demoDishRows() {
       name: "Айран",
       sort: "5",
       type: "Реализация",
-      unit: "шт",
+      unit: t("pages.nomenclature.nomenclaturedata.sht"),
       cost: "5 000 UZS",
       price: "10000",
       menu: "Напитки",

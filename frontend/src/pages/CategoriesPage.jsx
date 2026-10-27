@@ -23,6 +23,7 @@ import { categoryBelongsToKind } from "../utils/catalogCategories";
 import Icon from "../components/Icon";
 import { useCategoryListHeight } from "./categoryListHeight";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../hooks/useAsyncSafety";
+import { t } from "../i18n/t";
 import "../styles/owner/raw-categories.css";
 import "../styles/shared/catalog-scrollbar-arrows.css";
 
@@ -145,7 +146,7 @@ function DishCategoryRow({ row, reducedMotion, disabled, onEdit, onArchive, sort
           className="settings-place__grip"
           ref={setActivatorNodeRef}
           aria-label={`Переместить категорию: ${row.name}`}
-          title="Перетащите, чтобы изменить порядок"
+          title={t("pages.categoriespage.peretaschite_chtoby_izmenit_poryadok")}
           tabIndex={overlay ? -1 : undefined}
           {...attributes}
           {...listeners}
@@ -156,19 +157,19 @@ function DishCategoryRow({ row, reducedMotion, disabled, onEdit, onArchive, sort
           className={`dishcat-service-badge ${row.calculate_service === true ? "is-on" : "is-off"}`}
         >
           <span className="dishcat-service-badge__dot" aria-hidden="true" />
-          Рассчитать обслугу
+         {t("pages.categoriespage.rasschitat_obslugu")}
         </span>
         <DishCategoryStatusBadge active={row.is_active !== false} />
         <button type="button" className="settings-place__edit" tabIndex={overlay ? -1 : undefined} onClick={overlay ? undefined : () => onEdit(row)}>
-          Редактировать
+         {t("pages.categoriespage.redaktirovat")}
         </button>
         <button
           type="button"
           className="settings-action-delete"
           onClick={overlay ? undefined : () => onArchive(row)}
           tabIndex={overlay ? -1 : undefined}
-          aria-label="Архивировать категорию"
-          title="Архивировать категорию"
+          aria-label={t("pages.categoriespage.arhivirovat_kategoriyu")}
+          title={t("pages.categoriespage.arhivirovat_kategoriyu")}
         >
           <Icon name="bi-trash3" size={15} />
         </button>
@@ -673,12 +674,12 @@ function ProductCategoriesPage({ type }) {
             <div className="settings-title-group">
               <span className="settings-accent-bar" />
               <div>
-                <p>Меню</p>
-                <h1>{isSalesCategories ? "Категория товаров" : "Категория блюд"}</h1>
+                <p>{t("pages.categoriespage.menyu")}</p>
+                <h1>{isSalesCategories ? t("nav.sale_categories") : t("nav.dish_categories")}</h1>
               </div>
             </div>
             <div className="settings-actions">
-              <div className={`dish-status-tabs${pillSettled ? " is-settled" : ""}`} role="tablist" aria-label="Статус категорий" ref={tabsRef}>
+              <div className={`dish-status-tabs${pillSettled ? " is-settled" : ""}`} role="tablist" aria-label={t("pages.categoriespage.status_kategoriy")} ref={tabsRef}>
                 <span
                   className="dish-status-tabs__indicator"
                   aria-hidden="true"
@@ -695,7 +696,7 @@ function ProductCategoriesPage({ type }) {
                   className={showArchived ? "" : "is-active"}
                   onClick={() => setShowArchived(false)}
                 >
-                  Активные
+                 {t("pages.categoriespage.aktivnye")}
                 </button>
                 <button
                   type="button"
@@ -705,11 +706,11 @@ function ProductCategoriesPage({ type }) {
                   className={showArchived ? "is-active" : ""}
                   onClick={() => setShowArchived(true)}
                 >
-                  Архивированные
+                 {t("pages.categoriespage.arhivirovannye")}
                 </button>
               </div>
               <button type="button" disabled={saving || savingOrder} onClick={openCreate}>
-                Добавить категорию
+               {t("pages.categoriespage.dobavit_kategoriyu")}
               </button>
             </div>
           </header>
@@ -718,12 +719,12 @@ function ProductCategoriesPage({ type }) {
             <div className="settings-title-group">
               <span className="settings-accent-bar" aria-hidden="true" />
               <div>
-                <p>Склад</p>
-                <h1>Категория продуктов</h1>
+                <p>{t("pages.categoriespage.sklad")}</p>
+                <h1>{t("pages.categoriespage.kategoriya_produktov")}</h1>
               </div>
             </div>
             <div className="settings-actions">
-              <div className={`dish-status-tabs${pillSettled ? " is-settled" : ""}`} role="tablist" aria-label="Статус категорий" ref={tabsRef}>
+              <div className={`dish-status-tabs${pillSettled ? " is-settled" : ""}`} role="tablist" aria-label={t("pages.categoriespage.status_kategoriy")} ref={tabsRef}>
                 <span
                   className="dish-status-tabs__indicator"
                   aria-hidden="true"
@@ -740,7 +741,7 @@ function ProductCategoriesPage({ type }) {
                   className={showArchived ? "" : "is-active"}
                   onClick={() => setShowArchived(false)}
                 >
-                  Активные
+                 {t("pages.categoriespage.aktivnye")}
                 </button>
                 <button
                   type="button"
@@ -750,11 +751,11 @@ function ProductCategoriesPage({ type }) {
                   className={showArchived ? "is-active" : ""}
                   onClick={() => setShowArchived(true)}
                 >
-                  Архивированные
+                 {t("pages.categoriespage.arhivirovannye")}
                 </button>
               </div>
               <button type="button" className="rawcat-add-button" disabled={saving} onClick={openCreate}>
-                <Icon name="bi-plus" size={18} /> Добавить
+                <Icon name="bi-plus" size={18} /> {t("pages.categoriespage.dobavit")}
               </button>
             </div>
           </header>
@@ -763,12 +764,12 @@ function ProductCategoriesPage({ type }) {
             <div className="menu-categories-title">
               <span className="menu-categories-accent" />
               <div>
-                <h1>{config.title}</h1>
-                <p>{config.label}</p>
+                <h1>{t(config.title)}</h1>
+                <p>{t(config.label)}</p>
               </div>
             </div>
             <button type="button" className="menu-category-add" disabled={saving} onClick={openCreate}>
-              <span>Добавить</span>
+              <span>{t("pages.categoriespage.dobavit")}</span>
               <Icon name="bi-plus" />
             </button>
           </div>
@@ -796,27 +797,27 @@ function ProductCategoriesPage({ type }) {
                     <header className="settings-form__header">
                       <span className="settings-accent-bar" />
                       <div>
-                        <p>{editingId ? "Редактирование" : "Новая"}</p>
+                        <p>{editingId ? t("staff.editing") : t("eyebrow.new_female")}</p>
                         <h2 id="dishcat-modal-title">
-                          {editingId ? "Редактировать категорию" : "Добавить категорию"}
+                          {editingId ? t("admin.admincatalog.redaktirovat_kategoriyu") : t("pages.categoriespage.dobavit_kategoriyu")}
                         </h2>
                       </div>
-                      <button type="button" disabled={saving} onClick={requestCloseForm} aria-label="Закрыть">
+                      <button type="button" disabled={saving} onClick={requestCloseForm} aria-label={t("pages.categoriespage.zakryt")}>
                         <Icon name="bi-x-lg" size={20} />
                       </button>
                     </header>
                     <div className="settings-form__body">
                       <label className="settings-form__wide">
-                        <span>Название</span>
+                        <span>{t("pages.categoriespage.nazvanie")}</span>
                         <input
                           autoFocus
                           value={form.name}
                           onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                          placeholder="Название категории"
+                          placeholder={t("pages.categoriespage.nazvanie_kategorii")}
                         />
                       </label>
                       <div className="settings-toggle-field settings-form__wide">
-                        <span>Статус</span>
+                        <span>{t("pages.categoriespage.status")}</span>
                         <label className="settings-switch">
                           <input
                             type="checkbox"
@@ -827,12 +828,12 @@ function ProductCategoriesPage({ type }) {
                             <span className="settings-switch__thumb" />
                           </span>
                           <span className={`settings-switch__label ${statusOn ? "is-active" : "is-inactive"}`}>
-                            {statusOn ? "Активен" : "Неактивен"}
+                            {statusOn ? t("staff.active") : t("staff.inactive")}
                           </span>
                         </label>
                       </div>
                       <div className="settings-toggle-field settings-form__wide">
-                        <span>Рассчитать обслугу</span>
+                        <span>{t("pages.categoriespage.rasschitat_obslugu")}</span>
                         <label className="settings-switch">
                           <input
                             type="checkbox"
@@ -843,12 +844,12 @@ function ProductCategoriesPage({ type }) {
                             <span className="settings-switch__thumb" />
                           </span>
                           <span className={`settings-switch__label ${serviceOn ? "is-active" : "is-inactive"}`}>
-                            {serviceOn ? "Включено" : "Выключено"}
+                            {serviceOn ? t("common.enabled") : t("common.disabled")}
                           </span>
                         </label>
                       </div>
                       <div className="settings-toggle-field settings-form__wide">
-                        <span>Показать в меню</span>
+                        <span>{t("pages.categoriespage.pokazat_v_menyu")}</span>
                         <label className="settings-switch">
                           <input
                             type="checkbox"
@@ -859,7 +860,7 @@ function ProductCategoriesPage({ type }) {
                             <span className="settings-switch__thumb" />
                           </span>
                           <span className={`settings-switch__label ${showInMenu ? "is-active" : "is-inactive"}`}>
-                            {showInMenu ? "Включено" : "Выключено"}
+                            {showInMenu ? t("common.enabled") : t("common.disabled")}
                           </span>
                         </label>
                       </div>
@@ -871,10 +872,10 @@ function ProductCategoriesPage({ type }) {
                     ) : null}
                     <footer className="settings-form__footer">
                       <button type="button" disabled={saving} onClick={requestCloseForm}>
-                        Отмена
+                       {t("pages.categoriespage.otmena")}
                       </button>
                       <button type="submit" disabled={saving || !form.name.trim()}>
-                        {saving ? "Сохранение..." : editingId ? "Сохранить" : "Добавить"}
+                        {saving ? t("staff.saving") : editingId ? t("common.save") : t("common.add")}
                       </button>
                     </footer>
                   </form>
@@ -899,27 +900,27 @@ function ProductCategoriesPage({ type }) {
                     <header className="settings-form__header">
                       <span className="settings-accent-bar" />
                       <div>
-                        <p>{editingId ? "Редактирование" : "Новая"}</p>
+                        <p>{editingId ? t("staff.editing") : t("eyebrow.new_female")}</p>
                         <h2 id="rawcat-modal-title">
-                          {editingId ? "Редактировать категорию продуктов" : "Добавить категорию продуктов"}
+                          {editingId ? t("pages.categoriespage.redaktirovat_kategoriyu_produktov") : t("pages.categoriespage.dobavit_kategoriyu_produktov")}
                         </h2>
                       </div>
-                      <button type="button" disabled={saving} onClick={requestCloseForm} aria-label="Закрыть">
+                      <button type="button" disabled={saving} onClick={requestCloseForm} aria-label={t("pages.categoriespage.zakryt")}>
                         <Icon name="bi-x-lg" size={20} />
                       </button>
                     </header>
                     <div className="settings-form__body">
                       <label className="settings-form__wide">
-                        <span>Название категории</span>
+                        <span>{t("pages.categoriespage.nazvanie_kategorii")}</span>
                         <input
                           autoFocus
                           value={form.name}
                           onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                          placeholder="Название категории"
+                          placeholder={t("pages.categoriespage.nazvanie_kategorii")}
                         />
                       </label>
                       <div className="settings-toggle-field settings-form__wide">
-                        <span>Статус</span>
+                        <span>{t("pages.categoriespage.status")}</span>
                         <label className="settings-switch">
                           <input
                             type="checkbox"
@@ -930,7 +931,7 @@ function ProductCategoriesPage({ type }) {
                             <span className="settings-switch__thumb" />
                           </span>
                           <span className={`settings-switch__label ${statusOn ? "is-active" : "is-inactive"}`}>
-                            {statusOn ? "Активно" : "Неактивно"}
+                            {statusOn ? t("common.active") : t("common.inactive")}
                           </span>
                         </label>
                       </div>
@@ -942,10 +943,10 @@ function ProductCategoriesPage({ type }) {
                     ) : null}
                     <footer className="settings-form__footer">
                       <button type="button" disabled={saving} onClick={requestCloseForm}>
-                        Отменить
+                       {t("pages.categoriespage.otmenit")}
                       </button>
                       <button type="submit" disabled={saving || !form.name.trim()}>
-                        {saving ? "Сохранение..." : "Сохранить"}
+                        {saving ? t("staff.saving") : t("common.save")}
                       </button>
                     </footer>
                   </form>
@@ -958,18 +959,18 @@ function ProductCategoriesPage({ type }) {
         {showForm && !isMenuCategories && !isRawCategories ? (
           <form className="menu-category-form" onSubmit={handleSave}>
             <div className="menu-category-form-title">
-              <strong>{editingId ? "Изменить категорию" : "Новая категория"}</strong>
-              <button type="button" disabled={saving} onClick={closeForm} aria-label="Закрыть">
+              <strong>{editingId ? t("admin.adminfinancereferences.izmenit_kategoriyu") : t("pages.nomenclature.dishsingleselect.novaya_kategoriya")}</strong>
+              <button type="button" disabled={saving} onClick={closeForm} aria-label={t("pages.categoriespage.zakryt")}>
                 <Icon name="bi-x-lg" />
               </button>
             </div>
             <div className="menu-category-form-grid">
               <label>
-                <span>Название *</span>
+                <span>{t("pages.categoriespage.nazvanie_2")}</span>
                 <input
                   value={form.name}
                   onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                  placeholder="Название категории"
+                  placeholder={t("pages.categoriespage.nazvanie_kategorii")}
                 />
               </label>
               <label>
@@ -977,16 +978,16 @@ function ProductCategoriesPage({ type }) {
                 <input
                   value={form.slug}
                   onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))}
-                  placeholder="Автоматически"
+                  placeholder={t("pages.categoriespage.avtomaticheski")}
                 />
               </label>
             </div>
             <div className="menu-category-form-actions">
               <button className="menu-category-save" type="submit" disabled={saving || !form.name.trim()}>
-                {saving ? "Сохранение..." : "Сохранить"}
+                {saving ? t("staff.saving") : t("common.save")}
               </button>
               <button className="menu-category-cancel" type="button" disabled={saving} onClick={closeForm}>
-                Отмена
+               {t("pages.categoriespage.otmena")}
               </button>
             </div>
           </form>
@@ -994,9 +995,9 @@ function ProductCategoriesPage({ type }) {
 
         {isRawCategories ? (
           <div className={`rawcat-list-wrap${!loading && !error && !displayed.length ? " is-empty" : ""}`}>
-            <div className="rawcat-list" ref={categoryListRef} tabIndex={0} aria-label="Категории продуктов" aria-busy={loading}>
+            <div className="rawcat-list" ref={categoryListRef} tabIndex={0} aria-label={t("pages.categoriespage.kategorii_produktov")} aria-busy={loading}>
               {loading && rows.length === 0 ? (
-                <div className="rawcat-row is-loading" role="status" aria-busy="true">Загрузка…</div>
+                <div className="rawcat-row is-loading" role="status" aria-busy="true">{t("pages.categoriespage.zagruzka")}</div>
               ) : (
                 displayed.map((row) => (
                   <article className="rawcat-row" key={row.id}>
@@ -1013,8 +1014,8 @@ function ProductCategoriesPage({ type }) {
                         className="settings-action-restore"
                         onClick={() => restoreCategory(row)}
                         disabled={restoringId === row.id}
-                        aria-label="Восстановить категорию"
-                        title="Восстановить категорию"
+                        aria-label={t("pages.categoriespage.vosstanovit_kategoriyu")}
+                        title={t("pages.categoriespage.vosstanovit_kategoriyu")}
                       >
                         <Icon name="bi-arrow-counterclockwise" size={15} />
                       </button>
@@ -1022,8 +1023,8 @@ function ProductCategoriesPage({ type }) {
                         type="button"
                         className="settings-action-delete"
                         onClick={() => openDeleteConfirm(row)}
-                        aria-label="Удалить окончательно"
-                        title="Удалить окончательно"
+                        aria-label={t("pages.categoriespage.udalit_okonchatelno")}
+                        title={t("pages.categoriespage.udalit_okonchatelno")}
                       >
                         <Icon name="bi-trash3" size={15} />
                       </button>
@@ -1031,14 +1032,14 @@ function ProductCategoriesPage({ type }) {
                     ) : (
                     <div className="rawcat-actions">
                       <button type="button" className="settings-place__edit" onClick={() => openEdit(row)} disabled={saving}>
-                        Редактировать
+                       {t("pages.categoriespage.redaktirovat")}
                       </button>
                       <button
                         type="button"
                         className="settings-action-delete"
                         onClick={() => openArchiveConfirm(row)}
-                        aria-label="Архивировать категорию"
-                        title="Архивировать категорию"
+                        aria-label={t("pages.categoriespage.arhivirovat_kategoriyu")}
+                        title={t("pages.categoriespage.arhivirovat_kategoriyu")}
                       >
                         <Icon name="bi-trash3" size={15} />
                       </button>
@@ -1051,7 +1052,7 @@ function ProductCategoriesPage({ type }) {
             {!loading && !error && !displayed.length ? (
               <div className="menu-category-empty rawcat-empty" role="status">
                 <Icon name="bi-inbox" />
-                <span>{showArchived ? "Архив категорий продуктов пуст." : "Категории продуктов пока не добавлены."}</span>
+                <span>{t(showArchived ? "pages.nomenclature.raw_categories_archive_empty" : "pages.nomenclature.raw_categories_empty")}</span>
               </div>
             ) : null}
           </div>
@@ -1113,7 +1114,7 @@ function ProductCategoriesPage({ type }) {
                         className={`dishcat-service-badge ${row.calculate_service === true ? "is-on" : "is-off"}`}
                       >
                         <span className="dishcat-service-badge__dot" aria-hidden="true" />
-                        Рассчитать обслугу
+                       {t("pages.categoriespage.rasschitat_obslugu")}
                       </span>
                       <DishCategoryStatusBadge active={row.is_active !== false} />
                       <button
@@ -1121,8 +1122,8 @@ function ProductCategoriesPage({ type }) {
                         className="settings-action-restore"
                         onClick={() => restoreCategory(row)}
                         disabled={restoringId === row.id}
-                        aria-label="Восстановить категорию"
-                        title="Восстановить категорию"
+                        aria-label={t("pages.categoriespage.vosstanovit_kategoriyu")}
+                        title={t("pages.categoriespage.vosstanovit_kategoriyu")}
                       >
                         <Icon name="bi-arrow-counterclockwise" size={15} />
                       </button>
@@ -1130,8 +1131,8 @@ function ProductCategoriesPage({ type }) {
                         type="button"
                         className="settings-action-delete"
                         onClick={() => openDeleteConfirm(row)}
-                        aria-label="Удалить окончательно"
-                        title="Удалить окончательно"
+                        aria-label={t("pages.categoriespage.udalit_okonchatelno")}
+                        title={t("pages.categoriespage.udalit_okonchatelno")}
                       >
                         <Icon name="bi-trash3" size={15} />
                       </button>
@@ -1143,19 +1144,19 @@ function ProductCategoriesPage({ type }) {
                       <strong>{row.name}</strong>
                       <span>#{row.slug || makeSlug(row.name || "", config.slug_prefix)}</span>
                     </div>
-                    <button type="button" className="menu-category-image" aria-label="Изображение категории">
+                    <button type="button" className="menu-category-image" aria-label={t("pages.categoriespage.izobrazhenie_kategorii")}>
                       <Icon name="bi-image" />
                     </button>
                     <button type="button" className="menu-category-service">
-                      Рассчитать обслугу
+                     {t("pages.categoriespage.rasschitat_obslugu")}
                     </button>
                     <span className={`menu-category-status ${row.is_active === false ? "is-muted" : ""}`}>
                       {row.is_active === false ? "#архив" : "#активно"}
                     </span>
-                    <button type="button" className="menu-category-icon edit" onClick={() => openEdit(row)} aria-label="Изменить">
+                    <button type="button" className="menu-category-icon edit" onClick={() => openEdit(row)} aria-label={t("pages.categoriespage.izmenit")}>
                       <Icon name="bi-pencil" />
                     </button>
-                    <button type="button" className="menu-category-icon delete" onClick={() => openDeleteConfirm(row)} aria-label="Удалить">
+                    <button type="button" className="menu-category-icon delete" onClick={() => openDeleteConfirm(row)} aria-label={t("pages.categoriespage.udalit")}>
                       <Icon name="bi-trash3" />
                     </button>
                   </article>
@@ -1165,7 +1166,7 @@ function ProductCategoriesPage({ type }) {
           {!loading && !error && !displayed.length ? (
             <div className="menu-category-empty">
               <Icon name="bi-inbox" />
-              <span>{showArchived && isMenuCategories ? "Архив категорий пуст." : "Категорий пока нет."}</span>
+              <span>{t(showArchived && isMenuCategories ? "pages.nomenclature.categories_archive_empty" : "pages.nomenclature.categories_empty")}</span>
             </div>
           ) : null}
         </div>
@@ -1193,21 +1194,20 @@ function ProductCategoriesPage({ type }) {
                   <header className="settings-form__header">
                     <span className="settings-accent-bar" />
                     <div>
-                      <p>Удаление</p>
-                      <h2 id="dishcat-delete-title">Удалить категорию навсегда?</h2>
+                      <p>{t("pages.categoriespage.udalenie")}</p>
+                      <h2 id="dishcat-delete-title">{t("pages.categoriespage.udalit_kategoriyu_navsegda")}</h2>
                     </div>
                     <button
                       type="button"
                       disabled={deleting}
                       onClick={() => setDeleteTarget(null)}
-                      aria-label="Закрыть"
+                      aria-label={t("pages.categoriespage.zakryt")}
                     >
                       <Icon name="bi-x-lg" size={20} />
                     </button>
                   </header>
                   <p className="settings-form__context">
-                    Категория <strong>«{deleteTarget.name}»</strong> будет удалена
-                    без возможности восстановления.
+                   {t("pages.categoriespage.kategoriya")} <strong>«{deleteTarget.name}»</strong> {t("pages.categoriespage.budet_udalena_bez_vozmozhnosti_vosstanovleniya")}
                   </p>
                   {deleteError ? (
                     <p className="settings-form__error" role="alert">
@@ -1216,7 +1216,7 @@ function ProductCategoriesPage({ type }) {
                   ) : null}
                   <footer className="settings-form__footer">
                     <button type="button" disabled={deleting} onClick={() => setDeleteTarget(null)}>
-                      Отмена
+                     {t("pages.categoriespage.otmena")}
                     </button>
                     <button
                       type="submit"
@@ -1254,21 +1254,20 @@ function ProductCategoriesPage({ type }) {
                   <header className="settings-form__header">
                     <span className="settings-accent-bar" />
                     <div>
-                      <p>Архивация</p>
-                      <h2 id="dishcat-archive-title">Архивировать категорию?</h2>
+                      <p>{t("pages.categoriespage.arhivatsiya")}</p>
+                      <h2 id="dishcat-archive-title">{t("pages.categoriespage.arhivirovat_kategoriyu_2")}</h2>
                     </div>
                     <button
                       type="button"
                       disabled={archiving}
                       onClick={() => setArchiveTarget(null)}
-                      aria-label="Закрыть"
+                      aria-label={t("pages.categoriespage.zakryt")}
                     >
                       <Icon name="bi-x-lg" size={20} />
                     </button>
                   </header>
                   <p className="settings-form__context">
-                    Категория <strong>«{archiveTarget.name}»</strong> будет
-                    перемещена в архив.
+                   {t("pages.categoriespage.kategoriya")} <strong>«{archiveTarget.name}»</strong> {t("pages.categoriespage.budet_peremeschena_v_arhiv")}
                   </p>
                   {archiveError ? (
                     <p className="settings-form__error" role="alert">
@@ -1277,7 +1276,7 @@ function ProductCategoriesPage({ type }) {
                   ) : null}
                   <footer className="settings-form__footer">
                     <button type="button" disabled={archiving} onClick={() => setArchiveTarget(null)}>
-                      Отмена
+                     {t("pages.categoriespage.otmena")}
                     </button>
                     <button
                       type="submit"

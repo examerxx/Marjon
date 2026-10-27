@@ -9,6 +9,7 @@ import Icon from '../components/Icon';
 import { isAbortError, useLatestRequest } from "../hooks/useAsyncSafety";
 
 import { AdminPageSizeDropdown, formatAdminMoney, getAdminFinanceLoadMessage, getPageList, keepWheelInsideScroller } from "./AdminShared";
+import { t } from "../i18n/t";
 
 const transactionColumnKeys = [
   "id", "uuid", "date", "orgId", "organization", "counterparty",
@@ -347,15 +348,15 @@ export function TransactionsTable({ onNotify }) {
   const allColumns = [
     { key: "id", label: "№", width: 66 },
     { key: "uuid", label: "UUID", width: 214 },
-    { key: "date", label: "Дата", width: 150 },
-    { key: "orgId", label: "ID Организация", width: 120 },
-    { key: "organization", label: "Организация", width: 200 },
-    { key: "counterparty", label: "Контрагент", width: 200 },
-    { key: "payType", label: "Тип оплаты", width: 120 },
-    { key: "amount", label: "Сумма", width: 156 },
-    { key: "kind", label: "Тип", width: 92 },
-    { key: "paymentFor", label: "Оплата за", width: 180 },
-    { key: "comment", label: "Комментария", width: 220 },
+    { key: "date", label: t("admin.admindashboardtransactions.data"), width: 150 },
+    { key: "orgId", label: t("admin.admindashboardtransactions.id_organizatsiya"), width: 120 },
+    { key: "organization", label: t("admin.admindashboardtransactions.organizatsiya"), width: 200 },
+    { key: "counterparty", label: t("admin.admindashboardtransactions.kontragent"), width: 200 },
+    { key: "payType", label: t("admin.admindashboardtransactions.tip_oplaty"), width: 120 },
+    { key: "amount", label: t("admin.admindashboardtransactions.summa"), width: 156 },
+    { key: "kind", label: t("admin.admindashboardtransactions.tip"), width: 92 },
+    { key: "paymentFor", label: t("admin.admindashboardtransactions.oplata_za"), width: 180 },
+    { key: "comment", label: t("admin.admindashboardtransactions.kommentariya"), width: 220 },
     { key: "actions", label: "", width: 58 },
   ];
 
@@ -391,44 +392,44 @@ export function TransactionsTable({ onNotify }) {
     <div className="admin-income-modal admin-transaction-modal" role="dialog" aria-modal="true" aria-label={`Редактировать транзакцию ${transactionEditor.uuid}`} onClick={() => { if (!transactionSaving) setTransactionEditor(null); }}>
       <form className="admin-income-dialog admin-transaction-dialog" onSubmit={saveTransactionEditor} onClick={(event) => event.stopPropagation()}>
         <div className="admin-income-dialog__head admin-transaction-dialog__head">
-          <div><h3>Редактировать транзакцию</h3><p>ID {transactionEditor.uuid}. Сохраняются только поля канонического контракта.</p></div>
-          <button type="button" className="admin-income-dialog__close" onClick={() => setTransactionEditor(null)} disabled={transactionSaving} aria-label="Закрыть"><Icon name="bi-x-lg" size={16} /></button>
+          <div><h3>{t("admin.admindashboardtransactions.redaktirovat_tranzaktsiyu")}</h3><p>ID {transactionEditor.uuid}{t("admin.admindashboardtransactions.sohranyayutsya_tolko_polya_kanonicheskogo_kontrakta")}</p></div>
+          <button type="button" className="admin-income-dialog__close" onClick={() => setTransactionEditor(null)} disabled={transactionSaving} aria-label={t("admin.admindashboardtransactions.zakryt")}><Icon name="bi-x-lg" size={16} /></button>
         </div>
 
         <div className="admin-transaction-dialog__grid">
           <label className="admin-income-field admin-transaction-field admin-transaction-field--wide">
-            <span>Организация</span>
-            <input value={transactionEditor.organization || "Не указана"} disabled aria-label="Организация" />
+            <span>{t("admin.admindashboardtransactions.organizatsiya")}</span>
+            <input value={transactionEditor.organization || "Не указана"} disabled aria-label={t("admin.admindashboardtransactions.organizatsiya")} />
           </label>
           <label className="admin-income-field admin-transaction-field">
-            <span>Сумма</span>
-            <div className="admin-transaction-amount-input"><input value={transactionEditor.amount} inputMode="decimal" onChange={(event) => updateTransactionEditor("amount", event.target.value)} autoFocus aria-label="Сумма" /><strong>UZS</strong></div>
+            <span>{t("admin.admindashboardtransactions.summa")}</span>
+            <div className="admin-transaction-amount-input"><input value={transactionEditor.amount} inputMode="decimal" onChange={(event) => updateTransactionEditor("amount", event.target.value)} autoFocus aria-label={t("admin.admindashboardtransactions.summa")} /><strong>UZS</strong></div>
           </label>
           <label className="admin-income-field admin-transaction-field">
-            <span>Дата и время</span>
-            <input type="datetime-local" value={transactionEditor.date} onChange={(event) => updateTransactionEditor("date", event.target.value)} aria-label="Дата и время" />
+            <span>{t("admin.admindashboardtransactions.data_i_vremya")}</span>
+            <input type="datetime-local" value={transactionEditor.date} onChange={(event) => updateTransactionEditor("date", event.target.value)} aria-label={t("admin.admindashboardtransactions.data_i_vremya")} />
           </label>
           <label className="admin-income-field admin-transaction-field">
-            <span>Тип</span>
-            <input value={transactionEditor.kind || "Не указан"} disabled aria-label="Тип" />
+            <span>{t("admin.admindashboardtransactions.tip")}</span>
+            <input value={transactionEditor.kind || "Не указан"} disabled aria-label={t("admin.admindashboardtransactions.tip")} />
           </label>
           <label className="admin-income-field admin-transaction-field">
-            <span>Тип оплаты</span>
-            <input value={transactionEditor.payType || "Не указан"} disabled aria-label="Тип оплаты" />
+            <span>{t("admin.admindashboardtransactions.tip_oplaty")}</span>
+            <input value={transactionEditor.payType || "Не указан"} disabled aria-label={t("admin.admindashboardtransactions.tip_oplaty")} />
           </label>
           <label className="admin-income-field admin-transaction-field admin-transaction-field--wide">
-            <span>Оплата за</span>
-            <input value={transactionEditor.paymentFor || "Не указано"} disabled aria-label="Оплата за" />
+            <span>{t("admin.admindashboardtransactions.oplata_za")}</span>
+            <input value={transactionEditor.paymentFor || "Не указано"} disabled aria-label={t("admin.admindashboardtransactions.oplata_za")} />
           </label>
           <label className="admin-income-field admin-transaction-field admin-transaction-field--wide">
-            <span>Комментарий</span>
-            <textarea value={transactionEditor.comment} onChange={(event) => updateTransactionEditor("comment", event.target.value)} rows={3} aria-label="Комментарий" />
+            <span>{t("admin.admindashboardtransactions.kommentariy")}</span>
+            <textarea value={transactionEditor.comment} onChange={(event) => updateTransactionEditor("comment", event.target.value)} rows={3} aria-label={t("admin.admindashboardtransactions.kommentariy")} />
           </label>
         </div>
 
         {transactionError ? <div className="admin-transaction-dialog__error" role="alert">{transactionError}</div> : null}
         <div className="admin-income-dialog__actions admin-transaction-dialog__actions">
-          <button type="button" className="is-ghost" onClick={() => setTransactionEditor(null)} disabled={transactionSaving}>Отмена</button>
+          <button type="button" className="is-ghost" onClick={() => setTransactionEditor(null)} disabled={transactionSaving}>{t("admin.admindashboardtransactions.otmena")}</button>
           <button type="submit" className="is-primary" disabled={transactionSaving}>{transactionSaving ? "Сохранение..." : "Сохранить"}</button>
         </div>
       </form>
@@ -441,7 +442,7 @@ export function TransactionsTable({ onNotify }) {
       <section className="admin-table-card admin-transactions">
         <div className="admin-panel-head admin-transactions__head">
           <div>
-            <h2>Последние транзакции</h2>
+            <h2>{t("admin.admindashboardtransactions.poslednie_tranzaktsii")}</h2>
           </div>
           <button
             className={`admin-transactions__settings ${settingsOpen ? "is-open" : ""}`}
@@ -450,19 +451,19 @@ export function TransactionsTable({ onNotify }) {
             aria-expanded={settingsOpen}
           >
             <Icon name="bi-sliders" size={15} />
-            <span>Настроить таблицу</span>
+            <span>{t("admin.admindashboardtransactions.nastroit_tablitsu")}</span>
           </button>
           <label className="admin-data-search admin-transactions__search">
             <Icon name="bi-search" size={15} />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("admin.admindashboardtransactions.poisk")} />
           </label>
         </div>
 
       {settingsOpen ? (
         <div className="admin-data-column-panel admin-transactions__column-panel">
           <div className="admin-transactions__column-panel-head">
-            <span>Столбцы</span>
-            <button type="button" onClick={resetColumnSettings}>Сброс</button>
+            <span>{t("admin.admindashboardtransactions.stolbtsy")}</span>
+            <button type="button" onClick={resetColumnSettings}>{t("admin.admindashboardtransactions.sbros")}</button>
           </div>
           <div className="admin-transactions__column-list">
             {orderedColumns.map((column, index) => {
@@ -575,25 +576,25 @@ export function TransactionsTable({ onNotify }) {
             ))}
           </tbody>
         </table>
-        {loadState === "loading" ? <div className="admin-data-state" role="status">Загрузка транзакций...</div> : null}
-        {loadState === "error" ? <div className="admin-data-state" role="alert">Не удалось загрузить транзакции.</div> : null}
-        {loadState === "empty" || (loadState === "success" && !pageRows.length) ? <div className="admin-data-state">Транзакции не найдены.</div> : null}
+        {loadState === "loading" ? <div className="admin-data-state" role="status">{t("admin.admindashboardtransactions.zagruzka_tranzaktsiy")}</div> : null}
+        {loadState === "error" ? <div className="admin-data-state" role="alert">{t("admin.admindashboardtransactions.ne_udalos_zagruzit_tranzaktsii")}</div> : null}
+        {loadState === "empty" || (loadState === "success" && !pageRows.length) ? <div className="admin-data-state">{t("admin.admindashboardtransactions.tranzaktsii_ne_naydeny")}</div> : null}
       </div>
 
       <div className="admin-data-footer admin-transactions__footer">
         <span className="admin-data-footer__summary">
           {filteredRows.length ? `${startIndex + 1}-${Math.min(startIndex + pageSize, filteredRows.length)} из ${filteredRows.length}` : "0 из 0"}
-          <small>Страница {currentPage} из {totalPages}</small>
+          <small>{t("admin.admindashboardtransactions.stranitsa")} {currentPage} {t("admin.admindashboardtransactions.iz")} {totalPages}</small>
         </span>
         <div className="admin-data-pager admin-transactions__pager">
           <AdminPageSizeDropdown value={pageSize} options={pageSizeOptions} onChange={setPageSize} />
-          <button type="button" disabled={currentPage === 1} onClick={() => goToPage(1)} aria-label="Первая страница">
+          <button type="button" disabled={currentPage === 1} onClick={() => goToPage(1)} aria-label={t("admin.admindashboardtransactions.pervaya_stranitsa")}>
             <span className="admin-data-double-icon" aria-hidden="true">
               <Icon name="bi-chevron-left" size={13} />
               <Icon name="bi-chevron-left" size={13} />
             </span>
           </button>
-          <button type="button" disabled={currentPage === 1} onClick={() => goToPage(currentPage - 1)} aria-label="Предыдущая страница">
+          <button type="button" disabled={currentPage === 1} onClick={() => goToPage(currentPage - 1)} aria-label={t("admin.admindashboardtransactions.predyduschaya_stranitsa")}>
             <Icon name="bi-chevron-left" size={15} />
           </button>
           {pageList.map((item, index) => (
@@ -611,10 +612,10 @@ export function TransactionsTable({ onNotify }) {
               </button>
             )
           ))}
-          <button type="button" disabled={currentPage === totalPages} onClick={() => goToPage(currentPage + 1)} aria-label="Следующая страница">
+          <button type="button" disabled={currentPage === totalPages} onClick={() => goToPage(currentPage + 1)} aria-label={t("admin.admindashboardtransactions.sleduyuschaya_stranitsa")}>
             <Icon name="bi-chevron-right" size={15} />
           </button>
-          <button type="button" disabled={currentPage === totalPages} onClick={() => goToPage(totalPages)} aria-label="Последняя страница">
+          <button type="button" disabled={currentPage === totalPages} onClick={() => goToPage(totalPages)} aria-label={t("admin.admindashboardtransactions.poslednyaya_stranitsa")}>
             <span className="admin-data-double-icon" aria-hidden="true">
               <Icon name="bi-chevron-right" size={13} />
               <Icon name="bi-chevron-right" size={13} />

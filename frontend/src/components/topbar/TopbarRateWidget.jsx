@@ -7,6 +7,7 @@ import usFlag from "../../assets/flags/us.svg";
 import uzFlag from "../../assets/flags/uz.svg";
 import Icon from "../Icon";
 import { formatMoneyInput, parseMoneyInput } from "./currencyFormat";
+import { t } from "../../i18n/t";
 
 const RATE_POPOVER_EXIT_MS = 180;
 const SWAP_VALUE_ANIMATION_MS = 180;
@@ -190,7 +191,7 @@ export default function TopbarRateWidget() {
   }, []);
 
   return (
-    <div className="topbar-info-widgets" aria-label="Информационные виджеты" ref={rateWidgetRef}>
+    <div className="topbar-info-widgets" aria-label={t("components.topbar.topbarratewidget.informatsionnye_vidzhety")} ref={rateWidgetRef}>
       <button
         ref={rateTriggerRef}
         className={`topbar-info-widget topbar-info-widget--rate ${rateOpen && !rateClosing ? "is-open" : ""}`}
@@ -215,7 +216,7 @@ export default function TopbarRateWidget() {
         <div
           className={`usd-rate-popover ${rateClosing ? "is-closing" : "is-opening"}`}
           role="dialog"
-          aria-label="Курсы валют"
+          aria-label={t("components.topbar.topbarratewidget.kursy_valyut")}
           aria-hidden={rateClosing || undefined}
           onAnimationEnd={(event) => {
             if (rateClosing && event.target === event.currentTarget) finishRateClose();
@@ -223,20 +224,20 @@ export default function TopbarRateWidget() {
         >
           <div className="usd-rate-popover__head">
             <div>
-              <span>Официальный курс ЦБ Узбекистана</span>
-              <strong>Курсы валют</strong>
+              <span>{t("components.topbar.topbarratewidget.ofitsialnyy_kurs_tsb_uzbekistana")}</span>
+              <strong>{t("components.topbar.topbarratewidget.kursy_valyut")}</strong>
             </div>
-            <button type="button" aria-label="Закрыть" onClick={() => closeRate(true)}>
+            <button type="button" aria-label={t("components.topbar.topbarratewidget.zakryt")} onClick={() => closeRate(true)}>
               <Icon name="bi-x-lg" size={18} />
             </button>
           </div>
 
           <div className="currency-rate-cards">
             {[
-              { code: "USD", flag: CURRENCY_FLAG_BY_CODE.USD, label: "Доллар США",         rate: usdRate, decimals: 0 },
-              { code: "RUB", flag: CURRENCY_FLAG_BY_CODE.RUB, label: "Российский рубль",    rate: rubRate, decimals: 1 },
-              { code: "KZT", flag: CURRENCY_FLAG_BY_CODE.KZT, label: "Казахстанский тенге", rate: kztRate, decimals: 1 },
-              { code: "KGS", flag: CURRENCY_FLAG_BY_CODE.KGS, label: "Киргизский сом",      rate: kgsRate, decimals: 0 },
+              { code: "USD", flag: CURRENCY_FLAG_BY_CODE.USD, label: t("components.topbar.topbarratewidget.dollar_ssha"),         rate: usdRate, decimals: 0 },
+              { code: "RUB", flag: CURRENCY_FLAG_BY_CODE.RUB, label: t("components.topbar.topbarratewidget.rossiyskiy_rubl"),    rate: rubRate, decimals: 1 },
+              { code: "KZT", flag: CURRENCY_FLAG_BY_CODE.KZT, label: t("components.topbar.topbarratewidget.kazahstanskiy_tenge"), rate: kztRate, decimals: 1 },
+              { code: "KGS", flag: CURRENCY_FLAG_BY_CODE.KGS, label: t("components.topbar.topbarratewidget.kirgizskiy_som"),      rate: kgsRate, decimals: 0 },
             ].map(({ code, flag, label, rate, decimals }) => (
               <button
                 key={code}
@@ -269,13 +270,13 @@ export default function TopbarRateWidget() {
               className="usd-rate-direction-toggle"
               type="button"
               onClick={toggleConverterDirection}
-              aria-label="Поменять направление"
+              aria-label={t("components.topbar.topbarratewidget.pomenyat_napravlenie")}
               aria-disabled={swapPhase !== "idle"}
             >
               <span>{converterDirectionLabel}</span>
               <Icon name="bi-arrow-left-right" size={16} />
             </button>
-            <span>Источник: cbu.uz</span>
+            <span>{t("components.topbar.topbarratewidget.istochnik_cbu_uz")}</span>
           </div>
           <div className="usd-converter">
             <label>

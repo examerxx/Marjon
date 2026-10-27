@@ -6,6 +6,7 @@ import { AdminPageSizeDropdown, getPageList, keepWheelInsideScroller } from "../
 import { organizationErrorMessage } from "./organizationErrors";
 import { organizationsApi } from "./organizationsApi";
 import { webFormat } from "../../../utils/webTime";
+import { t } from "../../../i18n/t";
 
 export const organizationRows = [];
 
@@ -260,7 +261,7 @@ function ModalShell({ title, description, onClose, busy, children, actions, tone
             <h3 id="org-directory-modal-title">{title}</h3>
             <p id="org-directory-modal-description">{description}</p>
           </div>
-          <button className="admin-modal__close" type="button" onClick={onClose} disabled={busy} aria-label="Закрыть">
+          <button className="admin-modal__close" type="button" onClick={onClose} disabled={busy} aria-label={t("admin.features.organizations.organizationdirectorypage.zakryt")}>
             <Icon name="bi-x-lg" size={16} />
           </button>
         </div>
@@ -293,46 +294,46 @@ function OrganizationFormModal({ mode, row, statuses, directories, busy, error, 
   return (
     <ModalShell
       title={title}
-      description="Поля соответствуют каноническому HQ-контракту организации."
+      description={t("admin.features.organizations.organizationdirectorypage.polya_sootvetstvuyut_kanonicheskomu_hq_kontraktu")}
       onClose={onClose}
       busy={busy}
       actions={<>
-        <button type="button" className="admin-modal__btn is-ghost" onClick={onClose} disabled={busy}>Отмена</button>
+        <button type="button" className="admin-modal__btn is-ghost" onClick={onClose} disabled={busy}>{t("admin.features.organizations.organizationdirectorypage.otmena")}</button>
         <button type="submit" form="organization-form" className="admin-modal__btn is-primary" disabled={busy}>
           {busy ? "Сохранение..." : "Сохранить"}
         </button>
       </>}
     >
       <form id="organization-form" className="org-directory-modal__form" onSubmit={submit}>
-        <label className="is-wide"><span>Название</span><input value={form.name} onChange={(event) => setField("name", event.target.value)} required /></label>
-        <label><span>Тип филиала</span><select value={form.isMain ? "main" : "regular"} onChange={(event) => setField("isMain", event.target.value === "main")}><option value="regular">Обычный</option><option value="main">Главный</option></select></label>
-        <label><span>ИНН</span><input value={form.tin} onChange={(event) => setField("tin", event.target.value)} /></label>
-        <label><span>Цена тарифа</span><input type="number" min="0" step="0.01" value={form.tariffPrice} onChange={(event) => setField("tariffPrice", event.target.value)} /></label>
-        <label><span>Рабочие дни</span><input type="number" min="0" step="1" value={form.workingDays} onChange={(event) => setField("workingDays", event.target.value)} /></label>
-        <label><span>Дата установки</span><input type="date" value={form.installationDate} onChange={(event) => setField("installationDate", event.target.value)} /></label>
-        <label><span>Страна</span><select value={form.countryId} onChange={(event) => setField("countryId", event.target.value)}><option value="">Не указана</option>{directories.countries.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-        <label><span>Регион</span><select value={form.regionId} onChange={(event) => setField("regionId", event.target.value)}><option value="">Не указан</option>{directories.regions.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-        <label><span>Район</span><select value={form.districtId} onChange={(event) => setField("districtId", event.target.value)}><option value="">Не указан</option>{directories.districts.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+        <label className="is-wide"><span>{t("admin.features.organizations.organizationdirectorypage.nazvanie")}</span><input value={form.name} onChange={(event) => setField("name", event.target.value)} required /></label>
+        <label><span>{t("admin.features.organizations.organizationdirectorypage.tip_filiala")}</span><select value={form.isMain ? "main" : "regular"} onChange={(event) => setField("isMain", event.target.value === "main")}><option value="regular">{t("admin.features.organizations.organizationdirectorypage.obychnyy")}</option><option value="main">{t("admin.features.organizations.organizationdirectorypage.glavnyy")}</option></select></label>
+        <label><span>{t("admin.features.organizations.organizationdirectorypage.inn")}</span><input value={form.tin} onChange={(event) => setField("tin", event.target.value)} /></label>
+        <label><span>{t("admin.features.organizations.organizationdirectorypage.tsena_tarifa")}</span><input type="number" min="0" step="0.01" value={form.tariffPrice} onChange={(event) => setField("tariffPrice", event.target.value)} /></label>
+        <label><span>{t("admin.features.organizations.organizationdirectorypage.rabochie_dni")}</span><input type="number" min="0" step="1" value={form.workingDays} onChange={(event) => setField("workingDays", event.target.value)} /></label>
+        <label><span>{t("admin.features.organizations.organizationdirectorypage.data_ustanovki")}</span><input type="date" value={form.installationDate} onChange={(event) => setField("installationDate", event.target.value)} /></label>
+        <label><span>{t("admin.features.organizations.organizationdirectorypage.strana")}</span><select value={form.countryId} onChange={(event) => setField("countryId", event.target.value)}><option value="">{t("admin.features.organizations.organizationdirectorypage.ne_ukazana")}</option>{directories.countries.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+        <label><span>{t("admin.features.organizations.organizationdirectorypage.region")}</span><select value={form.regionId} onChange={(event) => setField("regionId", event.target.value)}><option value="">{t("admin.features.organizations.organizationdirectorypage.ne_ukazan")}</option>{directories.regions.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+        <label><span>{t("admin.features.organizations.organizationdirectorypage.rayon")}</span><select value={form.districtId} onChange={(event) => setField("districtId", event.target.value)}><option value="">{t("admin.features.organizations.organizationdirectorypage.ne_ukazan")}</option>{directories.districts.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
         <label>
-          <span>Статус организации</span>
+          <span>{t("admin.features.organizations.organizationdirectorypage.status_organizatsii")}</span>
           <select value={form.organizationStatusId} onChange={(event) => setField("organizationStatusId", event.target.value)}>
-            <option value="">Не указан</option>
+            <option value="">{t("admin.features.organizations.organizationdirectorypage.ne_ukazan")}</option>
             {statuses.map((status) => <option value={status.id} key={status.id}>{status.name}</option>)}
           </select>
         </label>
         <label>
-          <span>Состояние</span>
+          <span>{t("admin.features.organizations.organizationdirectorypage.sostoyanie")}</span>
           <select value={form.lifecycleStatus} onChange={(event) => setField("lifecycleStatus", event.target.value)} required>
-            <option value="active">Активна</option>
-            <option value="blocked">Заблокирована</option>
+            <option value="active">{t("admin.features.organizations.organizationdirectorypage.aktivna")}</option>
+            <option value="blocked">{t("admin.features.organizations.organizationdirectorypage.zablokirovana")}</option>
           </select>
         </label>
         <div className="org-directory-modal__checks is-wide">
-          <label><input type="checkbox" checked={form.onlineMenu} onChange={(event) => setField("onlineMenu", event.target.checked)} /> Онлайн-меню</label>
-          <label><input type="checkbox" checked={form.storageIntegration} onChange={(event) => setField("storageIntegration", event.target.checked)} /> Интеграция склада</label>
-          <label><input type="checkbox" checked={form.isSolvent} onChange={(event) => setField("isSolvent", event.target.checked)} /> Платёжеспособна</label>
-          <label><input type="checkbox" checked={form.billingAutoblock} onChange={(event) => setField("billingAutoblock", event.target.checked)} /> Автоблокировка биллинга</label>
-          <label><input type="checkbox" checked={form.faceDetectionRequired} onChange={(event) => setField("faceDetectionRequired", event.target.checked)} /> Подтверждение MYID</label>
+          <label><input type="checkbox" checked={form.onlineMenu} onChange={(event) => setField("onlineMenu", event.target.checked)} /> {t("admin.features.organizations.organizationdirectorypage.onlayn_menyu")}</label>
+          <label><input type="checkbox" checked={form.storageIntegration} onChange={(event) => setField("storageIntegration", event.target.checked)} /> {t("admin.features.organizations.organizationdirectorypage.integratsiya_sklada")}</label>
+          <label><input type="checkbox" checked={form.isSolvent} onChange={(event) => setField("isSolvent", event.target.checked)} /> {t("admin.features.organizations.organizationdirectorypage.platezhesposobna")}</label>
+          <label><input type="checkbox" checked={form.billingAutoblock} onChange={(event) => setField("billingAutoblock", event.target.checked)} /> {t("admin.features.organizations.organizationdirectorypage.avtoblokirovka_billinga")}</label>
+          <label><input type="checkbox" checked={form.faceDetectionRequired} onChange={(event) => setField("faceDetectionRequired", event.target.checked)} /> {t("admin.features.organizations.organizationdirectorypage.podtverzhdenie_myid")}</label>
         </div>
         {validationError || error ? <div className="org-directory-modal__error is-wide" role="alert">{validationError || error}</div> : null}
       </form>
@@ -369,45 +370,45 @@ function OrganizationEditScreen({ row, statuses, directories, busy, error, onBac
   return (
     <section className="org-edit-page">
       <header className="org-edit-header">
-        <button type="button" className="org-edit-back" onClick={onBack} disabled={busy} aria-label="Назад к организациям">
+        <button type="button" className="org-edit-back" onClick={onBack} disabled={busy} aria-label={t("admin.features.organizations.organizationdirectorypage.nazad_k_organizatsiyam")}>
           <Icon name="bi-chevron-left" size={18} />
         </button>
-        <h2>Изменить организацию</h2>
+        <h2>{t("admin.features.organizations.organizationdirectorypage.izmenit_organizatsiyu")}</h2>
       </header>
 
       <form className="org-edit-form" onSubmit={submit}>
-        <h3>Основные данные</h3>
+        <h3>{t("admin.features.organizations.organizationdirectorypage.osnovnye_dannye")}</h3>
         <div className="org-edit-grid">
-          <label className="org-edit-field"><span>Название<b>*</b></span><input value={form.name} onChange={(event) => setField("name", event.target.value)} required /></label>
-          <label className="org-edit-field"><span>Цена тарифа</span><input type="number" min="0" step="0.01" value={form.tariffPrice} onChange={(event) => setField("tariffPrice", event.target.value)} /></label>
-          <label className="org-edit-field"><span>Рабочие дни</span><input type="number" min="0" step="1" value={form.workingDays} onChange={(event) => setField("workingDays", event.target.value)} /></label>
-          <label className="org-edit-field"><span>Тип филиала</span><select value={form.isMain ? "main" : "regular"} onChange={(event) => setField("isMain", event.target.value === "main")}><option value="regular">Обычный</option><option value="main">Главный</option></select></label>
-          <label className="org-edit-field"><span>Виртуальная касса номер</span><input value={form.virtualCashRegisterNumber} onChange={(event) => setField("virtualCashRegisterNumber", event.target.value)} placeholder="Введите номер" /></label>
-          <label className="org-edit-field"><span>IP адрес виртуальной кассы</span><input value={form.virtualCashRegisterIpAddress} onChange={(event) => setField("virtualCashRegisterIpAddress", event.target.value)} placeholder="Введите IP адрес" /></label>
-          <label className="org-edit-field"><span>Страна</span><select value={form.countryId} onChange={(event) => setField("countryId", event.target.value)}><option value="">Не указана</option>{directories.countries.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-          <label className="org-edit-field"><span>Регион</span><select value={form.regionId} onChange={(event) => setField("regionId", event.target.value)}><option value="">Не указан</option>{directories.regions.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-          <label className="org-edit-field"><span>Район</span><select value={form.districtId} onChange={(event) => setField("districtId", event.target.value)}><option value="">Не указан</option>{directories.districts.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-          <label className="org-edit-field"><span>Дата установки</span><input type="date" value={form.installationDate} onChange={(event) => setField("installationDate", event.target.value)} /></label>
-          <label className="org-edit-field"><span>ИНН организации</span><input value={form.tin} onChange={(event) => setField("tin", event.target.value)} /></label>
+          <label className="org-edit-field"><span>{t("admin.features.organizations.organizationdirectorypage.nazvanie")}<b>*</b></span><input value={form.name} onChange={(event) => setField("name", event.target.value)} required /></label>
+          <label className="org-edit-field"><span>{t("admin.features.organizations.organizationdirectorypage.tsena_tarifa")}</span><input type="number" min="0" step="0.01" value={form.tariffPrice} onChange={(event) => setField("tariffPrice", event.target.value)} /></label>
+          <label className="org-edit-field"><span>{t("admin.features.organizations.organizationdirectorypage.rabochie_dni")}</span><input type="number" min="0" step="1" value={form.workingDays} onChange={(event) => setField("workingDays", event.target.value)} /></label>
+          <label className="org-edit-field"><span>{t("admin.features.organizations.organizationdirectorypage.tip_filiala")}</span><select value={form.isMain ? "main" : "regular"} onChange={(event) => setField("isMain", event.target.value === "main")}><option value="regular">{t("admin.features.organizations.organizationdirectorypage.obychnyy")}</option><option value="main">{t("admin.features.organizations.organizationdirectorypage.glavnyy")}</option></select></label>
+          <label className="org-edit-field"><span>{t("admin.features.organizations.organizationdirectorypage.virtualnaya_kassa_nomer")}</span><input value={form.virtualCashRegisterNumber} onChange={(event) => setField("virtualCashRegisterNumber", event.target.value)} placeholder={t("admin.features.organizations.organizationdirectorypage.vvedite_nomer")} /></label>
+          <label className="org-edit-field"><span>{t("admin.features.organizations.organizationdirectorypage.ip_adres_virtualnoy_kassy")}</span><input value={form.virtualCashRegisterIpAddress} onChange={(event) => setField("virtualCashRegisterIpAddress", event.target.value)} placeholder={t("admin.features.organizations.organizationdirectorypage.vvedite_ip_adres")} /></label>
+          <label className="org-edit-field"><span>{t("admin.features.organizations.organizationdirectorypage.strana")}</span><select value={form.countryId} onChange={(event) => setField("countryId", event.target.value)}><option value="">{t("admin.features.organizations.organizationdirectorypage.ne_ukazana")}</option>{directories.countries.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+          <label className="org-edit-field"><span>{t("admin.features.organizations.organizationdirectorypage.region")}</span><select value={form.regionId} onChange={(event) => setField("regionId", event.target.value)}><option value="">{t("admin.features.organizations.organizationdirectorypage.ne_ukazan")}</option>{directories.regions.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+          <label className="org-edit-field"><span>{t("admin.features.organizations.organizationdirectorypage.rayon")}</span><select value={form.districtId} onChange={(event) => setField("districtId", event.target.value)}><option value="">{t("admin.features.organizations.organizationdirectorypage.ne_ukazan")}</option>{directories.districts.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+          <label className="org-edit-field"><span>{t("admin.features.organizations.organizationdirectorypage.data_ustanovki")}</span><input type="date" value={form.installationDate} onChange={(event) => setField("installationDate", event.target.value)} /></label>
+          <label className="org-edit-field"><span>{t("admin.features.organizations.organizationdirectorypage.inn_organizatsii")}</span><input value={form.tin} onChange={(event) => setField("tin", event.target.value)} /></label>
           <label className="org-edit-field"><span>Taplink</span><input type="url" value={form.taplink} onChange={(event) => setField("taplink", event.target.value)} placeholder="https://" /></label>
           <label className="org-edit-field">
-            <span>Статус организации</span>
+            <span>{t("admin.features.organizations.organizationdirectorypage.status_organizatsii")}</span>
             <select value={form.organizationStatusId} onChange={(event) => setField("organizationStatusId", event.target.value)}>
-              <option value="">Не указан</option>
+              <option value="">{t("admin.features.organizations.organizationdirectorypage.ne_ukazan")}</option>
               {statuses.map((status) => <option value={status.id} key={status.id}>{status.name}</option>)}
             </select>
           </label>
           <label className="org-edit-field">
-            <span>Состояние</span>
+            <span>{t("admin.features.organizations.organizationdirectorypage.sostoyanie")}</span>
             <select value={form.lifecycleStatus} onChange={(event) => setField("lifecycleStatus", event.target.value)} required>
-              <option value="active">Активна</option>
-              <option value="blocked">Заблокирована</option>
+              <option value="active">{t("admin.features.organizations.organizationdirectorypage.aktivna")}</option>
+              <option value="blocked">{t("admin.features.organizations.organizationdirectorypage.zablokirovana")}</option>
             </select>
           </label>
         </div>
 
         <div className="org-edit-settings">
-          <h3>Настройки</h3>
+          <h3>{t("admin.features.organizations.organizationdirectorypage.nastroyki")}</h3>
           <div className="org-edit-toggle-grid">
             {settingRows.map(([key, label]) => (
               <div className="org-edit-setting" key={key}>
@@ -464,11 +465,11 @@ function OrganizationMessageScreen({ row, statuses, directories, busy, error, on
   return (
     <section className="org-message-page">
       <header className="org-message-header">
-        <button type="button" className="org-message-back" onClick={onBack} disabled={busy} aria-label="Назад к организациям">
+        <button type="button" className="org-message-back" onClick={onBack} disabled={busy} aria-label={t("admin.features.organizations.organizationdirectorypage.nazad_k_organizatsiyam")}>
           <Icon name="bi-arrow-left" size={16} />
         </button>
         <div>
-          <h2>Сообщение: {row.name}</h2>
+          <h2>{t("admin.features.organizations.organizationdirectorypage.soobschenie")} {row.name}</h2>
           <p>{row.name} · ID {row.clientId}</p>
         </div>
         <button type="submit" form="organization-message-form" className="org-message-save-top" disabled={busy}>{busy ? "Сохранение..." : "Сохранить"}</button>
@@ -477,12 +478,12 @@ function OrganizationMessageScreen({ row, statuses, directories, busy, error, on
       <div className="org-message-layout">
         <form id="organization-message-form" className="org-message-form" onSubmit={submit}>
           <div className="org-message-form__status">
-            <span>Состояние: {form.lifecycleStatus === "blocked" ? "Заблокирована" : "Активна"}</span>
+            <span>{t("admin.features.organizations.organizationdirectorypage.sostoyanie_2")} {form.lifecycleStatus === "blocked" ? "Заблокирована" : "Активна"}</span>
             <button
               type="button"
               className={`org-message-toggle ${form.lifecycleStatus === "active" ? "is-on" : ""}`}
               onClick={() => setField("lifecycleStatus", form.lifecycleStatus === "active" ? "blocked" : "active")}
-              aria-label="Состояние организации"
+              aria-label={t("admin.features.organizations.organizationdirectorypage.sostoyanie_organizatsii")}
               aria-pressed={form.lifecycleStatus === "active"}
             >
               <span />
@@ -490,29 +491,29 @@ function OrganizationMessageScreen({ row, statuses, directories, busy, error, on
           </div>
 
           <div className="org-message-field-grid">
-            <label><span>Название *</span><input value={form.name} onChange={(event) => setField("name", event.target.value)} required /></label>
-            <label><span>Тип филиала</span><select value={form.isMain ? "main" : "regular"} onChange={(event) => setField("isMain", event.target.value === "main")}><option value="regular">Обычный</option><option value="main">Главный</option></select></label>
-            <label><span>Цена тарифа</span><input type="number" min="0" step="0.01" value={form.tariffPrice} onChange={(event) => setField("tariffPrice", event.target.value)} /></label>
-            <label><span>Рабочие дни</span><input type="number" min="0" step="1" value={form.workingDays} onChange={(event) => setField("workingDays", event.target.value)} /></label>
-            <label><span>Виртуальная касса</span><input value={form.virtualCashRegisterNumber} onChange={(event) => setField("virtualCashRegisterNumber", event.target.value)} /></label>
-            <label><span>IP виртуальной кассы</span><input value={form.virtualCashRegisterIpAddress} onChange={(event) => setField("virtualCashRegisterIpAddress", event.target.value)} /></label>
-            <label><span>Страна</span><select value={form.countryId} onChange={(event) => setField("countryId", event.target.value)}><option value="">Не указана</option>{directories.countries.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-            <label><span>Регион</span><select value={form.regionId} onChange={(event) => setField("regionId", event.target.value)}><option value="">Не указан</option>{directories.regions.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-            <label><span>Район</span><select value={form.districtId} onChange={(event) => setField("districtId", event.target.value)}><option value="">Не указан</option>{directories.districts.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-            <label><span>ИНН организации</span><input value={form.tin} onChange={(event) => setField("tin", event.target.value)} /></label>
-            <label><span>Дата установки</span><input type="date" value={form.installationDate} onChange={(event) => setField("installationDate", event.target.value)} /></label>
+            <label><span>{t("admin.features.organizations.organizationdirectorypage.nazvanie_2")}</span><input value={form.name} onChange={(event) => setField("name", event.target.value)} required /></label>
+            <label><span>{t("admin.features.organizations.organizationdirectorypage.tip_filiala")}</span><select value={form.isMain ? "main" : "regular"} onChange={(event) => setField("isMain", event.target.value === "main")}><option value="regular">{t("admin.features.organizations.organizationdirectorypage.obychnyy")}</option><option value="main">{t("admin.features.organizations.organizationdirectorypage.glavnyy")}</option></select></label>
+            <label><span>{t("admin.features.organizations.organizationdirectorypage.tsena_tarifa")}</span><input type="number" min="0" step="0.01" value={form.tariffPrice} onChange={(event) => setField("tariffPrice", event.target.value)} /></label>
+            <label><span>{t("admin.features.organizations.organizationdirectorypage.rabochie_dni")}</span><input type="number" min="0" step="1" value={form.workingDays} onChange={(event) => setField("workingDays", event.target.value)} /></label>
+            <label><span>{t("admin.features.organizations.organizationdirectorypage.virtualnaya_kassa")}</span><input value={form.virtualCashRegisterNumber} onChange={(event) => setField("virtualCashRegisterNumber", event.target.value)} /></label>
+            <label><span>{t("admin.features.organizations.organizationdirectorypage.ip_virtualnoy_kassy")}</span><input value={form.virtualCashRegisterIpAddress} onChange={(event) => setField("virtualCashRegisterIpAddress", event.target.value)} /></label>
+            <label><span>{t("admin.features.organizations.organizationdirectorypage.strana")}</span><select value={form.countryId} onChange={(event) => setField("countryId", event.target.value)}><option value="">{t("admin.features.organizations.organizationdirectorypage.ne_ukazana")}</option>{directories.countries.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+            <label><span>{t("admin.features.organizations.organizationdirectorypage.region")}</span><select value={form.regionId} onChange={(event) => setField("regionId", event.target.value)}><option value="">{t("admin.features.organizations.organizationdirectorypage.ne_ukazan")}</option>{directories.regions.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+            <label><span>{t("admin.features.organizations.organizationdirectorypage.rayon")}</span><select value={form.districtId} onChange={(event) => setField("districtId", event.target.value)}><option value="">{t("admin.features.organizations.organizationdirectorypage.ne_ukazan")}</option>{directories.districts.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+            <label><span>{t("admin.features.organizations.organizationdirectorypage.inn_organizatsii")}</span><input value={form.tin} onChange={(event) => setField("tin", event.target.value)} /></label>
+            <label><span>{t("admin.features.organizations.organizationdirectorypage.data_ustanovki")}</span><input type="date" value={form.installationDate} onChange={(event) => setField("installationDate", event.target.value)} /></label>
             <label><span>Taplink</span><input type="url" value={form.taplink} onChange={(event) => setField("taplink", event.target.value)} /></label>
             <label className="is-wide">
-              <span>Статус организации</span>
+              <span>{t("admin.features.organizations.organizationdirectorypage.status_organizatsii")}</span>
               <select value={form.organizationStatusId} onChange={(event) => setField("organizationStatusId", event.target.value)}>
-                <option value="">Не указан</option>
+                <option value="">{t("admin.features.organizations.organizationdirectorypage.ne_ukazan")}</option>
                 {statuses.map((status) => <option value={status.id} key={status.id}>{status.name}</option>)}
               </select>
             </label>
           </div>
 
           <div className="org-message-settings">
-            <h3>Настройки</h3>
+            <h3>{t("admin.features.organizations.organizationdirectorypage.nastroyki")}</h3>
             <div>
               {settings.map(([key, label]) => (
                 <button type="button" className={`org-message-setting ${form[key] ? "is-on" : ""}`} key={key} onClick={() => setField(key, !form[key])} aria-pressed={form[key]}>
@@ -529,18 +530,18 @@ function OrganizationMessageScreen({ row, statuses, directories, busy, error, on
         <section className="org-message-chat" aria-label={`Сообщения ${row.name}`}>
           <div className="org-message-chat__head">
             <div className="org-message-chat__avatar"><Icon name="bi-building" size={18} /></div>
-            <div><strong>Компания {row.name}</strong><span>ID: {row.clientId}</span></div>
-            <button type="button" onClick={onBack}>Закрыть</button>
+            <div><strong>{t("admin.features.organizations.organizationdirectorypage.kompaniya")} {row.name}</strong><span>ID: {row.clientId}</span></div>
+            <button type="button" onClick={onBack}>{t("admin.features.organizations.organizationdirectorypage.zakryt")}</button>
           </div>
           <div className="org-message-chat__body">
             <div className="org-message-bubble is-system">
-              <small>Система</small>
-              <p>История сообщений недоступна: канонический HQ-контракт сообщений ещё не подключён.</p>
+              <small>{t("admin.features.organizations.organizationdirectorypage.sistema")}</small>
+              <p>{t("admin.features.organizations.organizationdirectorypage.istoriya_soobscheniy_nedostupna_kanonicheskiy_hq")}</p>
             </div>
           </div>
           <div className="org-message-chat__composer">
-            <input placeholder="Написать сообщение..." disabled aria-label="Сообщение недоступно" />
-            <button type="button" disabled title="HQ-контракт сообщений отсутствует"><Icon name="bi-send" size={16} /> Send</button>
+            <input placeholder={t("admin.features.organizations.organizationdirectorypage.napisat_soobschenie")} disabled aria-label={t("admin.features.organizations.organizationdirectorypage.soobschenie_nedostupno")} />
+            <button type="button" disabled title={t("admin.features.organizations.organizationdirectorypage.hq_kontrakt_soobscheniy_otsutstvuet")}><Icon name="bi-send" size={16} /> Send</button>
           </div>
         </section>
       </div>
@@ -737,21 +738,21 @@ export function OrganizationDirectoryPage({ search = "", onNotify, onInnerBackCh
 
   const allColumns = useMemo(() => [
     { key: "number", label: "№", width: 58, render: (_, index) => startIndex + index + 1 },
-    { key: "message", label: "Msg", width: 62, render: (row) => <button type="button" className="org-directory-icon" onClick={() => { setMutationError(""); setEditor({ mode: "message", row }); }} title="Открыть рабочую область организации" aria-label={`Открыть сообщения ${row.name}`}><Icon name="bi-chat-square" size={15} /></button> },
-    { key: "name", label: "Название", width: 200, render: (row) => <strong className="admin-data-name">{row.name}</strong> },
+    { key: "message", label: "Msg", width: 62, render: (row) => <button type="button" className="org-directory-icon" onClick={() => { setMutationError(""); setEditor({ mode: "message", row }); }} title={t("admin.features.organizations.organizationdirectorypage.otkryt_rabochuyu_oblast_organizatsii")} aria-label={`Открыть сообщения ${row.name}`}><Icon name="bi-chat-square" size={15} /></button> },
+    { key: "name", label: t("admin.features.organizations.organizationdirectorypage.nazvanie"), width: 200, render: (row) => <strong className="admin-data-name">{row.name}</strong> },
     { key: "clientId", label: "ID", width: 210, render: (row) => <span>{row.clientId}</span> },
-    { key: "type", label: "Тип", width: 120, render: (row) => row.type },
-    { key: "owner", label: "Владелец", width: 150, render: (row) => row.owner },
-    { key: "admin", label: "Администратор", width: 150, render: (row) => row.admin },
-    { key: "branches", label: "Филиалы", width: 86, render: (row) => row.branches },
-    { key: "tariff", label: "Цена тарифа", width: 120, render: (row) => row.tariff },
-    { key: "workingDays", label: "Рабочие дни", width: 110, render: (row) => row.workingDays },
-    { key: "installed", label: "Установлена", width: 118, render: (row) => row.installed },
-    { key: "accessStatus", label: "Статус организации", width: 170, render: (row) => <DirectoryFlag value={row.accessStatus} /> },
-    { key: "lifecycle", label: "Состояние", width: 130, render: (row) => <DirectoryFlag value={row.lifecycle} /> },
-    { key: "onlineMenu", label: "Онлайн-меню", width: 126, render: (row) => <DirectoryFlag value={row.onlineMenu} /> },
-    { key: "warehouse", label: "Склад", width: 112, render: (row) => <DirectoryFlag value={row.warehouse} /> },
-    { key: "cashBalance", label: "Баланс", width: 118, render: (row) => row.cashBalance },
+    { key: "type", label: t("admin.features.organizations.organizationdirectorypage.tip"), width: 120, render: (row) => row.type },
+    { key: "owner", label: t("admin.features.organizations.organizationdirectorypage.vladelets"), width: 150, render: (row) => row.owner },
+    { key: "admin", label: t("admin.features.organizations.organizationdirectorypage.administrator"), width: 150, render: (row) => row.admin },
+    { key: "branches", label: t("admin.features.organizations.organizationdirectorypage.filialy"), width: 86, render: (row) => row.branches },
+    { key: "tariff", label: t("admin.features.organizations.organizationdirectorypage.tsena_tarifa"), width: 120, render: (row) => row.tariff },
+    { key: "workingDays", label: t("admin.features.organizations.organizationdirectorypage.rabochie_dni"), width: 110, render: (row) => row.workingDays },
+    { key: "installed", label: t("admin.features.organizations.organizationdirectorypage.ustanovlena"), width: 118, render: (row) => row.installed },
+    { key: "accessStatus", label: t("admin.features.organizations.organizationdirectorypage.status_organizatsii"), width: 170, render: (row) => <DirectoryFlag value={row.accessStatus} /> },
+    { key: "lifecycle", label: t("admin.features.organizations.organizationdirectorypage.sostoyanie"), width: 130, render: (row) => <DirectoryFlag value={row.lifecycle} /> },
+    { key: "onlineMenu", label: t("admin.features.organizations.organizationdirectorypage.onlayn_menyu"), width: 126, render: (row) => <DirectoryFlag value={row.onlineMenu} /> },
+    { key: "warehouse", label: t("admin.features.organizations.organizationdirectorypage.sklad"), width: 112, render: (row) => <DirectoryFlag value={row.warehouse} /> },
+    { key: "cashBalance", label: t("admin.features.organizations.organizationdirectorypage.balans"), width: 118, render: (row) => row.cashBalance },
     { key: "actions", label: "", width: 132, render: (row) => <div className="org-directory-row-actions">
       <button type="button" className="org-directory-edit" onClick={() => { setMutationError(""); setEditor({ mode: "edit", row }); }} aria-label={`Редактировать ${row.name}`}><Icon name="bi-pencil" size={15} /></button>
       <button type="button" className="org-directory-edit" onClick={() => { setMutationError(""); setConfirmation({ kind: "status", row, nextStatus: row.lifecycleValue === "blocked" ? "active" : "blocked" }); }} aria-label={`${row.lifecycleValue === "blocked" ? "Активировать" : "Заблокировать"} ${row.name}`}><Icon name={row.lifecycleValue === "blocked" ? "bi-unlock" : "bi-lock"} size={15} /></button>
@@ -772,38 +773,38 @@ export function OrganizationDirectoryPage({ search = "", onNotify, onInnerBackCh
   return (
     <section className="org-directory-page">
       <div className="org-directory-topbar">
-        <div><h2>Организации</h2><p>Канонический реестр клиентов HQ с серверной пагинацией.</p></div>
-        <button className="org-directory-add" type="button" onClick={() => { setMutationError(""); setEditor({ mode: "create", row: null }); }}>Добавить <Icon name="bi-plus-lg" size={16} /></button>
+        <div><h2>{t("admin.features.organizations.organizationdirectorypage.organizatsii")}</h2><p>{t("admin.features.organizations.organizationdirectorypage.kanonicheskiy_reestr_klientov_hq_s_servernoy")}</p></div>
+        <button className="org-directory-add" type="button" onClick={() => { setMutationError(""); setEditor({ mode: "create", row: null }); }}>{t("admin.features.organizations.organizationdirectorypage.dobavit")} <Icon name="bi-plus-lg" size={16} /></button>
       </div>
 
       <div className="org-directory-metrics">
-        <span><b>{pageMeta.total}</b> всего</span>
-        <span><b>{rows.length}</b> на странице</span>
-        <span><b>{activeOnPage}</b> активных на странице</span>
-        <span><b>{onlineOnPage}</b> онлайн-меню на странице</span>
+        <span><b>{pageMeta.total}</b> {t("admin.features.organizations.organizationdirectorypage.vsego")}</span>
+        <span><b>{rows.length}</b> {t("admin.features.organizations.organizationdirectorypage.na_stranitse")}</span>
+        <span><b>{activeOnPage}</b> {t("admin.features.organizations.organizationdirectorypage.aktivnyh_na_stranitse")}</span>
+        <span><b>{onlineOnPage}</b> {t("admin.features.organizations.organizationdirectorypage.onlayn_menyu_na_stranitse")}</span>
       </div>
 
       <form className="org-directory-toolbar" onSubmit={applyFilters}>
-        <label className="admin-data-search"><Icon name="bi-search" size={15} /><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Поиск по названию или ИНН" /></label>
-        <select value={lifecycleFilter} onChange={(event) => setLifecycleFilter(event.target.value)} aria-label="Состояние организации">
-          <option value="">Все состояния</option><option value="active">Активные</option><option value="blocked">Заблокированные</option>
+        <label className="admin-data-search"><Icon name="bi-search" size={15} /><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder={t("admin.features.organizations.organizationdirectorypage.poisk_po_nazvaniyu_ili_inn")} /></label>
+        <select value={lifecycleFilter} onChange={(event) => setLifecycleFilter(event.target.value)} aria-label={t("admin.features.organizations.organizationdirectorypage.sostoyanie_organizatsii")}>
+          <option value="">{t("admin.features.organizations.organizationdirectorypage.vse_sostoyaniya")}</option><option value="active">{t("admin.features.organizations.organizationdirectorypage.aktivnye")}</option><option value="blocked">{t("admin.features.organizations.organizationdirectorypage.zablokirovannye")}</option>
         </select>
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Статус организации" disabled={statusLoadFailed}>
-          <option value="">Все статусы</option>
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label={t("admin.features.organizations.organizationdirectorypage.status_organizatsii")} disabled={statusLoadFailed}>
+          <option value="">{t("admin.features.organizations.organizationdirectorypage.vse_statusy")}</option>
           {statuses.map((status) => <option value={status.id} key={status.id}>{status.name}</option>)}
         </select>
-        <button type="submit" className="org-directory-soft">Применить</button>
-        <button type="button" className="org-directory-soft" onClick={resetFilters}>Сбросить</button>
-        <button type="button" className={`org-directory-settings ${settingsOpen ? "is-open" : ""}`} onClick={() => setSettingsOpen((value) => !value)} aria-expanded={settingsOpen}><Icon name="bi-sliders" size={15} /> Столбцы</button>
+        <button type="submit" className="org-directory-soft">{t("admin.features.organizations.organizationdirectorypage.primenit")}</button>
+        <button type="button" className="org-directory-soft" onClick={resetFilters}>{t("admin.features.organizations.organizationdirectorypage.sbrosit")}</button>
+        <button type="button" className={`org-directory-settings ${settingsOpen ? "is-open" : ""}`} onClick={() => setSettingsOpen((value) => !value)} aria-expanded={settingsOpen}><Icon name="bi-sliders" size={15} /> {t("admin.features.organizations.organizationdirectorypage.stolbtsy")}</button>
       </form>
 
-      {statusLoadFailed ? <div className="org-directory-notice" role="status">Справочник статусов недоступен: связанные значения показаны как ID.</div> : null}
-      {loadState === "loading" ? <div className="admin-data-state" role="status">Загрузка организаций...</div> : null}
+      {statusLoadFailed ? <div className="org-directory-notice" role="status">{t("admin.features.organizations.organizationdirectorypage.spravochnik_statusov_nedostupen_svyazannye")}</div> : null}
+      {loadState === "loading" ? <div className="admin-data-state" role="status">{t("admin.features.organizations.organizationdirectorypage.zagruzka_organizatsiy")}</div> : null}
       {loadState === "error" ? <div className="admin-data-state" role="alert">{loadError}</div> : null}
 
       {settingsOpen ? <div className="admin-data-column-panel">
         {allColumns.map((column) => <label key={column.key}><input type="checkbox" checked={visibleColumns.includes(column.key)} disabled={visibleColumns.includes(column.key) && visibleColumns.length === 1} onChange={() => setVisibleColumns((current) => current.includes(column.key) ? current.filter((key) => key !== column.key) : COLUMN_KEYS.filter((key) => [...current, column.key].includes(key)))} /> {column.label || "Действия"}</label>)}
-        <button type="button" className="org-directory-soft" onClick={() => setVisibleColumns(DEFAULT_VISIBLE_COLUMNS)}>Сбросить столбцы</button>
+        <button type="button" className="org-directory-soft" onClick={() => setVisibleColumns(DEFAULT_VISIBLE_COLUMNS)}>{t("admin.features.organizations.organizationdirectorypage.sbrosit_stolbtsy")}</button>
       </div> : null}
 
       {loadState !== "error" ? <div className="admin-data-table-shell" onWheelCapture={keepWheelInsideScroller}>
@@ -816,14 +817,14 @@ export function OrganizationDirectoryPage({ search = "", onNotify, onInnerBackCh
       </div> : null}
 
       <div className="admin-data-footer">
-        <span className="admin-data-footer__summary">{pageMeta.total ? `${startIndex + 1}-${endIndex} из ${pageMeta.total}` : "0 из 0"}<small>Страница {pageMeta.page} из {pageMeta.pages}</small></span>
+        <span className="admin-data-footer__summary">{pageMeta.total ? `${startIndex + 1}-${endIndex} из ${pageMeta.total}` : "0 из 0"}<small>{t("admin.features.organizations.organizationdirectorypage.stranitsa")} {pageMeta.page} {t("admin.features.organizations.organizationdirectorypage.iz")} {pageMeta.pages}</small></span>
         <div className="admin-data-pager">
           <AdminPageSizeDropdown value={pageSize} options={PAGE_SIZE_OPTIONS} onChange={(value) => { setPageSize(value); setPage(1); }} />
-          <button type="button" disabled={pageMeta.page === 1 || loadState === "loading"} onClick={() => setPage(1)} aria-label="Первая страница"><Icon name="bi-chevron-double-left" size={14} /></button>
-          <button type="button" disabled={pageMeta.page === 1 || loadState === "loading"} onClick={() => setPage((value) => Math.max(1, value - 1))} aria-label="Предыдущая страница"><Icon name="bi-chevron-left" size={15} /></button>
+          <button type="button" disabled={pageMeta.page === 1 || loadState === "loading"} onClick={() => setPage(1)} aria-label={t("admin.features.organizations.organizationdirectorypage.pervaya_stranitsa")}><Icon name="bi-chevron-double-left" size={14} /></button>
+          <button type="button" disabled={pageMeta.page === 1 || loadState === "loading"} onClick={() => setPage((value) => Math.max(1, value - 1))} aria-label={t("admin.features.organizations.organizationdirectorypage.predyduschaya_stranitsa")}><Icon name="bi-chevron-left" size={15} /></button>
           {pageList.map((item, index) => item === "…" ? <span className="admin-data-ellipsis" key={`gap-${index}`}>…</span> : <button type="button" className={`admin-data-page-btn ${item === pageMeta.page ? "is-active" : ""}`} key={item} onClick={() => setPage(item)} aria-current={item === pageMeta.page ? "page" : undefined}>{item}</button>)}
-          <button type="button" disabled={pageMeta.page === pageMeta.pages || loadState === "loading"} onClick={() => setPage((value) => Math.min(pageMeta.pages, value + 1))} aria-label="Следующая страница"><Icon name="bi-chevron-right" size={15} /></button>
-          <button type="button" disabled={pageMeta.page === pageMeta.pages || loadState === "loading"} onClick={() => setPage(pageMeta.pages)} aria-label="Последняя страница"><Icon name="bi-chevron-double-right" size={14} /></button>
+          <button type="button" disabled={pageMeta.page === pageMeta.pages || loadState === "loading"} onClick={() => setPage((value) => Math.min(pageMeta.pages, value + 1))} aria-label={t("admin.features.organizations.organizationdirectorypage.sleduyuschaya_stranitsa")}><Icon name="bi-chevron-right" size={15} /></button>
+          <button type="button" disabled={pageMeta.page === pageMeta.pages || loadState === "loading"} onClick={() => setPage(pageMeta.pages)} aria-label={t("admin.features.organizations.organizationdirectorypage.poslednyaya_stranitsa")}><Icon name="bi-chevron-double-right" size={14} /></button>
         </div>
       </div>
 
@@ -832,7 +833,7 @@ export function OrganizationDirectoryPage({ search = "", onNotify, onInnerBackCh
         title={confirmation.kind === "archive" ? "Архивировать организацию" : confirmation.nextStatus === "blocked" ? "Заблокировать организацию" : "Активировать организацию"}
         description={confirmation.kind === "archive" ? "Backend выполнит мягкое удаление: запись исчезнет из активного реестра, исторические данные сохранятся." : "Состояние будет изменено каноническим PATCH-запросом."}
         onClose={() => { if (!mutationBusy) setConfirmation(null); }} busy={mutationBusy} tone={confirmation.kind === "archive" ? "danger" : "default"}
-        actions={<><button type="button" className="admin-modal__btn is-ghost" onClick={() => setConfirmation(null)} disabled={mutationBusy}>Отмена</button><button type="button" className="admin-modal__btn is-primary" onClick={runConfirmedMutation} disabled={mutationBusy}>{mutationBusy ? "Выполнение..." : "Подтвердить"}</button></>}
+        actions={<><button type="button" className="admin-modal__btn is-ghost" onClick={() => setConfirmation(null)} disabled={mutationBusy}>{t("admin.features.organizations.organizationdirectorypage.otmena")}</button><button type="button" className="admin-modal__btn is-primary" onClick={runConfirmedMutation} disabled={mutationBusy}>{mutationBusy ? "Выполнение..." : "Подтвердить"}</button></>}
       >
         <p className="org-directory-modal__confirmation">{confirmation.row.name}</p>
         {mutationError ? <div className="org-directory-modal__error" role="alert">{mutationError}</div> : null}

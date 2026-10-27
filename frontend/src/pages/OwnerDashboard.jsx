@@ -55,6 +55,7 @@ import warehouseStockArt from "../assets/dashboard-card-art/warehouse_stock_clea
 import totalCostsArt from "../assets/dashboard-card-art/total_costs_clean.png";
 import accountsPayableArt from "../assets/dashboard-card-art/accounts_payable_clean.png";
 import accountsReceivableArt from "../assets/dashboard-card-art/accounts_receivable_clean.png";
+import { t } from "../i18n/t";
 
 // DASHBOARD MAXIMAL KPI CARDS V1 — decorative-only PNG mapping. Real KPI values
 // stay as DOM text; PNGs are presentational (alt="" aria-hidden, no pointers).
@@ -440,7 +441,7 @@ export default function OwnerDashboard() {
   };
 
   if (previewEnabled ? !previewKpis : loading) return <PageLoader />;
-  if (error && !previewEnabled) return <EmptyState title="Dashboard недоступен" text={error} />;
+  if (error && !previewEnabled) return <EmptyState title={t("pages.ownerdashboard.dashboard_nedostupen")} text={error} />;
 
   return (
     <>
@@ -491,8 +492,8 @@ export default function OwnerDashboard() {
       <section className="owner-main-grid">
         <div className="card card-pad chart-card premium-chart">
           <div className="section-header section-header--stack">
-            <div><span className="eyebrow">Money income</span><h2>Денежный приход за {formatDaysLabel(dashboardPeriodDays)}</h2></div>
-            <div className="owner-revenue-switcher" aria-label="Период денежного прихода">
+            <div><span className="eyebrow">{t("eyebrow.money_income")}</span><h2>{t("pages.ownerdashboard.denezhnyy_prihod_za")} {formatDaysLabel(dashboardPeriodDays)}</h2></div>
+            <div className="owner-revenue-switcher" aria-label={t("pages.ownerdashboard.period_denezhnogo_prihoda")}>
               <ReportDateRangePicker
                 variant="canonical"
                 animateExit
@@ -501,15 +502,15 @@ export default function OwnerDashboard() {
                 open={periodPanelState.active === "period"}
                 onOpenChange={(nextOpen) => requestPeriodPanel(nextOpen ? "period" : "")}
                 onExitComplete={() => completePeriodPanelExit("period")}
-                buttonAriaLabel="Период денежного прихода"
+                buttonAriaLabel={t("pages.ownerdashboard.period_denezhnogo_prihoda")}
                 buttonClassName="owner-dashboard-period__trigger"
               />
             </div>
           </div>
           <div className="revenue-stat-grid">
-            <div><span>Максимум</span><strong>{chartUnavailable ? "Недоступно" : formatMoney(revenueStats.max)}</strong></div>
-            <div><span>Среднее</span><strong>{chartUnavailable ? "Недоступно" : formatMoney(revenueStats.avg)}</strong></div>
-            <div><span>Обслуживание</span><strong>{chartUnavailable || displayDashboard.service_fee_total == null ? "Недоступно" : formatMoney(displayDashboard.service_fee_total)}</strong></div>
+            <div><span>{t("pages.ownerdashboard.maksimum")}</span><strong>{chartUnavailable ? t("common.unavailable") : formatMoney(revenueStats.max)}</strong></div>
+            <div><span>{t("pages.ownerdashboard.srednee")}</span><strong>{chartUnavailable ? t("common.unavailable") : formatMoney(revenueStats.avg)}</strong></div>
+            <div><span>{t("pages.ownerdashboard.obsluzhivanie")}</span><strong>{chartUnavailable || displayDashboard.service_fee_total == null ? t("common.unavailable") : formatMoney(displayDashboard.service_fee_total)}</strong></div>
           </div>
           <div className="chart-wrap">
             {chartUnavailable
@@ -533,7 +534,7 @@ export default function OwnerDashboard() {
                 <span className="warehouse-summary-item__icon"><Icon name={item.icon} size={18} /></span>
                 <div className="warehouse-summary-item__text">
                   <strong>{item.label}</strong>
-                  <span>{item.unavailable && item.tone === "expense" ? "Недоступно" : item.unavailable && (item.tone === "creditor" || item.tone === "debtor") ? "Скоро" : formatMoney(item.unavailable ? 0 : item.value)}</span>
+                  <span>{item.unavailable && item.tone === "expense" ? t("common.unavailable") : item.unavailable && (item.tone === "creditor" || item.tone === "debtor") ? t("common.soon") : formatMoney(item.unavailable ? 0 : item.value)}</span>
                 </div>
                 {visual ? (
                   <img

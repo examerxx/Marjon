@@ -8,6 +8,7 @@ import logo from "../assets/brand/marjon-logo.svg";
 import Icon from "../components/Icon";
 import { useMutationLocks } from "../hooks/useAsyncSafety";
 import { formatLocalPhone, getLocalPhoneDigits } from "../utils/phoneMask";
+import { t } from "../i18n/t";
 
 // Маска номера теперь общая (utils/phoneMask) — её же использует
 // кухонный экран и настройки филиала. Реэкспорт оставлен, чтобы не
@@ -339,22 +340,22 @@ export default function LoginPage() {
             {branchMode ? (
               <form className="login-pro-card" onSubmit={handleBranchSubmit} style={{ marginTop: 12 }}>
                 <div className="login-pro-head">
-                  <h2>Вход филиала</h2>
-                  <p>Логин и пароль филиала задаёт владелец на странице «Филиалы».</p>
+                  <h2>{t("pages.loginpage.vhod_filiala")}</h2>
+                  <p>{t("pages.loginpage.login_i_parol_filiala_zadaet_vladelets_na_stranitse")}</p>
                 </div>
                 {branchError ? <div className="login-pro-alert" role="alert">{branchError}</div> : null}
                 <label className="login-pro-field">
-                  <span>Логин филиала</span>
+                  <span>{t("pages.loginpage.login_filiala")}</span>
                   <div className="login-pro-input-wrap">
                     <Icon name="bi-person-badge" size={18} strokeWidth={2.5} />
                     <input type="text" value={branchLoginVal} onChange={(e) => setBranchLoginVal(e.target.value)} required placeholder="+998 90 123-45-67" spellCheck="false" autoComplete="username" />
                   </div>
                 </label>
                 <label className="login-pro-field">
-                  <span>Пароль филиала</span>
+                  <span>{t("pages.loginpage.parol_filiala")}</span>
                   <div className="login-pro-input-wrap">
                     <Icon name="bi-lock" size={18} strokeWidth={2.5} />
-                    <input type="password" value={branchPass} onChange={(e) => setBranchPass(e.target.value)} required placeholder="Пароль" spellCheck="false" autoComplete="current-password" />
+                    <input type="password" value={branchPass} onChange={(e) => setBranchPass(e.target.value)} required placeholder={t("pages.loginpage.parol")} spellCheck="false" autoComplete="current-password" />
                   </div>
                 </label>
                 <button className="login-pro-submit" type="submit" disabled={branchLoading}>

@@ -9,6 +9,7 @@ import { isAbortError, useLatestRequest } from "../hooks/useAsyncSafety";
 import { getAdminFinanceLoadMessage } from "./AdminShared";
 
 import { extractAdminFinanceItems, useDefaultAdminFinanceOrganizationId } from "./AdminFinanceOperations";
+import { t } from "../i18n/t";
 
 function AdminFinanceCategoriesPage({
   search,
@@ -121,24 +122,24 @@ function AdminFinanceCategoriesPage({
               <p>{sectionNote}</p>
             </div>
           </div>
-          <div className="admin-income-stats" aria-label="Сводка категорий">
-            <span><strong>{categories.length}</strong> всего</span>
-            <span><strong>{activeCount}</strong> активные</span>
-            <span><strong>{customCount}</strong> свои</span>
-            <span><strong>{lockedCount}</strong> системные</span>
+          <div className="admin-income-stats" aria-label={t("admin.adminfinancereferences.svodka_kategoriy")}>
+            <span><strong>{categories.length}</strong> {t("admin.adminfinancereferences.vsego")}</span>
+            <span><strong>{activeCount}</strong> {t("admin.adminfinancereferences.aktivnye")}</span>
+            <span><strong>{customCount}</strong> {t("admin.adminfinancereferences.svoi")}</span>
+            <span><strong>{lockedCount}</strong> {t("admin.adminfinancereferences.sistemnye")}</span>
           </div>
         </div>
         <button type="button" className="admin-income-add" onClick={addCategory}>
           <Icon name="bi-plus-lg" size={15} />
-          <span>Добавить</span>
+          <span>{t("admin.adminfinancereferences.dobavit")}</span>
         </button>
       </div>
 
       <div className="admin-income-table-shell">
         <div className="admin-income-list-head" aria-hidden="true">
-          <span>Категория</span>
-          <span>Статус</span>
-          <span>Действия</span>
+          <span>{t("admin.adminfinancereferences.kategoriya")}</span>
+          <span>{t("admin.adminfinancereferences.status")}</span>
+          <span>{t("admin.adminfinancereferences.deystviya")}</span>
         </div>
         <div className="admin-income-list" role="list">
           {filteredCategories.map((row) => (
@@ -155,15 +156,15 @@ function AdminFinanceCategoriesPage({
               <div className="admin-income-row__actions">
                 <span className={`admin-income-status ${row.status !== "#активно" ? "is-off" : ""}`}>{row.status}</span>
                 {row.locked ? (
-                  <span className="admin-income-lock" aria-label="Системная категория" title="Системная категория">
+                  <span className="admin-income-lock" aria-label={t("admin.adminfinancereferences.sistemnaya_kategoriya")} title={t("admin.adminfinancereferences.sistemnaya_kategoriya")}>
                     <Icon name="bi-lock" size={15} />
                   </span>
                 ) : (
                   <>
-                    <button type="button" className="admin-income-icon is-edit" onClick={() => editCategory(row)} aria-label="Изменить категорию">
+                    <button type="button" className="admin-income-icon is-edit" onClick={() => editCategory(row)} aria-label={t("admin.adminfinancereferences.izmenit_kategoriyu")}>
                       <Icon name="bi-pencil" size={15} />
                     </button>
-                    <button type="button" className="admin-income-icon is-delete" onClick={() => deleteCategory(row)} aria-label="Удалить категорию">
+                    <button type="button" className="admin-income-icon is-delete" onClick={() => deleteCategory(row)} aria-label={t("admin.adminfinancereferences.udalit_kategoriyu")}>
                       <Icon name="bi-trash3" size={15} />
                     </button>
                   </>
@@ -172,7 +173,7 @@ function AdminFinanceCategoriesPage({
             </div>
           ))}
           {loadState === "error" || organizationLoadState === "error" ? (
-            <div className="admin-income-empty" role="alert">Не удалось загрузить финансовые категории.</div>
+            <div className="admin-income-empty" role="alert">{t("admin.adminfinancereferences.ne_udalos_zagruzit_finansovye_kategorii")}</div>
           ) : !filteredCategories.length ? (
             <div className="admin-income-empty">{emptyText}</div>
           ) : null}
@@ -186,23 +187,23 @@ function AdminFinanceCategoriesPage({
               <div>
                 <h3>{editor.mode === "create" ? modalCreateTitle : modalEditTitle}</h3>
               </div>
-              <button type="button" className="admin-income-dialog__close" onClick={closeEditor} aria-label="Закрыть">
+              <button type="button" className="admin-income-dialog__close" onClick={closeEditor} aria-label={t("admin.adminfinancereferences.zakryt")}>
                 <Icon name="bi-x-lg" size={16} />
               </button>
             </div>
 
             <label className="admin-income-field">
-              <span>Название <b>*</b></span>
+              <span>{t("admin.adminfinancereferences.nazvanie")} <b>*</b></span>
               <input
                 value={draftName}
                 onChange={(event) => setDraftName(event.target.value)}
-                placeholder="Введите название"
+                placeholder={t("admin.adminfinancereferences.vvedite_nazvanie")}
                 autoFocus
               />
             </label>
 
             <div className="admin-income-status-field">
-              <span>Статус</span>
+              <span>{t("admin.adminfinancereferences.status")}</span>
               <button
                 type="button"
                 className={`admin-income-switch ${draftStatus === "#активно" ? "is-on" : ""}`}
@@ -228,13 +229,13 @@ export function AdminIncomeCategoriesPage({ search, onNotify }) {
     <AdminFinanceCategoriesPage
       search={search}
       onNotify={onNotify}
-      title="Категории приходов"
+      title={t("admin.adminfinancereferences.kategorii_prihodov")}
       localPrefix="income"
       modalCreateTitle="Добавить категорию приходов"
       modalEditTitle="Изменить категорию приходов"
       createDescription="Создайте новую категорию для приходных операций."
       editDescription="Измените название и статус категории."
-      emptyText="Категории приходов не найдены."
+      emptyText={t("admin.adminfinancereferences.kategorii_prihodov_ne_naydeny")}
       categoryKind="income"
     />
   );
@@ -245,13 +246,13 @@ export function AdminExpenseCategoriesPage({ search, onNotify }) {
     <AdminFinanceCategoriesPage
       search={search}
       onNotify={onNotify}
-      title="Категории расходов"
+      title={t("admin.adminfinancereferences.kategorii_rashodov")}
       localPrefix="expense"
       modalCreateTitle="Добавить категорию расходов"
       modalEditTitle="Изменить категорию расходов"
       createDescription="Создайте новую категорию для расходных операций."
       editDescription="Измените название и статус категории расходов."
-      emptyText="Категории расходов не найдены."
+      emptyText={t("admin.adminfinancereferences.kategorii_rashodov_ne_naydeny")}
       categoryKind="expense"
     />
   );
@@ -356,23 +357,23 @@ export function AdminPaymentMethodsPage({ search, onNotify }) {
         <div className="admin-income-title">
           <span aria-hidden="true" />
           <div>
-            <h2>Способ оплаты</h2>
-            <p>{filteredMethods.length} способов, {methods.filter((row) => row.vip).length} VIP.</p>
+            <h2>{t("admin.adminfinancereferences.sposob_oplaty")}</h2>
+            <p>{filteredMethods.length} {t("admin.adminfinancereferences.sposobov")} {methods.filter((row) => row.vip).length} VIP.</p>
           </div>
         </div>
         <button type="button" className="admin-income-add" onClick={openCreate}>
-          <span>Добавить</span>
+          <span>{t("admin.adminfinancereferences.dobavit")}</span>
           <Icon name="bi-plus-lg" size={15} />
         </button>
       </div>
 
-      <div className="admin-payment-table" role="table" aria-label="Способы оплаты">
+      <div className="admin-payment-table" role="table" aria-label={t("admin.adminfinancereferences.sposoby_oplaty")}>
         <div className="admin-payment-table__row admin-payment-table__head" role="row">
-          <span>Сорт</span>
-          <span>Название</span>
-          <span>Тип</span>
-          <span>Статус</span>
-          <span aria-label="Действия" />
+          <span>{t("admin.adminfinancereferences.sort")}</span>
+          <span>{t("admin.adminfinancereferences.nazvanie")}</span>
+          <span>{t("admin.adminfinancereferences.tip")}</span>
+          <span>{t("admin.adminfinancereferences.status")}</span>
+          <span aria-label={t("admin.adminfinancereferences.deystviya")} />
         </div>
         {filteredMethods.map((row) => (
           <div className="admin-payment-table__row" role="row" key={row.id}>
@@ -389,19 +390,19 @@ export function AdminPaymentMethodsPage({ search, onNotify }) {
             <span>{row.type}</span>
             <span className={`admin-income-status ${row.status === "#отключено" ? "is-off" : ""}`}>{row.status}</span>
             <span className="admin-payment-actions">
-              <button type="button" className="admin-income-icon is-edit" onClick={() => openEdit(row)} aria-label="Изменить способ оплаты">
+              <button type="button" className="admin-income-icon is-edit" onClick={() => openEdit(row)} aria-label={t("admin.adminfinancereferences.izmenit_sposob_oplaty")}>
                 <Icon name="bi-pencil" size={15} />
               </button>
-              <button type="button" className="admin-income-icon is-delete" onClick={() => deleteMethod(row)} aria-label="Удалить способ оплаты">
+              <button type="button" className="admin-income-icon is-delete" onClick={() => deleteMethod(row)} aria-label={t("admin.adminfinancereferences.udalit_sposob_oplaty")}>
                 <Icon name="bi-trash3" size={15} />
               </button>
             </span>
           </div>
         ))}
         {loadState === "error" || organizationLoadState === "error" ? (
-          <div className="admin-income-empty" role="alert">Не удалось загрузить способы оплаты.</div>
+          <div className="admin-income-empty" role="alert">{t("admin.adminfinancereferences.ne_udalos_zagruzit_sposoby_oplaty")}</div>
         ) : !filteredMethods.length ? (
-          <div className="admin-income-empty">Способы оплаты не найдены.</div>
+          <div className="admin-income-empty">{t("admin.adminfinancereferences.sposoby_oplaty_ne_naydeny")}</div>
         ) : null}
       </div>
 
@@ -412,33 +413,33 @@ export function AdminPaymentMethodsPage({ search, onNotify }) {
               <div>
                 <h3>{editor.mode === "create" ? "Добавить способ оплаты" : "Изменить способ оплаты"}</h3>
               </div>
-              <button type="button" className="admin-income-dialog__close" onClick={closeEditor} aria-label="Закрыть">
+              <button type="button" className="admin-income-dialog__close" onClick={closeEditor} aria-label={t("admin.adminfinancereferences.zakryt")}>
                 <Icon name="bi-x-lg" size={16} />
               </button>
             </div>
 
             <label className="admin-income-field">
-              <span>Название <b>*</b></span>
+              <span>{t("admin.adminfinancereferences.nazvanie")} <b>*</b></span>
               <input
                 value={draftName}
                 onChange={(event) => setDraftName(event.target.value)}
-                placeholder="Введите название способа оплаты"
+                placeholder={t("admin.adminfinancereferences.vvedite_nazvanie_sposoba_oplaty")}
                 autoFocus
               />
             </label>
 
             <label className="admin-income-field admin-payment-select-field">
-              <span>Тип оплаты</span>
+              <span>{t("admin.adminfinancereferences.tip_oplaty")}</span>
               <select value={draftType} onChange={(event) => setDraftType(event.target.value)}>
-                <option value="Карта">Карта</option>
-                <option value="Наличные">Наличные</option>
-                <option value="Онлайн">Онлайн</option>
-                <option value="Перечисление">Перечисление</option>
+                <option value="Карта">{t("admin.adminfinancereferences.karta")}</option>
+                <option value="Наличные">{t("admin.adminfinancereferences.nalichnye")}</option>
+                <option value="Онлайн">{t("admin.adminfinancereferences.onlayn")}</option>
+                <option value="Перечисление">{t("admin.adminfinancereferences.perechislenie")}</option>
               </select>
             </label>
 
             <div className="admin-income-status-field">
-              <span>Статус</span>
+              <span>{t("admin.adminfinancereferences.status")}</span>
               <button
                 type="button"
                 className={`admin-income-switch ${draftStatus === "#активно" ? "is-on" : ""}`}
@@ -462,7 +463,7 @@ export function AdminPaymentMethodsPage({ search, onNotify }) {
             </div>
 
             <div className="admin-income-dialog__actions is-single">
-              <button type="submit" className="is-primary">Сохранить</button>
+              <button type="submit" className="is-primary">{t("admin.adminfinancereferences.sohranit")}</button>
             </div>
           </form>
         </div>

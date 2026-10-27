@@ -4,6 +4,7 @@ import Toast from "../../components/Toast";
 import { createPortal } from "react-dom";
 import staffDefaultAvatar from "../../assets/staff/staff-default-avatar.png";
 import DishSingleSelect from "../nomenclature/DishSingleSelect";
+import { t } from "../../i18n/t";
 import {
   roleOptions,
   staffAccessModules,
@@ -152,50 +153,8 @@ export default function StaffFormModal({
     const isWarehouseView = isWarehouse;
     const isKitchenView = isKitchen;
     const isCuratedView = isManagerView || isWarehouseView;
-    const addTitle = isWaiterView
-      ? "Добавить официанта"
-      : isMonoblockView
-        ? "Добавить моноблок"
-        : isManagerView
-          ? "Добавить менеджера"
-          : isWarehouseView
-            ? "Добавить завсклада"
-            : isKitchenView
-              ? "Добавить повара"
-              : "Добавить кассира";
-    const editTitle = isWaiterView
-      ? "Изменить официанта"
-      : isMonoblockView
-        ? "Изменить моноблок"
-        : isManagerView
-          ? "Изменить менеджера"
-          : isWarehouseView
-            ? "Изменить завсклада"
-            : isKitchenView
-              ? "Изменить повара"
-              : "Изменить кассира";
-    const namePlaceholder = isWaiterView
-      ? "Имя официанта"
-      : isMonoblockView
-        ? "Имя моноблока"
-        : isManagerView
-          ? "Имя менеджера"
-          : isWarehouseView
-            ? "Имя завсклада"
-            : isKitchenView
-              ? "Имя повара"
-              : "Имя кассира";
-    const photoAlt = isWaiterView
-      ? "Фото официанта"
-      : isMonoblockView
-        ? "Фото моноблока"
-        : isManagerView
-          ? "Фото менеджера"
-          : isWarehouseView
-            ? "Фото завсклада"
-            : isKitchenView
-              ? "Фото повара"
-              : "Фото кассира";
+    // Ключ роли для form-key и для словаря: одна точка правды, чтобы заголовок
+    // карточки и её React-key не разъезжались при добавлении новой роли.
     const formKeyPrefix = isWaiterView
       ? "waiter"
       : isMonoblockView
@@ -207,6 +166,15 @@ export default function StaffFormModal({
             : isKitchenView
               ? "kitchen"
               : "cashier";
+    // Две падежные формы: заголовок карточки требует винительного («Добавить
+    // моноблок»), а подпись имени/фото — родительного («Имя моноблока»).
+    // В русском они совпадают у всех ролей, кроме моноблока.
+    const roleAccusative = t(`staff.role_accusative.${formKeyPrefix}`);
+    const roleGenitive = t(`staff.role_genitive.${formKeyPrefix}`);
+    const addTitle = t("staff.add_title", { role: roleAccusative });
+    const editTitle = t("staff.edit_title", { role: roleAccusative });
+    const namePlaceholder = t("staff.name_placeholder", { role: roleGenitive });
+    const photoAlt = t("staff.photo_alt", { role: roleGenitive });
     // CASHIER-PARITY-01 (Phase 1): every product drawer — cashier, waiter,
     // monoblock, manager, warehouse — renders the SAME staffAccessModules
     // matrix (same count/text/order). No HR key exists in config; nothing
@@ -246,10 +214,10 @@ export default function StaffFormModal({
         >
           <div className="staff-form__header">
             <div>
-              <p>{editingId ? "Редактирование" : "Новый сотрудник"}</p>
+              <p>{editingId ? t("staff.editing") : t("staff.new_employee")}</p>
               <h2>{editingId ? editTitle : addTitle}</h2>
             </div>
-            <button type="button" disabled={saving} onClick={closeModal} aria-label="Закрыть">
+            <button type="button" disabled={saving} onClick={closeModal} aria-label={t("pages.staff.staffformmodal.zakryt")}>
               <Icon name="bi-x-lg" size={20} />
             </button>
           </div>
@@ -265,21 +233,21 @@ export default function StaffFormModal({
               )}
             </div>
             <div className="cashier-photo__body">
-              <span>Фото</span>
+              <span>{t("pages.staff.staffformmodal.foto")}</span>
               {/* Загрузка доступна всем ролям: бэкенд теперь принимает фото
                   сотрудника (POST /auth/users/{id}/photo), раньше кнопка была
                   скрыта у менеджера/завсклада как «не поддерживается». */}
               <label className="cashier-photo__upload">
                 <Icon name="bi-camera" size={16} />
-                Загрузить фото
-                <input type="file" accept="image/*" onChange={handlePhotoChange} aria-label="Загрузить фото" />
+               {t("pages.staff.staffformmodal.zagruzit_foto")}
+                <input type="file" accept="image/*" onChange={handlePhotoChange} aria-label={t("pages.staff.staffformmodal.zagruzit_foto")} />
               </label>
             </div>
           </div>
 
           <div className="staff-form__grid">
             <label>
-              <span>Имя</span>
+              <span>{t("pages.staff.staffformmodal.imya")}</span>
               {/* No native `required`: empty-field validation surfaces as the
                   drawer inline error (saveError), never a browser bubble. */}
               <input
@@ -295,7 +263,7 @@ export default function StaffFormModal({
               ) : null}
             </label>
             <label>
-              <span>Логин</span>
+              <span>{t("pages.staff.staffformmodal.login")}</span>
               {/* Split prefix: the country code renders as a stable visual
                   prefix, the input holds subscriber digits only, so Backspace
                   never destroys/recreates the prefix and caret stays put. */}
@@ -304,7 +272,7 @@ export default function StaffFormModal({
                   className="staff-phone-country staff-phone-country--pill"
                   type="button"
                   onClick={() => setPhoneCountryOpen((value) => !value)}
-                  aria-label="Выбрать страну"
+                  aria-label={t("pages.staff.staffformmodal.vybrat_stranu")}
                   aria-expanded={phoneCountryOpen}
                 >
                   <img
@@ -324,7 +292,7 @@ export default function StaffFormModal({
                         onClick={() => selectPhoneCountry(country.key)}
                       >
                         <img src={getPhoneFlag(country.key)} alt="" />
-                        <span>{country.label}</span>
+                        <span>{t(country.label)}</span>
                         <b>+{country.dialCode}</b>
                       </button>
                     ))}
@@ -334,10 +302,10 @@ export default function StaffFormModal({
                   autoComplete="off"
                   inputMode="tel"
                   ref={phoneInputRef}
-                  aria-label="Номер телефона без кода страны"
+                  aria-label={t("pages.staff.staffformmodal.nomer_telefona_bez_koda_strany")}
                   value={formatLocalUZ(getPhoneLocal(form.phone, form.phoneCountry))}
                   onChange={handleCashierPhoneChange}
-                  placeholder="Введите номер"
+                  placeholder={t("pages.staff.staffformmodal.vvedite_nomer")}
                   aria-invalid={saveErrorField === "phone" && saveError ? true : undefined}
                   aria-describedby={saveErrorField === "phone" && saveError ? "staff-phone-error" : undefined}
                 />
@@ -347,21 +315,21 @@ export default function StaffFormModal({
               ) : null}
             </label>
             <label>
-              <span>{editingId ? "Новый пароль" : "Пароль"}</span>
+              <span>{editingId ? t("staff.new_password") : t("staff.password")}</span>
               <div className="staff-password-field">
                 <input
                   autoComplete="new-password"
                   type={showPassword ? "text" : "password"}
                   value={form.password}
                   onChange={(event) => updateForm("password", event.target.value)}
-                  placeholder="Пароль"
+                  placeholder={t("pages.staff.staffformmodal.parol")}
                   aria-invalid={saveErrorField === "password" && saveError ? true : undefined}
                   aria-describedby={saveErrorField === "password" && saveError ? "staff-password-error" : undefined}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}
-                  aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                  aria-label={showPassword ? t("auth.hide_password") : t("auth.show_password")}
                   aria-pressed={showPassword}
                 >
                   <Icon name={showPassword ? "bi-eye-slash" : "bi-eye"} size={18} />
@@ -371,7 +339,7 @@ export default function StaffFormModal({
                 <small className="staff-field-error" role="alert" id="staff-password-error">{saveError}</small>
               ) : null}
               {editingId ? (
-                <small className="muted">Оставьте пустым, чтобы не менять пароль.</small>
+                <small className="muted">{t("pages.staff.staffformmodal.ostavte_pustym_chtoby_ne_menyat_parol")}</small>
               ) : null}
             </label>
             {/* PIN для терминала. Поле вернули: «PIN = пароль» работает только
@@ -382,14 +350,14 @@ export default function StaffFormModal({
                 входит по телефону и паролю. */}
             {isMonoblock ? null : (
             <label>
-              <span>{isKitchenView ? "PIN для кухни" : "PIN для кассы"}</span>
+              <span>{isKitchenView ? t("staff.pin_for_kitchen") : t("staff.pin_for_cash")}</span>
               <input
                 autoComplete="off"
                 inputMode="numeric"
                 maxLength={4}
                 value={form.pin}
                 onChange={(event) => updateForm("pin", event.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="4 цифры"
+                placeholder={t("pages.staff.staffformmodal.4_tsifry")}
                 aria-invalid={saveErrorField === "pin" && saveError ? true : undefined}
                 aria-describedby={
                   editingId || !isKitchenView ? "staff-pin-hint" : undefined
@@ -399,11 +367,11 @@ export default function StaffFormModal({
                   проверяется при сохранении, а не мелким текстом под полем. */}
               {editingId ? (
                 <small className="muted" id="staff-pin-hint">
-                  Пусто — оставить прежний PIN. Забыли код — введите новый.
+                 {t("pages.staff.staffformmodal.pusto_ostavit_prezhniy_pin_zabyli_kod_vvedite_novyy")}
                 </small>
               ) : isKitchenView ? null : (
                 <small className="muted" id="staff-pin-hint">
-                  Код для входа на кассе. Можно оставить пустым.
+                 {t("pages.staff.staffformmodal.kod_dlya_vhoda_na_kasse_mozhno_ostavit_pustym")}
                 </small>
               )}
               {saveErrorField === "pin" && saveError ? (
@@ -414,29 +382,29 @@ export default function StaffFormModal({
                 автоматически, у существующих сотрудников значение сохраняется. */}
             {isCuratedView ? null : (
             <label>
-              <span>Принтер</span>
+              <span>{t("pages.staff.staffformmodal.printer")}</span>
               {/* 1:1 с полем «Принтер» в форме блюда (Номенклатура → Блюда):
                   тот же контрол DishSingleSelect, без пункта «Как у филиала» —
                   в списке только реально добавленные принтеры. Повторный клик
                   по выбранному пункту снимает выбор (как в форме блюда). */}
               <DishSingleSelect
-                label="Принтер"
-                placeholder="Принтер"
+                label={t("pages.staff.staffformmodal.printer")}
+                placeholder={t("pages.staff.staffformmodal.printer")}
                 value={form.printerId || ""}
                 onChange={(next) => updateForm("printerId", next)}
                 options={printers.map((printer) => ({
                   value: printer.id,
-                  label: printer.is_active === false ? `${printer.name} (не активен)` : printer.name,
+                  label: printer.is_active === false ? t("staff.printer_inactive", { name: printer.name }) : printer.name,
                 }))}
                 disabled={!printers.length}
-                disabledLabel="Принтеры недоступны"
+                disabledLabel={t("staff.printers_unavailable")}
               />
             </label>
             )}
           </div>
 
           <div className="cashier-permissions">
-            <h3>Права доступа</h3>
+            <h3>{t("pages.staff.staffformmodal.prava_dostupa")}</h3>
             <div className="cashier-permission-switches">
             <button
               className={`staff-permission-switch ${form.status === "active" ? "is-on" : ""}`}
@@ -446,8 +414,8 @@ export default function StaffFormModal({
               }
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Статус</span>
-              <i>{form.status === "active" ? "Активный" : "Архив"}</i>
+              <span>{t("pages.staff.staffformmodal.status")}</span>
+              <i>{form.status === "active" ? t("staff.status_active") : t("staff.status_archived")}</i>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             {isMonoblockView || isCuratedView || isKitchenView ? null : (
@@ -458,7 +426,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canDeleteDishes)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Удаление блюд</span>
+              <span>{t("pages.staff.staffformmodal.udalenie_blyud")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             )}
@@ -470,7 +438,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canChangeMarkingCode)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Изменить код маркировки</span>
+              <span>{t("pages.staff.staffformmodal.izmenit_kod_markirovki")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             ) : null}
@@ -482,7 +450,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canTakeawayAtTable)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Заказ на вынос за столом</span>
+              <span>{t("pages.staff.staffformmodal.zakaz_na_vynos_za_stolom")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             )}
@@ -494,7 +462,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canChangeOrderType)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Изменить тип заказа</span>
+              <span>{t("pages.staff.staffformmodal.izmenit_tip_zakaza")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             )}
@@ -506,7 +474,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canManageOrders)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Управление заказами</span>
+              <span>{t("pages.staff.staffformmodal.upravlenie_zakazami")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             ) : null}
@@ -519,7 +487,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canMainMonoblock)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Главный моноблок</span>
+              <span>{t("pages.staff.staffformmodal.glavnyy_monoblok")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             <button
@@ -529,7 +497,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canSeeCashiers)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Список кассиров</span>
+              <span>{t("pages.staff.staffformmodal.spisok_kassirov")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             <button
@@ -539,7 +507,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canCookPrinter)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Принтер повара</span>
+              <span>{t("pages.staff.staffformmodal.printer_povara")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             <button
@@ -549,7 +517,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canPrintCancel)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Печать отмены заказа</span>
+              <span>{t("pages.staff.staffformmodal.pechat_otmeny_zakaza")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             {/* DESK-PERM-01: без этих двух тумблеров панели «Финансы» и
@@ -563,7 +531,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canViewFinance)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Просмотр финансов</span>
+              <span>{t("pages.staff.staffformmodal.prosmotr_finansov")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             <button
@@ -573,7 +541,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canApproveAttendance)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Посещаемость (приход/уход)</span>
+              <span>{t("pages.staff.staffformmodal.poseschaemost_prihod_uhod")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             </>
@@ -592,7 +560,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canCookPrinter)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Печать на принтер повара</span>
+              <span>{t("pages.staff.staffformmodal.pechat_na_printer_povara")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             <button
@@ -602,7 +570,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canPrintCancel)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Печать отмены заказа</span>
+              <span>{t("pages.staff.staffformmodal.pechat_otmeny_zakaza")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             </>
@@ -616,7 +584,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canCloseBill)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Может закрыть счёт</span>
+              <span>{t("pages.staff.staffformmodal.mozhet_zakryt_schet")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             <button
@@ -626,7 +594,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canOpenCashDrawerAfterPayment)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Открыть денежный ящик после оплаты</span>
+              <span>{t("pages.staff.staffformmodal.otkryt_denezhnyy_yaschik_posle_oplaty")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             <button
@@ -636,7 +604,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canViewClosedOrders)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Просмотр закрытых заказов</span>
+              <span>{t("pages.staff.staffformmodal.prosmotr_zakrytyh_zakazov")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             {/* DESK-PERM-01: панели десктопа «Финансы» и «Посещаемость». */}
@@ -647,7 +615,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canViewFinance)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Просмотр финансов</span>
+              <span>{t("pages.staff.staffformmodal.prosmotr_finansov")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             <button
@@ -657,7 +625,7 @@ export default function StaffFormModal({
               aria-pressed={Boolean(form.canApproveAttendance)}
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
-              <span>Посещаемость (приход/уход)</span>
+              <span>{t("pages.staff.staffformmodal.poseschaemost_prihod_uhod")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             </>
@@ -683,11 +651,11 @@ export default function StaffFormModal({
                         type="button"
                         onClick={() => toggleAccess(module.key)}
                         aria-pressed={Boolean(moduleAccess.enabled)}
-                        aria-label={module.label}
+                        aria-label={t(module.label)}
                       >
                         <b className="staff-mini-switch" aria-hidden="true" />
                       </button>
-                      <span>{module.label}</span>
+                      <span>{t(module.label)}</span>
                     </div>
                     <div
                       className="staff-access-actions"
@@ -705,7 +673,7 @@ export default function StaffFormModal({
                           aria-pressed={Boolean(moduleAccess[action.key])}
                         >
                           <b className="staff-mini-switch" aria-hidden="true" />
-                          <span>{action.label}</span>
+                          <span>{t(action.label)}</span>
                         </button>
                       ))}
                     </div>
@@ -721,9 +689,9 @@ export default function StaffFormModal({
 
           <div className="staff-form__footer">
             <button type="button" disabled={saving} onClick={closeModal}>
-              Отменить
+             {t("pages.staff.staffformmodal.otmenit")}
             </button>
-            <button type="submit" disabled={saving}>{saving ? "Сохранение..." : editingId ? "Сохранить" : "Добавить"}</button>
+            <button type="submit" disabled={saving}>{saving ? t("staff.saving") : editingId ? t("staff.save") : t("staff.add")}</button>
           </div>
         </form>
       </div>,
@@ -745,10 +713,10 @@ export default function StaffFormModal({
         </div>
         <div className="staff-form__header">
           <div>
-            <p>{editingId ? "Редактирование" : "Новый сотрудник"}</p>
-            <h2>{editingId ? "Изменить сотрудника" : "Добавить сотрудника"}</h2>
+            <p>{editingId ? t("staff.editing") : t("staff.new_employee")}</p>
+            <h2>{editingId ? t("staff.edit_employee") : t("staff.add_employee")}</h2>
           </div>
-          <button type="button" disabled={saving} onClick={closeModal} aria-label="Закрыть">
+          <button type="button" disabled={saving} onClick={closeModal} aria-label={t("pages.staff.staffformmodal.zakryt")}>
             <Icon name="bi-x-lg" size={20} />
           </button>
         </div>
@@ -766,23 +734,23 @@ export default function StaffFormModal({
             />
           </label>
           <label>
-            <span>Имя *</span>
+            <span>{t("pages.staff.staffformmodal.imya_2")}</span>
             <input
               required
               autoComplete="off"
               value={form.fullName}
               onChange={(event) => updateForm("fullName", event.target.value)}
-              placeholder="Имя сотрудника"
+              placeholder={t("pages.staff.staffformmodal.imya_sotrudnika")}
             />
           </label>
           <label>
-            <span>Логин</span>
+            <span>{t("pages.staff.staffformmodal.login")}</span>
             <div className="staff-phone-field">
               <button
                 className="staff-phone-country"
                 type="button"
                 onClick={() => setPhoneCountryOpen((value) => !value)}
-                aria-label="Выбрать страну"
+                aria-label={t("pages.staff.staffformmodal.vybrat_stranu")}
                 aria-expanded={phoneCountryOpen}
               >
                 <img
@@ -801,7 +769,7 @@ export default function StaffFormModal({
                       onClick={() => selectPhoneCountry(country.key)}
                     >
                       <img src={getPhoneFlag(country.key)} alt="" />
-                      <span>{country.label}</span>
+                      <span>{t(country.label)}</span>
                       <b>+{country.dialCode}</b>
                     </button>
                   ))}
@@ -832,12 +800,12 @@ export default function StaffFormModal({
                 type={showPassword ? "text" : "password"}
                 value={form.password}
                 onChange={(event) => updateForm("password", event.target.value)}
-                placeholder="Пароль"
+                placeholder={t("pages.staff.staffformmodal.parol")}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((value) => !value)}
-                aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                aria-label={showPassword ? t("auth.hide_password") : t("auth.show_password")}
                 aria-pressed={showPassword}
               >
                 <Icon name={showPassword ? "bi-eye-slash" : "bi-eye"} size={18} />
@@ -852,48 +820,48 @@ export default function StaffFormModal({
                 updateForm("status", form.status === "active" ? "archived" : "active")
               }
             >
-              <span>Статус</span>
-              <i>{form.status === "active" ? "Активный" : "Архив"}</i>
+              <span>{t("pages.staff.staffformmodal.status")}</span>
+              <i>{form.status === "active" ? t("staff.status_active") : t("staff.status_archived")}</i>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             <button
               className={`staff-permission-switch ${form.canDeleteDishes ? "is-on" : ""}`}
               type="button"
               disabled
-              title="Недоступно до BI-06"
+              title={t("pages.staff.staffformmodal.nedostupno_do_bi_06")}
               onClick={() => toggleForm("canDeleteDishes")}
             >
-              <span>Удаление блюд</span>
+              <span>{t("pages.staff.staffformmodal.udalenie_blyud")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             <button
               className={`staff-permission-switch ${form.canTakeawayAtTable ? "is-on" : ""}`}
               type="button"
               disabled
-              title="Недоступно до BI-06"
+              title={t("pages.staff.staffformmodal.nedostupno_do_bi_06")}
               onClick={() => toggleForm("canTakeawayAtTable")}
             >
-              <span>Заказ на вынос за столом</span>
+              <span>{t("pages.staff.staffformmodal.zakaz_na_vynos_za_stolom")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             <button
               className={`staff-permission-switch ${form.canChangeOrderType ? "is-on" : ""}`}
               type="button"
               disabled
-              title="Недоступно до BI-06"
+              title={t("pages.staff.staffformmodal.nedostupno_do_bi_06")}
               onClick={() => toggleForm("canChangeOrderType")}
             >
-              <span>Изменить тип заказа</span>
+              <span>{t("pages.staff.staffformmodal.izmenit_tip_zakaza")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             <button
               className={`staff-permission-switch ${form.canCloseBill ? "is-on" : ""}`}
               type="button"
               disabled
-              title="Недоступно до BI-06"
+              title={t("pages.staff.staffformmodal.nedostupno_do_bi_06")}
               onClick={() => toggleForm("canCloseBill")}
             >
-              <span>Может закрыть счет</span>
+              <span>{t("pages.staff.staffformmodal.mozhet_zakryt_schet_2")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             <button
@@ -902,25 +870,25 @@ export default function StaffFormModal({
               }`}
               type="button"
               disabled
-              title="Недоступно до BI-06"
+              title={t("pages.staff.staffformmodal.nedostupno_do_bi_06")}
               onClick={() => toggleForm("canOpenCashDrawerAfterPayment")}
             >
-              <span>Открыть денежный ящик после оплаты</span>
+              <span>{t("pages.staff.staffformmodal.otkryt_denezhnyy_yaschik_posle_oplaty")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             <button
               className={`staff-permission-switch ${form.canViewClosedOrders ? "is-on" : ""}`}
               type="button"
               disabled
-              title="Недоступно до BI-06"
+              title={t("pages.staff.staffformmodal.nedostupno_do_bi_06")}
               onClick={() => toggleForm("canViewClosedOrders")}
             >
-              <span>Просмотр закрытых заказов</span>
+              <span>{t("pages.staff.staffformmodal.prosmotr_zakrytyh_zakazov")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
           </div>
           <p id="staff-rbac-unavailable" className="muted" role="status">
-            Детальные права доступа недоступны до BI-06. Изменения здесь не сохраняются.
+           {t("pages.staff.staffformmodal.detalnye_prava_dostupa_nedostupny_do_bi_06")}
           </p>
           <div className="staff-permission-matrix">
             {staffAccessModules.map((module) => {
@@ -938,14 +906,14 @@ export default function StaffFormModal({
                       className={`staff-switch-button ${moduleAccess.enabled ? "is-on" : ""}`}
                       type="button"
                       disabled
-                      title="Недоступно до BI-06"
+                      title={t("pages.staff.staffformmodal.nedostupno_do_bi_06")}
                       onClick={() => toggleAccess(module.key)}
                       aria-pressed={Boolean(moduleAccess.enabled)}
-                      aria-label={`${module.label}: ${moduleAccess.enabled ? "выключить" : "включить"}`}
+                      aria-label={`${t(module.label)}: ${moduleAccess.enabled ? "выключить" : "включить"}`}
                     >
                       <b className="staff-mini-switch" aria-hidden="true" />
                     </button>
-                    <span>{module.label}</span>
+                    <span>{t(module.label)}</span>
                   </div>
                   <div
                     className="staff-access-actions"
@@ -963,7 +931,7 @@ export default function StaffFormModal({
                         aria-pressed={Boolean(moduleAccess[action.key])}
                       >
                         <b className="staff-mini-switch" aria-hidden="true" />
-                        <span>{action.label}</span>
+                        <span>{t(action.label)}</span>
                       </button>
                     ))}
                   </div>
@@ -972,12 +940,12 @@ export default function StaffFormModal({
             })}
           </div>
           <label className="staff-form__comment">
-            <span>Комментарий (недоступно)</span>
+            <span>{t("pages.staff.staffformmodal.kommentariy_nedostupno")}</span>
             <textarea
               value=""
               disabled
-              title="Backend contract отсутствует"
-              placeholder="Заметка по сотруднику"
+              title={t("pages.staff.staffformmodal.backend_contract_otsutstvuet")}
+              placeholder={t("pages.staff.staffformmodal.zametka_po_sotrudniku")}
             />
           </label>
         </div>
@@ -985,7 +953,7 @@ export default function StaffFormModal({
         {false && (
           <>
         <label className="staff-photo-upload">
-          <span>Фото / avatar upload</span>
+          <span>{t("pages.staff.staffformmodal.foto_avatar_upload")}</span>
           <div>
             <div className="staff-avatar staff-avatar--large">
               {form.photo ? (
@@ -1000,16 +968,16 @@ export default function StaffFormModal({
 
         <div className="staff-form__grid">
           <label>
-            <span>ФИО</span>
+            <span>{t("pages.staff.staffformmodal.fio")}</span>
             <input
               required
               value={form.fullName}
               onChange={(event) => updateForm("fullName", event.target.value)}
-              placeholder="Имя сотрудника"
+              placeholder={t("pages.staff.staffformmodal.imya_sotrudnika")}
             />
           </label>
           <label>
-            <span>Логин</span>
+            <span>{t("pages.staff.staffformmodal.login")}</span>
             <input
               required
               value={form.phone}
@@ -1018,7 +986,7 @@ export default function StaffFormModal({
             />
           </label>
           <label>
-            <span>Роль</span>
+            <span>{t("pages.staff.staffformmodal.rol")}</span>
             <select
               value={form.roleKey}
               onChange={(event) => updateForm("roleKey", event.target.value)}
@@ -1029,24 +997,24 @@ export default function StaffFormModal({
                   неверный контракт. */}
               {roleOptions.filter((item) => item.key !== "monoblock").map((item) => (
                 <option key={item.key} value={item.key}>
-                  {item.label}
+                  {t(item.label)}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            <span>Пароль</span>
+            <span>{t("pages.staff.staffformmodal.parol")}</span>
             <div className="staff-password-field">
               <input
                 type={showPassword ? "text" : "password"}
                 value={form.password}
                 onChange={(event) => updateForm("password", event.target.value)}
-                placeholder="Пароль"
+                placeholder={t("pages.staff.staffformmodal.parol")}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((value) => !value)}
-                aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                aria-label={showPassword ? t("auth.hide_password") : t("auth.show_password")}
                 aria-pressed={showPassword}
               >
                 <Icon name={showPassword ? "bi-eye-slash" : "bi-eye"} size={18} />
@@ -1054,29 +1022,29 @@ export default function StaffFormModal({
             </div>
           </label>
           <label>
-            <span>Доступы / permissions</span>
+            <span>{t("pages.staff.staffformmodal.dostupy_permissions")}</span>
             <input
               value={form.permission}
               onChange={(event) => updateForm("permission", event.target.value)}
-              placeholder="Например: Удаления блюд"
+              placeholder={t("pages.staff.staffformmodal.naprimer_udaleniya_blyud")}
             />
           </label>
           <label className="staff-form__status">
-            <span>Статус active</span>
+            <span>{t("pages.staff.staffformmodal.status_active")}</span>
             <select
               value={form.status}
               onChange={(event) => updateForm("status", event.target.value)}
             >
-              <option value="active">Активный</option>
-              <option value="archived">Архив</option>
+              <option value="active">{t("pages.staff.staffformmodal.aktivnyy")}</option>
+              <option value="archived">{t("pages.staff.staffformmodal.arhiv")}</option>
             </select>
           </label>
           <label className="staff-form__comment">
-            <span>Комментарий</span>
+            <span>{t("pages.staff.staffformmodal.kommentariy")}</span>
             <textarea
               value={form.comment}
               onChange={(event) => updateForm("comment", event.target.value)}
-              placeholder="Заметка по сотруднику"
+              placeholder={t("pages.staff.staffformmodal.zametka_po_sotrudniku")}
             />
           </label>
         </div>
@@ -1086,9 +1054,9 @@ export default function StaffFormModal({
 
         <div className="staff-form__footer">
           <button type="button" disabled={saving} onClick={closeModal}>
-            Отмена
+           {t("pages.staff.staffformmodal.otmena")}
           </button>
-          <button type="submit" disabled={saving}>{saving ? "Сохранение..." : editingId ? "Сохранить" : "Добавить"}</button>
+          <button type="submit" disabled={saving}>{saving ? t("staff.saving") : editingId ? t("staff.save") : t("staff.add")}</button>
         </div>
       </form>
     </div>

@@ -3,6 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import logo from "../assets/marjon-logo.svg";
 import Icon from "../components/Icon";
 import { readStoredProfile, updateStoredProfile } from "../utils/profileCache";
+import { t } from "../i18n/t";
 
 export default function ProfileSettingsPage() {
   const { user } = useOutletContext();
@@ -60,7 +61,7 @@ export default function ProfileSettingsPage() {
             <img src={photo || logo} alt={name || "MARJON"} />
           </div>
           <div>
-            <span>Профиль</span>
+            <span>{t("pages.profilesettingspage.profil")}</span>
             <strong>{name || defaultName}</strong>
             <small>{user?.company_name || "MARJON"}</small>
           </div>
@@ -68,19 +69,19 @@ export default function ProfileSettingsPage() {
 
         <form className="profile-settings-form" onSubmit={handleSubmit}>
           <label>
-            Имя
-            <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Введите имя" />
+           {t("pages.profilesettingspage.imya")}
+            <input value={name} onChange={(event) => setName(event.target.value)} placeholder={t("pages.profilesettingspage.vvedite_imya")} />
           </label>
 
           <label className="profile-settings-form__upload">
-            Фото профиля
+           {t("pages.profilesettingspage.foto_profilya")}
             <input type="file" accept="image/*" onChange={handlePhotoChange} />
-            <span><Icon name="bi-image" size={18} /> Выбрать фото</span>
+            <span><Icon name="bi-image" size={18} /> {t("pages.profilesettingspage.vybrat_foto")}</span>
           </label>
 
           <div className="profile-settings-form__actions">
-            <button type="submit"><Icon name="bi-check2" size={18} /> Сохранить</button>
-            <button type="button" onClick={removePhoto}><Icon name="bi-trash3" size={18} /> Убрать фото</button>
+            <button type="submit"><Icon name="bi-check2" size={18} /> {t("pages.profilesettingspage.sohranit")}</button>
+            <button type="button" onClick={removePhoto}><Icon name="bi-trash3" size={18} /> {t("pages.profilesettingspage.ubrat_foto")}</button>
           </div>
 
           {message ? <p className="profile-settings-form__message">{message}</p> : null}

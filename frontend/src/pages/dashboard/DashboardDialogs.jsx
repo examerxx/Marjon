@@ -6,6 +6,7 @@ import Icon from "../../components/Icon";
 import { useAnchoredDialogMotion } from "../../hooks/useAnchoredDialogMotion";
 import OrderStatus from "../reports/OrderStatus";
 import OrderReceiptDialog from "./OrderReceiptDialog";
+import { t } from "../../i18n/t";
 import "./revenueProducts.css";
 
 // Модальные окна OWNER-дашборда: детализация KPI (с таблицей оплат/мест) и
@@ -41,9 +42,11 @@ function KpiPaymentTable({
         <table className="kpi-payment-report__table">
           <thead>
             <tr>
-              <th>{labelColumn}</th>
-              <th>{valueColumn}</th>
-              {showShare ? <th>{shareColumn}</th> : null}
+              {/* t() по русскому тексту: значения по умолчанию — литералы,
+                  поэтому переводим на месте отрисовки. */}
+              <th>{t(labelColumn)}</th>
+              <th>{t(valueColumn)}</th>
+              {showShare ? <th>{t(shareColumn)}</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -60,7 +63,7 @@ function KpiPaymentTable({
                 </tr>
               )) : (
                 <tr>
-                  <td className="kpi-payment-report__empty" colSpan={showShare ? 3 : 2}>{emptyText}</td>
+                  <td className="kpi-payment-report__empty" colSpan={showShare ? 3 : 2}>{t(emptyText)}</td>
                 </tr>
               )}
           </tbody>
@@ -71,22 +74,23 @@ function KpiPaymentTable({
 }
 
 function RevenueProductsTable({ report }) {
+  // Подписи — ключи, а не текст: язык может смениться, пока диалог открыт.
   const amounts = report.incomeLast
-    ? [["revenue", "Чистая прибыль"], ["income", "Денежный приход"]]
-    : [["income", "Денежный приход"], ["revenue", "Чистая прибыль"]];
-  const money = (value) => value == null ? "Неизвестно" : `${new Intl.NumberFormat("ru-RU", {
+    ? [["revenue", "pages.dashboard.dashboarddialogs.chistaya_pribyl"], ["income", "pages.dashboard.dashboarddialogs.denezhnyy_prihod"]]
+    : [["income", "pages.dashboard.dashboarddialogs.denezhnyy_prihod"], ["revenue", "pages.dashboard.dashboarddialogs.chistaya_pribyl"]];
+  const money = (value) => value == null ? t("common.unknown") : `${new Intl.NumberFormat("ru-RU", {
     maximumFractionDigits: 2,
   }).format(Number(value))} UZS`;
   const quantity = (value) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 3 }).format(Number(value));
-  const totalRow = report.rows.length > 0 && !report.unavailable ? <tr className="revenue-products__total"><th scope="row" colSpan={4}>Итого</th>
+  const totalRow = report.rows.length > 0 && !report.unavailable ? <tr className="revenue-products__total"><th scope="row" colSpan={4}>{t("pages.dashboard.dashboarddialogs.itogo")}</th>
     {amounts.map(([key]) => <td key={key}>{money(report[key])}</td>)}</tr> : null;
   return (
     <div className="revenue-products">
-      <div className="revenue-products__scroll" tabIndex={0} role="region" aria-label="Продажи оплаченных блюд">
+      <div className="revenue-products__scroll" tabIndex={0} role="region" aria-label={t("pages.dashboard.dashboarddialogs.prodazhi_oplachennyh_blyud")}>
         <table>
           <thead><tr>
-            <th scope="col">№</th><th scope="col">Блюдо / товар</th><th scope="col">Категория</th>
-            <th scope="col">Продано</th>{amounts.map(([key, label]) => <th key={key} scope="col">{label}</th>)}
+            <th scope="col">№</th><th scope="col">{t("pages.dashboard.dashboarddialogs.blyudo_tovar")}</th><th scope="col">{t("pages.dashboard.dashboarddialogs.kategoriya")}</th>
+            <th scope="col">{t("pages.dashboard.dashboarddialogs.prodano")}</th>{amounts.map(([key, labelKey]) => <th key={key} scope="col">{t(labelKey)}</th>)}
           </tr>{!report.incomeLast ? totalRow : null}</thead>
           <tbody>
           {report.incomeLast ? totalRow : null}
@@ -96,7 +100,7 @@ function RevenueProductsTable({ report }) {
               <td>{quantity(row.quantity)}</td>{amounts.map(([key]) => <td key={key}>{money(row[key])}</td>)}
             </tr>
           )) : <tr><td colSpan={6} className="revenue-products__empty">{report.unavailable
-            ? "Не удалось загрузить продажи" : "Нет данных"}</td></tr>}</tbody>
+            ? t("pages.dashboard.dashboarddialogs.ne_udalos_zagruzit_prodazhi") : t("pages.dashboard.dashboarddialogs.net_dannyh")}</td></tr>}</tbody>
         </table>
       </div>
     </div>
@@ -104,12 +108,12 @@ function RevenueProductsTable({ report }) {
 }
 
 function OrdersTable({ report, onOpenOrder }) {
-  const money = value => value == null ? "Неизвестно" : `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(Number(value))} UZS`;
+  const money = value => value == null ? t("common.unknown") : `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(Number(value))} UZS`;
   // Строка заказа открывает чек: клик мышью и Enter/Space с клавиатуры.
   const rowProps = (row) => (onOpenOrder ? {
     className: "owner-orders-report__row",
     tabIndex: 0,
-    "aria-label": `Открыть чек заказа №${row.number || String(row.id).slice(0, 6)}`,
+    "aria-label": `${t("pages.dashboard.dashboarddialogs.otkryt_chek_zakaza")} №${row.number || String(row.id).slice(0, 6)}`,
     onClick: () => onOpenOrder(row),
     onKeyDown: (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
@@ -117,36 +121,49 @@ function OrdersTable({ report, onOpenOrder }) {
       onOpenOrder(row);
     },
   } : {});
+  const columns = [
+    "pages.dashboard.dashboarddialogs.zakaza",
+    "pages.dashboard.dashboarddialogs.data_i_vremya_oplaty",
+    "pages.dashboard.dashboarddialogs.mesto",
+    "pages.dashboard.dashboarddialogs.summa",
+    "pages.dashboard.dashboarddialogs.status",
+  ];
   return <div className="revenue-products owner-orders-report">
-    <div className="revenue-products__scroll" tabIndex={0} role="region" aria-label="Таблица заказов">
-      <table><thead><tr>{["№ заказа", "Дата и время оплаты", "Место", "Сумма", "Статус"].map(label =>
-        <th key={label} scope="col">{label}</th>)}</tr></thead>
+    <div className="revenue-products__scroll" tabIndex={0} role="region" aria-label={t("pages.dashboard.dashboarddialogs.tablitsa_zakazov")}>
+      <table><thead><tr>{columns.map(labelKey =>
+        <th key={labelKey} scope="col">{t(labelKey)}</th>)}</tr></thead>
         <tbody>
-        {report.rows.length > 0 && !report.unavailable ? <tr className="revenue-products__total"><th scope="row" colSpan={3}>Итого</th><td>{money(report.total)}</td><td /></tr> : null}
+        {report.rows.length > 0 && !report.unavailable ? <tr className="revenue-products__total"><th scope="row" colSpan={3}>{t("pages.dashboard.dashboarddialogs.itogo")}</th><td>{money(report.total)}</td><td /></tr> : null}
         {report.rows.length ? report.rows.map(row => <tr key={row.id} {...rowProps(row)}>
           <td>#{row.number || row.id.slice(0, 6)}</td><td>{row.date_label}</td><td>{row.place}</td>
           <td>{money(row.amount)}</td><td><OrderStatus value={row.status} /></td>
         </tr>) : <tr><td className="revenue-products__empty" colSpan={5}>
-          {report.unavailable ? "Не удалось загрузить заказы" : "Нет данных"}</td></tr>}</tbody>
+          {report.unavailable ? t("pages.dashboard.dashboarddialogs.ne_udalos_zagruzit_zakazy") : t("pages.dashboard.dashboarddialogs.net_dannyh")}</td></tr>}</tbody>
       </table>
     </div>
   </div>;
 }
 
 function AverageCheckTable({ report }) {
-  const money = value => value == null ? "Неизвестно" : `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(Number(value))} UZS`;
-  const count = value => `${formatNumber(value)} шт`;
+  const money = value => value == null ? t("common.unknown") : `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(Number(value))} UZS`;
+  const count = value => `${formatNumber(value)} ${t("pages.dashboard.dashboardcards.sht")}`;
+  const columns = [
+    "pages.dashboard.dashboarddialogs.mesto",
+    "pages.dashboard.dashboarddialogs.oplacheno_zakazov",
+    "pages.dashboard.dashboarddialogs.denezhnyy_prihod",
+    "pages.dashboard.dashboarddialogs.sredniy_chek",
+  ];
   return <div className="revenue-products owner-average-report">
-    <div className="revenue-products__scroll" tabIndex={0} role="region" aria-label="Средний чек по местам">
-      <table><thead><tr>{["Место", "Оплачено заказов", "Денежный приход", "Средний чек"].map(label =>
-        <th key={label} scope="col">{label}</th>)}</tr></thead>
+    <div className="revenue-products__scroll" tabIndex={0} role="region" aria-label={t("pages.dashboard.dashboarddialogs.sredniy_chek_po_mestam")}>
+      <table><thead><tr>{columns.map(labelKey =>
+        <th key={labelKey} scope="col">{t(labelKey)}</th>)}</tr></thead>
         <tbody>
-        {report.rows.length > 0 && !report.unavailable ? <tr className="revenue-products__total"><th scope="row">Итого</th><td>{count(report.count)}</td>
+        {report.rows.length > 0 && !report.unavailable ? <tr className="revenue-products__total"><th scope="row">{t("pages.dashboard.dashboarddialogs.itogo")}</th><td>{count(report.count)}</td>
           <td>{money(report.income)}</td><td>{money(report.average)}</td></tr> : null}
         {report.rows.length ? report.rows.map(row => <tr key={row.id}>
           <td>{row.place}</td><td>{count(row.orders_count)}</td><td>{money(row.income)}</td><td>{money(row.avg_check)}</td>
         </tr>) : <tr><td className="revenue-products__empty" colSpan={4}>
-          {report.unavailable ? "Не удалось загрузить средний чек" : "Нет данных"}</td></tr>}</tbody>
+          {report.unavailable ? t("pages.dashboard.dashboarddialogs.ne_udalos_zagruzit_sredniy_chek") : t("pages.dashboard.dashboarddialogs.net_dannyh")}</td></tr>}</tbody>
       </table>
     </div>
   </div>;
@@ -167,7 +184,7 @@ export function KpiInfoDialog({ kpi, onClose, sourceRect, returnFocusRef }) {
       labelColumn: "Место",
       valueColumn: "Заказы",
       formatValue: formatOrderCount,
-      emptyText: "Нет заказов за выбранный день",
+      emptyText: t("pages.dashboard.dashboarddialogs.net_zakazov_za_vybrannyy_den"),
     }
     : {
       rows: tableRows || [],
@@ -233,7 +250,7 @@ export function KpiInfoDialog({ kpi, onClose, sourceRect, returnFocusRef }) {
             <h2 id="kpi-info-title">{kpi.label}</h2>
           </div>
           {isProfitDetail ? valueNode : null}
-          <button type="button" className="kpi-info-window__close" aria-label="Закрыть" onClick={requestClose}>
+          <button type="button" className="kpi-info-window__close" aria-label={t("pages.dashboard.dashboarddialogs.zakryt")} onClick={requestClose}>
             <Icon name="bi-x-lg" size={20} />
           </button>
         </div>
@@ -242,7 +259,7 @@ export function KpiInfoDialog({ kpi, onClose, sourceRect, returnFocusRef }) {
         {!isComingSoon && ((!hasProductTable && !kpi.hideDescription) || (hasProductTable && (kpi.productReport.unavailable || kpi.productReport.revenue == null)))
           ? <p>{kpi.description}</p> : null}
 
-        {isComingSoon ? <div className="kpi-coming-soon" role="status">Скоро, эта категория в разработке</div> : hasAverageTable ? <AverageCheckTable report={kpi.averageReport} /> : hasOrdersTable ? <OrdersTable report={kpi.orderReport} onOpenOrder={(row) => setReceiptOrder({ id: row.id, number: row.number })} /> : hasProductTable ? <RevenueProductsTable report={kpi.productReport} /> : hasTable ? (
+        {isComingSoon ? <div className="kpi-coming-soon" role="status">{t("pages.dashboard.dashboarddialogs.skoro_eta_kategoriya_v_razrabotke")}</div> : hasAverageTable ? <AverageCheckTable report={kpi.averageReport} /> : hasOrdersTable ? <OrdersTable report={kpi.orderReport} onOpenOrder={(row) => setReceiptOrder({ id: row.id, number: row.number })} /> : hasProductTable ? <RevenueProductsTable report={kpi.productReport} /> : hasTable ? (
           <KpiPaymentTable {...tableProps} />
         ) : (
           <div className="kpi-info-window__details">
@@ -306,10 +323,10 @@ export function WarehouseReportDialog({ report, selectedDate, onClose }) {
         <div className="warehouse-report-window__head">
           <div className="warehouse-report-window__icon"><Icon name={report.icon} size={20} /></div>
           <div>
-            <span>Складской отчёт</span>
+            <span>{t("pages.dashboard.dashboarddialogs.skladskoy_otchet")}</span>
             <h2 id="warehouse-report-title">{report.label}</h2>
           </div>
-          <button type="button" className="warehouse-report-window__close" aria-label="Закрыть" onClick={onClose}>
+          <button type="button" className="warehouse-report-window__close" aria-label={t("pages.dashboard.dashboarddialogs.zakryt")} onClick={onClose}>
             <Icon name="bi-x-lg" size={20} />
           </button>
         </div>
@@ -318,18 +335,18 @@ export function WarehouseReportDialog({ report, selectedDate, onClose }) {
           <strong>{formatNumber(report.value)}</strong>
           <small>UZS</small>
         </div>
-        <p>Табличный отчёт по выбранному показателю склада за {formatDateLabel(selectedDate)}.</p>
+        <p>{t("pages.dashboard.dashboarddialogs.tablichnyy_otchet_po_vybrannomu_pokazatelyu_sklada")} {formatDateLabel(selectedDate)}.</p>
 
         <div className="warehouse-report-table-wrap">
           <table className="data-table warehouse-report-table">
             <thead>
               <tr>
                 <th>№</th>
-                <th>Документ</th>
-                <th>Категория / Поставщик</th>
-                <th>Сумма</th>
-                <th>Статус</th>
-                <th>Дата</th>
+                <th>{t("pages.dashboard.dashboarddialogs.dokument")}</th>
+                <th>{t("pages.dashboard.dashboarddialogs.kategoriya_postavschik")}</th>
+                <th>{t("pages.dashboard.dashboarddialogs.summa")}</th>
+                <th>{t("pages.dashboard.dashboarddialogs.status")}</th>
+                <th>{t("pages.dashboard.dashboarddialogs.data")}</th>
               </tr>
             </thead>
             <tbody>
@@ -344,7 +361,7 @@ export function WarehouseReportDialog({ report, selectedDate, onClose }) {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={6}>Нет данных за выбранную дату</td>
+                  <td colSpan={6}>{t("pages.dashboard.dashboarddialogs.net_dannyh_za_vybrannuyu_datu")}</td>
                 </tr>
               )}
             </tbody>

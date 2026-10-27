@@ -7,6 +7,7 @@ import { normalizePaginatedList } from "../api/normalizers";
 import Icon from '../components/Icon';
 
 import { createPortal } from "react-dom";
+import { t } from "../i18n/t";
 
 export function normalizeAdminProduct(row, index = 0, dictionaries = {}) {
   const rawStatus = String(row.status ?? "").toLowerCase();
@@ -266,8 +267,8 @@ export function ProductNomenclaturePage({ search, onNotify }) {
   }
 
   const drawer = editor ? createPortal(
-    <div className="admin-product-drawer" role="dialog" aria-modal="true" aria-label="Карточка продукта">
-      <button type="button" className="admin-product-drawer__shade" onClick={closeEditor} aria-label="Закрыть форму" />
+    <div className="admin-product-drawer" role="dialog" aria-modal="true" aria-label={t("admin.admincatalog.kartochka_produkta")}>
+      <button type="button" className="admin-product-drawer__shade" onClick={closeEditor} aria-label={t("admin.admincatalog.zakryt_formu")} />
       <form className="admin-product-panel" onSubmit={saveProduct}>
         <div className="admin-product-panel__body">
           <label className="admin-product-photo-upload">
@@ -277,25 +278,25 @@ export function ProductNomenclaturePage({ search, onNotify }) {
             ) : (
               <>
                 <Icon name="bi-image" size={18} />
-                <span>Загрузить фото</span>
+                <span>{t("admin.admincatalog.zagruzit_foto")}</span>
               </>
             )}
           </label>
 
           <label className="admin-product-field admin-product-field--wide">
-            <span>Склад для расхода</span>
-            <select value="" disabled aria-label="Склад для расхода">
-              <option value="">Не подключено</option>
+            <span>{t("admin.admincatalog.sklad_dlya_rashoda")}</span>
+            <select value="" disabled aria-label={t("admin.admincatalog.sklad_dlya_rashoda")}>
+              <option value="">{t("admin.admincatalog.ne_podklyucheno")}</option>
             </select>
           </label>
 
           <label className="admin-product-field admin-product-field--wide">
-            <span>Название <b>*</b></span>
+            <span>{t("admin.admincatalog.nazvanie")} <b>*</b></span>
             <input value={editor.name} onChange={(event) => updateEditor("name", event.target.value)} required />
           </label>
 
           <label className="admin-product-field admin-product-field--wide">
-            <span>Цена <b>*</b></span>
+            <span>{t("admin.admincatalog.tsena")} <b>*</b></span>
             <input
               inputMode="numeric"
               value={editor.price}
@@ -306,14 +307,14 @@ export function ProductNomenclaturePage({ search, onNotify }) {
 
           <div className="admin-product-form-grid">
             <label className="admin-product-field">
-              <span>Категория товара</span>
-              <select value={editor.category} disabled aria-label="Категория товара">
+              <span>{t("admin.admincatalog.kategoriya_tovara")}</span>
+              <select value={editor.category} disabled aria-label={t("admin.admincatalog.kategoriya_tovara")}>
                 <option value={editor.category}>{editor.category || "Не подключено"}</option>
               </select>
             </label>
 
             <div className="admin-product-status-field">
-              <span>Статус</span>
+              <span>{t("admin.admincatalog.status")}</span>
               <button
                 type="button"
                 className={`admin-product-switch ${editor.status === "active" ? "is-on" : ""}`}
@@ -326,7 +327,7 @@ export function ProductNomenclaturePage({ search, onNotify }) {
           </div>
 
           <div className="admin-product-unit-field">
-            <span>Выберите единицу измерения <b>*</b></span>
+            <span>{t("admin.admincatalog.vyberite_edinitsu_izmereniya")} <b>*</b></span>
             <div>
               <button type="button" className="is-selected" disabled>
                 {editor.unit || "Не подключено"}
@@ -336,8 +337,8 @@ export function ProductNomenclaturePage({ search, onNotify }) {
         </div>
 
         <div className="admin-product-panel__footer">
-          <button type="button" onClick={closeEditor}>Отменить</button>
-          <button type="submit">Сохранить</button>
+          <button type="button" onClick={closeEditor}>{t("admin.admincatalog.otmenit")}</button>
+          <button type="submit">{t("admin.admincatalog.sohranit")}</button>
         </div>
       </form>
     </div>,
@@ -346,13 +347,13 @@ export function ProductNomenclaturePage({ search, onNotify }) {
 
   return (
     <section className="admin-product-page">
-      {loadState === "loading" ? <div className="admin-data-state" role="status">Загрузка продуктов...</div> : null}
-      {loadState === "error" ? <div className="admin-data-state" role="alert">Не удалось загрузить продукты.</div> : null}
+      {loadState === "loading" ? <div className="admin-data-state" role="status">{t("admin.admincatalog.zagruzka_produktov")}</div> : null}
+      {loadState === "error" ? <div className="admin-data-state" role="alert">{t("admin.admincatalog.ne_udalos_zagruzit_produkty")}</div> : null}
       <div className="admin-product-card">
         <div className="admin-product-toolbar">
           <div className="admin-product-title">
             <span className="admin-product-title-mark" aria-hidden="true" />
-            <h2>Список продуктов</h2>
+            <h2>{t("admin.admincatalog.spisok_produktov")}</h2>
             <button type="button" className="admin-product-archive-link" onClick={() => setShowArchive((value) => !value)}>
               <Icon name="bi-trash3" size={13} />
               <span>{showArchive ? "Вернуться к списку" : "Перейти к архив"}</span>
@@ -360,7 +361,7 @@ export function ProductNomenclaturePage({ search, onNotify }) {
           </div>
 
           <button type="button" className="admin-product-add" onClick={openAddProduct}>
-            <span>Добавить</span>
+            <span>{t("admin.admincatalog.dobavit")}</span>
             <Icon name="bi-plus" size={15} />
           </button>
         </div>
@@ -369,17 +370,17 @@ export function ProductNomenclaturePage({ search, onNotify }) {
           <table className="admin-product-table">
             <thead>
               <tr>
-                <th>Фото</th>
+                <th>{t("admin.admincatalog.foto")}</th>
                 <th>
                   <button type="button" className="admin-product-sort" onClick={() => setSortDirection((value) => value === "asc" ? "desc" : "asc")}>
-                    <span>Название</span>
+                    <span>{t("admin.admincatalog.nazvanie")}</span>
                     <i className={`admin-product-sort__icon is-${sortDirection}`} aria-hidden="true" />
                   </button>
                 </th>
-                <th>Категория</th>
-                <th>Цена</th>
-                <th>Ед. изм</th>
-                <th>Статус</th>
+                <th>{t("admin.admincatalog.kategoriya")}</th>
+                <th>{t("admin.admincatalog.tsena")}</th>
+                <th>{t("admin.admincatalog.ed_izm")}</th>
+                <th>{t("admin.admincatalog.status")}</th>
                 <th />
               </tr>
             </thead>
@@ -387,12 +388,12 @@ export function ProductNomenclaturePage({ search, onNotify }) {
               <tr className="admin-product-filter-row">
                 <td />
                 <td>
-                  <input value={nameFilter} onChange={(event) => setNameFilter(event.target.value)} placeholder="Введите" />
+                  <input value={nameFilter} onChange={(event) => setNameFilter(event.target.value)} placeholder={t("admin.admincatalog.vvedite")} />
                 </td>
                 <td>
                   <label className="admin-product-filter-select">
                     <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
-                      <option value="">Выберите</option>
+                      <option value="">{t("admin.admincatalog.vyberite")}</option>
                       {categoryOptions.map((category) => (
                         <option value={category} key={category}>{category}</option>
                       ))}
@@ -404,7 +405,7 @@ export function ProductNomenclaturePage({ search, onNotify }) {
                 <td />
                 <td />
                 <td>
-                  <button type="button" className="admin-product-filter-clear" onClick={clearFilters} aria-label="Очистить фильтр">
+                  <button type="button" className="admin-product-filter-clear" onClick={clearFilters} aria-label={t("admin.admincatalog.ochistit_filtr")}>
                     <Icon name="bi-funnel" size={16} />
                   </button>
                 </td>
@@ -430,7 +431,7 @@ export function ProductNomenclaturePage({ search, onNotify }) {
                   </td>
                   <td>
                     <div className="admin-product-row-actions">
-                      <button type="button" className="admin-product-icon-action is-edit" onClick={() => openEditProduct(row)} aria-label="Редактировать продукт">
+                      <button type="button" className="admin-product-icon-action is-edit" onClick={() => openEditProduct(row)} aria-label={t("admin.admincatalog.redaktirovat_produkt")}>
                         <Icon name="bi-pencil" size={15} />
                       </button>
                       <button
@@ -531,19 +532,19 @@ export function SaleCategoryPage({ search, onNotify }) {
   }
 
   const modal = editor ? createPortal(
-    <div className="admin-sale-category-modal" role="dialog" aria-modal="true" aria-label="Категория реализации">
-      <button type="button" className="admin-sale-category-modal__shade" onClick={closeEditor} aria-label="Закрыть" />
+    <div className="admin-sale-category-modal" role="dialog" aria-modal="true" aria-label={t("admin.admincatalog.kategoriya_realizatsii")}>
+      <button type="button" className="admin-sale-category-modal__shade" onClick={closeEditor} aria-label={t("admin.admincatalog.zakryt")} />
       <form className="admin-sale-category-dialog" onSubmit={saveCategory}>
         <div className="admin-sale-category-dialog__head">
           <h3>{editor.id ? "Изменить категорию продукта" : "Добавить категорию продукта"}</h3>
-          <button type="button" onClick={closeEditor} aria-label="Закрыть">
+          <button type="button" onClick={closeEditor} aria-label={t("admin.admincatalog.zakryt")}>
             <Icon name="bi-x-lg" size={18} />
           </button>
         </div>
 
         <div className="admin-sale-category-dialog__body">
           <label className="admin-sale-category-field">
-            <span>Название <b>*</b></span>
+            <span>{t("admin.admincatalog.nazvanie")} <b>*</b></span>
             <input
               value={editor.name}
               onChange={(event) => updateEditor("name", event.target.value)}
@@ -553,7 +554,7 @@ export function SaleCategoryPage({ search, onNotify }) {
           </label>
 
           <div className="admin-sale-category-status-field">
-            <span>Статус</span>
+            <span>{t("admin.admincatalog.status")}</span>
             <button
               type="button"
               className={`admin-sale-category-switch ${editor.status === "active" ? "is-on" : ""}`}
@@ -566,7 +567,7 @@ export function SaleCategoryPage({ search, onNotify }) {
         </div>
 
         <div className="admin-sale-category-dialog__actions">
-          <button type="submit">Сохранить</button>
+          <button type="submit">{t("admin.admincatalog.sohranit")}</button>
         </div>
       </form>
     </div>,
@@ -575,22 +576,22 @@ export function SaleCategoryPage({ search, onNotify }) {
 
   return (
     <section className="admin-sale-category-page">
-      {loadState === "loading" ? <div className="admin-data-state" role="status">Загрузка категорий...</div> : null}
-      {loadState === "error" ? <div className="admin-data-state" role="alert">Не удалось загрузить категории.</div> : null}
+      {loadState === "loading" ? <div className="admin-data-state" role="status">{t("admin.admincatalog.zagruzka_kategoriy")}</div> : null}
+      {loadState === "error" ? <div className="admin-data-state" role="alert">{t("admin.admincatalog.ne_udalos_zagruzit_kategorii")}</div> : null}
       <div className="admin-sale-category-card">
         <div className="admin-sale-category-head">
           <div className="admin-sale-category-title">
             <span aria-hidden="true" />
-            <h2>Реализация</h2>
+            <h2>{t("admin.admincatalog.realizatsiya")}</h2>
           </div>
 
           <button type="button" className="admin-sale-category-add" onClick={openCreate}>
-            <span>Добавить</span>
+            <span>{t("admin.admincatalog.dobavit")}</span>
             <Icon name="bi-plus" size={15} />
           </button>
         </div>
 
-        <div className="admin-sale-category-list" role="table" aria-label="Список категорий реализации">
+        <div className="admin-sale-category-list" role="table" aria-label={t("admin.admincatalog.spisok_kategoriy_realizatsii")}>
           {visibleRows.map((row) => (
             <div className="admin-sale-category-row" role="row" key={row.id}>
               <strong>{row.name}</strong>
@@ -598,10 +599,10 @@ export function SaleCategoryPage({ search, onNotify }) {
                 {row.status === "active" ? "#активно" : "#неактивно"}
               </span>
               <div className="admin-sale-category-actions">
-                <button type="button" className="is-edit" onClick={() => openEdit(row)} aria-label="Редактировать категорию">
+                <button type="button" className="is-edit" onClick={() => openEdit(row)} aria-label={t("admin.admincatalog.redaktirovat_kategoriyu")}>
                   <Icon name="bi-pencil" size={15} />
                 </button>
-                <button type="button" className="is-delete" onClick={() => deleteCategory(row)} aria-label="Удалить категорию">
+                <button type="button" className="is-delete" onClick={() => deleteCategory(row)} aria-label={t("admin.admincatalog.udalit_kategoriyu")}>
                   <Icon name="bi-trash3" size={15} />
                 </button>
               </div>
@@ -609,7 +610,7 @@ export function SaleCategoryPage({ search, onNotify }) {
           ))}
 
           {(loadState === "empty" || loadState === "success") && !visibleRows.length ? (
-            <div className="admin-sale-category-empty">Список пуст</div>
+            <div className="admin-sale-category-empty">{t("admin.admincatalog.spisok_pust")}</div>
           ) : null}
         </div>
       </div>
@@ -702,19 +703,19 @@ export function AdminSourcesPage({ search, onNotify }) {
   }
 
   const modal = editor ? createPortal(
-    <div className="admin-source-modal" role="dialog" aria-modal="true" aria-label="Источник">
-      <button type="button" className="admin-source-modal__shade" onClick={closeEditor} aria-label="Закрыть" />
+    <div className="admin-source-modal" role="dialog" aria-modal="true" aria-label={t("admin.admincatalog.istochnik")}>
+      <button type="button" className="admin-source-modal__shade" onClick={closeEditor} aria-label={t("admin.admincatalog.zakryt")} />
       <form className="admin-source-dialog" onSubmit={saveSource}>
         <div className="admin-source-dialog__head">
           <h3>{editor.id ? "Изменить источник" : "Добавить источник"}</h3>
-          <button type="button" onClick={closeEditor} aria-label="Закрыть">
+          <button type="button" onClick={closeEditor} aria-label={t("admin.admincatalog.zakryt")}>
             <Icon name="bi-x-lg" size={18} />
           </button>
         </div>
 
         <div className="admin-source-dialog__body">
           <label className="admin-source-field">
-            <span>Название <b>*</b></span>
+            <span>{t("admin.admincatalog.nazvanie")} <b>*</b></span>
             <input
               value={editor.name}
               onChange={(event) => updateEditor("name", event.target.value)}
@@ -725,8 +726,8 @@ export function AdminSourcesPage({ search, onNotify }) {
         </div>
 
         <div className="admin-source-dialog__actions">
-          <button type="button" onClick={closeEditor}>Отмена</button>
-          <button type="submit">Сохранить</button>
+          <button type="button" onClick={closeEditor}>{t("admin.admincatalog.otmena")}</button>
+          <button type="submit">{t("admin.admincatalog.sohranit")}</button>
         </div>
       </form>
     </div>,
@@ -735,8 +736,8 @@ export function AdminSourcesPage({ search, onNotify }) {
 
   return (
     <section className="admin-source-page">
-      {loadState === "loading" ? <div className="admin-data-state" role="status">Загрузка источников...</div> : null}
-      {loadState === "error" ? <div className="admin-data-state" role="alert">Не удалось загрузить источники.</div> : null}
+      {loadState === "loading" ? <div className="admin-data-state" role="status">{t("admin.admincatalog.zagruzka_istochnikov")}</div> : null}
+      {loadState === "error" ? <div className="admin-data-state" role="alert">{t("admin.admincatalog.ne_udalos_zagruzit_istochniki")}</div> : null}
       <div className="admin-source-card">
         <div className="admin-source-head">
           <div className="admin-source-title">
@@ -744,18 +745,18 @@ export function AdminSourcesPage({ search, onNotify }) {
               <Icon name="bi-megaphone" size={18} />
             </span>
             <div>
-              <h2>Список источников</h2>
-              <p>Каналы привлечения клиентов</p>
+              <h2>{t("admin.admincatalog.spisok_istochnikov")}</h2>
+              <p>{t("admin.admincatalog.kanaly_privlecheniya_klientov")}</p>
             </div>
           </div>
 
           <button type="button" className="admin-source-add" onClick={openCreate}>
-            <span>Добавить</span>
+            <span>{t("admin.admincatalog.dobavit")}</span>
             <Icon name="bi-plus" size={14} />
           </button>
         </div>
 
-        <div className="admin-source-table" role="table" aria-label="Список источников">
+        <div className="admin-source-table" role="table" aria-label={t("admin.admincatalog.spisok_istochnikov")}>
           <div className="admin-source-row admin-source-row--head" role="row">
             <button
               type="button"
@@ -770,7 +771,7 @@ export function AdminSourcesPage({ search, onNotify }) {
               className={`admin-source-sort-button ${sortState.key === "name" ? `is-${sortState.direction}` : ""}`}
               onClick={() => toggleSort("name")}
             >
-              <span>Названия</span>
+              <span>{t("admin.admincatalog.nazvaniya")}</span>
               <span className="admin-source-sort-icon" aria-hidden="true" />
             </button>
             <span aria-hidden="true" />
@@ -781,10 +782,10 @@ export function AdminSourcesPage({ search, onNotify }) {
               <span className="admin-source-id">{row.id}</span>
               <strong>{row.name}</strong>
               <div className="admin-source-actions">
-                <button type="button" className="is-edit" onClick={() => openEdit(row)} aria-label="Редактировать источник">
+                <button type="button" className="is-edit" onClick={() => openEdit(row)} aria-label={t("admin.admincatalog.redaktirovat_istochnik")}>
                   <Icon name="bi-pencil" size={14} />
                 </button>
-                <button type="button" className="is-delete" onClick={() => deleteSource(row)} aria-label="Удалить источник">
+                <button type="button" className="is-delete" onClick={() => deleteSource(row)} aria-label={t("admin.admincatalog.udalit_istochnik")}>
                   <Icon name="bi-trash3" size={14} />
                 </button>
               </div>
@@ -792,7 +793,7 @@ export function AdminSourcesPage({ search, onNotify }) {
           ))}
 
           {(loadState === "empty" || loadState === "success") && !visibleRows.length ? (
-            <div className="admin-source-empty">Источники не найдены</div>
+            <div className="admin-source-empty">{t("admin.admincatalog.istochniki_ne_naydeny")}</div>
           ) : null}
         </div>
       </div>
@@ -913,17 +914,17 @@ export function OrdersNomenclaturePage({ search, onNotify }) {
 
   return (
     <section className="admin-orders-page">
-      {loadState === "loading" ? <div className="admin-data-state" role="status">Загрузка заказов...</div> : null}
-      {loadState === "error" ? <div className="admin-data-state" role="alert">Не удалось загрузить заказы.</div> : null}
+      {loadState === "loading" ? <div className="admin-data-state" role="status">{t("admin.admincatalog.zagruzka_zakazov")}</div> : null}
+      {loadState === "error" ? <div className="admin-data-state" role="alert">{t("admin.admincatalog.ne_udalos_zagruzit_zakazy")}</div> : null}
       <div className="admin-orders-card">
         <div className="admin-orders-head">
           <div className="admin-orders-title">
             <span aria-hidden="true" />
-            <h2>Список заказов</h2>
+            <h2>{t("admin.admincatalog.spisok_zakazov")}</h2>
           </div>
 
-          <button type="button" className="admin-orders-add" onClick={openCreate} aria-label="Добавление заказа недоступно">
-            <span>Добавить</span>
+          <button type="button" className="admin-orders-add" onClick={openCreate} aria-label={t("admin.admincatalog.dobavlenie_zakaza_nedostupno")}>
+            <span>{t("admin.admincatalog.dobavit")}</span>
             <Icon name="bi-plus" size={15} />
           </button>
         </div>
@@ -938,24 +939,24 @@ export function OrdersNomenclaturePage({ search, onNotify }) {
                     <i className={`admin-orders-sort is-${sortState.key === "id" ? sortState.direction : "none"}`} />
                   </button>
                 </th>
-                <th>Названия</th>
+                <th>{t("admin.admincatalog.nazvaniya")}</th>
                 <th>
                   <button type="button" onClick={() => toggleSort("paymentId")}>
-                    <span>ID платежа</span>
+                    <span>{t("admin.admincatalog.id_platezha")}</span>
                     <i className={`admin-orders-sort is-${sortState.key === "paymentId" ? sortState.direction : "none"}`} />
                   </button>
                 </th>
-                <th>Продукты</th>
+                <th>{t("admin.admincatalog.produkty")}</th>
                 <th>
                   <button type="button" onClick={() => toggleSort("total")}>
-                    <span>Цена</span>
+                    <span>{t("admin.admincatalog.tsena")}</span>
                     <i className={`admin-orders-sort is-${sortState.key === "total" ? sortState.direction : "none"}`} />
                   </button>
                 </th>
-                <th>Комментария</th>
+                <th>{t("admin.admincatalog.kommentariya")}</th>
                 <th>
                   <button type="button" onClick={() => toggleSort("status")}>
-                    <span>Статус</span>
+                    <span>{t("admin.admincatalog.status")}</span>
                     <i className={`admin-orders-sort is-${sortState.key === "status" ? sortState.direction : "none"}`} />
                   </button>
                 </th>
@@ -982,17 +983,17 @@ export function OrdersNomenclaturePage({ search, onNotify }) {
                   <td>
                     {row.status === "new" ? (
                       <div className="admin-orders-decision">
-                        <button type="button" className="is-confirm" onClick={() => confirmOrder(row)}>Подтвердить</button>
-                        <button type="button" className="is-cancel" onClick={() => cancelOrder(row)}>Отменить</button>
+                        <button type="button" className="is-confirm" onClick={() => confirmOrder(row)}>{t("admin.admincatalog.podtverdit")}</button>
+                        <button type="button" className="is-cancel" onClick={() => cancelOrder(row)}>{t("admin.admincatalog.otmenit")}</button>
                       </div>
                     ) : null}
                   </td>
                   <td>
                     <div className="admin-orders-actions">
-                      <button type="button" className="is-edit" onClick={() => openEdit(row)} aria-label="Редактирование заказа недоступно">
+                      <button type="button" className="is-edit" onClick={() => openEdit(row)} aria-label={t("admin.admincatalog.redaktirovanie_zakaza_nedostupno")}>
                         <Icon name="bi-pencil" size={15} />
                       </button>
-                      <button type="button" className="is-delete" onClick={() => deleteOrder(row)} aria-label="Удалить заказ">
+                      <button type="button" className="is-delete" onClick={() => deleteOrder(row)} aria-label={t("admin.admincatalog.udalit_zakaz")}>
                         <Icon name="bi-trash3" size={15} />
                       </button>
                     </div>
@@ -1002,7 +1003,7 @@ export function OrdersNomenclaturePage({ search, onNotify }) {
 
               {(loadState === "empty" || loadState === "success") && !pageRows.length ? (
                 <tr>
-                  <td colSpan="9" className="admin-orders-empty">Список пуст</td>
+                  <td colSpan="9" className="admin-orders-empty">{t("admin.admincatalog.spisok_pust")}</td>
                 </tr>
               ) : null}
             </tbody>
@@ -1010,7 +1011,7 @@ export function OrdersNomenclaturePage({ search, onNotify }) {
         </div>
 
         <div className="admin-orders-pagination">
-          <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={currentPage === 1} aria-label="Предыдущая страница">
+          <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={currentPage === 1} aria-label={t("admin.admincatalog.predyduschaya_stranitsa")}>
             <Icon name="bi-chevron-left" size={15} />
           </button>
           {paginationItems.map((item) => item === "..." ? (
@@ -1020,7 +1021,7 @@ export function OrdersNomenclaturePage({ search, onNotify }) {
               {item}
             </button>
           ))}
-          <button type="button" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={currentPage === totalPages} aria-label="Следующая страница">
+          <button type="button" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={currentPage === totalPages} aria-label={t("admin.admincatalog.sleduyuschaya_stranitsa")}>
             <Icon name="bi-chevron-right" size={15} />
           </button>
         </div>
@@ -1109,29 +1110,29 @@ export function UnitNomenclaturePage({ search, onNotify }) {
   }
 
   const modal = editor ? createPortal(
-    <div className="admin-unit-modal" role="dialog" aria-modal="true" aria-label="Единица измерения">
-      <button type="button" className="admin-unit-modal__shade" onClick={closeEditor} aria-label="Закрыть" />
+    <div className="admin-unit-modal" role="dialog" aria-modal="true" aria-label={t("admin.admincatalog.edinitsa_izmereniya")}>
+      <button type="button" className="admin-unit-modal__shade" onClick={closeEditor} aria-label={t("admin.admincatalog.zakryt")} />
       <form className="admin-unit-dialog" onSubmit={saveUnit}>
         <div className="admin-unit-dialog__head">
           <h3>{editor.id ? "Изменить единица измерению" : "Добавить единица измерению"}</h3>
-          <button type="button" onClick={closeEditor} aria-label="Закрыть">
+          <button type="button" onClick={closeEditor} aria-label={t("admin.admincatalog.zakryt")}>
             <Icon name="bi-x-lg" size={18} />
           </button>
         </div>
 
         <div className="admin-unit-dialog__body">
           <label className="admin-unit-field">
-            <span>Название <b>*</b></span>
+            <span>{t("admin.admincatalog.nazvanie")} <b>*</b></span>
             <input value={editor.name} onChange={(event) => updateEditor("name", event.target.value)} autoFocus required />
           </label>
 
           <label className="admin-unit-field">
-            <span>Короткое названия <b>*</b></span>
+            <span>{t("admin.admincatalog.korotkoe_nazvaniya")} <b>*</b></span>
             <input value={editor.shortName} onChange={(event) => updateEditor("shortName", event.target.value)} required />
           </label>
 
           <div className="admin-unit-status-field">
-            <span>Статус</span>
+            <span>{t("admin.admincatalog.status")}</span>
             <button
               type="button"
               className={`admin-unit-switch ${editor.status === "active" ? "is-on" : ""}`}
@@ -1144,7 +1145,7 @@ export function UnitNomenclaturePage({ search, onNotify }) {
         </div>
 
         <div className="admin-unit-dialog__actions">
-          <button type="submit">Сохранить</button>
+          <button type="submit">{t("admin.admincatalog.sohranit")}</button>
         </div>
       </form>
     </div>,
@@ -1153,17 +1154,17 @@ export function UnitNomenclaturePage({ search, onNotify }) {
 
   return (
     <section className="admin-unit-page">
-      {loadState === "loading" ? <div className="admin-data-state" role="status">Загрузка единиц измерения...</div> : null}
-      {loadState === "error" ? <div className="admin-data-state" role="alert">Не удалось загрузить единицы измерения.</div> : null}
+      {loadState === "loading" ? <div className="admin-data-state" role="status">{t("admin.admincatalog.zagruzka_edinits_izmereniya")}</div> : null}
+      {loadState === "error" ? <div className="admin-data-state" role="alert">{t("admin.admincatalog.ne_udalos_zagruzit_edinitsy_izmereniya")}</div> : null}
       <div className="admin-unit-card">
         <div className="admin-unit-head">
           <div className="admin-unit-title">
             <span aria-hidden="true" />
-            <h2>Единица измерения</h2>
+            <h2>{t("admin.admincatalog.edinitsa_izmereniya")}</h2>
           </div>
 
           <button type="button" className="admin-unit-add" onClick={openCreate}>
-            <span>Добавить</span>
+            <span>{t("admin.admincatalog.dobavit")}</span>
             <Icon name="bi-plus" size={15} />
           </button>
         </div>
@@ -1172,10 +1173,10 @@ export function UnitNomenclaturePage({ search, onNotify }) {
           <table className="admin-unit-table">
             <thead>
               <tr>
-                <th>Сорт</th>
-                <th>Название</th>
-                <th>Короткое названия</th>
-                <th>Статус</th>
+                <th>{t("admin.admincatalog.sort")}</th>
+                <th>{t("admin.admincatalog.nazvanie")}</th>
+                <th>{t("admin.admincatalog.korotkoe_nazvaniya")}</th>
+                <th>{t("admin.admincatalog.status")}</th>
                 <th />
               </tr>
             </thead>
@@ -1199,10 +1200,10 @@ export function UnitNomenclaturePage({ search, onNotify }) {
                   </td>
                   <td>
                     <div className="admin-unit-actions">
-                      <button type="button" className="is-edit" onClick={() => openEdit(row)} aria-label="Редактировать единицу измерения">
+                      <button type="button" className="is-edit" onClick={() => openEdit(row)} aria-label={t("admin.admincatalog.redaktirovat_edinitsu_izmereniya")}>
                         <Icon name="bi-pencil" size={15} />
                       </button>
-                      <button type="button" className="is-delete" onClick={() => deleteUnit(row)} aria-label="Удалить единицу измерения">
+                      <button type="button" className="is-delete" onClick={() => deleteUnit(row)} aria-label={t("admin.admincatalog.udalit_edinitsu_izmereniya")}>
                         <Icon name="bi-trash3" size={15} />
                       </button>
                     </div>
@@ -1212,7 +1213,7 @@ export function UnitNomenclaturePage({ search, onNotify }) {
 
               {(loadState === "empty" || loadState === "success") && !visibleRows.length ? (
                 <tr>
-                  <td colSpan="5" className="admin-unit-empty">Список пуст</td>
+                  <td colSpan="5" className="admin-unit-empty">{t("admin.admincatalog.spisok_pust")}</td>
                 </tr>
               ) : null}
             </tbody>

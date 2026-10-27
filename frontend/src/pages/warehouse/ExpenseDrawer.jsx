@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import Icon from "../../components/Icon";
 import Toast from "../../components/Toast";
 import { webDayKey } from "../../utils/webTime";
+import { t } from "../../i18n/t";
 
 // Ключ строки — стабильный локальный id (индекс не годится: строки удаляются).
 let rowSeq = 0;
@@ -64,33 +65,33 @@ function ExpenseDrawer({ warehouses, ingredients, saving, error, onClose, onSubm
   };
 
   return (
-    <div className="warehouse-drawer" role="dialog" aria-modal="true" aria-label="Новый расход">
+    <div className="warehouse-drawer" role="dialog" aria-modal="true" aria-label={t("pages.warehouse.expensedrawer.novyy_rashod")}>
       <div className="warehouse-drawer__backdrop" onClick={saving ? undefined : onClose} />
       <div className="warehouse-form">
         <div className="warehouse-form__header">
           <div>
-            <p>Склад</p>
-            <h2>Новый расход</h2>
+            <p>{t("pages.warehouse.expensedrawer.sklad")}</p>
+            <h2>{t("pages.warehouse.expensedrawer.novyy_rashod")}</h2>
           </div>
-          <button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="bi-x-lg" size={18} /></button>
+          <button type="button" onClick={onClose} aria-label={t("pages.warehouse.expensedrawer.zakryt")}><Icon name="bi-x-lg" size={18} /></button>
         </div>
 
         {error ? <Toast kind="error" message={error} onClose={onClearError || undefined} /> : null}
 
         <div className="warehouse-form__grid">
           <label>
-            <span>Получатель</span>
-            <input value={receiver} onChange={(e) => setReceiver(e.target.value)} placeholder="Напр. Кухня" />
+            <span>{t("pages.warehouse.expensedrawer.poluchatel")}</span>
+            <input value={receiver} onChange={(e) => setReceiver(e.target.value)} placeholder={t("pages.warehouse.expensedrawer.napr_kuhnya")} />
           </label>
           <label>
-            <span>Склад *</span>
+            <span>{t("pages.warehouse.expensedrawer.sklad_2")}</span>
             <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}>
-              <option value="">Выберите склад</option>
+              <option value="">{t("pages.warehouse.expensedrawer.vyberite_sklad")}</option>
               {(warehouses || []).map((wh) => <option key={wh.id} value={wh.id}>{wh.name}</option>)}
             </select>
           </label>
           <label>
-            <span>Дата</span>
+            <span>{t("pages.warehouse.expensedrawer.data")}</span>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </label>
         </div>
@@ -103,17 +104,17 @@ function ExpenseDrawer({ warehouses, ingredients, saving, error, onClose, onSubm
           onRemove={removeRow}
           onAdd={() => setItems((current) => [...current, newRow()])}
         />
-        <p className="warehouse-form__hint">Цена посчитается автоматически по FIFO: старые партии списываются первыми.</p>
+        <p className="warehouse-form__hint">{t("pages.warehouse.expensedrawer.tsena_poschitaetsya_avtomaticheski_po_fifo_starye")}</p>
 
         <label className="warehouse-form__comment">
-          <span>Комментарий</span>
-          <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Необязательно" />
+          <span>{t("pages.warehouse.expensedrawer.kommentariy")}</span>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("pages.warehouse.expensedrawer.neobyazatelno")} />
         </label>
 
         <div className="warehouse-form__footer">
-          <strong>Позиций: {validItems.length}</strong>
+          <strong>{t("pages.warehouse.expensedrawer.pozitsiy")} {validItems.length}</strong>
           <div style={{ display: "flex", gap: 10 }}>
-            <button type="button" onClick={onClose} disabled={saving}>Отмена</button>
+            <button type="button" onClick={onClose} disabled={saving}>{t("pages.warehouse.expensedrawer.otmena")}</button>
             <button type="button" className="warehouse-commit-action" onClick={submit} disabled={!canSubmit}>
               {saving ? "Сохранение..." : "Сохранить черновик"}
             </button>
@@ -128,22 +129,22 @@ function ExpenseItems({ items, ingredients, onPick, onChange, onRemove, onAdd })
   return (
     <div className="warehouse-products-box">
       <div className="warehouse-products-box__head">
-        <strong>Позиции расхода</strong>
+        <strong>{t("pages.warehouse.expensedrawer.pozitsii_rashoda")}</strong>
         <span>{items.length}</span>
       </div>
       {items.map((row) => (
         <div className="warehouse-product-row" key={row.key}>
-          <select value={row.ingredientId} onChange={(e) => onPick(row.key, e.target.value)} aria-label="Ингредиент">
-            <option value="">Товар...</option>
+          <select value={row.ingredientId} onChange={(e) => onPick(row.key, e.target.value)} aria-label={t("pages.warehouse.expensedrawer.ingredient")}>
+            <option value="">{t("pages.warehouse.expensedrawer.tovar")}</option>
             {(ingredients || []).map((ing) => <option key={ing.id} value={ing.id}>{ing.name}</option>)}
           </select>
-          <input type="number" min="0" step="any" value={row.quantity} onChange={(e) => onChange(row.key, { quantity: e.target.value })} placeholder="Кол-во" aria-label="Количество" />
+          <input type="number" min="0" step="any" value={row.quantity} onChange={(e) => onChange(row.key, { quantity: e.target.value })} placeholder={t("pages.warehouse.expensedrawer.kol_vo")} aria-label={t("pages.warehouse.expensedrawer.kolichestvo")} />
           <strong>{row.unit || "—"}</strong>
-          <span className="warehouse-fifo-badge" title="Цена по FIFO при проведении">FIFO</span>
-          <button type="button" onClick={() => onRemove(row.key)} aria-label="Удалить позицию"><Icon name="bi-x-lg" size={14} /></button>
+          <span className="warehouse-fifo-badge" title={t("pages.warehouse.expensedrawer.tsena_po_fifo_pri_provedenii")}>FIFO</span>
+          <button type="button" onClick={() => onRemove(row.key)} aria-label={t("pages.warehouse.expensedrawer.udalit_pozitsiyu")}><Icon name="bi-x-lg" size={14} /></button>
         </div>
       ))}
-      <button type="button" className="warehouse-add-product" onClick={onAdd}>Добавить позицию +</button>
+      <button type="button" className="warehouse-add-product" onClick={onAdd}>{t("pages.warehouse.expensedrawer.dobavit_pozitsiyu")}</button>
     </div>
   );
 }

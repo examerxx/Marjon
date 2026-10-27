@@ -12,6 +12,7 @@ import useInstantWheel, { isInstantWheelRequested } from "../../hooks/useInstant
 import recipeBookPng from "../../assets/recipes-cook-book.png";
 import setComboPng from "../../assets/set-combo.png";
 import { SUPPORTED_DISH_PHOTO_TYPES } from "./useDishesCatalog";
+import { t } from "../../i18n/t";
 import "../../styles/shared/catalog-scrollbar-arrows.css";
 
 // Себестоимость/цена приходят с суффиксом «UZS»; в таблице показываем «сум».
@@ -82,13 +83,13 @@ function RecipeBadge({ count, onClick }) {
   if (amount > 0) {
     return (
       <button type="button" className="dish-recipe-link is-filled" onClick={onClick} aria-haspopup="dialog">
-        <RecipePngIcon />Рецепты ({amount} шт)
+        <RecipePngIcon />{t("pages.nomenclature.dishestable.retsepty")}{amount} {t("pages.nomenclature.dishestable.sht")}
       </button>
     );
   }
   return (
     <button type="button" className="dish-recipe-link is-empty" onClick={onClick} aria-haspopup="dialog">
-      <RecipePngIcon />Рецепты
+      <RecipePngIcon />{t("pages.nomenclature.dishestable.retsepty_2")}
     </button>
   );
 }
@@ -111,7 +112,7 @@ function DishPhotoCell({ row, uploading, onPick, onPreview }) {
           if (hasPhoto) onPreview?.(row);
           else inputRef.current?.click();
         }}
-        aria-label={hasPhoto ? `Открыть фото ${row.name}` : `Выбрать фото для ${row.name}`}
+        aria-label={hasPhoto ? t("pages.menupage.open_photo", { name: row.name }) : t("pages.nomenclature.dishestable.choose_photo", { name: row.name })}
         {...(hasPhoto ? { "aria-haspopup": "dialog" } : null)}
       >
         {row.photo ? (
@@ -220,20 +221,20 @@ export default function DishesTable({
 
   return (
     <div className={`settings-table-wrapper dish-grid-wrap${isEmpty ? " is-empty" : ""}`}>
-      <div ref={scrollRef} className="dish-grid-scroll" role="region" aria-label={scrollAriaLabel} tabIndex={0}>
-        <table className="settings-table dish-grid-table" aria-label={tableAriaLabel} style={{ "--dish-grid-min-width": `${tableMinWidth}px` }}>
+      <div ref={scrollRef} className="dish-grid-scroll" role="region" aria-label={t(scrollAriaLabel)} tabIndex={0}>
+        <table className="settings-table dish-grid-table" aria-label={t(tableAriaLabel)} style={{ "--dish-grid-min-width": `${tableMinWidth}px` }}>
         <thead>
           <tr>
-            {isColumnVisible("sort") ? <th className="dish-col-sort">Сорт</th> : null}
-            {isColumnVisible("photo") ? <th className="dish-col-photo">Фото</th> : null}
-            {isColumnVisible("name") ? <th className="dish-col-name">Название</th> : null}
-            {isColumnVisible("unit") ? <th className="dish-col-unit">Ед. изм</th> : null}
-            {isColumnVisible("category") ? <th className="dish-col-category">Категория</th> : null}
-            {isColumnVisible("cost") ? <th className="dish-col-cost">Себестоимость</th> : null}
-            {isColumnVisible("price") ? <th className="dish-col-price">Цена</th> : null}
-            {isColumnVisible("printer") ? <th className="dish-col-printer">Принтер</th> : null}
-            {isColumnVisible("recipe") ? <th className="dish-col-recipe">Рецепты</th> : null}
-            {isColumnVisible("actions") ? <th className="dish-col-actions">Действия</th> : null}
+            {isColumnVisible("sort") ? <th className="dish-col-sort">{t("pages.nomenclature.dishestable.sort")}</th> : null}
+            {isColumnVisible("photo") ? <th className="dish-col-photo">{t("pages.nomenclature.dishestable.foto")}</th> : null}
+            {isColumnVisible("name") ? <th className="dish-col-name">{t("pages.nomenclature.dishestable.nazvanie")}</th> : null}
+            {isColumnVisible("unit") ? <th className="dish-col-unit">{t("pages.nomenclature.dishestable.ed_izm")}</th> : null}
+            {isColumnVisible("category") ? <th className="dish-col-category">{t("pages.nomenclature.dishestable.kategoriya")}</th> : null}
+            {isColumnVisible("cost") ? <th className="dish-col-cost">{t("pages.nomenclature.dishestable.sebestoimost")}</th> : null}
+            {isColumnVisible("price") ? <th className="dish-col-price">{t("pages.nomenclature.dishestable.tsena")}</th> : null}
+            {isColumnVisible("printer") ? <th className="dish-col-printer">{t("pages.nomenclature.dishestable.printer")}</th> : null}
+            {isColumnVisible("recipe") ? <th className="dish-col-recipe">{t("pages.nomenclature.dishestable.retsepty_2")}</th> : null}
+            {isColumnVisible("actions") ? <th className="dish-col-actions">{t("pages.nomenclature.dishestable.deystviya")}</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -269,12 +270,12 @@ export default function DishesTable({
                       className={`dish-recipe-link ${Number(row.setItemsCount) > 0 ? "is-filled" : "is-empty"}`}
                       onClick={(event) => onOpenSet(row, event.currentTarget)}
                       aria-haspopup="dialog"
-                      aria-label={`Открыть сет ${row.name}`}
+                      aria-label={t("pages.nomenclature.dishestable.open_set", { name: row.name })}
                     >
                       <SetPngIcon />{Number(row.setItemsCount) > 0 ? `Сет (${row.setItemsCount} шт)` : "Сет"}
                     </button>
                   ) : (
-                    <span className="dish-set-text"><SetPngIcon />Сет</span>
+                    <span className="dish-set-text"><SetPngIcon />{t("pages.nomenclature.dishestable.set")}</span>
                   )
                 ) : (
                   <RecipeBadge count={row.ingredientsCount} onClick={(event) => openRecipes?.(row, event.currentTarget)} />
@@ -284,7 +285,7 @@ export default function DishesTable({
               {isColumnVisible("actions") ? (
               <td className="dish-col-actions">
                 <div className="dish-row-actions">
-                  <button type="button" disabled={saving || pendingDeleteId === row.id} onClick={() => openDrawer(row)} aria-label="Редактировать">
+                  <button type="button" disabled={saving || pendingDeleteId === row.id} onClick={() => openDrawer(row)} aria-label={t("pages.nomenclature.dishestable.redaktirovat")}>
                     <Icon name="bi-pencil" size={15} />
                   </button>
                   {showArchived ? (
@@ -293,13 +294,13 @@ export default function DishesTable({
                       className="dish-restore-action"
                       disabled={restoringId === row.id}
                       onClick={() => (onRestoreRequest ? onRestoreRequest(row) : restoreDish?.(row.id))}
-                      aria-label="Восстановить"
-                      title="Восстановить"
+                      aria-label={t("pages.nomenclature.dishestable.vosstanovit")}
+                      title={t("pages.nomenclature.dishestable.vosstanovit")}
                     >
                       <Icon name="bi-arrow-counterclockwise" size={15} />
                     </button>
                   ) : (
-                    <button type="button" className="danger" disabled={pendingDeleteId === row.id} onClick={() => (onArchiveRequest ? onArchiveRequest(row) : archiveDish(row.id))} aria-label="Удалить">
+                    <button type="button" className="danger" disabled={pendingDeleteId === row.id} onClick={() => (onArchiveRequest ? onArchiveRequest(row) : archiveDish(row.id))} aria-label={t("pages.nomenclature.dishestable.udalit")}>
                       <Icon name="bi-trash3" size={15} />
                     </button>
                   )}
@@ -311,10 +312,10 @@ export default function DishesTable({
         </tbody>
         </table>
       </div>
-      <ExternalTableScrollbar targetRef={scrollRef} label={`Прокрутка: ${scrollAriaLabel}`} />
+      <ExternalTableScrollbar targetRef={scrollRef} label={t("pages.nomenclature.dishestable.scroll_label", { label: t(scrollAriaLabel) })} />
       {isEmpty ? (
         <div className="dish-empty-overlay">
-          <ReportEmptyState title={emptyTitle} />
+          <ReportEmptyState title={t(emptyTitle)} />
         </div>
       ) : null}
       {preview ? createPortal(
@@ -328,13 +329,13 @@ export default function DishesTable({
             className="dish-photo-viewer"
             role="dialog"
             aria-modal="true"
-            aria-label={`Фото блюда ${preview.name}`}
+            aria-label={t("pages.nomenclature.dishestable.dish_photo", { name: preview.name })}
           >
             <button
               type="button"
               className="dish-photo-viewer__close"
               onClick={closePreview}
-              aria-label="Закрыть фото"
+              aria-label={t("pages.nomenclature.dishestable.zakryt_foto")}
             >
               <Icon name="bi-x-lg" size={18} />
             </button>

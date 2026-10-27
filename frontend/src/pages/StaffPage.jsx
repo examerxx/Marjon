@@ -5,6 +5,7 @@ import { settingsService } from "../api/settings";
 import { staffService } from "../api/staff";
 import Icon from "../components/Icon";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../hooks/useAsyncSafety";
+import { t } from "../i18n/t";
 
 const STAFF_ROLE_SLUGS = new Set(["manager", "cashier", "waiter", "kitchen", "monoblock", "courier", "warehouse"]);
 const emptyForm = { user_id: "", branch_id: "", position: "", salary_type: "fixed", salary_amount: "" };
@@ -164,16 +165,16 @@ export default function StaffPage() {
   return (
     <section className="card card-pad">
       <div className="section-header">
-        <div><span className="eyebrow">Staff</span><h2>Сотрудники</h2></div>
+        <div><span className="eyebrow">{t("eyebrow.staff")}</span><h2>{t("pages.staffpage.sotrudniki")}</h2></div>
         <button type="button" className="btn btn-primary" disabled={saving} onClick={openCreate} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <Icon name="bi-plus-circle" size={16} /> Добавить
+          <Icon name="bi-plus-circle" size={16} /> {t("pages.staffpage.dobavit")}
         </button>
       </div>
-      {loading ? <div className="dashboard-empty" role="status">Загрузка сотрудников...</div> : null}
+      {loading ? <div className="dashboard-empty" role="status">{t("pages.staffpage.zagruzka_sotrudnikov")}</div> : null}
       {error ? <div className="login-error" role="alert">{error}</div> : null}
       {!loading && !error ? <div className="table-responsive">
         <table className="data-table">
-          <thead><tr><th>Сотрудник</th><th>Позиция</th><th>Дата найма</th><th>Тип зарплаты</th><th>Сумма</th><th>Действия</th></tr></thead>
+          <thead><tr><th>{t("pages.staffpage.sotrudnik")}</th><th>{t("pages.staffpage.pozitsiya")}</th><th>{t("pages.staffpage.data_nayma")}</th><th>{t("pages.staffpage.tip_zarplaty")}</th><th>{t("pages.staffpage.summa")}</th><th>{t("pages.staffpage.deystviya")}</th></tr></thead>
           <tbody>
             {employees.map((employee) => <tr key={employee.id}>
               <td>{employee.name || employee.email || `ID: ${employee.user_id}`}</td>
@@ -182,7 +183,7 @@ export default function StaffPage() {
               <td>{formatMoney(employee.salary_amount)}</td>
               <td><div style={{ display: "flex", gap: 8 }}><button type="button" className="finance-action-edit" disabled={saving || Boolean(pendingDeleteId)} onClick={() => openEdit(employee)} aria-label={`Редактировать ${employee.position}`}><Icon name="bi-pencil" size={15} /></button><button type="button" className="is-danger" disabled={pendingDeleteId === String(employee.id)} onClick={() => handleDelete(employee)} aria-label={`Удалить ${employee.position}`}><Icon name="bi-trash3" size={15} /></button></div></td>
             </tr>)}
-            {!employees.length ? <tr><td colSpan="6">Сотрудников пока нет.</td></tr> : null}
+            {!employees.length ? <tr><td colSpan="6">{t("pages.staffpage.sotrudnikov_poka_net")}</td></tr> : null}
           </tbody>
         </table>
       </div> : null}
@@ -190,16 +191,16 @@ export default function StaffPage() {
       {drawerOpen ? <div className="finance-drawer" role="dialog" aria-modal="true">
         <div className="finance-drawer__backdrop" onClick={saving ? undefined : () => setDrawerOpen(false)} />
         <form className="finance-form" onSubmit={handleSave}>
-          <header className="finance-form__header"><span className="finance-accent-bar" /><div><p>Сотрудник</p><h2>{editingId ? "Редактировать" : "Новый сотрудник"}</h2></div><button type="button" disabled={saving} onClick={() => setDrawerOpen(false)} aria-label="Закрыть"><Icon name="bi-x-lg" size={20} /></button></header>
+          <header className="finance-form__header"><span className="finance-accent-bar" /><div><p>{t("pages.staffpage.sotrudnik")}</p><h2>{editingId ? "Редактировать" : "Новый сотрудник"}</h2></div><button type="button" disabled={saving} onClick={() => setDrawerOpen(false)} aria-label={t("pages.staffpage.zakryt")}><Icon name="bi-x-lg" size={20} /></button></header>
           <div className="finance-form__grid">
-            {!editingId ? <label><span>Учётная запись сотрудника</span><select aria-label="Учётная запись сотрудника" required value={form.user_id} onChange={(event) => setForm((current) => ({ ...current, user_id: event.target.value }))}><option value="">Выберите сотрудника</option>{eligibleUsers.map((user) => <option key={user.id} value={user.id}>{userLabel(user)}</option>)}</select></label> : null}
-            <label><span>Филиал</span><select aria-label="Филиал" required value={form.branch_id} onChange={(event) => setForm((current) => ({ ...current, branch_id: event.target.value }))}><option value="">Выберите филиал</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>
-            <label><span>Позиция</span><input required value={form.position} onChange={(event) => setForm((current) => ({ ...current, position: event.target.value }))} /></label>
-            <label><span>Тип зарплаты</span><select value={form.salary_type} onChange={(event) => setForm((current) => ({ ...current, salary_type: event.target.value }))}><option value="fixed">Фиксированная</option><option value="hourly">Почасовая</option><option value="percent">Процент</option></select></label>
-            <label><span>Сумма</span><input type="number" value={form.salary_amount} onChange={(event) => setForm((current) => ({ ...current, salary_amount: event.target.value }))} /></label>
+            {!editingId ? <label><span>{t("pages.staffpage.uchetnaya_zapis_sotrudnika")}</span><select aria-label={t("pages.staffpage.uchetnaya_zapis_sotrudnika")} required value={form.user_id} onChange={(event) => setForm((current) => ({ ...current, user_id: event.target.value }))}><option value="">{t("pages.staffpage.vyberite_sotrudnika")}</option>{eligibleUsers.map((user) => <option key={user.id} value={user.id}>{userLabel(user)}</option>)}</select></label> : null}
+            <label><span>{t("pages.staffpage.filial")}</span><select aria-label={t("pages.staffpage.filial")} required value={form.branch_id} onChange={(event) => setForm((current) => ({ ...current, branch_id: event.target.value }))}><option value="">{t("pages.staffpage.vyberite_filial")}</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>
+            <label><span>{t("pages.staffpage.pozitsiya")}</span><input required value={form.position} onChange={(event) => setForm((current) => ({ ...current, position: event.target.value }))} /></label>
+            <label><span>{t("pages.staffpage.tip_zarplaty")}</span><select value={form.salary_type} onChange={(event) => setForm((current) => ({ ...current, salary_type: event.target.value }))}><option value="fixed">{t("pages.staffpage.fiksirovannaya")}</option><option value="hourly">{t("pages.staffpage.pochasovaya")}</option><option value="percent">{t("pages.staffpage.protsent")}</option></select></label>
+            <label><span>{t("pages.staffpage.summa")}</span><input type="number" value={form.salary_amount} onChange={(event) => setForm((current) => ({ ...current, salary_amount: event.target.value }))} /></label>
           </div>
           {mutationError ? <div className="login-error" role="alert">{mutationError}</div> : null}
-          <footer className="finance-form__footer"><button type="button" onClick={() => setDrawerOpen(false)} disabled={saving}>Отмена</button><button type="submit" disabled={saving}>{saving ? "Сохранение..." : "Сохранить"}</button></footer>
+          <footer className="finance-form__footer"><button type="button" onClick={() => setDrawerOpen(false)} disabled={saving}>{t("pages.staffpage.otmena")}</button><button type="submit" disabled={saving}>{saving ? "Сохранение..." : "Сохранить"}</button></footer>
         </form>
       </div> : null}
     </section>

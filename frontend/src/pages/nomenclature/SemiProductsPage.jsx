@@ -6,6 +6,7 @@ import { settingsService } from "../../api/settings";
 import Icon from "../../components/Icon";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../../hooks/useAsyncSafety";
 import { unitDisplayLabel, unitOptionLabel } from "./nomenclatureData";
+import { t } from "../../i18n/t";
 
 const FALLBACK_UNITS = ["кг", "г", "л", "мл", "шт", "порция"];
 const EMPTY_FORM = { name: "", unit: "кг", category_id: "" };
@@ -226,30 +227,30 @@ export default function SemiProductsPage() {
           <div className="staff-header__title">
             <span className="staff-header__accent" />
             <div>
-              <p className="staff-header__eyebrow">Номенклатура</p>
-              <h1>Полуфабрикаты</h1>
+              <p className="staff-header__eyebrow">{t("pages.nomenclature.semiproductspage.nomenklatura")}</p>
+              <h1>{t("pages.nomenclature.semiproductspage.polufabrikaty")}</h1>
             </div>
           </div>
           <button type="button" className="staff-add-button" onClick={openCreate}>
-            <Icon name="bi-plus" size={18} /> Добавить +
+            <Icon name="bi-plus" size={18} /> {t("pages.nomenclature.semiproductspage.dobavit")}
           </button>
         </header>
 
-        <div className="staff-tabs" role="tablist" aria-label="Фильтр по статусу">
+        <div className="staff-tabs" role="tablist" aria-label={t("pages.nomenclature.semiproductspage.filtr_po_statusu")}>
           <button type="button" role="tab" aria-selected={!showArchived} className={!showArchived ? "is-active" : ""} onClick={() => setShowArchived(false)}>
-            Активные
+           {t("pages.nomenclature.semiproductspage.aktivnye")}
           </button>
           <button type="button" role="tab" aria-selected={showArchived} className={showArchived ? "is-active" : ""} onClick={() => setShowArchived(true)}>
-            Архивированные
+           {t("pages.nomenclature.semiproductspage.arhivirovannye")}
           </button>
         </div>
 
         <div className="staff-filters staff-filters--search">
           <label>
-            <span>Поиск</span>
+            <span>{t("pages.nomenclature.semiproductspage.poisk")}</span>
             <div className="staff-filter-control">
               <Icon name="bi-search" />
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Название полуфабриката" />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("pages.nomenclature.semiproductspage.nazvanie_polufabrikata")} />
             </div>
           </label>
         </div>
@@ -263,14 +264,14 @@ export default function SemiProductsPage() {
             <table className="staff-table">
               <thead>
                 <tr>
-                  <th>Название</th><th>Категория</th><th>Ед. изм</th><th>Себестоимость</th><th>Состав</th><th>Статус</th><th>Действия</th>
+                  <th>{t("pages.nomenclature.semiproductspage.nazvanie")}</th><th>{t("pages.nomenclature.semiproductspage.kategoriya")}</th><th>{t("pages.nomenclature.semiproductspage.ed_izm")}</th><th>{t("pages.nomenclature.semiproductspage.sebestoimost")}</th><th>{t("pages.nomenclature.semiproductspage.sostav")}</th><th>{t("pages.nomenclature.semiproductspage.status")}</th><th>{t("pages.nomenclature.semiproductspage.deystviya")}</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td className="staff-empty-cell" colSpan={7} role="status" aria-busy="true">Загрузка…</td></tr>
+                  <tr><td className="staff-empty-cell" colSpan={7} role="status" aria-busy="true">{t("pages.nomenclature.semiproductspage.zagruzka")}</td></tr>
                 ) : !visible.length ? (
-                  <tr><td className="staff-empty-cell" colSpan={7}>{showArchived ? "Архивных полуфабрикатов пока нет." : "Полуфабрикаты пока не добавлены."}</td></tr>
+                  <tr><td className="staff-empty-cell" colSpan={7}>{t(showArchived ? "pages.nomenclature.semi_archive_empty" : "pages.nomenclature.semi_empty")}</td></tr>
                 ) : (
                   visible.map((row) => {
                     const cat = categoryById.get(row.category_id);
@@ -285,12 +286,12 @@ export default function SemiProductsPage() {
                         <td>
                           <div className="staff-actions">
                             {row.is_active === false ? (
-                              <button type="button" className="staff-restore-action" onClick={() => restoreRow(row)} disabled={busyId === row.id} aria-label="Восстановить"><Icon name="bi-arrow-counterclockwise" /></button>
+                              <button type="button" className="staff-restore-action" onClick={() => restoreRow(row)} disabled={busyId === row.id} aria-label={t("pages.nomenclature.semiproductspage.vosstanovit")}><Icon name="bi-arrow-counterclockwise" /></button>
                             ) : (
                               <>
-                                <button type="button" onClick={() => setProduceRow(row)} disabled={busyId === row.id} aria-label="Произвести"><Icon name="bi-hammer" /></button>
-                                <button type="button" className="edit-action-button" onClick={() => openEdit(row)} disabled={busyId === row.id} aria-label="Изменить"><Icon name="bi-pencil" /></button>
-                                <button type="button" className="staff-delete-action" onClick={() => removeRow(row)} disabled={busyId === row.id} aria-label="Удалить"><Icon name="bi-trash3" /></button>
+                                <button type="button" onClick={() => setProduceRow(row)} disabled={busyId === row.id} aria-label={t("pages.nomenclature.semiproductspage.proizvesti")}><Icon name="bi-hammer" /></button>
+                                <button type="button" className="edit-action-button" onClick={() => openEdit(row)} disabled={busyId === row.id} aria-label={t("pages.nomenclature.semiproductspage.izmenit")}><Icon name="bi-pencil" /></button>
+                                <button type="button" className="staff-delete-action" onClick={() => removeRow(row)} disabled={busyId === row.id} aria-label={t("pages.nomenclature.semiproductspage.udalit")}><Icon name="bi-trash3" /></button>
                               </>
                             )}
                           </div>
@@ -310,18 +311,18 @@ export default function SemiProductsPage() {
           <form className="staff-form" onSubmit={save}>
             <div className="staff-form__header">
               <div>
-                <p>Полуфабрикат</p>
+                <p>{t("pages.nomenclature.semiproductspage.polufabrikat")}</p>
                 <h2>{editing ? "Изменить полуфабрикат" : "Новый полуфабрикат"}</h2>
               </div>
-              <button type="button" onClick={closeDrawer} aria-label="Закрыть"><Icon name="bi-x-lg" /></button>
+              <button type="button" onClick={closeDrawer} aria-label={t("pages.nomenclature.semiproductspage.zakryt")}><Icon name="bi-x-lg" /></button>
             </div>
             <div className="staff-form__grid">
               <label className="staff-form__comment">
-                <span>Название *</span>
-                <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Напр. Тесто дрожжевое" />
+                <span>{t("pages.nomenclature.semiproductspage.nazvanie_2")}</span>
+                <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder={t("pages.nomenclature.semiproductspage.napr_testo_drozhzhevoe")} />
               </label>
               <label>
-                <span>Ед. изм</span>
+                <span>{t("pages.nomenclature.semiproductspage.ed_izm")}</span>
                 <select value={form.unit} onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))}>
                   {unitSelectOptions.some((o) => o.value === form.unit) ? null : (
                     <option value={form.unit}>{form.unit}</option>
@@ -330,9 +331,9 @@ export default function SemiProductsPage() {
                 </select>
               </label>
               <label>
-                <span>Категория</span>
+                <span>{t("pages.nomenclature.semiproductspage.kategoriya")}</span>
                 <select value={form.category_id} onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value }))}>
-                  <option value="">Без категории</option>
+                  <option value="">{t("pages.nomenclature.semiproductspage.bez_kategorii")}</option>
                   {semiCategories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                 </select>
               </label>
@@ -349,7 +350,7 @@ export default function SemiProductsPage() {
             />
 
             <div className="staff-form__footer">
-              <button type="button" onClick={closeDrawer} disabled={saving}>Отмена</button>
+              <button type="button" onClick={closeDrawer} disabled={saving}>{t("pages.nomenclature.semiproductspage.otmena")}</button>
               <button type="submit" disabled={saving || !form.name.trim()}>{saving ? "Сохранение…" : "Сохранить"}</button>
             </div>
           </form>
@@ -375,24 +376,24 @@ function SemiCompose({ items, ingredients, ingredientById, onPick, onQty, onRemo
   return (
     <div className="semi-compose">
       <div className="semi-compose__head">
-        <strong>Состав</strong>
+        <strong>{t("pages.nomenclature.semiproductspage.sostav")}</strong>
         <span>{items.length}</span>
       </div>
       {items.map((it) => {
         const unit = ingredientById.get(it.ingredient_id)?.unit || "";
         return (
           <div className="semi-compose__row" key={it.key}>
-            <select value={it.ingredient_id} onChange={(e) => onPick(it.key, e.target.value)} aria-label="Ингредиент">
-              <option value="">Ингредиент…</option>
+            <select value={it.ingredient_id} onChange={(e) => onPick(it.key, e.target.value)} aria-label={t("pages.nomenclature.semiproductspage.ingredient")}>
+              <option value="">{t("pages.nomenclature.semiproductspage.ingredient_2")}</option>
               {ingredients.map((ing) => <option key={ing.id} value={ing.id}>{ing.name}</option>)}
             </select>
-            <input type="number" min="0" step="any" value={it.quantity} onChange={(e) => onQty(it.key, e.target.value)} placeholder="Кол-во" aria-label="Количество" />
+            <input type="number" min="0" step="any" value={it.quantity} onChange={(e) => onQty(it.key, e.target.value)} placeholder={t("pages.nomenclature.semiproductspage.kol_vo")} aria-label={t("pages.nomenclature.semiproductspage.kolichestvo")} />
             <span className="semi-compose__unit">{unit || "—"}</span>
-            <button type="button" className="semi-compose__remove" onClick={() => onRemove(it.key)} aria-label="Удалить позицию"><Icon name="bi-x-lg" /></button>
+            <button type="button" className="semi-compose__remove" onClick={() => onRemove(it.key)} aria-label={t("pages.nomenclature.semiproductspage.udalit_pozitsiyu")}><Icon name="bi-x-lg" /></button>
           </div>
         );
       })}
-      <button type="button" className="semi-compose__add" onClick={onAdd}>Добавить ингредиент +</button>
+      <button type="button" className="semi-compose__add" onClick={onAdd}>{t("pages.nomenclature.semiproductspage.dobavit_ingredient")}</button>
     </div>
   );
 }
@@ -428,28 +429,28 @@ function ProduceDialog({ row, warehouses, onClose, onProduced }) {
       <form className="staff-form" onSubmit={submit}>
         <div className="staff-form__header">
           <div>
-            <p>Производство</p>
+            <p>{t("pages.nomenclature.semiproductspage.proizvodstvo")}</p>
             <h2>{row.name}</h2>
           </div>
-          <button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="bi-x-lg" /></button>
+          <button type="button" onClick={onClose} aria-label={t("pages.nomenclature.semiproductspage.zakryt")}><Icon name="bi-x-lg" /></button>
         </div>
         {error ? <div className="login-error" role="alert">{error}</div> : null}
         <div className="staff-form__grid">
           <label className="staff-form__comment">
-            <span>Склад списания *</span>
+            <span>{t("pages.nomenclature.semiproductspage.sklad_spisaniya")}</span>
             <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}>
-              <option value="">Выберите склад</option>
+              <option value="">{t("pages.nomenclature.semiproductspage.vyberite_sklad")}</option>
               {warehouses.map((wh) => <option key={wh.id} value={wh.id}>{wh.name}</option>)}
             </select>
           </label>
           <label className="staff-form__comment">
-            <span>Количество *</span>
+            <span>{t("pages.nomenclature.semiproductspage.kolichestvo_2")}</span>
             <input type="number" min="0" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder={`Сколько произвести (${row.unit || "ед."})`} />
           </label>
         </div>
-        <p className="semi-produce__hint">Состав будет списан со склада, остаток полуфабриката увеличится. Операция «всё или ничего».</p>
+        <p className="semi-produce__hint">{t("pages.nomenclature.semiproductspage.sostav_budet_spisan_so_sklada_ostatok_polufabrikata")}</p>
         <div className="staff-form__footer">
-          <button type="button" onClick={onClose} disabled={producing}>Отмена</button>
+          <button type="button" onClick={onClose} disabled={producing}>{t("pages.nomenclature.semiproductspage.otmena")}</button>
           <button type="submit" disabled={!canSubmit}>{producing ? "Производство…" : "Произвести"}</button>
         </div>
       </form>
