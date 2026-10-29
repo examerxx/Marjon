@@ -1012,7 +1012,19 @@
           "kommentariy": "Комментарий",
           "oboroty_za_period_prihod": "Обороты за период: приход",
           "rashod_2": "· расход",
-          "operatsiy_2": "Операций:"
+          "operatsiy_2": "Операций:",
+          "zakazy_klienta": "Заказы клиента",
+          "nomer_zakaza": "№ заказа",
+          "pozitsiy": "Позиций",
+          "summa": "Сумма",
+          "oplacheno": "Оплачено",
+          "dolg": "Долг",
+          "status": "Статус",
+          "net_zakazov_za_period": "Нет заказов за выбранный период",
+          "zakazov": "Заказов:",
+          "finansovye_operatsii": "Финансовые операции",
+          "otkryt_chek": "Открыть чек заказа",
+          "period_istorii": "Период"
         }
       },
       "profile": {

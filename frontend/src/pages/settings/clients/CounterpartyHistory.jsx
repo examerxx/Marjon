@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { financeService } from "../../../api/finance";
 import { isAbortError } from "../../../hooks/useAsyncSafety";
 import ReportDateRangePicker from "../../../components/ReportDateRangePicker";
 import ReportEmptyState from "../../../components/ReportEmptyState";
+import OrderReceiptDialog from "../../dashboard/OrderReceiptDialog";
+import OrderStatus from "../../reports/OrderStatus";
+import { formatMoney } from "../../reports/reportMoney";
 import { formatTablePhone } from "./phone";
 import { toApiDate } from "../../reports/reportPeriod";
 import { webDayKey, webFormat, webCalendarToday } from "../../../utils/webTime";
@@ -73,6 +76,34 @@ export function turnover(items) {
   return { income, expense, count: (items || []).length };
 }
 
+// DEBT-ORDERS-01: строка заказа клиента → вид, который рисует таблица.
+// Поля считает бэкенд (/finance/counterparties/{id}/orders): сумма, оплачено
+// и остаток долга, поэтому фронтенд ничего не досчитывает сам.
+export function normalizeClientOrder(item) {
+  return {
+    id: String(item?.order_id ?? ""),
+    orderNumber: String(item?.order_number ?? ""),
+    createdAt: item?.created_at || null,
+    status: item?.status || "",
+    itemsCount: Number(item?.items_count ?? 0),
+    totalAmount: toTxNumber(item?.total_amount),
+    paidAmount: toTxNumber(item?.paid_amount),
+    debtAmount: toTxNumber(item?.debt_amount),
+    paymentMethods: Array.isArray(item?.payment_methods) ? item.payment_methods.map(String) : [],
+    waiterName: item?.waiter_name || "",
+  };
+}
+
+function formatOrderMoment(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+  return webFormat(value, {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  });
+}
+
 function defaultPeriod() {
   const now = webCalendarToday();
   const pad = (value) => String(value).padStart(2, "0");
@@ -87,7 +118,6 @@ function useCounterpartyHistory(counterpartyId, period) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [mode, setMode] = useState("detailed");
 
   const load = useCallback(async (range) => {
     if (!counterpartyId) return;
@@ -127,49 +157,69 @@ function useCounterpartyHistory(counterpartyId, period) {
     load(period);
   }, [load, period?.start, period?.end]);
 
-  return { items, total, loading, error, mode, setMode, reload: () => load(period) };
+  return { items, total, loading, error, reload: () => load(period) };
+}
+
+// Заказы клиента за период. Долг при закрытии «в долг» не создаёт финансовую
+// транзакцию, поэтому в «Транзакциях» у должника было пусто: показываем его
+// заказы так же, как отчёт по заказам.
+function useCounterpartyOrders(counterpartyId, period, enabled) {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(Boolean(enabled));
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!enabled || !counterpartyId) {
+      setOrders([]);
+      setLoading(false);
+      setError("");
+      return undefined;
+    }
+    let active = true;
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
+    financeService
+      .listCounterpartyOrders(counterpartyId, {
+        dateFrom: toApiDate(period?.start),
+        dateTo: toApiDate(period?.end),
+        signal: controller.signal,
+      })
+      .then(({ data }) => {
+        if (!active) return;
+        setOrders((Array.isArray(data) ? data : []).map(normalizeClientOrder));
+      })
+      .catch((err) => {
+        if (!active || isAbortError(err)) return;
+        setError(err?.response?.data?.detail || "Не удалось загрузить заказы клиента.");
+        setOrders([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [counterpartyId, enabled, period?.start, period?.end]);
+
+  return { orders, loading, error };
 }
 
 export function CounterpartyStatementView({ row }) {
   const [period, setPeriod] = useState(() => defaultPeriod());
+  // Заказы есть только у клиентов: поставщики/сотрудники живут транзакциями.
+  const isClient = row?.type === "clients";
   const history = useCounterpartyHistory(row?.id, period);
-  const { items, loading, error, mode, setMode } = history;
+  const { items, loading: txLoading, error: txError } = history;
+  const { orders, loading: ordersLoading, error: ordersError } = useCounterpartyOrders(row?.id, period, isClient);
+  const [receiptOrder, setReceiptOrder] = useState(null);
   const sums = useMemo(() => turnover(items), [items]);
-  const daily = useMemo(() => (mode === "simple" ? aggregateByDay(items) : []), [items, mode]);
-
-  // Clients V10: the Simple/Detailed toggle reuses the EXACT Clients
-  // segmented-control primitive (.staff-header--cashier .staff-tabs--slider +
-  // measured indicator), so shell/border/active pill/teal text/shadow/
-  // typography/height/radius (22px) match the directory tabs by construction.
-  const modeTabsRef = useRef(null);
-  const [modePill, setModePill] = useState({ left: 0, width: 0 });
-  useLayoutEffect(() => {
-    const container = modeTabsRef.current;
-    if (!container) return undefined;
-    const update = () => {
-      const active = container.querySelector(`[data-mode="${mode}"]`);
-      if (!active) return;
-      setModePill((current) => {
-        const next = { left: active.offsetLeft, width: active.offsetWidth };
-        return current.left === next.left && current.width === next.width
-          ? current
-          : next;
-      });
-    };
-    update();
-    let ro = null;
-    if (typeof ResizeObserver !== "undefined") {
-      ro = new ResizeObserver(update);
-      ro.observe(container);
-      container.querySelectorAll("[data-mode]").forEach((segment) => ro.observe(segment));
-    } else {
-      window.addEventListener("resize", update);
-    }
-    return () => {
-      ro?.disconnect();
-      window.removeEventListener("resize", update);
-    };
-  }, [mode]);
+  const orderSums = useMemo(() => orders.reduce((acc, order) => ({
+    total: acc.total + order.totalAmount,
+    paid: acc.paid + order.paidAmount,
+    debt: acc.debt + order.debtAmount,
+  }), { total: 0, paid: 0, debt: 0 }), [orders]);
 
   // Clients V10: the period picker uses the SAME controlled invocation as the
   // accepted Reports pages (variant="canonical" + animateExit + open +
@@ -209,6 +259,19 @@ export function CounterpartyStatementView({ row }) {
     });
   }
 
+  function openReceipt(order) {
+    setReceiptOrder({ id: order.id, number: order.orderNumber });
+  }
+
+  const loading = isClient ? ordersLoading : txLoading;
+  const error = isClient ? ordersError : txError;
+  const nothingAtAll = isClient
+    ? !orders.length && !items.length
+    : !items.length;
+  // Транзакции показываем вторым блоком и только если они реально есть:
+  // у должника их нет, у клиента с ручными операциями — есть.
+  const showTransactions = !isClient || items.length > 0;
+
   // No local back button here by design (Clients V10): the global/topbar Back
   // returns to the Clients directory and restores the source tab via
   // ?tab=…&history=… navigation state owned by SettingsResourcePage.
@@ -219,7 +282,7 @@ export function CounterpartyStatementView({ row }) {
           <div className="settings-title-group">
             <span className="settings-accent-bar" />
             <div>
-              <p>{t("pages.settings.clients.counterpartyhistory.istoriya_tranzaktsiy")}</p>
+              <p>{isClient ? t("pages.settings.clients.counterpartyhistory.zakazy_klienta") : t("pages.settings.clients.counterpartyhistory.istoriya_tranzaktsiy")}</p>
               <div className="client-statement-identity">
                 <h1>{row?.name || "-"}</h1>
                 {row?.phone ? <span className="client-statement-phone">{formatTablePhone(row.phone)}</span> : null}
@@ -227,15 +290,6 @@ export function CounterpartyStatementView({ row }) {
             </div>
           </div>
           <div className="client-statement-right staff-header--cashier">
-            <div className="staff-tabs staff-tabs--slider" role="group" aria-label={t("pages.settings.clients.counterpartyhistory.rezhim")} data-active={mode} ref={modeTabsRef}>
-              <span
-                className="staff-tabs__indicator"
-                aria-hidden="true"
-                style={{ transform: `translateX(${modePill.left}px)`, width: modePill.width }}
-              />
-              <button type="button" data-mode="simple" className={mode === "simple" ? "is-active" : ""} onClick={() => setMode("simple")}>{t("pages.settings.clients.counterpartyhistory.prostoy")}</button>
-              <button type="button" data-mode="detailed" className={mode === "detailed" ? "is-active" : ""} onClick={() => setMode("detailed")}>{t("pages.settings.clients.counterpartyhistory.podrobnyy")}</button>
-            </div>
             <ReportDateRangePicker
               variant="canonical"
               animateExit
@@ -244,7 +298,7 @@ export function CounterpartyStatementView({ row }) {
               open={panelState.active === "period"}
               onOpenChange={(nextOpen) => requestPanel(nextOpen ? "period" : "")}
               onExitComplete={() => completePanelExit("period")}
-              buttonAriaLabel="Период истории транзакций"
+              buttonAriaLabel={t("pages.settings.clients.counterpartyhistory.period_istorii")}
             />
           </div>
         </header>
@@ -252,33 +306,85 @@ export function CounterpartyStatementView({ row }) {
         <div className="staff-table-wrapper client-statement-table-region">
           {loading ? <div className="settings-empty-state">{t("pages.settings.clients.counterpartyhistory.zagruzka")}</div> : null}
           {!loading && error ? <div className="settings-empty-state" role="alert">{error}</div> : null}
-          {!loading && !error && !items.length ? (
+          {!loading && !error && nothingAtAll ? (
             <div className="client-statement-empty">
-              <ReportEmptyState title={t("pages.settings.clients.counterpartyhistory.net_tranzaktsiy_za_vybrannyy_period")} />
+              <ReportEmptyState
+                title={isClient
+                  ? t("pages.settings.clients.counterpartyhistory.net_zakazov_za_period")
+                  : t("pages.settings.clients.counterpartyhistory.net_tranzaktsiy_za_vybrannyy_period")}
+              />
             </div>
           ) : null}
 
-          {!loading && !error && items.length > 0 ? (
+          {!loading && !error && isClient && orders.length > 0 ? (
             <>
+              <table className="staff-table client-statement-table client-orders-table">
+                <thead>
+                  <tr>
+                    <th>{t("pages.settings.clients.counterpartyhistory.nomer_zakaza")}</th>
+                    <th>{t("pages.settings.clients.counterpartyhistory.data")}</th>
+                    <th>{t("pages.settings.clients.counterpartyhistory.summa")}</th>
+                    <th>{t("pages.settings.clients.counterpartyhistory.oplacheno")}</th>
+                    <th>{t("pages.settings.clients.counterpartyhistory.dolg")}</th>
+                    <th>{t("pages.settings.clients.counterpartyhistory.status")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((order) => (
+                    <tr
+                      key={order.id}
+                      className="client-statement-order-row"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${t("pages.settings.clients.counterpartyhistory.otkryt_chek")} ${order.orderNumber}`}
+                      onClick={() => openReceipt(order)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openReceipt(order);
+                        }
+                      }}
+                    >
+                      <td><strong>{order.orderNumber}</strong></td>
+                      <td>{formatOrderMoment(order.createdAt)}</td>
+                      <td className="client-statement-money">{formatMoney(order.totalAmount)}</td>
+                      <td>{formatMoney(order.paidAmount)}</td>
+                      <td className={order.debtAmount > 0 ? "client-statement-debt is-debt" : "client-statement-debt"}>
+                        {order.debtAmount > 0 ? formatMoney(order.debtAmount) : "—"}
+                      </td>
+                      <td><OrderStatus value={order.status} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="client-statement-summary">
+                <span>{t("pages.settings.clients.counterpartyhistory.zakazov")} {orders.length}</span>
+                <span>{t("pages.settings.clients.counterpartyhistory.summa")} {formatMoney(orderSums.total)}</span>
+                <span>{t("pages.settings.clients.counterpartyhistory.oplacheno")} {formatMoney(orderSums.paid)}</span>
+                <span>{t("pages.settings.clients.counterpartyhistory.dolg")} {formatMoney(orderSums.debt)}</span>
+              </div>
+            </>
+          ) : null}
+
+          {!loading && !error && showTransactions && items.length > 0 ? (
+            <>
+              {isClient ? (
+                <h2 className="client-statement-section-title">
+                  {t("pages.settings.clients.counterpartyhistory.finansovye_operatsii")}
+                </h2>
+              ) : null}
               <table className="staff-table client-statement-table">
                 <thead>
                   <tr>
                     <th>{t("pages.settings.clients.counterpartyhistory.data")}</th>
-                    {mode === "simple" ? <th>{t("pages.settings.clients.counterpartyhistory.operatsiy")}</th> : <th>{t("pages.settings.clients.counterpartyhistory.operatsiya")}</th>}
+                    <th>{t("pages.settings.clients.counterpartyhistory.operatsiya")}</th>
                     <th>{t("pages.settings.clients.counterpartyhistory.prihod")}</th>
                     <th>{t("pages.settings.clients.counterpartyhistory.rashod")}</th>
-                    {mode === "detailed" ? <th>{t("pages.settings.clients.counterpartyhistory.kommentariy")}</th> : null}
+                    <th>{t("pages.settings.clients.counterpartyhistory.kommentariy")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {mode === "simple" ? daily.map((day) => (
-                    <tr key={day.date}>
-                      <td>{day.date}</td>
-                      <td>{day.count}</td>
-                      <td>{day.income > 0 ? formatTxMoney(day.income) : "-"}</td>
-                      <td>{day.expense > 0 ? formatTxMoney(day.expense) : "-"}</td>
-                    </tr>
-                  )) : items.map((item) => (
+                  {items.map((item) => (
                     <tr key={item.id || `${item.date}-${item.amount}`}>
                       <td>{formatTxDate(item.date)}</td>
                       <td>{directionLabel(item.direction)}</td>
@@ -297,6 +403,15 @@ export function CounterpartyStatementView({ row }) {
           ) : null}
         </div>
       </section>
+
+      {/* Тот же чек, что в отчёте по заказам: клик по строке открывает его. */}
+      {receiptOrder ? (
+        <OrderReceiptDialog
+          orderId={receiptOrder.id}
+          orderNumber={receiptOrder.number}
+          onClose={() => setReceiptOrder(null)}
+        />
+      ) : null}
     </div>
   );
 }

@@ -15,7 +15,11 @@ vi.mock("../../api/settings", () => ({
 }));
 
 vi.mock("../../../api/finance", () => ({
-  financeService: { listCounterpartyTransactions: vi.fn(() => Promise.resolve({ data: { items: [], total: 0, page: 1, size: 200, pages: 1 } })) },
+  financeService: {
+    listCounterpartyTransactions: vi.fn(() => Promise.resolve({ data: { items: [], total: 0, page: 1, size: 200, pages: 1 } })),
+    // DEBT-ORDERS-01: у клиента карточка показывает его заказы.
+    listCounterpartyOrders: vi.fn(() => Promise.resolve({ data: [] })),
+  },
 }));
 
 const SERVER_ROWS = [
@@ -502,7 +506,8 @@ describe("SettingsClientsPage (counterparties V1)", () => {
     await screen.findByText("Real Client");
     const row = screen.getByText("Real Client").closest("tr");
     fireEvent.click(within(row).getByRole("button", { name: /История транзакций/ }));
-    expect(await screen.findByText("История транзакций")).toBeInTheDocument();
+    // Клиент открывает карточку заказов (долг не создаёт транзакцию).
+    expect(await screen.findByText("Заказы клиента")).toBeInTheDocument();
     // V11: redundant texts removed — period lives in the period button only.
     expect(screen.queryByText("Акт сверки")).toBeNull();
     expect(screen.queryByText((_, element) => element?.textContent?.startsWith("за период:"))).toBeNull();
@@ -515,9 +520,9 @@ describe("SettingsClientsPage (counterparties V1)", () => {
     // No local history back button: topbar Back owns the return.
     expect(screen.queryByRole("button", { name: /Назад/ })).toBeNull();
     expect(screen.queryByText("← Клиенты")).toBeNull();
-    // Toolbar: slider modes + Reports period picker, no counterparty filter.
-    expect(container.querySelector(".client-statement-right .staff-tabs.staff-tabs--slider")).not.toBeNull();
-    expect(container.querySelector(".client-statement-right .staff-tabs__indicator")).not.toBeNull();
+    // Toolbar: Reports period picker only — the Simple/Detailed toggle is gone,
+    // no counterparty filter.
+    expect(container.querySelector(".client-statement-right .staff-tabs")).toBeNull();
     expect(container.querySelector(".client-statement-right .report-period-picker")).not.toBeNull();
     expect(container.querySelectorAll("select").length).toBe(0);
   });
@@ -533,7 +538,9 @@ describe("SettingsClientsPage (counterparties V1)", () => {
     if (tabLabel !== "Клиенты") fireEvent.click(screen.getByRole("button", { name: tabLabel }));
     const row = await screen.findByText(rowName);
     fireEvent.click(within(row.closest("tr")).getByRole("button", { name: /История транзакций/ }));
-    expect(await screen.findByText("История транзакций")).toBeInTheDocument();
+    // Карточка контрагента открыта: имя в заголовке (для клиента это заказы,
+    // для поставщика/сотрудника — транзакции).
+    expect(await screen.findByRole("heading", { name: rowName })).toBeInTheDocument();
     expect(screen.queryByText("Акт сверки")).toBeNull();
     // The global/topbar back button (aria-label "Назад").
     fireEvent.click(screen.getByRole("button", { name: "Назад" }));

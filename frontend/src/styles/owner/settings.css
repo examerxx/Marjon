@@ -1423,6 +1423,37 @@
   font-weight: 600;
   color: var(--neutral-800, #1e293b);
 }
+/* DEBT-ORDERS-01: карточка клиента показывает его заказы (как отчёт по
+   заказам) — строка кликабельна и открывает чек. */
+.client-statement-page .client-orders-table tbody tr.client-statement-order-row {
+  cursor: pointer;
+}
+.client-statement-page .client-orders-table tbody tr.client-statement-order-row:hover {
+  background: rgba(15, 153, 184, 0.06);
+}
+.client-statement-page .client-orders-table tbody tr.client-statement-order-row:focus-visible {
+  outline: 2px solid var(--owner-accent, #1fc9c9);
+  outline-offset: -2px;
+}
+.client-statement-money {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.client-statement-debt {
+  white-space: nowrap;
+}
+.client-statement-debt.is-debt {
+  color: #b42318;
+  font-weight: 700;
+}
+.client-statement-section-title {
+  margin: 22px 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--neutral-600, #475569);
+}
 .settings-delete-confirm {
   font-size: 12px;
   font-weight: 600;

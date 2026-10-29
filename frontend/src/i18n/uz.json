@@ -1010,7 +1010,19 @@
           "kommentariy": "Izoh",
           "oboroty_za_period_prihod": "Davr aylanmasi: kirim",
           "rashod_2": "· chiqim",
-          "operatsiy_2": "Operatsiyalar:"
+          "operatsiy_2": "Operatsiyalar:",
+          "zakazy_klienta": "Mijoz buyurtmalari",
+          "nomer_zakaza": "Buyurtma №",
+          "pozitsiy": "Pozitsiyalar",
+          "summa": "Summa",
+          "oplacheno": "To'langan",
+          "dolg": "Qarz",
+          "status": "Holat",
+          "net_zakazov_za_period": "Tanlangan davr uchun buyurtmalar yo'q",
+          "zakazov": "Buyurtmalar:",
+          "finansovye_operatsii": "Moliyaviy operatsiyalar",
+          "otkryt_chek": "Buyurtma chekini ochish",
+          "period_istorii": "Davr"
         }
       },
       "profile": {

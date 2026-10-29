@@ -51,6 +51,29 @@ class CounterpartyResponse(BaseResponseSchema):
     organization_id: UUID | None
 
 
+class CounterpartyOrderRow(BaseModel):
+    """DEBT-ORDERS-01: строка «заказы клиента» в карточке контрагента.
+
+    Один в один с колонками отчёта по заказам, плюс оплачено/долг, чтобы
+    владелец сразу видел, сколько по чеку реально получено.
+    """
+
+    order_id: UUID
+    public_id: int | None = None
+    order_number: str
+    created_at: datetime
+    status: str
+    order_type: str | None = None
+    table_number: str | None = None
+    hall_name: str | None = None
+    items_count: int = 0
+    total_amount: Decimal
+    paid_amount: Decimal
+    debt_amount: Decimal
+    payment_methods: list[str] = Field(default_factory=list)
+    waiter_name: str | None = None
+
+
 class PaymentTypeCreate(BaseModel):
     name: str
     type: str | None = None

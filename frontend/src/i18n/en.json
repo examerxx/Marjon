@@ -1010,7 +1010,19 @@
           "kommentariy": "Comment",
           "oboroty_za_period_prihod": "Turnover for the period: inflow",
           "rashod_2": "· expense",
-          "operatsiy_2": "Operations:"
+          "operatsiy_2": "Operations:",
+          "zakazy_klienta": "Client orders",
+          "nomer_zakaza": "Order No.",
+          "pozitsiy": "Items",
+          "summa": "Amount",
+          "oplacheno": "Paid",
+          "dolg": "Debt",
+          "status": "Status",
+          "net_zakazov_za_period": "No orders for the selected period",
+          "zakazov": "Orders:",
+          "finansovye_operatsii": "Financial operations",
+          "otkryt_chek": "Open order receipt",
+          "period_istorii": "Period"
         }
       },
       "profile": {

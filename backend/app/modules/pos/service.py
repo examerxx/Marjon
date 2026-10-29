@@ -539,25 +539,28 @@ class OrderService:
             if phone and not (existing.phone or "").strip():
                 existing.phone = phone
             self.db.add(existing)
+            debtor = existing
         else:
-            self.db.add(
-                Counterparty(
-                    company_id=company_id,
-                    organization_id=None,
-                    scope_kind="company",
-                    full_name=name or phone,
-                    phone=phone or None,
-                    type="client",
-                    balance=debt,
-                )
+            debtor = Counterparty(
+                company_id=company_id,
+                organization_id=None,
+                scope_kind="company",
+                full_name=name or phone,
+                phone=phone or None,
+                type="client",
+                balance=debt,
             )
+            self.db.add(debtor)
         await self.db.flush()
         try:
             await AuditService(self.db).log(
                 company_id, None, "order.debt_client", "order",
                 entity_id=order.id,
+                # DEBT-ORDERS-01: id контрагента в журнале — точная связь
+                # «заказ ↔ клиент» для карточки клиента (в orders такого поля
+                # нет). Имя/телефон остаются для уже существующих долгов.
                 new_data={"client_name": name or None, "client_phone": phone or None,
-                          "debt": str(debt)},
+                          "counterparty_id": str(debtor.id), "debt": str(debt)},
             )
         except Exception:
             pass

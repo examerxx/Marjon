@@ -78,4 +78,14 @@ export const financeService = {
       params: { page, size, ...params, ...(params.date_from || params.date_to ? { web_timezone: "Asia/Tashkent" } : {}) },
     });
   },
+
+  // DEBT-ORDERS-01: заказы клиента (закрытые «в долг»). Долг не создаёт
+  // финансовую транзакцию, поэтому в «Истории транзакций» у должника было
+  // пусто — показываем его заказы, как в отчёте по заказам.
+  listCounterpartyOrders(counterpartyId, { dateFrom, dateTo, signal } = {}) {
+    return api.get(`/finance/counterparties/${counterpartyId}/orders`, {
+      params: definedParams({ date_from: dateFrom, date_to: dateTo }),
+      ...(signal ? { signal } : {}),
+    });
+  },
 };
