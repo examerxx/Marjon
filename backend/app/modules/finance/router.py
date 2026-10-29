@@ -136,6 +136,34 @@ async def counterparty_transactions(
     return Page.create([schemas.TransactionResponse.model_validate(i) for i in items], total, params)
 
 
+@counterparties.get("/{counterparty_id}/orders",
+                    response_model=list[schemas.CounterpartyOrderRow],
+                    summary="Заказы контрагента")
+async def counterparty_orders(
+    counterparty_id: UUID,
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    scope: FinanceScope = Depends(get_owner_finance_scope),
+    db: AsyncSession = Depends(get_db),
+):
+    """DEBT-ORDERS-01: заказы клиента для карточки «Клиенты → История».
+
+    Клиент появляется в справочнике при закрытии счёта «в долг», но в
+    «Транзакциях» у него пусто: долг — не финансовая транзакция, а заказ без
+    оплаты. Отдаём его заказы, чтобы владелец видел чек так же, как в отчёте
+    по заказам.
+    """
+    from app.modules.finance.counterparty_orders import list_counterparty_orders
+
+    counterparty = await FinanceDictionaryService(
+        models.Counterparty, db, system_enabled=False
+    ).get(counterparty_id, scope)
+    rows = await list_counterparty_orders(
+        db, scope.tenant_id, counterparty, date_from, date_to
+    )
+    return [schemas.CounterpartyOrderRow(**row) for row in rows]
+
+
 router.include_router(counterparties)
 
 

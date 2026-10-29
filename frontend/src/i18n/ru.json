@@ -503,5 +503,40 @@
     "unauthorized": "Доступ запрещён",
     "validation_error": "Проверьте введённые данные",
     "unknown_error": "Произошла ошибка"
+  },
+  "pages": {
+    "settings": {
+      "clients": {
+        "counterpartyhistory": {
+          "istoriya_tranzaktsiy": "История транзакций",
+          "rezhim": "Режим",
+          "prostoy": "Простой",
+          "podrobnyy": "Подробный",
+          "zagruzka": "Загрузка...",
+          "net_tranzaktsiy_za_vybrannyy_period": "Нет транзакций за выбранный период",
+          "data": "Дата",
+          "operatsiy": "Операций",
+          "operatsiya": "Операция",
+          "prihod": "Приход",
+          "rashod": "Расход",
+          "kommentariy": "Комментарий",
+          "oboroty_za_period_prihod": "Обороты за период: приход",
+          "rashod_2": "· расход",
+          "operatsiy_2": "Операций:",
+          "zakazy_klienta": "Заказы клиента",
+          "nomer_zakaza": "№ заказа",
+          "pozitsiy": "Позиций",
+          "summa": "Сумма",
+          "oplacheno": "Оплачено",
+          "dolg": "Долг",
+          "status": "Статус",
+          "net_zakazov_za_period": "Нет заказов за выбранный период",
+          "zakazov": "Заказов:",
+          "finansovye_operatsii": "Финансовые операции",
+          "otkryt_chek": "Открыть чек заказа",
+          "period_istorii": "Период"
+        }
+      }
+    }
   }
 }

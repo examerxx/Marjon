@@ -503,5 +503,40 @@
     "unauthorized": "Kirish taqiqlangan",
     "validation_error": "Kiritilgan ma'lumotlarni tekshiring",
     "unknown_error": "Xatolik yuz berdi"
+  },
+  "pages": {
+    "settings": {
+      "clients": {
+        "counterpartyhistory": {
+          "istoriya_tranzaktsiy": "Tranzaksiyalar tarixi",
+          "rezhim": "Rejim",
+          "prostoy": "Bo'sh turish",
+          "podrobnyy": "Batafsil",
+          "zagruzka": "Yuklanmoqda...",
+          "net_tranzaktsiy_za_vybrannyy_period": "Tanlangan davr uchun tranzaksiyalar yo'q",
+          "data": "Sana",
+          "operatsiy": "Operatsiyalar",
+          "operatsiya": "Operatsiya",
+          "prihod": "Kirim",
+          "rashod": "Chiqim",
+          "kommentariy": "Izoh",
+          "oboroty_za_period_prihod": "Davr aylanmasi: kirim",
+          "rashod_2": "· chiqim",
+          "operatsiy_2": "Operatsiyalar:",
+          "zakazy_klienta": "Mijoz buyurtmalari",
+          "nomer_zakaza": "Buyurtma №",
+          "pozitsiy": "Pozitsiyalar",
+          "summa": "Summa",
+          "oplacheno": "To'langan",
+          "dolg": "Qarz",
+          "status": "Holat",
+          "net_zakazov_za_period": "Tanlangan davr uchun buyurtmalar yo'q",
+          "zakazov": "Buyurtmalar:",
+          "finansovye_operatsii": "Moliyaviy operatsiyalar",
+          "otkryt_chek": "Buyurtma chekini ochish",
+          "period_istorii": "Davr"
+        }
+      }
+    }
   }
 }

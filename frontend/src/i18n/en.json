@@ -503,5 +503,40 @@
     "unauthorized": "Access denied",
     "validation_error": "Check the entered data",
     "unknown_error": "Something went wrong"
+  },
+  "pages": {
+    "settings": {
+      "clients": {
+        "counterpartyhistory": {
+          "istoriya_tranzaktsiy": "Transaction history",
+          "rezhim": "Mode",
+          "prostoy": "Idle",
+          "podrobnyy": "Detailed",
+          "zagruzka": "Loading...",
+          "net_tranzaktsiy_za_vybrannyy_period": "No transactions for the selected period",
+          "data": "Date",
+          "operatsiy": "Operations",
+          "operatsiya": "Operation",
+          "prihod": "Incoming",
+          "rashod": "Outgoing",
+          "kommentariy": "Comment",
+          "oboroty_za_period_prihod": "Turnover for the period: inflow",
+          "rashod_2": "· expense",
+          "operatsiy_2": "Operations:",
+          "zakazy_klienta": "Client orders",
+          "nomer_zakaza": "Order No.",
+          "pozitsiy": "Items",
+          "summa": "Amount",
+          "oplacheno": "Paid",
+          "dolg": "Debt",
+          "status": "Status",
+          "net_zakazov_za_period": "No orders for the selected period",
+          "zakazov": "Orders:",
+          "finansovye_operatsii": "Financial operations",
+          "otkryt_chek": "Open order receipt",
+          "period_istorii": "Period"
+        }
+      }
+    }
   }
 }
