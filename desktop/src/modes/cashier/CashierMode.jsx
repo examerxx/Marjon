@@ -116,8 +116,6 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   // Типы заказа из профиля компании («Другие настройки» веба). null = ещё не
   // загружено или ошибка — считаем всё включённым (как раньше).
   const [orderTypes, setOrderTypes] = useState(null)
-  // Профиль компании: имя в шапке чека и настройки типов заказа.
-  const [company, setCompany] = useState(null)
   const typeOn = (key) => !orderTypes || orderTypes[key] !== false
   // Если текущий тип/доску выключили — откатываемся на первый включённый.
   useEffect(() => {
@@ -190,7 +188,6 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
         const map = {}; (pl.items ?? pl ?? []).forEach((p) => { map[p.id] = p }); setPrinterMap(map)
       })
     companiesApi.profile().then((p) => {
-      setCompany(p || null)
       setOrderTypes(p?.order_types || null)
     }).catch(() => {})
     // Способы оплаты из веб-админки (Настройки → «Способ оплаты»). Владелец вводит
@@ -683,7 +680,6 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   const paymentOverlay = payExisting ? (
     <PaymentModal
       order={payExisting}
-      company={company}
       onPrint={printOrderReceipt}
       onComplete={completeExistingOrder}
       onCancel={cancelOrder}

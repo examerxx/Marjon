@@ -4458,12 +4458,12 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 .pay-amount__hint--change { color: var(--color-success); }
 .pay-amount__hint--short { color: var(--color-danger); }
 
-/* Чек на экране оплаты — та же бумага, что уходит на печать: белая полоса
-   с зубчатыми краями, реквизиты заказа, таблица блюд и большой номер внизу.
+/* Чек на экране оплаты — белая бумага с зубчатыми краями: реквизиты заказа
+   и таблица блюд, без шапки заведения и итогового номера.
    Цвета фиксированные: даже в тёмной теме чек остаётся бумагой. */
 .pay-receipt {
   width: min(500px, 100%);
-  padding: 34px 30px 40px;
+  padding: 24px 28px 26px;
   color: #101828;
   background: #fff;
   font-family: Inter, Arial, "Segoe UI", sans-serif;
@@ -4585,24 +4585,15 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
   );
   filter: drop-shadow(0 12px 22px rgba(16, 24, 40, 0.16));
 }
-.pay-receipt__brand {
-  margin-bottom: 18px;
-  font-size: 34px;
-  font-weight: 800;
-  line-height: 1.1;
-  text-align: center;
-  text-transform: uppercase;
-  overflow-wrap: anywhere;
-}
-.pay-receipt__info { display: flex; flex-direction: column; gap: 2px; font-weight: 700; }
+.pay-receipt__info { display: flex; flex-direction: column; gap: 1px; font-weight: 700; }
 .pay-receipt__info > div { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
 .pay-receipt__info span { min-width: 0; }
 .pay-receipt__info b { text-align: right; overflow-wrap: anywhere; }
-.pay-receipt__table { margin-top: 14px; border-top: 2px dashed #98a2b3; }
+.pay-receipt__table { margin-top: 10px; border-top: 2px dashed #98a2b3; }
 .pay-receipt__row {
   display: grid; grid-template-columns: minmax(0, 1fr) 64px 110px;
   align-items: baseline; gap: 10px;
-  padding: 6px 0;
+  padding: 3px 0;
   font-weight: 600;
 }
 .pay-receipt__row > :nth-child(2) { text-align: center; }
@@ -4611,9 +4602,6 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 .pay-receipt__row--sum { border-top: 2px dashed #d0d5dd; }
 .pay-receipt__row--total { border-top: 2px dashed #98a2b3; font-size: 20px; font-weight: 800; }
 .pay-receipt__empty { padding: 10px 0; color: #667085; font-weight: 600; }
-.pay-receipt__bottom { margin-top: 24px; text-align: center; color: #667085; }
-.pay-receipt__bottom span { display: block; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; }
-.pay-receipt__bottom strong { display: block; margin-top: 6px; font-size: 72px; font-weight: 800; line-height: 1; color: #475467; }
 
 /* Сумма к оплате — белый фон, без рамок и подложки. Клик по ней по-прежнему
    подставляет всю сумму в активный способ, поэтому остаётся кнопкой. */

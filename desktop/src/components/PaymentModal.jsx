@@ -46,7 +46,7 @@ function fmtReceiptDateTime(iso) {
 
 export default function PaymentScreen({
   order, onPrint, onComplete, onCancel, onReassign, onClose, canClose = true, staff = [],
-  onSetWaiter, onApplyDiscount, onRefreshOrder, company = null,
+  onSetWaiter, onApplyDiscount, onRefreshOrder,
   paymentMethods = [], paidBefore = 0, canDebt = false,
 }) {
   const [method, setMethod] = useState('cash')
@@ -65,7 +65,6 @@ export default function PaymentScreen({
   const total = Number(order?.total_amount || 0)
   const items = (order?.items || []).filter((item) => item.status !== 'cancelled')
   const subtotal = items.reduce((s, it) => s + Number(it.total ?? (Number(it.price) * Number(it.quantity))), 0)
-  const companyName = company?.name || 'MARJON'
   // Кто участвовал в заказе — те же строки, что печатаются на чеке.
   const receiptStaff = (order?.receipt_staff || []).filter((row) => row && row.name)
   const servicePct = subtotal > 0 ? Math.round(Number(order?.service_fee || 0) / subtotal * 100) : 0
@@ -261,12 +260,10 @@ export default function PaymentScreen({
             </div>
           )}
 
-          {/* Чек ровно в том виде, в каком он уйдёт на печать: шапка, реквизиты,
-              блюда, итоги и большой номер заказа внизу. */}
+          {/* Чек на экране: реквизиты заказа, блюда и итоги — без шапки
+              заведения, способа оплаты и крупного номера внизу. */}
           <div className="pay-receipt-scroll">
             <article className="pay-receipt" aria-label={`${t('print_receipt')} #${order?.order_number ?? ''}`}>
-              <div className="pay-receipt__brand">{companyName}</div>
-
               <div className="pay-receipt__info">
                 <div><span>{t('receipt_order_no')}:</span><b>{order?.order_number ?? ''}</b></div>
                 <div><span>{t('receipt_order_type')}:</span><b>{t.type(order?.order_type || 'dine_in')}</b></div>
@@ -322,19 +319,11 @@ export default function PaymentScreen({
                     <span>{t('receipt_paid_earlier')}</span><span /><span>{fmt(paidBefore)}</span>
                   </div>
                 )}
-                <div className="pay-receipt__row">
-                  <span>{paymentLabel}:</span><span /><span>{fmt(paid)}</span>
-                </div>
                 {change > 0 && (
                   <div className="pay-receipt__row">
                     <span>{t('change')}</span><span /><span>{fmt(change)}</span>
                   </div>
                 )}
-              </div>
-
-              <div className="pay-receipt__bottom">
-                <span>{t('receipt_bottom_no')}</span>
-                <strong>{order?.order_number ?? ''}</strong>
               </div>
             </article>
           </div>
