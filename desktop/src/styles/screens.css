@@ -18,7 +18,7 @@
   background: var(--chrome-bg);
   overflow: hidden;
 }
-.floor .ws-side { padding-top: 14px; border-radius: 0; }
+.floor .ws-side { padding-top: 4px; border-radius: 0; }
 /* Радиус остаётся только у белого main — сам сайдбар плоский */
 
 /* ── Каркас рабочего экрана ── */
