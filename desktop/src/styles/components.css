@@ -3851,12 +3851,8 @@ body.vkb-open .login-card {
 .sidebar, .ws-side, .floor .ws-side { border-right: none; }
 .bottombar, .ws-bottom { border-top: none; }
 
-/* ── Активная кнопка локации в сайдбаре — тень как в вебе: светлый блик
-   сверху внутри кнопки и мягкая брендовая тень под ней. Полосы слева нет:
-   кнопка залита брендом целиком (цвета — в screens.css через токены). ── */
-.zone--active {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 6px 14px var(--color-brand-glow);
-}
+/* ── Активная кнопка локации в сайдбаре — тень и стеклянный тинт заданы
+   в screens.css рядом с остальными состояниями .zone. ── */
 
 /* ═══════════════════════════════════════════════════════════════════
    ПРАВКИ ПО ФИДБЕКУ: карточки блюд, корзина, оплата, режимы, кухня
@@ -4778,11 +4774,6 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 /* Столы — статусы заданы токенами (--status-*), тёмная тема наследует их автоматически */
 [data-theme="dark"] .tcard--free .tcard__status { background: var(--color-subtle); color: var(--color-text-secondary); }
 
-/* Кнопка выхода/назад наверху сайдбара — токены хрома (видна и на белом, и на тёмном) */
-.zone--exit { margin-bottom: 10px; background: transparent; color: var(--color-text-secondary); }
-.zone--exit > svg { color: var(--color-text-muted); }
-.zone--exit:hover { background: var(--chrome-hover); color: var(--chrome-text); }
-.zone--exit:hover > svg { color: var(--chrome-text); }
 
 /* Кнопки — по палитре и крупнее (в т.ч. Финансы/История/Отчёты в шапке).
    Ховер: акцентный фон + белые иконка и текст */
