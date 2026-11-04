@@ -589,8 +589,8 @@
 .tcard--free { --tcard-accent: var(--color-border); border-style: dashed; background: var(--color-card); }
 .tcard--free .tcard__status { background: var(--color-subtle); color: var(--color-text-muted); }
 .tcard--busy,
-.tcard--check { --tcard-accent: rgba(214, 197, 73, 0.45); background: #fdf7b5; }
-.tcard--pay { --tcard-accent: rgba(52, 168, 104, 0.38); background: #c9f5da; }
+.tcard--check { --tcard-accent: rgba(214, 197, 73, 0.45); background: #faf3a6; }
+.tcard--pay { --tcard-accent: rgba(52, 168, 104, 0.38); background: #c0f2d3; }
 /* На цветном фоне пилюля и чип мест — светлое стекло, чтобы не сливаться. */
 .tcard--busy .tcard__status,
 .tcard--check .tcard__status,
@@ -606,8 +606,8 @@
 .tcard--pay .tcard__amount { color: var(--teal-800); }
 /* Тёмная тема: те же статусы, но приглушёнными тонировками. */
 [data-theme="dark"] .tcard--busy,
-[data-theme="dark"] .tcard--check { --tcard-accent: rgba(253, 247, 181, 0.32); background: rgba(253, 247, 181, 0.13); }
-[data-theme="dark"] .tcard--pay { --tcard-accent: rgba(201, 245, 218, 0.32); background: rgba(201, 245, 218, 0.13); }
+[data-theme="dark"] .tcard--check { --tcard-accent: rgba(250, 243, 166, 0.32); background: rgba(250, 243, 166, 0.13); }
+[data-theme="dark"] .tcard--pay { --tcard-accent: rgba(192, 242, 211, 0.32); background: rgba(192, 242, 211, 0.13); }
 [data-theme="dark"] .tcard--busy .tcard__status,
 [data-theme="dark"] .tcard--check .tcard__status,
 [data-theme="dark"] .tcard--pay .tcard__status { background: rgba(255, 255, 255, 0.12); }
