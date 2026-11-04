@@ -93,8 +93,8 @@ export default function StaffProfileModal({
 
         <div className="modal__body profile">
           <div className="profile__head">
-            <span className="profile__name">{user.name || user.email || t('staff')}</span>
             <span className="profile__role">{t.role(role)}</span>
+            <span className="profile__name">{user.name || user.email || t('staff')}</span>
             {branchName && (
               <span className="profile__branch"><Store size={14} /> {branchName}</span>
             )}
