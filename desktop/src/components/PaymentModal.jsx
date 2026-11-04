@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
-  ArrowLeft, Printer, Banknote, CreditCard, CheckCircle,
-  Phone, MapPin, Wallet, Undo2, X,
+  ArrowLeft, Printer, Banknote, CreditCard, CheckCircle, Check, ChevronDown,
+  Phone, MapPin, Wallet, Undo2,
 } from 'lucide-react'
 import { t } from '../shared/i18n'
 import { formatPhone, extractPhoneDigits, fullPhone } from '../shared/phone'
@@ -14,10 +14,9 @@ import WaiterPicker from './WaiterPicker'
 /**
  * PaymentScreen — экран оплаты и закрытие заказа (полноэкранный, без оверлея).
  *
- * Способы оплаты: наличные, карта и один собирательный «Другой» — внутри него
- * список способов из веб-админки (Uzum, Yandex, …). Отдельные кнопки под каждый
- * кастомный способ не рисуем: их может быть сколько угодно, а место на
- * терминале конечное.
+ * Способы оплаты: наличные, карта и способы из веб-админки (Uzum, Yandex, …).
+ * Все они — строки одного свёрнутого списка, как «смена официанта»: отдельных
+ * крупных кнопок под каждый способ не рисуем, их может быть сколько угодно.
  *
  * Сумма к получению — ОДНО поле на любой способ. Пустое = ровно к оплате
  * (можно закрывать сразу). Ввели больше — показываем сдачу, меньше — «не хватает»
@@ -58,7 +57,8 @@ export default function PaymentScreen({
   const [debtStep, setDebtStep] = useState('none')
   const [debtorName, setDebtorName] = useState('')
   const [debtorPhone, setDebtorPhone] = useState('')
-  const [otherOpen, setOtherOpen] = useState(false)
+  const [methodOpen, setMethodOpen] = useState(false)
+  const methodRef = useRef(null)
   // Сумма, которую дал гость. Строкой: пустое поле ≠ 0, это «ровно к оплате».
   const [amount, setAmount] = useState('')
 
@@ -101,8 +101,24 @@ export default function PaymentScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order?.total_amount, order?.discount_amount])
 
+  // Список способов оплаты ведёт себя как «смена официанта»: закрывается
+  // тапом мимо и по Escape.
+  useEffect(() => {
+    if (!methodOpen) return
+    function onDoc(e) {
+      if (methodRef.current && !methodRef.current.contains(e.target)) setMethodOpen(false)
+    }
+    function onKey(e) { if (e.key === 'Escape') setMethodOpen(false) }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [methodOpen])
+
   function pickMethod(next) {
-    setOtherOpen(false)
+    setMethodOpen(false)
     if (next === method) return
     setMethod(next)
     setAmount('')      // у каждого способа своя принятая сумма
@@ -177,6 +193,16 @@ export default function PaymentScreen({
 
   function closeDebt() { setDebtStep('none') }
   const spin = <span className="btn-spinner" aria-hidden="true" />
+
+  const methodOptions = [
+    { value: 'cash', label: t('cash'), icon: <Banknote size={18} /> },
+    { value: 'card', label: t('card'), icon: <CreditCard size={18} /> },
+    ...customMethods.map((m) => ({ value: m.name, label: m.name, icon: <Wallet size={18} /> })),
+    ...(debtAllowed ? [{ value: 'debt', label: t('debt'), icon: <Wallet size={18} /> }] : []),
+  ]
+  const currentMethodIcon = method === 'card'
+    ? <CreditCard size={18} />
+    : method === 'cash' ? <Banknote size={18} /> : <Wallet size={18} />
 
   // Закрытие в долг — отдельный экран поверх оплаты
   if (debtStep === 'form') {
@@ -315,27 +341,42 @@ export default function PaymentScreen({
         </div>
 
         <div className="pay-screen__side">
-          {/* Способы оплаты: наличные / карта / «Другой» (список из админки) */}
-          <div className="pay-order__methods">
-            <button className={`pay-method-btn ${method === 'cash' ? 'is-active' : ''}`} onClick={() => pickMethod('cash')}>
-              <Banknote size={22} /><span>{t('cash')}</span>
-            </button>
-            <button className={`pay-method-btn ${method === 'card' ? 'is-active' : ''}`} onClick={() => pickMethod('card')}>
-              <CreditCard size={22} /><span>{t('card')}</span>
-            </button>
-            {customMethods.length > 0 && (
+          {/* Способ оплаты — один свёрнутый список, как «смена официанта».
+              Раскрывается вниз; строки: наличные, карта, способы из админки, долг. */}
+          <div className="pay-screen__control">
+            <div className={`wpick ${methodOpen ? 'wpick--open' : ''}`} ref={methodRef}>
               <button
-                className={`pay-method-btn ${isCustom ? 'is-active' : ''}`}
-                onClick={() => setOtherOpen(true)}
+                type="button" className="wpick__trigger"
+                aria-haspopup="listbox" aria-expanded={methodOpen}
+                onClick={() => setMethodOpen((v) => !v)}
               >
-                <Wallet size={22} /><span>{isCustom ? method : t('other_method')}</span>
+                <span className="wpick__label">{t('z_pay_methods')}</span>
+                <span className="wpick__value">
+                  <span className="wpick__ico">{currentMethodIcon}</span>
+                  {paymentLabel}
+                </span>
+                <ChevronDown size={18} className="wpick__chev" />
               </button>
-            )}
-            {debtAllowed && (
-              <button className={`pay-method-btn ${method === 'debt' ? 'is-active' : ''}`} onClick={() => pickMethod('debt')}>
-                <Wallet size={22} /><span>{t('debt')}</span>
-              </button>
-            )}
+
+              {methodOpen && (
+                <div className="wpick__list" role="listbox">
+                  {methodOptions.map((option) => {
+                    const on = option.value === method
+                    return (
+                      <button
+                        key={option.value} type="button" role="option" aria-selected={on}
+                        className={`wpick__opt ${on ? 'wpick__opt--on' : ''}`}
+                        onClick={() => pickMethod(option.value)}
+                      >
+                        <span className="wpick__ico">{option.icon}</span>
+                        <span className="wpick__opt-name">{option.label}</span>
+                        {on && <Check size={18} />}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Возврат в закрытый заказ */}
@@ -446,29 +487,6 @@ export default function PaymentScreen({
           </div>
         </div>
       </div>
-
-      {/* Выбор «другого» способа оплаты (Uzum, Yandex, …) */}
-      {otherOpen && (
-        <div className="pay-other" onClick={() => setOtherOpen(false)}>
-          <div className="pay-other__panel" onClick={(e) => e.stopPropagation()}>
-            <div className="pay-other__head">
-              <span>{t('other_method')}</span>
-              <button className="icon-btn" onClick={() => setOtherOpen(false)}><X size={20} /></button>
-            </div>
-            <div className="pay-other__list">
-              {customMethods.map((m) => (
-                <button
-                  key={m.id ?? m.name}
-                  className={`pay-other__item ${method === m.name ? 'is-active' : ''}`}
-                  onClick={() => pickMethod(m.name)}
-                >
-                  <Wallet size={18} /><span>{m.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
