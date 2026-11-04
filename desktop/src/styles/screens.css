@@ -585,12 +585,37 @@
 }
 
 /* Свободный стол — белый с пунктирной рамкой; занятый — мягкий жёлтый;
-   чек напечатан и ждёт оплаты — спокойный зелёный #53b685. */
+   чек напечатан и ждёт оплаты — зелёное стекло в стиле категорий. */
 .tcard--free { --tcard-accent: var(--color-border); border-style: dashed; background: var(--color-card); }
 .tcard--free .tcard__status { background: var(--color-subtle); color: var(--color-text-muted); }
 .tcard--busy,
 .tcard--check { --tcard-accent: rgba(214, 197, 73, 0.45); background: #faf3a6; }
-.tcard--pay { --tcard-accent: rgba(35, 128, 91, 0.5); background: #53b685; }
+/* Тот же материал, что у кнопок категорий: многослойная заливка, блик
+   сверху-слева и мягкая тень. Только тонирован зелёным #53b685. */
+.tcard--pay {
+  --tcard-accent: rgba(255, 255, 255, 0.5);
+  background:
+    radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(98, 205, 157, 0.95) 0%, rgba(83, 182, 133, 0.93) 46%, rgba(52, 145, 100, 0.96) 100%);
+  background-color: rgba(83, 182, 133, 0.55);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+    inset 0 0 22px rgba(255, 255, 255, 0.12),
+    0 10px 24px -14px rgba(35, 128, 91, 0.45),
+    0 2px 6px rgba(15, 35, 60, 0.08);
+}
+.tcard--pay:hover {
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+    inset 0 0 26px rgba(255, 255, 255, 0.16),
+    0 14px 30px -14px rgba(35, 128, 91, 0.55),
+    0 2px 8px rgba(15, 35, 60, 0.1);
+}
 /* На цветном фоне пилюля и чип мест — светлое стекло, чтобы не сливаться. */
 .tcard--busy .tcard__status,
 .tcard--check .tcard__status,
@@ -600,8 +625,7 @@
 .tcard--pay .tcard__status { color: #0d5c3d; background: rgba(255, 255, 255, 0.9); }
 .tcard--busy .tcard__seats,
 .tcard--check .tcard__seats { background: rgba(255, 255, 255, 0.74); }
-/* На зелёной карточке текст — белый, как в образце: тёмные чернила
-   на этом тоне выглядят грязно. */
+/* На зелёном стекле текст — белый, как в образце. */
 .tcard--pay .tcard__num,
 .tcard--pay .tcard__amount { color: #fff; }
 .tcard--pay .tcard__client { color: rgba(255, 255, 255, 0.95); }
@@ -613,7 +637,17 @@
 /* Тёмная тема: те же статусы, но приглушёнными тонировками. */
 [data-theme="dark"] .tcard--busy,
 [data-theme="dark"] .tcard--check { --tcard-accent: rgba(250, 243, 166, 0.32); background: rgba(250, 243, 166, 0.13); }
-[data-theme="dark"] .tcard--pay { --tcard-accent: rgba(83, 182, 133, 0.42); background: rgba(83, 182, 133, 0.18); }
+[data-theme="dark"] .tcard--pay {
+  --tcard-accent: rgba(255, 255, 255, 0.16);
+  background:
+    radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(83, 182, 133, 0.28) 0%, rgba(60, 150, 108, 0.26) 100%);
+  background-color: rgba(83, 182, 133, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 10px 24px -16px rgba(0, 0, 0, 0.6);
+}
 [data-theme="dark"] .tcard--busy .tcard__status,
 [data-theme="dark"] .tcard--check .tcard__status,
 [data-theme="dark"] .tcard--pay .tcard__status { background: rgba(255, 255, 255, 0.12); }
@@ -623,7 +657,6 @@
 [data-theme="dark"] .tcard--busy .tcard__seats,
 [data-theme="dark"] .tcard--check .tcard__seats,
 [data-theme="dark"] .tcard--pay .tcard__seats { background: rgba(255, 255, 255, 0.1); }
-[data-theme="dark"] .tcard--pay .tcard__amount { color: var(--color-brand); }
 
 /* ═══ Нижний статус-бар ═══ */
 .ws-bottom {
