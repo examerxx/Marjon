@@ -17,7 +17,7 @@ from app.modules.pos.schemas import (
     OrderCreate, OrderItemCreate, OrderItemQuantityUpdate, OrderItemWaiterUpdate, OrderResponse,
     OrderReopen, OrderStatusUpdate, OrderUpdate,
     TerminalCreate, TerminalResponse,
-    ShiftOpen, ShiftClose, ShiftResponse,
+    ShiftOpen, ShiftClose, ShiftResponse, MyShiftSummary,
 )
 from app.modules.pos.service import OrderService, TerminalService, ShiftService
 from app.shared.rate_limit import limiter
@@ -164,3 +164,12 @@ async def current_shift(branch_id: UUID = Query(...), user: User = Depends(requi
     if not shift:
         return {"shift": None}
     return ShiftResponse.model_validate(shift)
+
+
+@router.get("/shifts/me/summary", response_model=MyShiftSummary)
+async def my_shift_summary(
+    branch_id: UUID | None = Query(None),
+    user: User = Depends(require_company_app_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await ShiftService(db).my_summary(user.company_id, user.id, branch_id)

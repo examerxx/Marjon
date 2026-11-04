@@ -98,6 +98,14 @@ const DICT = {
     recent_ops: 'Последние операции', no_ops: 'Операций пока нет.',
     past_locked: 'Только за сегодня. Прошлые дни — по разрешению владельца.',
     shift_open_err: 'Не удалось открыть смену', shift_close_err: 'Не удалось закрыть смену', op_err: 'Ошибка операции',
+    // Профиль сотрудника и смена на PIN-экране
+    profile: 'Профиль', worked_today: 'Отработано', sales_today: 'Продажи', orders_count: 'Заказов',
+    opened_at: 'Открыта в', shift_not_open: 'Смена не открыта',
+    shift_closed_title: 'Смена не открыта', shift_closed_text: 'Чтобы начать работу, откройте смену',
+    shift_other_cashier: 'Смену открыл другой сотрудник',
+    close_shift_confirm: 'Закрыть смену? После этого работа на кассе завершится.',
+    switch_staff: 'Сменить сотрудника', profile_load_err: 'Не удалось загрузить данные профиля',
+    hour_short: 'ч', minute_short: 'мин',
     // История
     hist_title: 'История заказов', no_orders_found: 'Заказов не найдено.',
     // Отчёты
@@ -300,6 +308,14 @@ const DICT = {
     recent_ops: 'So‘nggi operatsiyalar', no_ops: 'Hozircha operatsiya yo‘q.',
     past_locked: 'Faqat bugun uchun. O‘tgan kunlar — ega ruxsati bilan.',
     shift_open_err: 'Smenani ochib bo‘lmadi', shift_close_err: 'Smenani yopib bo‘lmadi', op_err: 'Operatsiya xatosi',
+    // Xodim profili va PIN-ekrandagi smena
+    profile: 'Profil', worked_today: 'Ishlangan vaqt', sales_today: 'Sotuv', orders_count: 'Buyurtmalar',
+    opened_at: 'Ochilgan vaqti', shift_not_open: 'Smena ochilmagan',
+    shift_closed_title: 'Smena ochilmagan', shift_closed_text: 'Ishni boshlash uchun smenani oching',
+    shift_other_cashier: 'Smenani boshqa xodim ochgan',
+    close_shift_confirm: 'Smenani yopasizmi? Shundan so‘ng kassadagi ish tugaydi.',
+    switch_staff: 'Xodimni almashtirish', profile_load_err: 'Profil ma’lumotlarini yuklab bo‘lmadi',
+    hour_short: 'soat', minute_short: 'daq',
     // Tarix
     hist_title: 'Buyurtmalar tarixi', no_orders_found: 'Buyurtma topilmadi.',
     // Hisobotlar

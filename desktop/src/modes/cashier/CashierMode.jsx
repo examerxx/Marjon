@@ -77,6 +77,7 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   const [loading, setLoading] = useState(true)
   const [hallsError, setHallsError] = useState('')
   const orderSubmitLock = useRef(false)
+  const cartItemsRef = useRef(null)
 
   // Курьер стартует на доске своих заказов (доставка). Физических столов у него нет
   const [view, setView] = useState('floor')  // floor | order
@@ -563,6 +564,15 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   const itemCount = orderLines.reduce((s, i) => s + i.qty, 0) + cart.reduce((s, i) => s + i.qty, 0)
   const linesCount = orderLines.length + cart.length
 
+  // Панель заказа заполняется — прокручиваем её вниз, чтобы последняя
+  // добавленная позиция всегда была на виду.
+  useEffect(() => {
+    const el = cartItemsRef.current
+    if (!el) return undefined
+    const id = requestAnimationFrame(() => { el.scrollTop = el.scrollHeight })
+    return () => cancelAnimationFrame(id)
+  }, [linesCount, view])
+
   // Досылаем новые строки в существующий заказ и возвращаем свежий снимок.
   async function pushCartToOrder() {
     if (!addToOrderId || !cart.length) return existingOrder
@@ -854,7 +864,7 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
 
           <aside className="cashier-cart">
             <div className="cashier-cart__header"><ShoppingBag size={20} /><span>{t('order')}</span><span className="cart-count">{itemCount}</span></div>
-            <div className="cashier-cart__items">
+            <div className="cashier-cart__items" ref={cartItemsRef}>
               {linesCount === 0 ? <p className="cart-empty">{t('tap_dish_hint')}</p> : (
                 <>
                   {/* Уже заказанные блюда: плюс/минус меняют количество (блюдо

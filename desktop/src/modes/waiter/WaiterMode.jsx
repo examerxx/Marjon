@@ -58,6 +58,7 @@ export default function WaiterMode({ user = {}, branch = {}, onBack, onLogout })
   const [activeCat, setActiveCat] = useState(null)
   const [search, setSearch] = useState('')
   const [cart, setCart] = useState([])
+  const cartItemsRef = useRef(null)
   const [orderNote, setOrderNote] = useState('')
   const [guests, setGuests] = useState(1)
   const [submitting, setSubmitting] = useState(false)
@@ -102,6 +103,14 @@ export default function WaiterMode({ user = {}, branch = {}, onBack, onLogout })
     menu.products().then((d) => setProducts(Array.isArray(d) ? d : d?.items || [])).catch(() => {})
     menu.categories().then((d) => setCategories(Array.isArray(d) ? d : d?.items || [])).catch(() => {})
   }, [view])
+
+  // Панель заказа заполняется — держим внизу последнюю добавленную позицию.
+  useEffect(() => {
+    const el = cartItemsRef.current
+    if (!el) return undefined
+    const id = requestAnimationFrame(() => { el.scrollTop = el.scrollHeight })
+    return () => cancelAnimationFrame(id)
+  }, [cart.length, view])
 
   // Принтеры филиала + обработчик заданий печати (терминал официанта тоже может печатать)
   useEffect(() => {
@@ -429,7 +438,7 @@ export default function WaiterMode({ user = {}, branch = {}, onBack, onLogout })
 
             <aside className="cashier-cart">
               <div className="cashier-cart__header"><ShoppingBag size={20} /><span>{t('order')}</span><span className="cart-count">{itemCount}</span></div>
-              <div className="cashier-cart__items">
+              <div className="cashier-cart__items" ref={cartItemsRef}>
                 {cart.length === 0 ? <p className="cart-empty">{t('tap_dish_hint')}</p> : cart.map((item) => (
                   <div key={item.lineId} className="cart-item">
                     <button type="button" className="cart-item__info" onClick={() => setEditLine(item)} title={t('edit')}>

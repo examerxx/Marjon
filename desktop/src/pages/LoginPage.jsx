@@ -67,7 +67,7 @@ function MonoblockLogin({ onLogin, onSettings }) {
       setError(t('lp_phone_incomplete'))
       return
     }
-    if (!password) {
+    if (!password.trim()) {
       setError(t('lp_branch_bad_creds'))
       return
     }
@@ -77,7 +77,7 @@ function MonoblockLogin({ onLogin, onSettings }) {
       // Телефон моноблока в каноничном виде (+998XXXXXXXXX).
       // Ответ несёт токен + сведения о branch/company —
       // App сохранит всё атомарно и сразу перейдёт к PIN-входу сотрудника.
-      const data = await auth.loginByMonoblock(fullPhone(phone), password)
+      const data = await auth.loginByMonoblock(fullPhone(phone), password.trim())
       onLogin(data)
     } catch (err) {
       setError(loginErrorMessage(err))

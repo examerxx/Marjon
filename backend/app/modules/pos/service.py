@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
-from sqlalchemy import delete, func, select, text, update
+from sqlalchemy import delete, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -24,7 +24,7 @@ from app.modules.pos.models import (
 from app.modules.pos.repository import OrderRepository, OrderItemRepository, TerminalRepository
 from app.modules.pos.schemas import (
     OrderCreate, OrderItemCreate, OrderItemWaiterUpdate, OrderStatusUpdate,
-    OrderUpdate, TerminalCreate, ShiftOpen, ShiftClose,
+    OrderUpdate, TerminalCreate, ShiftOpen, ShiftClose, ShiftResponse,
 )
 from app.modules.rbac.models import Role, UserRole
 from app.shared.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationError
@@ -1653,6 +1653,93 @@ class ShiftService:
 
     async def get_current(self, company_id: UUID, branch_id: UUID) -> CashierShift | None:
         return await self._get_open_shift(company_id, branch_id)
+
+    async def my_summary(
+        self, company_id: UUID, user_id: UUID, branch_id: UUID | None = None
+    ) -> dict:
+        """Текущая смена + выработка и продажи сотрудника за операционный день."""
+        tz_name = (
+            await self.db.execute(
+                select(Company.timezone).where(Company.id == company_id)
+            )
+        ).scalar_one_or_none() or "Asia/Tashkent"
+        try:
+            tz = ZoneInfo(tz_name)
+        except (ZoneInfoNotFoundError, KeyError):
+            tz = ZoneInfo("Asia/Tashkent")
+
+        now = datetime.now(timezone.utc)
+        local_now = now.astimezone(tz)
+        day_start = local_now.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ).astimezone(timezone.utc)
+
+        if branch_id is not None:
+            shift = await self.get_current(company_id, branch_id)
+        else:
+            shift = (
+                await self.db.execute(
+                    select(CashierShift)
+                    .where(
+                        CashierShift.company_id == company_id,
+                        CashierShift.cashier_id == user_id,
+                        CashierShift.status == "open",
+                    )
+                    .order_by(CashierShift.opened_at.desc())
+                )
+            ).scalars().first()
+
+        def _utc(value: datetime) -> datetime:
+            return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+        rows = (
+            await self.db.execute(
+                select(CashierShift).where(
+                    CashierShift.company_id == company_id,
+                    CashierShift.cashier_id == user_id,
+                    or_(
+                        CashierShift.closed_at.is_(None),
+                        CashierShift.closed_at >= day_start,
+                    ),
+                    CashierShift.opened_at <= now,
+                )
+            )
+        ).scalars().all()
+        worked_seconds = 0
+        for row in rows:
+            start = max(_utc(row.opened_at), day_start)
+            end = min(_utc(row.closed_at) if row.closed_at else now, now)
+            if end > start:
+                worked_seconds += int((end - start).total_seconds())
+
+        shift_seconds = 0
+        if shift is not None:
+            start = max(_utc(shift.opened_at), day_start)
+            if now > start:
+                shift_seconds = int((now - start).total_seconds())
+
+        sales_total, orders_count = (
+            await self.db.execute(
+                select(
+                    func.coalesce(func.sum(Order.total_amount), 0),
+                    func.count(Order.id),
+                ).where(
+                    Order.company_id == company_id,
+                    Order.waiter_id == user_id,
+                    Order.status == "completed",
+                    Order.created_at >= day_start,
+                    Order.created_at <= now,
+                )
+            )
+        ).one()
+
+        return {
+            "shift": ShiftResponse.model_validate(shift) if shift else None,
+            "shift_seconds": shift_seconds,
+            "worked_seconds": worked_seconds,
+            "sales_total": sales_total,
+            "orders_count": int(orders_count or 0),
+        }
 
     async def get_shift_for_date(self, company_id: UUID, selected_date: date) -> CashierShift | None:
         day_start = datetime.combine(selected_date, datetime.min.time())

@@ -174,3 +174,13 @@ class ShiftResponse(BaseResponseSchema):
     opening_cash: Decimal
     closing_cash: Decimal | None
     status: str
+
+
+class MyShiftSummary(BaseSchema):
+    """Сводка смены для профиля сотрудника на терминале."""
+
+    shift: ShiftResponse | None = None
+    shift_seconds: int = 0
+    worked_seconds: int = 0
+    sales_total: Decimal = Decimal("0")
+    orders_count: int = 0

@@ -7,11 +7,13 @@ import PinPad from './pages/PinPad'
 import TopBar from './components/TopBar'
 import BottomBar from './components/BottomBar'
 import SettingsModal from './components/SettingsModal'
+import StaffProfileModal from './components/StaffProfileModal'
 import CashierMode from './modes/cashier/CashierMode'
 import WaiterMode from './modes/waiter/WaiterMode'
-import { auth, branding, flushQueue, queueSize } from './shared/api'
+import { auth, branding, flushQueue, queueSize, shifts } from './shared/api'
 import { DEFAULT_SERVER_URL } from './shared/config'
 import { t } from './shared/i18n'
+import { errorMessage } from './shared/errorMessage.mjs'
 import { kitchenWS } from './services/kitchenWS'
 import { connectPrinterWS, disconnectPrinterWS } from './shared/ws'
 
@@ -47,6 +49,13 @@ function loadJson(key) {
   try { return JSON.parse(localStorage.getItem(key)) } catch { return null }
 }
 
+// /pos/shifts/current отдаёт либо { shift: null }, либо сам ShiftResponse.
+function openShiftOf(resp) {
+  if (!resp) return null
+  if (Object.prototype.hasOwnProperty.call(resp, 'shift')) return resp.shift || null
+  return resp.id ? resp : null
+}
+
 export default function App() {
   // Привязка терминала (admin login — сохраняется навсегда)
   const [orgToken, setOrgToken] = useState(() => localStorage.getItem('marjon_org_token'))
@@ -62,6 +71,12 @@ export default function App() {
   const [staffView, setStaffView] = useState('org')      // org | employees | pin
   const [pinEmployee, setPinEmployee] = useState(null)
   const [sessionPin, setSessionPin] = useState('')       // PIN текущего входа — для разблокировки экрана
+  // PIN верный, но смена закрыта: сессию ещё не фиксируем, показываем
+  // «Открыть смену» прямо на PIN-экране.
+  const [shiftGate, setShiftGate] = useState(null)
+  const [shiftBusy, setShiftBusy] = useState(false)
+  const [shiftError, setShiftError] = useState('')
+  const [profileOpen, setProfileOpen] = useState(false)
 
   const [isOnline, setIsOnline] = useState(true)
   const [queued, setQueued] = useState(() => queueSize())
@@ -184,43 +199,103 @@ export default function App() {
   // 2. Выбор филиала убран для моноблока (branch опционален, приходит из
   // данных входа при легаси-привязке). Отдельного экрана выбора больше нет.
 
-  // 3. PIN-вход выбранного сотрудника → авто-маршрут по роли
+  // 3. PIN-вход выбранного сотрудника → проверка смены → авто-маршрут по роли.
+  // Сессию фиксируем только после того, как смена открыта (или уже была открыта):
+  // при закрытой смене кассир остаётся на PIN-экране и видит «Открыть смену».
+  const finalizeStaffLogin = useCallback((pending) => {
+    localStorage.setItem('marjon_token', pending.token)
+    if (pending.refresh) localStorage.setItem('marjon_staff_refresh', pending.refresh)
+    localStorage.setItem('marjon_user', JSON.stringify(pending.user))
+    localStorage.setItem('marjon_mode', pending.mode)
+    setStaffToken(pending.token)
+    setStaffUser(pending.user)
+    setSessionPin(pending.pin || '')
+    setMode(pending.mode)
+    setStaffView('org')
+    setPinEmployee(null)
+    setShiftGate(null)
+    setShiftError('')
+  }, [])
+
   const handleEmployeePin = useCallback(async (pin) => {
     // PIN должен принадлежать ВЫБРАННОМУ сотруднику (иначе вход был бы «по любому PIN»)
     const isRealEmp = pinEmployee?.id && /^[0-9a-f-]{16,}$/i.test(String(pinEmployee.id))
     // Отдаём id выбранного сотрудника: бэкенд сверит PIN только с ним, иначе при
     // одинаковых PIN у двоих токен приходил чужой и вход отклонялся ниже.
     const data = await auth.loginByPin(pin, isRealEmp ? pinEmployee.id : undefined)
-    localStorage.setItem('marjon_token', data.access_token)
-    // SESSION-15M-01: refresh-токен сотрудника храним рядом — без него каждый
-    // 401 через 15 минут выбрасывал кассира на экран входа.
-    if (data.refresh_token) localStorage.setItem('marjon_staff_refresh', data.refresh_token)
-
+    // Токен ещё не сохранён — /me читаем под ним явным заголовком.
     let me = null
-    try { me = await auth.me() } catch { /* ignore — используем выбранного сотрудника */ }
+    try { me = await auth.meWithToken(data.access_token) } catch { /* ignore — используем выбранного сотрудника */ }
 
     if (isRealEmp && me?.id && String(me.id) !== String(pinEmployee.id)) {
-      localStorage.removeItem('marjon_token')
-      localStorage.removeItem('marjon_staff_refresh')
       throw new Error('PIN не соответствует выбранному сотруднику')
     }
     const user = me || pinEmployee || {}
     const m = roleToMode(user, pinEmployee)
     if (!m) {
       // Кухня — только на отдельном экране, касса повару недоступна.
-      localStorage.removeItem('marjon_token')
-      localStorage.removeItem('marjon_staff_refresh')
       throw new Error('Повар работает на кухонном экране: откройте kitchen.marjon.tech')
     }
-    setStaffToken(data.access_token)
-    localStorage.setItem('marjon_user', JSON.stringify(user))
-    setStaffUser(user)
-    setSessionPin(pin)   // запомнили PIN входа — им же разблокируется экран
 
-    localStorage.setItem('marjon_mode', m); setMode(m)
-    setStaffView('org')
+    const pending = {
+      token: data.access_token,
+      refresh: data.refresh_token,
+      user,
+      mode: m,
+      pin,
+    }
+
+    const branchId = branch?.id || user?.branch_id || pinEmployee?.branch_id || null
+    if (branchId) {
+      try {
+        const current = await shifts.currentWithToken(data.access_token, branchId)
+        if (!openShiftOf(current)) {
+          // PIN верный, смена закрыта → на месте цифр показываем «Открыть смену».
+          setShiftGate({ ...pending, branchId })
+          setShiftError('')
+          return
+        }
+      } catch {
+        // Нет связи/ошибка проверки — не запираем кассира, работаем как раньше.
+      }
+    }
+    finalizeStaffLogin(pending)
+  }, [pinEmployee, branch, finalizeStaffLogin])
+
+  const handleOpenShiftClick = useCallback(async () => {
+    if (!shiftGate || shiftBusy) return
+    const pending = shiftGate
+    setShiftBusy(true)
+    setShiftError('')
+    try {
+      if (!pending.branchId) throw new Error(t('shift_open_err'))
+      try {
+        await shifts.openWithToken(pending.token, pending.branchId, 0)
+      } catch (e) {
+        // Смену мог открыть другой терминал между проверкой и нажатием —
+        // перепроверяем, чтобы не показывать ложную ошибку.
+        const status = e?.response?.status
+        if (status === 400 || status === 409 || status === 422) {
+          const current = await shifts.currentWithToken(pending.token, pending.branchId)
+          if (!openShiftOf(current)) throw e
+        } else {
+          throw e
+        }
+      }
+      finalizeStaffLogin(pending)
+    } catch (e) {
+      setShiftError(errorMessage(e, t('shift_open_err')))
+    } finally {
+      setShiftBusy(false)
+    }
+  }, [shiftGate, shiftBusy, finalizeStaffLogin])
+
+  const handleCancelShift = useCallback(() => {
+    setShiftGate(null)
+    setShiftError('')
     setPinEmployee(null)
-  }, [pinEmployee])
+    setStaffView('employees')
+  }, [])
 
   // Выход сотрудника (не отвязывает терминал). toEmployees=true → сразу к выбору сотрудника
   const handleStaffLogout = useCallback((toEmployees = false) => {
@@ -234,18 +309,22 @@ export default function App() {
     setSessionPin('')
     setStaffView(toEmployees === true ? 'employees' : 'org')
     setPinEmployee(null)
+    setShiftGate(null)
+    setShiftError('')
+    setProfileOpen(false)
     kitchenWS.disconnect()
   }, [])
-  // Кнопка аккаунта в шапке — сразу к выбору сотрудника
-  const handleAccount = useCallback(() => handleStaffLogout(true), [handleStaffLogout])
+  // Кнопка аккаунта в шапке — профиль сотрудника (имя, роль, выработка, смена).
+  const handleAccount = useCallback(() => setProfileOpen(true), [])
   // «Назад» в TopBar: сначала просим активный режим закрыть верхний слой
   // (модалка/панель/меню заказа). Если он не взялся — уводим к выбору
   // сотрудника. Так кнопка не разлогинивает случайно.
   const handleNavBack = useCallback(() => {
+    if (profileOpen) { setProfileOpen(false); return }
     const detail = { handled: false }
     try { window.dispatchEvent(new CustomEvent('marjon:back', { detail })) } catch { /* no window */ }
-    if (!detail.handled) handleAccount()
-  }, [handleAccount])
+    if (!detail.handled) handleStaffLogout(true)
+  }, [profileOpen, handleStaffLogout])
 
   // Полный сброс терминала (отвязка от организации)
   const handleFullReset = useCallback(() => {
@@ -254,6 +333,7 @@ export default function App() {
     setOrgToken(null); setOrgUser(null); setBranch(null)
     setStaffToken(null); setStaffUser(null); setMode(null)
     setStaffView('org'); setPinEmployee(null)
+    setShiftGate(null); setShiftError(''); setProfileOpen(false)
     kitchenWS.disconnect()
   }, [])
 
@@ -344,7 +424,18 @@ export default function App() {
       )
     }
     if (staffView === 'pin' && pinEmployee) {
-      return <PinPad employee={pinEmployee} onSubmit={handleEmployeePin} onBack={() => setStaffView('employees')} />
+      return (
+        <PinPad
+          employee={pinEmployee}
+          onSubmit={handleEmployeePin}
+          onBack={shiftGate ? undefined : () => setStaffView('employees')}
+          shiftClosed={!!shiftGate}
+          shiftBusy={shiftBusy}
+          shiftError={shiftError}
+          onOpenShift={handleOpenShiftClick}
+          onCancelShift={handleCancelShift}
+        />
+      )
     }
     return (
       <>
@@ -390,6 +481,16 @@ export default function App() {
       <BottomBar userName={staffUser?.name} branchName={branch?.name} mode={modeLabel}
                  isOnline={isOnline} queued={queued} />
       {settingsOverlay}
+      {profileOpen && (
+        <StaffProfileModal
+          user={staffUser || {}}
+          branchId={effectiveBranchId}
+          branchName={branch?.name}
+          onClose={() => setProfileOpen(false)}
+          onSwitchStaff={() => { setProfileOpen(false); handleStaffLogout(true) }}
+          onShiftClosed={() => { setProfileOpen(false); handleStaffLogout(true) }}
+        />
+      )}
     </div>
   )
 }

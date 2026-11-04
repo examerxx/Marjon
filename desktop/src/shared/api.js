@@ -240,6 +240,10 @@ export const auth = {
       api.get('/auth/me', { headers: { Authorization: `Bearer ${access_token}` } }).then((r) => r.data)
     ),
   me: () => api.get('/auth/me').then((r) => r.data),
+  // /me под ЯВНО переданным токеном: вход по PIN ещё не зафиксирован в
+  // localStorage (сначала проверяем смену), поэтому заголовок задаём вручную.
+  meWithToken: (token) =>
+    api.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.data),
   // Управление сотрудниками (панель «Сотрудники» в меню «…»; правка прав —
   // только владелец в веб-админке). Идут под токеном сотрудника (marjon_token) →
   // несут его permissions, которые читает бэкенд-гейт
@@ -405,8 +409,23 @@ export const tables = {
 // Кассовые смены (бэкенд: /pos/shifts)
 export const shifts = {
   current: (branchId) => api.get('/pos/shifts/current', { params: { branch_id: branchId } }).then((r) => r.data),
+  // Проверка/открытие смены ДО фиксации сессии сотрудника: токен из PIN-входа
+  // передаём явно, чтобы не записывать его в localStorage до открытия смены.
+  currentWithToken: (token, branchId) =>
+    api.get('/pos/shifts/current', {
+      params: { branch_id: branchId },
+      headers: { Authorization: `Bearer ${token}` },
+    }).then((r) => r.data),
+  openWithToken: (token, branchId, opening_cash = 0) =>
+    api.post('/pos/shifts/open', { branch_id: branchId, opening_cash }, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then((r) => r.data),
   open: (branchId, opening_cash = 0) => api.post('/pos/shifts/open', { branch_id: branchId, opening_cash }).then((r) => r.data),
   close: (closing_cash = 0) => api.post('/pos/shifts/close', { closing_cash }).then((r) => r.data),
+  // Сводка для профиля: текущая смена + выработка и продажи сотрудника за день.
+  summary: (branchId) => api.get('/pos/shifts/me/summary', {
+    params: branchId ? { branch_id: branchId } : {},
+  }).then((r) => r.data),
 }
 
 // Финансы: приход/расход (бэкенд: /finance/transactions).

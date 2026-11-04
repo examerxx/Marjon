@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ArrowLeft, Delete } from 'lucide-react'
+import { ArrowLeft, Delete, Clock, Play } from 'lucide-react'
 import { t } from '../shared/i18n'
 
 // Длина PIN-кода фиксирована: все PIN 4-значные. Пад не принимает 5-ю цифру
@@ -12,8 +12,20 @@ function initials(name = '') {
 
 /** PinPad — ввод PIN выбранного сотрудника. onSubmit(pin) → Promise. Ровно 4 цифры.
  *  title — необязательный заголовок (напр. «Экран заблокирован»).
- *  onBack — если не передан, кнопка «Назад» скрыта (режим блокировки). */
-export default function PinPad({ employee = {}, onSubmit, onBack, title }) {
+ *  onBack — если не передан, кнопка «Назад» скрыта (режим блокировки).
+ *  shiftClosed — PIN верный, но смена не открыта: вместо цифр показываем
+ *  «Открыть смену», иначе кассир не может начать работу. */
+export default function PinPad({
+  employee = {},
+  onSubmit,
+  onBack,
+  title,
+  shiftClosed = false,
+  shiftBusy = false,
+  shiftError = '',
+  onOpenShift,
+  onCancelShift,
+}) {
   const [pin, setPin] = useState('')
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -59,6 +71,8 @@ export default function PinPad({ employee = {}, onSubmit, onBack, title }) {
   }, [])
 
   useEffect(() => {
+    // На экране «смена закрыта» клавиатура не должна вводить PIN в никуда.
+    if (shiftClosed) return undefined
     function onKey(e) {
       if (/^[0-9]$/.test(e.key)) press(e.key)
       else if (e.key === 'Backspace') back()
@@ -66,7 +80,7 @@ export default function PinPad({ employee = {}, onSubmit, onBack, title }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [press, back, submit])
+  }, [press, back, submit, shiftClosed])
 
   const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'back']
 
@@ -83,30 +97,49 @@ export default function PinPad({ employee = {}, onSubmit, onBack, title }) {
           <span className="pinpad__role">{t.role(role)}</span>
         </div>
 
-        <div className={`pinpad__dots ${error ? 'pinpad__dots--error' : ''}`}>
-          {/* Фиксированные 4 точки: PIN всегда 4-значный */}
-          {Array.from({ length: PIN_LENGTH }, (_, i) => (
-            <span key={i} className={`pinpad__dot ${i < pin.length ? 'pinpad__dot--filled' : ''}`} />
-          ))}
-        </div>
-
-        <div className="pinpad__grid">
-          {KEYS.map((k, i) => {
-            if (k === '') return <span key={i} className="pinpad__key pinpad__key--empty" />
-            if (k === 'back') return (
-              <button key={i} className="pinpad__key pinpad__key--action" onClick={back} disabled={busy}>
-                <Delete size={26} />
+        {shiftClosed ? (
+          <div className="pinpad__shift">
+            <span className="pinpad__shift-icon"><Clock size={30} /></span>
+            <h2 className="pinpad__shift-title">{t('shift_closed_title')}</h2>
+            <p className="pinpad__shift-text">{t('shift_closed_text')}</p>
+            {shiftError && <p className="pinpad__shift-error">{shiftError}</p>}
+            <button className="pinpad__shift-open" onClick={onOpenShift} disabled={shiftBusy}>
+              <Play size={20} /> {shiftBusy ? t('loading') : t('open_shift')}
+            </button>
+            {onCancelShift && (
+              <button className="pinpad__shift-cancel" onClick={onCancelShift} disabled={shiftBusy}>
+                {t('cancel')}
               </button>
-            )
-            return (
-              <button key={i} className="pinpad__key" onClick={() => press(k)} disabled={busy}>{k}</button>
-            )
-          })}
-        </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className={`pinpad__dots ${error ? 'pinpad__dots--error' : ''}`}>
+              {/* Фиксированные 4 точки: PIN всегда 4-значный */}
+              {Array.from({ length: PIN_LENGTH }, (_, i) => (
+                <span key={i} className={`pinpad__dot ${i < pin.length ? 'pinpad__dot--filled' : ''}`} />
+              ))}
+            </div>
 
-        <button className="pinpad__submit" onClick={() => submit(pin)} disabled={pin.length < PIN_LENGTH || busy}>
-          {busy ? t('check') : t('enter')}
-        </button>
+            <div className="pinpad__grid">
+              {KEYS.map((k, i) => {
+                if (k === '') return <span key={i} className="pinpad__key pinpad__key--empty" />
+                if (k === 'back') return (
+                  <button key={i} className="pinpad__key pinpad__key--action" onClick={back} disabled={busy}>
+                    <Delete size={26} />
+                  </button>
+                )
+                return (
+                  <button key={i} className="pinpad__key" onClick={() => press(k)} disabled={busy}>{k}</button>
+                )
+              })}
+            </div>
+
+            <button className="pinpad__submit" onClick={() => submit(pin)} disabled={pin.length < PIN_LENGTH || busy}>
+              {busy ? t('check') : t('enter')}
+            </button>
+          </>
+        )}
       </div>
     </div>
   )
