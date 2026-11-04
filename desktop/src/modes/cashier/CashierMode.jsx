@@ -138,6 +138,37 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
     setBackSlot(document.getElementById('topbar-back-slot'))
   }, [])
 
+  // Liquid Glass: блик на кнопках категорий идёт за пальцем/курсором.
+  // Пишем --mx/--my (проценты внутри кнопки) — их читает .zone::after в CSS.
+  useEffect(() => {
+    let frame = 0
+    let zone = null
+    let px = 0
+    let py = 0
+    const paint = () => {
+      frame = 0
+      if (!zone) return
+      const r = zone.getBoundingClientRect()
+      if (!r.width || !r.height) return
+      zone.style.setProperty('--mx', `${((px - r.left) / r.width) * 100}%`)
+      zone.style.setProperty('--my', `${((py - r.top) / r.height) * 100}%`)
+    }
+    const onPointer = (e) => {
+      zone = e.target instanceof Element ? e.target.closest('.zone') : null
+      if (!zone) return
+      px = e.clientX
+      py = e.clientY
+      if (!frame) frame = requestAnimationFrame(paint)
+    }
+    document.addEventListener('pointermove', onPointer, { passive: true })
+    document.addEventListener('pointerdown', onPointer, { passive: true })
+    return () => {
+      document.removeEventListener('pointermove', onPointer)
+      document.removeEventListener('pointerdown', onPointer)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [])
+
   const loadFloor = useCallback(() => {
     hallsApi.list(user.branch_id)
       .then((d) => { const l = Array.isArray(d) ? d : d?.items || []; setZones(l); setHallsError('') })
