@@ -584,13 +584,13 @@
   opacity: 0.9;
 }
 
-/* Свободный стол — белый с пунктирной рамкой; занятый — жёлтый;
-   чек напечатан и ждёт оплаты — зелёный. */
+/* Свободный стол — белый с пунктирной рамкой; занятый — мягкий жёлтый;
+   чек напечатан и ждёт оплаты — мягкий зелёный (малахитовый пастель). */
 .tcard--free { --tcard-accent: var(--color-border); border-style: dashed; background: var(--color-card); }
 .tcard--free .tcard__status { background: var(--color-subtle); color: var(--color-text-muted); }
 .tcard--busy,
-.tcard--check { --tcard-accent: rgba(190, 178, 0, 0.5); background: #effd5f; }
-.tcard--pay { --tcard-accent: rgba(7, 140, 53, 0.5); background: #0bda51; }
+.tcard--check { --tcard-accent: rgba(214, 197, 73, 0.45); background: #fdf7b5; }
+.tcard--pay { --tcard-accent: rgba(52, 168, 104, 0.38); background: #c9f5da; }
 /* На цветном фоне пилюля и чип мест — светлое стекло, чтобы не сливаться. */
 .tcard--busy .tcard__status,
 .tcard--check .tcard__status,
@@ -601,21 +601,13 @@
 .tcard--busy .tcard__seats,
 .tcard--check .tcard__seats,
 .tcard--pay .tcard__seats { background: rgba(255, 255, 255, 0.74); }
-/* На ярком фоне брендовый teal и серое время читаются плохо — затемняем
-   подложку текста только внутри цветных карточек. */
-.tcard--busy .tcard__amount,
-.tcard--check .tcard__amount { color: var(--teal-800); }
-.tcard--busy .tcard__time,
-.tcard--check .tcard__time { color: #6b5c00; }
-.tcard--pay .tcard__num { color: #04351b; }
-.tcard--pay .tcard__client { color: rgba(4, 38, 19, 0.82); }
-.tcard--pay .tcard__time { color: rgba(4, 38, 19, 0.74); }
-.tcard--pay .tcard__amount { color: #04351b; }
-.tcard--pay .tcard__seats { color: rgba(4, 38, 19, 0.75); }
+/* На пастели брендовый teal в сумме выцветает — на зелёной карточке
+   берём его тёмный оттенок, остальной текст остаётся обычным. */
+.tcard--pay .tcard__amount { color: var(--teal-800); }
 /* Тёмная тема: те же статусы, но приглушёнными тонировками. */
 [data-theme="dark"] .tcard--busy,
-[data-theme="dark"] .tcard--check { --tcard-accent: rgba(239, 253, 95, 0.34); background: rgba(239, 253, 95, 0.14); }
-[data-theme="dark"] .tcard--pay { --tcard-accent: rgba(11, 218, 81, 0.42); background: rgba(11, 218, 81, 0.16); }
+[data-theme="dark"] .tcard--check { --tcard-accent: rgba(253, 247, 181, 0.32); background: rgba(253, 247, 181, 0.13); }
+[data-theme="dark"] .tcard--pay { --tcard-accent: rgba(201, 245, 218, 0.32); background: rgba(201, 245, 218, 0.13); }
 [data-theme="dark"] .tcard--busy .tcard__status,
 [data-theme="dark"] .tcard--check .tcard__status,
 [data-theme="dark"] .tcard--pay .tcard__status { background: rgba(255, 255, 255, 0.12); }
@@ -625,15 +617,7 @@
 [data-theme="dark"] .tcard--busy .tcard__seats,
 [data-theme="dark"] .tcard--check .tcard__seats,
 [data-theme="dark"] .tcard--pay .tcard__seats { background: rgba(255, 255, 255, 0.1); }
-[data-theme="dark"] .tcard--busy .tcard__amount,
-[data-theme="dark"] .tcard--check .tcard__amount { color: var(--color-brand); }
-[data-theme="dark"] .tcard--busy .tcard__time,
-[data-theme="dark"] .tcard--check .tcard__time { color: var(--color-text-muted); }
-[data-theme="dark"] .tcard--pay .tcard__num { color: var(--color-text-primary); }
-[data-theme="dark"] .tcard--pay .tcard__client { color: var(--color-text-secondary); }
-[data-theme="dark"] .tcard--pay .tcard__time { color: var(--color-text-muted); }
-[data-theme="dark"] .tcard--pay .tcard__amount { color: var(--green-300); }
-[data-theme="dark"] .tcard--pay .tcard__seats { color: var(--color-text-muted); }
+[data-theme="dark"] .tcard--pay .tcard__amount { color: var(--color-brand); }
 
 /* ═══ Нижний статус-бар ═══ */
 .ws-bottom {
