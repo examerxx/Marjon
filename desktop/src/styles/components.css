@@ -3385,12 +3385,19 @@ body.vkb-open .login-card {
   display: flex; flex-direction: column; align-items: center;
   text-align: center;
 }
-.pinpad__shift-icon {
-  width: 64px; height: 64px; display: grid; place-items: center;
+.pinpad__shift-user {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
   margin-bottom: var(--spacing-md);
-  border-radius: var(--radius-full);
-  background: var(--color-warning-bg); color: var(--color-warning);
 }
+.pinpad__shift-avatar {
+  width: 44px; height: 44px; display: grid; place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--color-brand); color: #fff;
+  font-family: var(--font-display); font-weight: 700; font-size: 16px;
+}
+.pinpad__shift-who { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
+.pinpad__shift-name { font-size: var(--text-lg); font-weight: 700; color: var(--color-text-primary); line-height: 1.2; }
+.pinpad__shift-role { font-size: var(--text-sm); color: var(--color-text-muted); }
 .pinpad__shift-title {
   margin: 0 0 var(--spacing-xs);
   font-family: var(--font-display); font-size: var(--text-xl); font-weight: 700;

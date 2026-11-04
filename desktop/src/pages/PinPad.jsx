@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ArrowLeft, Delete, Clock, Play } from 'lucide-react'
+import { ArrowLeft, Delete, Play } from 'lucide-react'
 import { t } from '../shared/i18n'
 
 // Длина PIN-кода фиксирована: все PIN 4-значные. Пад не принимает 5-ю цифру
@@ -91,9 +91,9 @@ export default function PinPad({
       <div className="pinpad">
         {onBack && <button className="pinpad__back" onClick={onBack}><ArrowLeft size={24} /> {t('back')}</button>}
 
-        {title && <h2 className="pinpad__title">{title}</h2>}
+        {title && !shiftClosed && <h2 className="pinpad__title">{title}</h2>}
 
-        {hasEmployee ? (
+        {!shiftClosed && (hasEmployee ? (
           <div className="pinpad__user">
             <span className="pinpad__avatar">{initials(employee.name || employee.email)}</span>
             <span className="pinpad__name">{employee.name || employee.email}</span>
@@ -101,11 +101,19 @@ export default function PinPad({
           </div>
         ) : (
           <p className="pinpad__hint">{t('staff_code_hint')}</p>
-        )}
+        ))}
 
         {shiftClosed ? (
           <div className="pinpad__shift">
-            <span className="pinpad__shift-icon"><Clock size={30} /></span>
+            {hasEmployee && (
+              <div className="pinpad__shift-user">
+                <span className="pinpad__shift-avatar">{initials(employee.name || employee.email)}</span>
+                <span className="pinpad__shift-who">
+                  <span className="pinpad__shift-name">{employee.name || employee.email}</span>
+                  <span className="pinpad__shift-role">{t.role(role)}</span>
+                </span>
+              </div>
+            )}
             <h2 className="pinpad__shift-title">{t('shift_closed_title')}</h2>
             <p className="pinpad__shift-text">{t('shift_closed_text')}</p>
             {shiftError && <p className="pinpad__shift-error">{shiftError}</p>}

@@ -415,6 +415,7 @@ export default function App() {
     if (staffView === 'pin') {
       return (
         <PinPad
+          employee={shiftGate?.user || {}}
           title={t('staff_code_title')}
           onSubmit={handleEmployeePin}
           onBack={shiftGate ? undefined : () => setStaffView('org')}
