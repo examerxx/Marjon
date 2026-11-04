@@ -134,8 +134,14 @@
   align-items: center;
   gap: var(--spacing-sm);
 }
-/* Кнопка «Назад» справа от лого — владелец просил вернуть её на всех экранах.
-   Держим в бренд-блоке: не конкурирует с действиями справа (замок/настройки). */
+/* Кнопка «Назад» стоит перед логотипом (владелец просил перенести её
+   из сайдбара в шапку). Слот приходит порталом из рабочего режима;
+   пустой слот скрыт, чтобы не добавлять отступ бренду. */
+.topbar__back-slot {
+  display: flex;
+  align-items: center;
+}
+.topbar__back-slot:empty { display: none; }
 .topbar__back {
   flex-shrink: 0;
   color: var(--chrome-text);
@@ -5415,22 +5421,13 @@ select.input:focus {
 .cart-btn { min-height: 54px; font-size: 16px; }
 .cashier-cart > .cashier-cart__note { margin: 0 12px 8px; min-height: 38px; }
 
-/* Поиск стоит ровно по центру экрана, а не между логотипом и кнопками:
-   абсолютное позиционирование вынимает слот из потока, поэтому центрируется
-   относительно всей шапки. */
-.topbar { position: relative; }
+/* Поиск стоит сразу за брендом — рядом с кнопкой «Назад» и логотипом.
+   Шапка читается как [←] [MARJON] [поиск] … [действия]. */
 .topbar__center {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  transform: translateX(-50%);
-  width: min(560px, 46vw);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  min-width: 0;
 }
-.topbar-search { width: 100%; }
 
 /* «С собой» в строке заказа — компактный переключатель без подписи (подпись
    осталась в title): иначе каждая строка переносилась на две линии и список

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Plus, Minus, Search, X, Users, Clock, CheckCircle, Coffee, Utensils,
   LayoutGrid, Armchair, DoorClosed, Sun, Wine, CalendarClock, RefreshCw, ArrowLeft, Printer,
@@ -66,6 +67,9 @@ export default function WaiterMode({ user = {}, branch = {}, onBack, onLogout })
   const [printerMap, setPrinterMap] = useState({})
   const [addToOrderId, setAddToOrderId] = useState(null)   // id заказа, в который ДОБАВЛЯЕМ блюда
   const [promptCfg, setPromptCfg] = useState(null)         // модалка ввода (номер стола при переносе блюда)
+  // Слот «Назад» в шапке (перед логотипом) — заполняем порталом.
+  const [backSlot, setBackSlot] = useState(null)
+  useEffect(() => { setBackSlot(document.getElementById('topbar-back-slot')) }, [])
 
   const loadData = useCallback(() => {
     hallsApi.list(user.branch_id)
@@ -388,10 +392,6 @@ export default function WaiterMode({ user = {}, branch = {}, onBack, onLogout })
     return (
       <div className="floor">
         <aside className="ws-side">
-          <button className="zone zone--exit" onClick={() => setView('floor')}>
-            <ArrowLeft size={20} />
-            <span className="zone__name">{t('to_tables')}</span>
-          </button>
           <div className="ws-side__label">{t('categories')}</div>
           <nav className="ws-side__nav">
             <button className={`zone ${!activeCat ? 'zone--active' : ''}`} onClick={() => setActiveCat(null)}>
@@ -489,6 +489,19 @@ export default function WaiterMode({ user = {}, branch = {}, onBack, onLogout })
             </aside>
           </div>
         </main>
+
+        {/* «Назад» — в шапке перед логотипом, как у кассира */}
+        {backSlot && createPortal(
+          <button
+            className="icon-btn topbar__back"
+            onClick={() => setView('floor')}
+            title={t('to_tables')}
+            aria-label={t('to_tables')}
+          >
+            <ArrowLeft size={22} />
+          </button>,
+          backSlot,
+        )}
 
         {editLine && (
           <DishModal

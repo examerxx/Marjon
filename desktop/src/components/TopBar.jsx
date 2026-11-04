@@ -20,6 +20,9 @@ export default function TopBar({
   return (
     <header className="topbar">
       <div className="topbar__brand">
+        {/* Слот «Назад»: экран заказа рендерит сюда стрелку порталом.
+            Стоит перед логотипом — так просил владелец. */}
+        <div className="topbar__back-slot" id="topbar-back-slot" />
         {/* Знак декоративен: доступное имя даёт текст рядом */}
         <span className="topbar__logo-mark">
           <img className="topbar__logo" src={logoUrl} alt="" aria-hidden="true" />

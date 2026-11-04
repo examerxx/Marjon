@@ -131,9 +131,11 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   // жила в шапке, а состояние осталось здесь.
   const [hdrActionsSlot, setHdrActionsSlot] = useState(null)
   const [searchSlot, setSearchSlot] = useState(null)
+  const [backSlot, setBackSlot] = useState(null)
   useEffect(() => {
     setHdrActionsSlot(document.getElementById('topbar-actions-slot'))
     setSearchSlot(document.getElementById('topbar-center-slot'))
+    setBackSlot(document.getElementById('topbar-back-slot'))
   }, [])
 
   const loadFloor = useCallback(() => {
@@ -815,10 +817,6 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   return (
     <div className="floor">
       <aside className="ws-side">
-        <button className="zone zone--exit" onClick={backFromOrder}>
-          <ArrowLeft size={20} />
-          <span className="zone__name">{courier || editingExisting ? t('back') : t('to_tables')}</span>
-        </button>
         <div className="ws-side__label">{t('categories')}</div>
         <nav className="ws-side__nav">
           <button className={`zone ${!activeCat ? 'zone--active' : ''}`} onClick={() => setActiveCat(null)}>
@@ -961,8 +959,22 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
         </div>
       </main>
 
-      {/* Поиск блюда — в центре шапки: так он не отнимает высоту у панели
-          заказа, и она начинается сразу под топбаром. */}
+      {/* «Назад» — в шапке перед логотипом (место в сайдбаре освободилось
+          под категории). Показываем только на экране заказа. */}
+      {backSlot && createPortal(
+        <button
+          className="icon-btn topbar__back"
+          onClick={backFromOrder}
+          title={courier || editingExisting ? t('back') : t('to_tables')}
+          aria-label={courier || editingExisting ? t('back') : t('to_tables')}
+        >
+          <ArrowLeft size={22} />
+        </button>,
+        backSlot,
+      )}
+
+      {/* Поиск блюда — рядом с брендом в шапке: так он не отнимает высоту
+          у панели заказа, и она начинается сразу под топбаром. */}
       {searchSlot && createPortal(
         <div className="topbar-search">
           <Search size={18} className="search-icon" />
