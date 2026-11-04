@@ -4428,6 +4428,53 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
   padding-top: 4px;
 }
 .pay-screen__actions .btn--eq { width: 100%; justify-content: center; white-space: nowrap; }
+/* Выбор способа оплаты — модальная карточка поверх экрана, открывается
+   с «Закрыть заказ». Способы: наличные, карта, кастомные из админки, долг. */
+.pay-method {
+  position: fixed; inset: 0; z-index: 2;
+  display: grid; place-items: center;
+  padding: 20px;
+  background: rgba(15, 35, 60, 0.34);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: pay-fade var(--transition-fast) ease;
+}
+.pay-method__card {
+  display: flex; flex-direction: column; gap: 12px;
+  width: 100%; max-width: 400px; max-height: calc(100vh - 40px);
+  padding: 18px; overflow-y: auto;
+  border: 1px solid var(--color-border-light);
+  border-radius: 22px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+.pay-method__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pay-method__title { font-size: var(--text-lg); font-weight: 700; color: var(--color-text-primary); }
+.pay-method__sum {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--color-brand-bg);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm); font-weight: 600;
+}
+.pay-method__sum strong { font-size: var(--text-lg); font-weight: 700; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+.pay-method__list { display: flex; flex-direction: column; gap: 8px; }
+.pay-method__opt {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; min-height: 56px; padding: 0 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: 16px; font-weight: 600; text-align: left;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+.pay-method__opt:hover:not(:disabled) { border-color: var(--color-brand); background: var(--color-brand-bg); color: var(--color-brand); }
+.pay-method__opt:disabled { opacity: .6; cursor: default; }
+.pay-method__ico { display: inline-flex; flex-shrink: 0; color: var(--color-text-muted); }
+.pay-method__opt:hover:not(:disabled) .pay-method__ico { color: var(--color-brand); }
+.pay-method__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pay-screen__row { display: flex; gap: 8px; }
 .pay-screen__row .btn--eq { flex: 1 1 0; justify-content: center; white-space: nowrap; }
 /* Сумма к получению — одно поле на любой способ оплаты */

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import {
-  ArrowLeft, Printer, Banknote, CreditCard, CheckCircle, Check, ChevronDown,
+  ArrowLeft, Printer, Banknote, CreditCard, CheckCircle, X,
   Phone, MapPin, Wallet, Undo2,
 } from 'lucide-react'
 import { t } from '../shared/i18n'
@@ -15,9 +15,9 @@ import logoUrl from '../assets/logo.svg'
 /**
  * PaymentScreen — экран оплаты и закрытие заказа (полноэкранный, без оверлея).
  *
- * Способы оплаты: наличные, карта и способы из веб-админки (Uzum, Yandex, …).
- * Все они — строки одного свёрнутого списка, как «смена официанта»: отдельных
- * крупных кнопок под каждый способ не рисуем, их может быть сколько угодно.
+ * Способы оплаты спрашиваются в момент закрытия заказа: на «Закрыть заказ»
+ * открывается выбор (наличные, карта, способы из веб-админки, долг) — отдельного
+ * селектора в правой колонке нет. До выбора способа поле суммы нейтрально.
  *
  * Сумма к получению — ОДНО поле на любой способ. Пустое = ровно к оплате
  * (можно закрывать сразу). Ввели больше — показываем сдачу, меньше — «не хватает»
@@ -82,8 +82,8 @@ export default function PaymentScreen({
   const [debtStep, setDebtStep] = useState('none')
   const [debtorName, setDebtorName] = useState('')
   const [debtorPhone, setDebtorPhone] = useState('')
-  const [methodOpen, setMethodOpen] = useState(false)
-  const methodRef = useRef(null)
+  // Выбор способа оплаты — шаг внутри «Закрыть заказ», а не поле в колонке.
+  const [askPay, setAskPay] = useState(false)
   // Сумма, которую дал гость. Строкой: пустое поле ≠ 0, это «ровно к оплате».
   const [amount, setAmount] = useState('')
 
@@ -96,10 +96,6 @@ export default function PaymentScreen({
 
   // Кастомные способы (Uzum, Yandex…).
   const customMethods = (paymentMethods || []).filter((m) => m && m.name)
-  const isCustom = method !== 'cash' && method !== 'card' && method !== 'debt'
-  const paymentLabel = isCustom
-    ? method
-    : method === 'card' ? t('card') : method === 'debt' ? t('debt') : t('cash')
   const reopening = Number(paidBefore || 0) > 0
   const refundDue = Math.max(0, Number(paidBefore || 0) - total)
   const dueNow = Math.max(0, total - (reopening ? Number(paidBefore || 0) : 0))
@@ -111,9 +107,7 @@ export default function PaymentScreen({
   const paid = entered > 0 ? entered : dueNow
   const change = Math.max(0, paid - dueNow)
   const short = Math.max(0, dueNow - paid)
-  // Карта не может «переплатить»: терминал списывает ровно сумму чека.
-  const cardOver = method === 'card' && entered > dueNow
-  const canComplete = canClose && !busy && short === 0 && !cardOver
+  const canComplete = canClose && !busy && short === 0
 
   // Живой пересчёт итога
   const refreshTimer = useRef(null)
@@ -125,28 +119,13 @@ export default function PaymentScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order?.total_amount, order?.discount_amount])
 
-  // Список способов оплаты ведёт себя как «смена официанта»: закрывается
-  // тапом мимо и по Escape.
+  // Выбор способа закрывается по Escape и тапом по подложке.
   useEffect(() => {
-    if (!methodOpen) return
-    function onDoc(e) {
-      if (methodRef.current && !methodRef.current.contains(e.target)) setMethodOpen(false)
-    }
-    function onKey(e) { if (e.key === 'Escape') setMethodOpen(false) }
-    document.addEventListener('mousedown', onDoc)
+    if (!askPay) return
+    function onKey(e) { if (e.key === 'Escape') setAskPay(false) }
     document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDoc)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [methodOpen])
-
-  function pickMethod(next) {
-    setMethodOpen(false)
-    if (next === method) return
-    setMethod(next)
-    setAmount('')      // у каждого способа своя принятая сумма
-  }
+    return () => document.removeEventListener('keydown', onKey)
+  }, [askPay])
 
   /**
    * Тап по сумме к оплате подставляет полную сумму в поле «Получено».
@@ -187,20 +166,34 @@ export default function PaymentScreen({
     })
   }
 
-  async function doComplete() {
+  function openPay() {
     if (!canComplete) return
-    if (debtAllowed && dueNow > 0 && method === 'debt') {
-      setDebtStep('form'); return
+    setAskPay(true)
+  }
+
+  async function completeWithMethod(nextMethod) {
+    if (busy || short > 0) return
+    if (nextMethod === 'debt') {
+      if (!debtAllowed || dueNow <= 0) return
+      setAskPay(false)
+      setDebtStep('form')
+      return
     }
+    // Карта не может «переплатить»: терминал списывает ровно сумму чека.
+    if (nextMethod === 'card' && entered > dueNow) {
+      toast(t('payment_card_over_total'), 'error')
+      return
+    }
+    setAskPay(false)
+    setMethod(nextMethod)
     setBusy(true)
     // detail несём только когда кассир реально ввёл сумму. Пустое поле — оплата
     // ровно на итог: backend (buildOrderPayment) сам подставит полную сумму.
-    const detail = entered > 0 && (method === 'cash' || method === 'card')
-      ? { [method]: entered }
+    const detail = entered > 0 && (nextMethod === 'cash' || nextMethod === 'card')
+      ? { [nextMethod]: entered }
       : undefined
-    const payMethod = isCustom ? method : (method === 'card' ? 'card' : 'cash')
     try {
-      await onComplete(order, payMethod, detail)
+      await onComplete(order, nextMethod, detail)
     } finally { setBusy(false) }
   }
 
@@ -224,9 +217,6 @@ export default function PaymentScreen({
     ...customMethods.map((m) => ({ value: m.name, label: m.name, icon: <Wallet size={18} /> })),
     ...(debtAllowed ? [{ value: 'debt', label: t('debt'), icon: <Wallet size={18} /> }] : []),
   ]
-  const currentMethodIcon = method === 'card'
-    ? <CreditCard size={18} />
-    : method === 'cash' ? <Banknote size={18} /> : <Wallet size={18} />
 
   // Закрытие в долг — отдельный экран поверх оплаты
   if (debtStep === 'form') {
@@ -350,44 +340,6 @@ export default function PaymentScreen({
         </div>
 
         <div className="pay-screen__side">
-          {/* Способ оплаты — один свёрнутый список, как «смена официанта».
-              Раскрывается вниз; строки: наличные, карта, способы из админки, долг. */}
-          <div className="pay-screen__control">
-            <div className={`wpick ${methodOpen ? 'wpick--open' : ''}`} ref={methodRef}>
-              <button
-                type="button" className="wpick__trigger"
-                aria-haspopup="listbox" aria-expanded={methodOpen}
-                onClick={() => setMethodOpen((v) => !v)}
-              >
-                <span className="wpick__label">{t('z_pay_methods')}</span>
-                <span className="wpick__value">
-                  <span className="wpick__ico">{currentMethodIcon}</span>
-                  {paymentLabel}
-                </span>
-                <ChevronDown size={18} className="wpick__chev" />
-              </button>
-
-              {methodOpen && (
-                <div className="wpick__list" role="listbox">
-                  {methodOptions.map((option) => {
-                    const on = option.value === method
-                    return (
-                      <button
-                        key={option.value} type="button" role="option" aria-selected={on}
-                        className={`wpick__opt ${on ? 'wpick__opt--on' : ''}`}
-                        onClick={() => pickMethod(option.value)}
-                      >
-                        <span className="wpick__ico">{option.icon}</span>
-                        <span className="wpick__opt-name">{option.label}</span>
-                        {on && <Check size={18} />}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Возврат в закрытый заказ */}
           {reopening && (
             <div className="pay-order__reopen">
@@ -469,11 +421,10 @@ export default function PaymentScreen({
                     <span className="pay-dialog__disc-unit">{t('currency')}</span>
                   </div>
                 </label>
-                {(change > 0 || short > 0 || cardOver) && (
+                {(change > 0 || short > 0) && (
                   <div className="pay-amount__hint">
                     {change > 0 && <span className="pay-amount__hint--change">{t('change')}: {fmt(change)} {t('currency')}</span>}
                     {short > 0 && <span className="pay-amount__hint--short">{t('not_enough')}: {fmt(short)} {t('currency')}</span>}
-                    {cardOver && <span className="pay-amount__hint--short">{t('payment_card_over_total')}</span>}
                   </div>
                 )}
               </div>
@@ -490,12 +441,49 @@ export default function PaymentScreen({
             <button className={`btn btn--outline btn--eq ${printed ? 'is-done' : ''}`} disabled={act === 'print'} onClick={doPrint}>
               {act === 'print' ? spin : printed ? <CheckCircle size={18} /> : <Printer size={18} />} {t('print_receipt')}
             </button>
-            <button className="btn btn--primary btn--lg pay-order__close btn--eq" disabled={!canComplete} onClick={doComplete}>
+            <button className="btn btn--primary btn--lg pay-order__close btn--eq" disabled={!canComplete} onClick={openPay}>
               {busy ? spin : <CheckCircle size={20} />} {t('complete_order')}
             </button>
           </div>
         </div>
       </div>
+
+      {/* «Закрыть заказ» сначала спрашивает способ оплаты — отдельного
+          селектора в правой колонке больше нет. */}
+      {askPay && (
+        <div
+          className="pay-method"
+          role="dialog" aria-modal="true" aria-label={t('choose_payment')}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setAskPay(false) }}
+        >
+          <div className="pay-method__card">
+            <div className="pay-method__head">
+              <span className="pay-method__title">{t('choose_payment')}</span>
+              <button className="icon-btn" onClick={() => setAskPay(false)} title={t('back')} aria-label={t('back')}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="pay-method__sum">
+              <span>{t('to_pay_label')}</span>
+              <strong>{fmt(dueNow)} {t('currency')}</strong>
+            </div>
+            <div className="pay-method__list">
+              {methodOptions.map((option) => (
+                <button
+                  key={option.value} type="button"
+                  className="pay-method__opt"
+                  disabled={busy}
+                  onClick={() => completeWithMethod(option.value)}
+                >
+                  <span className="pay-method__ico">{option.icon}</span>
+                  <span className="pay-method__name">{option.label}</span>
+                  {busy && method === option.value && spin}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
