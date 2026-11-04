@@ -584,12 +584,37 @@
   opacity: 0.9;
 }
 
-/* Свободный стол — белый с пунктирной рамкой; занятый — мягкий жёлтый;
-   чек напечатан и ждёт оплаты — зелёное стекло в стиле категорий. */
+/* Свободный стол — белый с пунктирной рамкой; занятый — жёлтое стекло;
+   чек напечатан и ждёт оплаты — зелёное стекло. Материал один и тот же,
+   как у кнопок категорий: многослойная заливка, блик сверху-слева и тень. */
 .tcard--free { --tcard-accent: var(--color-border); border-style: dashed; background: var(--color-card); }
 .tcard--free .tcard__status { background: var(--color-subtle); color: var(--color-text-muted); }
 .tcard--busy,
-.tcard--check { --tcard-accent: rgba(214, 197, 73, 0.45); background: #faf3a6; }
+.tcard--check {
+  --tcard-accent: rgba(255, 255, 255, 0.55);
+  background:
+    radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(253, 250, 190, 0.96) 0%, rgba(250, 243, 166, 0.94) 46%, rgba(232, 220, 120, 0.97) 100%);
+  background-color: rgba(250, 243, 166, 0.55);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 0 rgba(120, 105, 10, 0.12),
+    inset 0 0 22px rgba(255, 255, 255, 0.18),
+    0 10px 24px -14px rgba(176, 158, 40, 0.4),
+    0 2px 6px rgba(15, 35, 60, 0.08);
+}
+.tcard--busy:hover,
+.tcard--check:hover {
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 0 rgba(120, 105, 10, 0.12),
+    inset 0 0 26px rgba(255, 255, 255, 0.22),
+    0 14px 30px -14px rgba(176, 158, 40, 0.5),
+    0 2px 8px rgba(15, 35, 60, 0.1);
+}
 /* Тот же материал, что у кнопок категорий: многослойная заливка, блик
    сверху-слева и мягкая тень. Только тонирован зелёным #53b685. */
 .tcard--pay {
@@ -636,7 +661,17 @@
 }
 /* Тёмная тема: те же статусы, но приглушёнными тонировками. */
 [data-theme="dark"] .tcard--busy,
-[data-theme="dark"] .tcard--check { --tcard-accent: rgba(250, 243, 166, 0.32); background: rgba(250, 243, 166, 0.13); }
+[data-theme="dark"] .tcard--check {
+  --tcard-accent: rgba(255, 255, 255, 0.16);
+  background:
+    radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(250, 243, 166, 0.3) 0%, rgba(228, 214, 118, 0.26) 100%);
+  background-color: rgba(250, 243, 166, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 10px 24px -16px rgba(0, 0, 0, 0.6);
+}
 [data-theme="dark"] .tcard--pay {
   --tcard-accent: rgba(255, 255, 255, 0.16);
   background:
