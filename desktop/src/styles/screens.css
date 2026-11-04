@@ -585,29 +585,35 @@
 }
 
 /* Свободный стол — белый с пунктирной рамкой; занятый — мягкий жёлтый;
-   чек напечатан и ждёт оплаты — мягкий зелёный (малахитовый пастель). */
+   чек напечатан и ждёт оплаты — спокойный зелёный #53b685. */
 .tcard--free { --tcard-accent: var(--color-border); border-style: dashed; background: var(--color-card); }
 .tcard--free .tcard__status { background: var(--color-subtle); color: var(--color-text-muted); }
 .tcard--busy,
 .tcard--check { --tcard-accent: rgba(214, 197, 73, 0.45); background: #faf3a6; }
-.tcard--pay { --tcard-accent: rgba(52, 168, 104, 0.38); background: #c0f2d3; }
+.tcard--pay { --tcard-accent: rgba(35, 128, 91, 0.5); background: #53b685; }
 /* На цветном фоне пилюля и чип мест — светлое стекло, чтобы не сливаться. */
 .tcard--busy .tcard__status,
 .tcard--check .tcard__status,
 .tcard--pay .tcard__status { background: rgba(255, 255, 255, 0.82); }
 .tcard--busy .tcard__status { color: var(--amber-700); }
 .tcard--check .tcard__status { color: var(--green-600); }
-.tcard--pay .tcard__status { color: var(--green-600); }
+.tcard--pay .tcard__status { color: #0d5c3d; background: rgba(255, 255, 255, 0.9); }
 .tcard--busy .tcard__seats,
-.tcard--check .tcard__seats,
-.tcard--pay .tcard__seats { background: rgba(255, 255, 255, 0.74); }
-/* На пастели брендовый teal в сумме выцветает — на зелёной карточке
-   берём его тёмный оттенок, остальной текст остаётся обычным. */
-.tcard--pay .tcard__amount { color: var(--teal-800); }
+.tcard--check .tcard__seats { background: rgba(255, 255, 255, 0.74); }
+/* На зелёной карточке текст — белый, как в образце: тёмные чернила
+   на этом тоне выглядят грязно. */
+.tcard--pay .tcard__num,
+.tcard--pay .tcard__amount { color: #fff; }
+.tcard--pay .tcard__client { color: rgba(255, 255, 255, 0.95); }
+.tcard--pay .tcard__time { color: rgba(255, 255, 255, 0.84); }
+.tcard--pay .tcard__seats {
+  background: rgba(255, 255, 255, 0.24);
+  color: #fff;
+}
 /* Тёмная тема: те же статусы, но приглушёнными тонировками. */
 [data-theme="dark"] .tcard--busy,
 [data-theme="dark"] .tcard--check { --tcard-accent: rgba(250, 243, 166, 0.32); background: rgba(250, 243, 166, 0.13); }
-[data-theme="dark"] .tcard--pay { --tcard-accent: rgba(192, 242, 211, 0.32); background: rgba(192, 242, 211, 0.13); }
+[data-theme="dark"] .tcard--pay { --tcard-accent: rgba(83, 182, 133, 0.42); background: rgba(83, 182, 133, 0.18); }
 [data-theme="dark"] .tcard--busy .tcard__status,
 [data-theme="dark"] .tcard--check .tcard__status,
 [data-theme="dark"] .tcard--pay .tcard__status { background: rgba(255, 255, 255, 0.12); }
