@@ -402,13 +402,16 @@ export default function PaymentScreen({
             </div>
           )}
 
-          {/* Главные действия — столбцом: отмена · печать · закрыть. */}
+          {/* «Отменить заказ» стоит сразу под полем «Получено»: это редкое
+              действие, и в паре с «Закрыть заказ» её легко нажать по ошибке. */}
+          {onCancel && (
+            <button className="btn btn--outline pay-order__cancel" onClick={() => onCancel(order)}>
+              {t('cancel_order')}
+            </button>
+          )}
+
+          {/* Печать и закрытие — столбцом, прижаты к низу колонки. */}
           <div className="pay-screen__actions">
-            {onCancel && (
-              <button className="btn btn--outline pay-order__cancel btn--eq" onClick={() => onCancel(order)}>
-                {t('cancel_order')}
-              </button>
-            )}
             <button className={`btn btn--outline btn--eq ${printed ? 'is-done' : ''}`} disabled={act === 'print'} onClick={doPrint}>
               {act === 'print' ? spin : printed ? <CheckCircle size={18} /> : <Printer size={18} />} {t('print_receipt')}
             </button>

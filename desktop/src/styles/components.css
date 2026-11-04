@@ -4419,16 +4419,17 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 .pay-dialog__disc-row .btn--sm {
   flex-shrink: 0; min-height: 36px; padding: 0 14px;
 }
-/* Главные действия — столбцом под полями: отмена · печать · закрыть.
-   Блок прижат к низу колонки: свободное место остаётся между полем
-   «Получено» и кнопками, а не под ними. Зазор крупный: кнопки высокие
-   и стоят вплотную к пальцу, иначе легко нажать соседнюю. */
+/* Главные действия — столбцом под полями: печать · закрыть.
+   Блок прижат к низу колонки: свободное место остаётся над кнопками.
+   Зазор крупный: кнопки высокие и стоят вплотную к пальцу, иначе
+   легко нажать соседнюю. «Отменить заказ» живёт отдельно, выше. */
 .pay-screen__actions {
   display: flex; flex-direction: column; gap: 16px;
   margin-top: auto;
   padding-top: 4px;
 }
-.pay-screen__actions .btn--eq { width: 100%; justify-content: center; white-space: nowrap; }
+.pay-screen__actions .btn--eq,
+.pay-order__cancel { width: 100%; justify-content: center; white-space: nowrap; }
 /* Выбор способа оплаты — модальная карточка поверх экрана, открывается
    с «Закрыть заказ». Способы: наличные, карта, кастомные из админки, долг. */
 .pay-method {

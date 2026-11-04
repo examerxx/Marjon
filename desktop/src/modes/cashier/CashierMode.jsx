@@ -814,10 +814,13 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
                           <span className="tcard__seats"><Users /> {tb.capacity || 4}</span>
                         </div>
                         {o ? (
-                          <><span className="tcard__client">{t('order_no')} #{o.order_number ?? ''}</span>
-                            <span className="tcard__meta"><Clock /> {fmtTime(o.created_at)}
-                              {o.total_amount != null && <span className="tcard__amount">{fmt(o.total_amount)} {t('currency')}</span>}
-                            </span></>
+                          <>
+                            <div className="tcard__order">
+                              <span className="tcard__client">{t('order_no')} #{o.order_number ?? ''}</span>
+                              <span className="tcard__time"><Clock /> {fmtTime(o.created_at)}</span>
+                            </div>
+                            {o.total_amount != null && <span className="tcard__amount">{fmt(o.total_amount)} {t('currency')}</span>}
+                          </>
                         ) : <div className="tcard__spacer" />}
                         <span className="tcard__status">{t(st)}</span>
                       </button>
