@@ -224,157 +224,156 @@ export default function PaymentScreen({
       </header>
 
       <div className="pay-screen__body">
-        {/* Контакты доставки остаются над чеком: их нет в шаблоне, но кассир
-            должен видеть адрес, пока закрывает заказ. */}
-        {(order?.customer_phone || order?.customer_address) && (
-          <div className="pay-order__meta">
-            {order.customer_phone && <span><Phone size={15} /> {formatPhone(order.customer_phone)}</span>}
-            {order.customer_address && <span><MapPin size={15} /> {order.customer_address}</span>}
+        {/* Левая половина — чек, правая — управление оплатой столбцом. */}
+        <div className="pay-screen__receipt-col">
+          {/* Контакты доставки остаются над чеком: их нет в шаблоне, но кассир
+              должен видеть адрес, пока закрывает заказ. */}
+          {(order?.customer_phone || order?.customer_address) && (
+            <div className="pay-order__meta">
+              {order.customer_phone && <span><Phone size={15} /> {formatPhone(order.customer_phone)}</span>}
+              {order.customer_address && <span><MapPin size={15} /> {order.customer_address}</span>}
+            </div>
+          )}
+
+          {/* Чек ровно в том виде, в каком он уйдёт на печать: шапка, реквизиты,
+              блюда, итоги и большой номер заказа внизу. */}
+          <div className="pay-receipt-scroll">
+            <article className="pay-receipt" aria-label={`${t('print_receipt')} #${order?.order_number ?? ''}`}>
+              <div className="pay-receipt__brand">{companyName}</div>
+
+              <div className="pay-receipt__info">
+                <div><span>{t('receipt_order_no')}:</span><b>{order?.order_number ?? ''}</b></div>
+                <div><span>{t('receipt_order_type')}:</span><b>{t.type(order?.order_type || 'dine_in')}</b></div>
+                {order?.table_number && <div><span>{t('receipt_table_no')}:</span><b>{order.table_number}</b></div>}
+                {receiptStaff.map((row) => (
+                  <div key={row.label}><span>{row.label}:</span><b>{row.name}</b></div>
+                ))}
+                {order?.created_at && <div><span>{t('receipt_date')}:</span><b>{fmtReceiptDateTime(order.created_at)}</b></div>}
+              </div>
+
+              <div className="pay-receipt__table">
+                <div className="pay-receipt__row pay-receipt__row--head">
+                  <span>{t('receipt_dish')}</span>
+                  <span>{t('receipt_qty')}</span>
+                  <span>{t('receipt_sum')}</span>
+                </div>
+                {items.length === 0 ? (
+                  <div className="pay-receipt__empty">{t('order_items')}: —</div>
+                ) : items.map((it) => (
+                  <div className="pay-receipt__row" key={it.id}>
+                    <span>
+                      {it.name}
+                      {it.takeaway ? ` · ${t('takeaway')}` : ''}
+                    </span>
+                    <span>{formatQty(it.quantity)}</span>
+                    <span>{fmt(it.total ?? (Number(it.price) * Number(it.quantity)))}</span>
+                  </div>
+                ))}
+
+                <div className="pay-receipt__row pay-receipt__row--sum">
+                  <span>{t('receipt_items_total')}</span><span /><span>{fmt(subtotal)}</span>
+                </div>
+                {Number(order?.service_fee) > 0 && (
+                  <div className="pay-receipt__row">
+                    <span>{t('receipt_service')} {servicePct}%</span><span /><span>{fmt(order.service_fee)}</span>
+                  </div>
+                )}
+                {Number(order?.discount_amount) > 0 && (
+                  <div className="pay-receipt__row">
+                    <span>{t('discount_word')}</span><span /><span>−{fmt(order.discount_amount)}</span>
+                  </div>
+                )}
+                {Number(order?.tax_amount) > 0 && (
+                  <div className="pay-receipt__row">
+                    <span>{t('z_tax')}</span><span /><span>{fmt(order.tax_amount)}</span>
+                  </div>
+                )}
+                <div className="pay-receipt__row pay-receipt__row--total">
+                  <span>{t('total')}:</span><span /><span>{fmt(total)}</span>
+                </div>
+                {reopening && (
+                  <div className="pay-receipt__row">
+                    <span>{t('receipt_paid_earlier')}</span><span /><span>{fmt(paidBefore)}</span>
+                  </div>
+                )}
+                <div className="pay-receipt__row">
+                  <span>{paymentLabel}:</span><span /><span>{fmt(paid)}</span>
+                </div>
+                {change > 0 && (
+                  <div className="pay-receipt__row">
+                    <span>{t('change')}</span><span /><span>{fmt(change)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="pay-receipt__bottom">
+                <span>{t('receipt_bottom_no')}</span>
+                <strong>{order?.order_number ?? ''}</strong>
+              </div>
+            </article>
           </div>
-        )}
-
-        {/* Чек ровно в том виде, в каком он уйдёт на печать: шапка, реквизиты,
-            блюда, итоги и большой номер заказа внизу. */}
-        <div className="pay-receipt-scroll">
-          <article className="pay-receipt" aria-label={`${t('print_receipt')} #${order?.order_number ?? ''}`}>
-            <div className="pay-receipt__brand">{companyName}</div>
-
-            <div className="pay-receipt__info">
-              <div><span>{t('receipt_order_no')}:</span><b>{order?.order_number ?? ''}</b></div>
-              <div><span>{t('receipt_order_type')}:</span><b>{t.type(order?.order_type || 'dine_in')}</b></div>
-              {order?.table_number && <div><span>{t('receipt_table_no')}:</span><b>{order.table_number}</b></div>}
-              {receiptStaff.map((row) => (
-                <div key={row.label}><span>{row.label}:</span><b>{row.name}</b></div>
-              ))}
-              {order?.created_at && <div><span>{t('receipt_date')}:</span><b>{fmtReceiptDateTime(order.created_at)}</b></div>}
-            </div>
-
-            <div className="pay-receipt__table">
-              <div className="pay-receipt__row pay-receipt__row--head">
-                <span>{t('receipt_dish')}</span>
-                <span>{t('receipt_qty')}</span>
-                <span>{t('receipt_sum')}</span>
-              </div>
-              {items.length === 0 ? (
-                <div className="pay-receipt__empty">{t('order_items')}: —</div>
-              ) : items.map((it) => (
-                <div className="pay-receipt__row" key={it.id}>
-                  <span>
-                    {it.name}
-                    {it.takeaway ? ` · ${t('takeaway')}` : ''}
-                  </span>
-                  <span>{formatQty(it.quantity)}</span>
-                  <span>{fmt(it.total ?? (Number(it.price) * Number(it.quantity)))}</span>
-                </div>
-              ))}
-
-              <div className="pay-receipt__row pay-receipt__row--sum">
-                <span>{t('receipt_items_total')}</span><span /><span>{fmt(subtotal)}</span>
-              </div>
-              {Number(order?.service_fee) > 0 && (
-                <div className="pay-receipt__row">
-                  <span>{t('receipt_service')} {servicePct}%</span><span /><span>{fmt(order.service_fee)}</span>
-                </div>
-              )}
-              {Number(order?.discount_amount) > 0 && (
-                <div className="pay-receipt__row">
-                  <span>{t('discount_word')}</span><span /><span>−{fmt(order.discount_amount)}</span>
-                </div>
-              )}
-              {Number(order?.tax_amount) > 0 && (
-                <div className="pay-receipt__row">
-                  <span>{t('z_tax')}</span><span /><span>{fmt(order.tax_amount)}</span>
-                </div>
-              )}
-              <div className="pay-receipt__row pay-receipt__row--total">
-                <span>{t('total')}:</span><span /><span>{fmt(total)}</span>
-              </div>
-              {reopening && (
-                <div className="pay-receipt__row">
-                  <span>{t('receipt_paid_earlier')}</span><span /><span>{fmt(paidBefore)}</span>
-                </div>
-              )}
-              <div className="pay-receipt__row">
-                <span>{paymentLabel}:</span><span /><span>{fmt(paid)}</span>
-              </div>
-              {change > 0 && (
-                <div className="pay-receipt__row">
-                  <span>{t('change')}</span><span /><span>{fmt(change)}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="pay-receipt__bottom">
-              <span>{t('receipt_bottom_no')}</span>
-              <strong>{order?.order_number ?? ''}</strong>
-            </div>
-          </article>
         </div>
 
-        {/* Скидка + официант — переехали в нижнюю панель, к сумме полученных
-            денег: три органа управления оплатой стоят одной строкой. */}
-
-        {/* Возврат в закрытый заказ */}
-        {reopening && (
-          <div className="pay-order__reopen">
-            <div className="pay-order__change"><span>{t('paid_before')}</span><strong>{fmt(paidBefore)} {t('currency')}</strong></div>
-            {refundDue > 0 && (
-              <div className="pay-order__change pay-order__change--refund">
-                <span><Undo2 size={14} /> {t('refund_to_client')}</span><strong>{fmt(refundDue)} {t('currency')}</strong>
-              </div>
+        <div className="pay-screen__side">
+          {/* Способы оплаты: наличные / карта / «Другой» (список из админки) */}
+          <div className="pay-order__methods">
+            <button className={`pay-method-btn ${method === 'cash' ? 'is-active' : ''}`} onClick={() => pickMethod('cash')}>
+              <Banknote size={22} /><span>{t('cash')}</span>
+            </button>
+            <button className={`pay-method-btn ${method === 'card' ? 'is-active' : ''}`} onClick={() => pickMethod('card')}>
+              <CreditCard size={22} /><span>{t('card')}</span>
+            </button>
+            {customMethods.length > 0 && (
+              <button
+                className={`pay-method-btn ${isCustom ? 'is-active' : ''}`}
+                onClick={() => setOtherOpen(true)}
+              >
+                <Wallet size={22} /><span>{isCustom ? method : t('other_method')}</span>
+              </button>
             )}
-            {dueNow > 0 && (
-              <div className="pay-order__change pay-order__change--short">
-                <span>{t('not_enough')}</span><strong>{fmt(dueNow)} {t('currency')}</strong>
-              </div>
+            {debtAllowed && (
+              <button className={`pay-method-btn ${method === 'debt' ? 'is-active' : ''}`} onClick={() => pickMethod('debt')}>
+                <Wallet size={22} /><span>{t('debt')}</span>
+              </button>
             )}
           </div>
-        )}
 
-        {/* Способы оплаты: наличные / карта / «Другой» (список из админки) */}
-        <div className="pay-order__methods">
-          <button className={`pay-method-btn ${method === 'cash' ? 'is-active' : ''}`} onClick={() => pickMethod('cash')}>
-            <Banknote size={22} /><span>{t('cash')}</span>
-          </button>
-          <button className={`pay-method-btn ${method === 'card' ? 'is-active' : ''}`} onClick={() => pickMethod('card')}>
-            <CreditCard size={22} /><span>{t('card')}</span>
-          </button>
-          {customMethods.length > 0 && (
-            <button
-              className={`pay-method-btn ${isCustom ? 'is-active' : ''}`}
-              onClick={() => setOtherOpen(true)}
-            >
-              <Wallet size={22} /><span>{isCustom ? method : t('other_method')}</span>
+          {/* Возврат в закрытый заказ */}
+          {reopening && (
+            <div className="pay-order__reopen">
+              <div className="pay-order__change"><span>{t('paid_before')}</span><strong>{fmt(paidBefore)} {t('currency')}</strong></div>
+              {refundDue > 0 && (
+                <div className="pay-order__change pay-order__change--refund">
+                  <span><Undo2 size={14} /> {t('refund_to_client')}</span><strong>{fmt(refundDue)} {t('currency')}</strong>
+                </div>
+              )}
+              {dueNow > 0 && (
+                <div className="pay-order__change pay-order__change--short">
+                  <span>{t('not_enough')}</span><strong>{fmt(dueNow)} {t('currency')}</strong>
+                </div>
+              )}
+            </div>
+          )}
+
+          {onSetWaiter && staff.length > 0 && (
+            <div className="pay-screen__control">
+              <WaiterPicker
+                value={order?.waiter_id || ''}
+                staff={staff}
+                label={t('change_waiter')}
+                disabled={act === 'waiter'}
+                onChange={(waiterId) => run('waiter', () => onSetWaiter(order, waiterId || null))}
+              />
+              {act === 'waiter' && spin}
+            </div>
+          )}
+
+          {onReassign && order?.table_number && (
+            <button className="btn btn--outline pay-screen__reassign" onClick={() => onReassign(order)}>
+              {t('move_table')}
             </button>
           )}
-          {debtAllowed && (
-            <button className={`pay-method-btn ${method === 'debt' ? 'is-active' : ''}`} onClick={() => pickMethod('debt')}>
-              <Wallet size={22} /><span>{t('debt')}</span>
-            </button>
-          )}
-        </div>
 
-        {/* Сумма к получению переехала в нижнюю панель — рядом со скидкой и
-            сменой официанта. В возвращённом заказе поля нет: там либо возврат
-            клиенту, либо доплата за добавленные блюда, а платёж всё равно
-            пишется на полный новый итог (прежние платежи уходят в refunded). */}
-      </div>
-
-      <footer className="pay-screen__foot">
-        <button
-          type="button"
-          className="pay-total-static pay-total-static--tap"
-          onClick={fillDue}
-          title={t('to_pay_label')}
-        >
-          <span>{t('to_pay_label')}</span>
-          <strong>{fmt(total)} {t('currency')}</strong>
-        </button>
-
-        {/* Одна строка управления оплатой: скидка · смена официанта ·
-            полученная сумма (+ смена стола, если заказ за столом). Раньше
-            каждое поле шло отдельным блоком и вытесняло друг друга. */}
-        <div className="pay-screen__controls">
           {onApplyDiscount && (
             <div className="pay-screen__control">
               <label className="pay-dialog__disc">
@@ -396,19 +395,6 @@ export default function PaymentScreen({
                   </button>
                 </div>
               </label>
-            </div>
-          )}
-
-          {onSetWaiter && staff.length > 0 && (
-            <div className="pay-screen__control">
-              <WaiterPicker
-                value={order?.waiter_id || ''}
-                staff={staff}
-                label={t('change_waiter')}
-                disabled={act === 'waiter'}
-                onChange={(waiterId) => run('waiter', () => onSetWaiter(order, waiterId || null))}
-              />
-              {act === 'waiter' && spin}
             </div>
           )}
 
@@ -444,30 +430,22 @@ export default function PaymentScreen({
             </div>
           )}
 
-          {onReassign && order?.table_number && (
-            <div className="pay-screen__control pay-screen__control--narrow">
-              <button className="btn btn--outline pay-screen__reassign" onClick={() => onReassign(order)}>
-                {t('move_table')}
+          {/* Главные действия — столбцом: отмена · печать · закрыть. */}
+          <div className="pay-screen__actions">
+            {onCancel && (
+              <button className="btn btn--outline pay-order__cancel btn--eq" onClick={() => onCancel(order)}>
+                {t('cancel_order')}
               </button>
-            </div>
-          )}
-        </div>
-
-        {/* Три главных действия — одной строкой: печать · закрыть · отменить */}
-        <div className="pay-screen__actions">
-          <button className={`btn btn--outline btn--eq ${printed ? 'is-done' : ''}`} disabled={act === 'print'} onClick={doPrint}>
-            {act === 'print' ? spin : printed ? <CheckCircle size={18} /> : <Printer size={18} />} {t('print_receipt')}
-          </button>
-          <button className="btn btn--primary btn--lg pay-order__close btn--eq" disabled={!canComplete} onClick={doComplete}>
-            {busy ? spin : <CheckCircle size={20} />} {t('complete_order')}
-          </button>
-          {onCancel && (
-            <button className="btn btn--outline pay-order__cancel btn--eq" onClick={() => onCancel(order)}>
-              {t('cancel_order')}
+            )}
+            <button className={`btn btn--outline btn--eq ${printed ? 'is-done' : ''}`} disabled={act === 'print'} onClick={doPrint}>
+              {act === 'print' ? spin : printed ? <CheckCircle size={18} /> : <Printer size={18} />} {t('print_receipt')}
             </button>
-          )}
+            <button className="btn btn--primary btn--lg pay-order__close btn--eq" disabled={!canComplete} onClick={doComplete}>
+              {busy ? spin : <CheckCircle size={20} />} {t('complete_order')}
+            </button>
+          </div>
         </div>
-      </footer>
+      </div>
 
       {/* Выбор «другого» способа оплаты (Uzum, Yandex, …) */}
       {otherOpen && (
