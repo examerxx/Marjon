@@ -2467,6 +2467,16 @@ body.vkb-open .login-card {
 .cart-btn:disabled { opacity: 0.4; pointer-events: none; }
 .cart-btn--pay { flex: 1; background: var(--color-brand); color: #fff; }
 .cart-btn--pay:hover { background: var(--color-brand-hover); }
+/* Второе действие на экране заказа (у официанта — печать чека):
+   не спорит с основной кнопкой и не растягивается на всю панель. */
+.cart-btn--outline {
+  flex: 0 0 auto;
+  padding: 0 18px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text-primary);
+}
+.cart-btn--outline:hover { background: var(--color-surface-hover); }
 .cart-btn--clear {
   width: 60px;
   background: var(--color-danger-bg);

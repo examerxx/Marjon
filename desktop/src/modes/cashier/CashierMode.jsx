@@ -357,9 +357,12 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   const closingOrders = useRef(new Set())
   // Долг: только кассир и только при явном праве закрывать счёт.
   // Официанту в долг не даём НИКОГДА — на бэкенде это тоже запрещено.
-  const canCloseBill = can(user, 'can_close_bill')
   const roleSlug = roleSlugOf(user)
-  const canDebt = canCloseBill && roleSlug !== 'waiter' && roleSlug !== 'courier'
+  // Официант только добавляет блюда и печатает чек: счёт закрывает кассир.
+  // Это правило роли, а не тумблера, — иначе легаси-права «разрешают всё».
+  const isWaiter = roleSlug === 'waiter'
+  const canCloseBill = can(user, 'can_close_bill') && !isWaiter
+  const canDebt = canCloseBill && roleSlug !== 'courier'
 
   // Full payment is recorded atomically by /payments (including stock deduction).
   // Долг (method === 'debt'): фактически полученные наличные пишем приходом в финансы
@@ -652,6 +655,23 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
     }
   }
 
+  // Официант: дослать новые блюда в заказ и вернуться к столам.
+  // Оплату не открываем — счёт закрывает кассир.
+  async function addDishesToOrder() {
+    if (!addToOrderId || !cart.length || creating) return
+    setCreating(true)
+    try {
+      await pushCartToOrder()
+      toast(t('order_created'))
+      setView('floor')
+      loadFloor()
+    } catch (e) {
+      toast(errorMessage(e, t('create_order_error')), 'error')
+    } finally {
+      setCreating(false)
+    }
+  }
+
   // Экран оплаты — общий для обоих видов. Раньше он рендерился только в виде
   // «столы», поэтому кнопка «К оплате» из корзины ставила состояние и молчала:
   // модалки в этом дереве просто не было.
@@ -775,8 +795,9 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
             ))}
           </div>
         </main>
-        {/* Меню разделов — иконка-кнопка в шапке рядом с блокировкой и настройками */}
-        {hdrActionsSlot && !courier && createPortal(
+        {/* Меню разделов — иконка-кнопка в шапке рядом с блокировкой и настройками.
+            Официанту оно не нужно: его работа — блюда и печать чека. */}
+        {hdrActionsSlot && !courier && !isWaiter && createPortal(
           <HeaderMenu
             title={t('menu_more')}
             items={[
@@ -880,9 +901,10 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
                         <span className="cart-item__price">{fmt(item.total ?? item.price * item.qty)} {t('currency')}</span>
                       </button>
                       <div className="cart-item__controls">
-                        <button className="qty-btn" onClick={() => changeSavedQty(item, -1)} title={t('qty_less')}><Minus size={16} /></button>
+                        {/* Официант не правит уже отправленные блюда — только добавляет новые. */}
+                        {!isWaiter && <button className="qty-btn" onClick={() => changeSavedQty(item, -1)} title={t('qty_less')}><Minus size={16} /></button>}
                         <span className="qty-value">{formatQty(item.qty)}</span>
-                        <button className="qty-btn" onClick={() => changeSavedQty(item, 1)} title={t('qty_more')}><Plus size={16} /></button>
+                        {!isWaiter && <button className="qty-btn" onClick={() => changeSavedQty(item, 1)} title={t('qty_more')}><Plus size={16} /></button>}
                         <button className="qty-btn qty-btn--edit" onClick={() => setEditLine(item)} title={t('qty_edit')}><Pencil size={15} /></button>
                       </div>
                     </div>
@@ -930,13 +952,24 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
               <div className="total-row total-row--final"><span>{t('total')}</span><span>{fmt(total)} {t('currency')}</span></div>
             </div>
             <div className="cashier-cart__actions">
-              {/* Существующий заказ: одно действие — «К оплате». Новые строки
-                  досылаются в заказ внутри openPayment, отдельная кнопка
-                  «Добавить блюда» больше не нужна и только путала. */}
+              {/* Существующий заказ. Кассир закрывает счёт кнопкой «К оплате»
+                  (новые строки досылаются внутри openPayment). Официант счёт
+                  не закрывает: он только досылает блюда и печатает чек. */}
               {editingExisting ? (
-                <button className="cart-btn cart-btn--pay" disabled={creating} onClick={openPayment}>
-                  <Receipt size={20} /> {t('to_payment')}
-                </button>
+                isWaiter ? (
+                  <>
+                    <button className="cart-btn cart-btn--outline" disabled={!existingOrder} onClick={() => printOrderReceipt(existingOrder)}>
+                      <Printer size={18} /> {t('print_receipt')}
+                    </button>
+                    <button className="cart-btn cart-btn--pay" disabled={creating || cart.length === 0} onClick={addDishesToOrder}>
+                      {creating ? <span className="btn-spinner" aria-hidden="true" /> : <Plus size={20} />} {t('add_dishes')}
+                    </button>
+                  </>
+                ) : (
+                  <button className="cart-btn cart-btn--pay" disabled={creating} onClick={openPayment}>
+                    <Receipt size={20} /> {t('to_payment')}
+                  </button>
+                )
               ) : (
                 <button className="cart-btn cart-btn--pay" disabled={cart.length === 0 || creating} onClick={createOrder}>
                   {creating ? <span className="btn-spinner" aria-hidden="true" /> : <Plus size={20} />} {t('create_order')}
@@ -982,7 +1015,7 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
           line={editLine}
           readOnly={Boolean(editLine.orderItemId)}
           meta={{ addedByName: editLine.addedByName, createdAt: editLine.createdAt }}
-          onCancelDish={editLine.orderItemId ? () => cancelOrderItem(editLine) : undefined}
+          onCancelDish={!isWaiter && editLine.orderItemId ? () => cancelOrderItem(editLine) : undefined}
           onSubmit={saveEdit}
           onClose={() => setEditLine(null)}
           hideTakeaway={courier || (orderType === 'dine_in' && !can(user, 'can_takeaway_at_table'))}

@@ -165,11 +165,14 @@
 .receipt-dialog__body .receipt-fit-frame {
   margin: auto;
 }
-/* Плоская бумага: в окне чек лежит на ровном фоне, без тени, которая
-   проявлялась при наведении на панель. На странице настроек тень остаётся.
+/* Чистая белая карточка вместо «оторванной» бумаги: в окне просмотра
+   прямые скруглённые края и мягкая тень. Печатный шаблон не меняется.
    Селектор намеренно длиннее, чем `.receipt-settings-page .receipt-preview-shell
-   .receipt-preview` из receiptSettings.css — иначе его drop-shadow побеждает. */
+   .receipt-preview` из receiptSettings.css — иначе его правила побеждают. */
 .receipt-dialog .receipt-dialog__body.receipt-settings-page .receipt-preview {
+  clip-path: none;
+  border-radius: 16px;
+  box-shadow: 0 10px 26px rgba(15, 30, 60, 0.14);
   filter: none;
 }
 /* The complete paper fits here, so neither the panel nor receipt scrolls. */
