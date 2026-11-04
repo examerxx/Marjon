@@ -107,9 +107,11 @@ export default function WaiterMode({ user = {}, branch = {}, onBack, onLogout })
   // Панель заказа заполняется — держим внизу последнюю добавленную позицию.
   useEffect(() => {
     const el = cartItemsRef.current
-    if (!el) return undefined
-    const id = requestAnimationFrame(() => { el.scrollTop = el.scrollHeight })
-    return () => cancelAnimationFrame(id)
+    if (!el) return
+    // Без requestAnimationFrame: в свёрнутом/перекрытом окне кадры не
+    // приходят и прокрутка не выполнялась вовсе. DOM уже обновлён к моменту
+    // useEffect, поэтому присваивания достаточно.
+    el.scrollTop = el.scrollHeight
   }, [cart.length, view])
 
   // Принтеры филиала + обработчик заданий печати (терминал официанта тоже может печатать)

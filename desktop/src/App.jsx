@@ -10,7 +10,7 @@ import SettingsModal from './components/SettingsModal'
 import StaffProfileModal from './components/StaffProfileModal'
 import CashierMode from './modes/cashier/CashierMode'
 import WaiterMode from './modes/waiter/WaiterMode'
-import { auth, branding, flushQueue, queueSize, shifts } from './shared/api'
+import { auth, branding, flushQueue, halls, queueSize, shifts } from './shared/api'
 import { DEFAULT_SERVER_URL } from './shared/config'
 import { t } from './shared/i18n'
 import { errorMessage } from './shared/errorMessage.mjs'
@@ -245,7 +245,16 @@ export default function App() {
       pin,
     }
 
-    const branchId = branch?.id || user?.branch_id || pinEmployee?.branch_id || null
+    let branchId = branch?.id || user?.branch_id || pinEmployee?.branch_id || null
+    // Моноблок может быть привязан только к компании, а сотрудник — без
+    // филиала: тогда branchId пуст и проверка смены молча пропускалась, хотя
+    // смена на кассе не открыта. Филиал терминала определяем по его залам.
+    if (!branchId) {
+      try {
+        const hallList = await halls.listWithToken(data.access_token)
+        branchId = hallList?.[0]?.branch_id || null
+      } catch { /* нет залов — работаем как раньше, без блокировки */ }
+    }
     if (branchId) {
       try {
         const current = await shifts.currentWithToken(data.access_token, branchId)

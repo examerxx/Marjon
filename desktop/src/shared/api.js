@@ -398,6 +398,10 @@ export const warehouse = {
 // Залы (зоны) с вложенными столами: GET /halls?branch_id= → [{id,name,tables:[{id,number,capacity}]}]
 export const halls = {
   list: (branchId) => cached('halls_' + branchId, api.get('/halls', { params: { branch_id: branchId } }).then((r) => r.data)),
+  // Список залов под токеном сотрудника ДО сохранения сессии: нужен, чтобы
+  // определить филиал терминала, когда моноблок привязан только к компании.
+  listWithToken: (token) =>
+    api.get('/halls', { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.data),
   branchTables: (branchId) => api.get(`/halls/branch/${branchId}/tables`).then((r) => r.data),
 }
 // Обратная совместимость со старым импортом `tables`
