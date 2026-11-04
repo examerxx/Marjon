@@ -5142,10 +5142,6 @@ body.vkb-lift .app-shell {
 [data-theme="dark"] .hist-status--ready { background: var(--color-brand-bg); color: var(--teal-300); }
 [data-theme="dark"] .hist-status--cooking,
 [data-theme="dark"] .hist-status--accepted { background: var(--color-warning-bg); color: var(--amber-400); }
-/* Пилюли статусов столов — светлые цвета на тёмном */
-[data-theme="dark"] .tcard--busy .tcard__status { background: var(--color-warning-bg); color: var(--amber-400); }
-[data-theme="dark"] .tcard--check .tcard__status { background: var(--color-success-bg); color: var(--green-300); }
-[data-theme="dark"] .tcard--pay .tcard__status { background: var(--color-brand-bg); color: var(--teal-300); }
 /* Верхние кнопки экрана столов — светлый текст и иконки, не teal */
 [data-theme="dark"] .board__head-right .btn { color: rgba(255, 255, 255, 0.88); border-color: rgba(255, 255, 255, 0.22); }
 [data-theme="dark"] .board__head-right .btn svg { color: rgba(255, 255, 255, 0.88); }

@@ -513,8 +513,8 @@
   gap: 16px;
 }
 
-/* Карточка стола всегда белая с нейтральной рамкой и обычной серой тенью:
-   статус читается только пилюлей с подписью, цветного свечения нет. */
+/* Фон карточки кодирует статус стола: свободен — белый, занят — жёлтый,
+   чек напечатан и ждёт оплаты — красный. Пилюля статуса остаётся подписью. */
 .tcard {
   --tcard-accent: var(--color-border-light);
   position: relative;
@@ -578,14 +578,38 @@
   opacity: 0.9;
 }
 
-/* Статус — только цвет пилюли: готовится — янтарный, готов — зелёный,
-   ждёт оплату — teal. Свободный стол отличается пунктирной рамкой —
-   так занятые заметнее в общей сетке. */
-.tcard--free { --tcard-accent: var(--color-border); border-style: dashed; }
+/* Свободный стол — белый с пунктирной рамкой; занятый — жёлтый;
+   чек напечатан и ждёт оплаты — красный. */
+.tcard--free { --tcard-accent: var(--color-border); border-style: dashed; background: var(--color-card); }
 .tcard--free .tcard__status { background: var(--color-subtle); color: var(--color-text-muted); }
-.tcard--busy .tcard__status { background: var(--color-warning-bg); color: var(--amber-700); }
-.tcard--check .tcard__status { background: var(--color-success-bg); color: var(--green-600); }
-.tcard--pay .tcard__status { background: var(--color-brand-bg); color: var(--color-brand-dark); }
+.tcard--busy,
+.tcard--check { --tcard-accent: rgba(245, 158, 11, 0.38); background: var(--color-warning-bg); }
+.tcard--pay { --tcard-accent: rgba(239, 68, 68, 0.38); background: var(--color-danger-bg); }
+/* На цветном фоне пилюля и чип мест — светлое стекло, чтобы не сливаться. */
+.tcard--busy .tcard__status,
+.tcard--check .tcard__status,
+.tcard--pay .tcard__status { background: rgba(255, 255, 255, 0.78); }
+.tcard--busy .tcard__status { color: var(--amber-700); }
+.tcard--check .tcard__status { color: var(--green-600); }
+.tcard--pay .tcard__status { color: var(--red-600); }
+.tcard--busy .tcard__seats,
+.tcard--check .tcard__seats,
+.tcard--pay .tcard__seats { background: rgba(255, 255, 255, 0.72); }
+.tcard--pay .tcard__amount { color: var(--red-600); }
+/* Тёмная тема: те же статусы, но приглушёнными тонировками. */
+[data-theme="dark"] .tcard--busy,
+[data-theme="dark"] .tcard--check { --tcard-accent: rgba(251, 191, 36, 0.36); background: rgba(245, 158, 11, 0.14); }
+[data-theme="dark"] .tcard--pay { --tcard-accent: rgba(248, 113, 113, 0.4); background: rgba(239, 68, 68, 0.16); }
+[data-theme="dark"] .tcard--busy .tcard__status,
+[data-theme="dark"] .tcard--check .tcard__status,
+[data-theme="dark"] .tcard--pay .tcard__status { background: rgba(255, 255, 255, 0.12); }
+[data-theme="dark"] .tcard--busy .tcard__status { color: var(--amber-400); }
+[data-theme="dark"] .tcard--check .tcard__status { color: var(--green-300); }
+[data-theme="dark"] .tcard--pay .tcard__status { color: #fca5a5; }
+[data-theme="dark"] .tcard--busy .tcard__seats,
+[data-theme="dark"] .tcard--check .tcard__seats,
+[data-theme="dark"] .tcard--pay .tcard__seats { background: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .tcard--pay .tcard__amount { color: #fca5a5; }
 
 /* ═══ Нижний статус-бар ═══ */
 .ws-bottom {
