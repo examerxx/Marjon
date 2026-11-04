@@ -4420,10 +4420,12 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
   flex-shrink: 0; min-height: 36px; padding: 0 14px;
 }
 /* Главные действия — столбцом под полями: отмена · печать · закрыть.
-   «Закрыть заказ» — последняя, в самом низу колонки. Зазор крупный:
-   кнопки высокие и стоят вплотную к пальцу, иначе легко нажать соседнюю. */
+   Блок прижат к низу колонки: свободное место остаётся между полем
+   «Получено» и кнопками, а не под ними. Зазор крупный: кнопки высокие
+   и стоят вплотную к пальцу, иначе легко нажать соседнюю. */
 .pay-screen__actions {
   display: flex; flex-direction: column; gap: 16px;
+  margin-top: auto;
   padding-top: 4px;
 }
 .pay-screen__actions .btn--eq { width: 100%; justify-content: center; white-space: nowrap; }
