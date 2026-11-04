@@ -559,8 +559,8 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
       qtyBusy.current.delete(item.lineId)
     }
   }
-  // «С собой» переключается прямо в строке корзины
-  function toggleTakeaway(lineId) { setCart((prev) => prev.map((i) => i.lineId === lineId ? { ...i, takeaway: !i.takeaway } : i)) }
+  // «С собой» переключается в карточке блюда (карандаш): отдельный тумблер
+  // в строке корзины ломал общую сетку — кнопки количества уезжали влево.
 
   const orderLinesSum = orderLines.reduce((s, i) => s + Number(i.total ?? (i.price * i.qty)), 0)
   const cartSum = cart.reduce((s, i) => s + i.price * i.qty, 0)
@@ -895,18 +895,6 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
                         {item.note && <span className="cart-row__note">{item.note}</span>}
                         <span className="cart-item__price">{fmt(item.price * item.qty)} {t('currency')}</span>
                       </button>
-                      {!courier && (orderType !== 'dine_in' || can(user, 'can_takeaway_at_table')) && (
-                        <button
-                          type="button"
-                          className={`cart-take ${item.takeaway ? 'cart-take--on' : ''}`}
-                          onClick={() => toggleTakeaway(item.lineId)}
-                          title={t('takeaway')}
-                          aria-pressed={item.takeaway ? 'true' : 'false'}
-                        >
-                          <span className="cart-take__label">{t('takeaway')}</span>
-                          <span className={`toggle ${item.takeaway ? 'toggle--on' : ''}`}><span className="toggle__dot" /></span>
-                        </button>
-                      )}
                       <div className="cart-item__controls">
                         <button className="qty-btn" onClick={() => updateQty(item.lineId, -1)} title={t('qty_less')}><Minus size={16} /></button>
                         <span className="qty-value">{formatQty(item.qty)}</span>

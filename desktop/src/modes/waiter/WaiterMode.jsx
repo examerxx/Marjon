@@ -344,10 +344,6 @@ export default function WaiterMode({ user = {}, branch = {}, onBack, onLogout })
     setCart((prev) => prev.map((i) => i.lineId === lineId ? { ...i, qty: i.qty + d } : i).filter((i) => i.qty > 0))
   }
   function removeLine(lineId) { setCart((prev) => prev.filter((i) => i.lineId !== lineId)) }
-  // «С собой» переключается прямо в строке корзины (не заходя в модалку блюда)
-  function toggleTakeaway(lineId) {
-    setCart((prev) => prev.map((i) => i.lineId === lineId ? { ...i, takeaway: !i.takeaway } : i))
-  }
   const cartTotal = cart.reduce((s, i) => s + Number(i.price || 0) * i.qty, 0)
   const itemCount = cart.reduce((s, i) => s + i.qty, 0)
 
@@ -448,20 +444,6 @@ export default function WaiterMode({ user = {}, branch = {}, onBack, onLogout })
                       {item.note && <span className="cart-row__note">{item.note}</span>}
                       <span className="cart-item__price">{(Number(item.price || 0) * item.qty).toLocaleString('ru-RU')} {t('currency')}</span>
                     </button>
-                    {/* «С собой» — тумблер рядом с названием и ценой; за столом
-                        по праву can_takeaway_at_table (веб-админка) */}
-                    {can(user, 'can_takeaway_at_table') && (
-                      <button
-                        type="button"
-                        className={`cart-take ${item.takeaway ? 'cart-take--on' : ''}`}
-                        onClick={() => toggleTakeaway(item.lineId)}
-                        title={t('takeaway')}
-                        aria-pressed={item.takeaway ? 'true' : 'false'}
-                      >
-                        <span className="cart-take__label">{t('takeaway')}</span>
-                        <span className={`toggle ${item.takeaway ? 'toggle--on' : ''}`}><span className="toggle__dot" /></span>
-                      </button>
-                    )}
                     <div className="cart-item__controls">
                       <button className="qty-btn" onClick={() => updateQty(item.lineId, -1)}><Minus size={16} /></button>
                       <span className="qty-value">{item.qty}</span>
