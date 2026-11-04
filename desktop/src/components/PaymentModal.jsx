@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   ArrowLeft, Printer, Banknote, CreditCard, CheckCircle,
-  User, Clock, Phone, MapPin, Wallet, Undo2, X,
+  Phone, MapPin, Wallet, Undo2, X,
 } from 'lucide-react'
 import { t } from '../shared/i18n'
 import { formatPhone, extractPhoneDigits, fullPhone } from '../shared/phone'
 import { formatQty } from '../shared/qty'
 import { sanitizeDecimal, parseNum } from '../shared/numeric'
+import { parseApiDate } from '../shared/time'
 import { toast } from './Toast'
 import WaiterPicker from './WaiterPicker'
 
@@ -36,11 +37,17 @@ import WaiterPicker from './WaiterPicker'
  *   onClose() — назад к залу/заказу
  */
 function fmt(n) { return Number(n || 0).toLocaleString('ru-RU') }
-function fmtTime(iso) { return iso ? new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '' }
+// Формат печатного чека: 26.10.26 15:36.
+function fmtReceiptDateTime(iso) {
+  const date = parseApiDate(iso)
+  if (!date) return ''
+  const two = (n) => String(n).padStart(2, '0')
+  return `${two(date.getDate())}.${two(date.getMonth() + 1)}.${String(date.getFullYear()).slice(-2)} ${two(date.getHours())}:${two(date.getMinutes())}`
+}
 
 export default function PaymentScreen({
   order, onPrint, onComplete, onCancel, onReassign, onClose, canClose = true, staff = [],
-  onSetWaiter, onApplyDiscount, onRefreshOrder,
+  onSetWaiter, onApplyDiscount, onRefreshOrder, company = null,
   paymentMethods = [], paidBefore = 0, canDebt = false,
 }) {
   const [method, setMethod] = useState('cash')
@@ -58,12 +65,17 @@ export default function PaymentScreen({
   const total = Number(order?.total_amount || 0)
   const items = (order?.items || []).filter((item) => item.status !== 'cancelled')
   const subtotal = items.reduce((s, it) => s + Number(it.total ?? (Number(it.price) * Number(it.quantity))), 0)
-  const waiter = staff.find((s) => String(s.id) === String(order?.waiter_id || '')) || null
-  const creatorName = waiter ? (waiter.name || waiter.email) : (order?.waiter_name || '—')
+  const companyName = company?.name || 'MARJON'
+  // Кто участвовал в заказе — те же строки, что печатаются на чеке.
+  const receiptStaff = (order?.receipt_staff || []).filter((row) => row && row.name)
+  const servicePct = subtotal > 0 ? Math.round(Number(order?.service_fee || 0) / subtotal * 100) : 0
 
   // Кастомные способы (Uzum, Yandex…).
   const customMethods = (paymentMethods || []).filter((m) => m && m.name)
   const isCustom = method !== 'cash' && method !== 'card' && method !== 'debt'
+  const paymentLabel = isCustom
+    ? method
+    : method === 'card' ? t('card') : method === 'debt' ? t('debt') : t('cash')
   const reopening = Number(paidBefore || 0) > 0
   const refundDue = Math.max(0, Number(paidBefore || 0) - total)
   const dueNow = Math.max(0, total - (reopening ? Number(paidBefore || 0) : 0))
@@ -212,33 +224,91 @@ export default function PaymentScreen({
       </header>
 
       <div className="pay-screen__body">
-        <div className="pay-order__meta">
-          <span><User size={15} /> {creatorName}</span>
-          {order?.created_at && <span><Clock size={15} /> {fmtTime(order.created_at)}</span>}
-          {order?.customer_phone && <span><Phone size={15} /> {formatPhone(order.customer_phone)}</span>}
-          {order?.customer_address && <span><MapPin size={15} /> {order.customer_address}</span>}
-        </div>
+        {/* Контакты доставки остаются над чеком: их нет в шаблоне, но кассир
+            должен видеть адрес, пока закрывает заказ. */}
+        {(order?.customer_phone || order?.customer_address) && (
+          <div className="pay-order__meta">
+            {order.customer_phone && <span><Phone size={15} /> {formatPhone(order.customer_phone)}</span>}
+            {order.customer_address && <span><MapPin size={15} /> {order.customer_address}</span>}
+          </div>
+        )}
 
-        {/* Счёт */}
-        <div className="pay-bill">
-          {items.length === 0 ? (
-            <p className="settings-hint">{t('order_items')}: —</p>
-          ) : items.map((it) => (
-            <div className="pay-bill__row" key={it.id}>
-              <span className="pay-bill__qty">{formatQty(it.quantity)}×</span>
-              <span className="pay-bill__name">
-                {it.name}
-                {it.takeaway && <span className="pay-order__take">{t('takeaway')}</span>}
-                {(it.created_at || it.added_by_name || it.waiter_name) && (
-                  <span className="pay-order__added">
-                    {it.created_at ? fmtTime(it.created_at) : ''}
-                    {(it.added_by_name || it.waiter_name) ? `${it.created_at ? ' · ' : ''}${it.added_by_name || it.waiter_name}` : ''}
-                  </span>
-                )}
-              </span>
-              <span className="pay-bill__sum">{fmt(it.total ?? (Number(it.price) * Number(it.quantity)))} {t('currency')}</span>
+        {/* Чек ровно в том виде, в каком он уйдёт на печать: шапка, реквизиты,
+            блюда, итоги и большой номер заказа внизу. */}
+        <div className="pay-receipt-scroll">
+          <article className="pay-receipt" aria-label={`${t('print_receipt')} #${order?.order_number ?? ''}`}>
+            <div className="pay-receipt__brand">{companyName}</div>
+
+            <div className="pay-receipt__info">
+              <div><span>{t('receipt_order_no')}:</span><b>{order?.order_number ?? ''}</b></div>
+              <div><span>{t('receipt_order_type')}:</span><b>{t.type(order?.order_type || 'dine_in')}</b></div>
+              {order?.table_number && <div><span>{t('receipt_table_no')}:</span><b>{order.table_number}</b></div>}
+              {receiptStaff.map((row) => (
+                <div key={row.label}><span>{row.label}:</span><b>{row.name}</b></div>
+              ))}
+              {order?.created_at && <div><span>{t('receipt_date')}:</span><b>{fmtReceiptDateTime(order.created_at)}</b></div>}
             </div>
-          ))}
+
+            <div className="pay-receipt__table">
+              <div className="pay-receipt__row pay-receipt__row--head">
+                <span>{t('receipt_dish')}</span>
+                <span>{t('receipt_qty')}</span>
+                <span>{t('receipt_sum')}</span>
+              </div>
+              {items.length === 0 ? (
+                <div className="pay-receipt__empty">{t('order_items')}: —</div>
+              ) : items.map((it) => (
+                <div className="pay-receipt__row" key={it.id}>
+                  <span>
+                    {it.name}
+                    {it.takeaway ? ` · ${t('takeaway')}` : ''}
+                  </span>
+                  <span>{formatQty(it.quantity)}</span>
+                  <span>{fmt(it.total ?? (Number(it.price) * Number(it.quantity)))}</span>
+                </div>
+              ))}
+
+              <div className="pay-receipt__row pay-receipt__row--sum">
+                <span>{t('receipt_items_total')}</span><span /><span>{fmt(subtotal)}</span>
+              </div>
+              {Number(order?.service_fee) > 0 && (
+                <div className="pay-receipt__row">
+                  <span>{t('receipt_service')} {servicePct}%</span><span /><span>{fmt(order.service_fee)}</span>
+                </div>
+              )}
+              {Number(order?.discount_amount) > 0 && (
+                <div className="pay-receipt__row">
+                  <span>{t('discount_word')}</span><span /><span>−{fmt(order.discount_amount)}</span>
+                </div>
+              )}
+              {Number(order?.tax_amount) > 0 && (
+                <div className="pay-receipt__row">
+                  <span>{t('z_tax')}</span><span /><span>{fmt(order.tax_amount)}</span>
+                </div>
+              )}
+              <div className="pay-receipt__row pay-receipt__row--total">
+                <span>{t('total')}:</span><span /><span>{fmt(total)}</span>
+              </div>
+              {reopening && (
+                <div className="pay-receipt__row">
+                  <span>{t('receipt_paid_earlier')}</span><span /><span>{fmt(paidBefore)}</span>
+                </div>
+              )}
+              <div className="pay-receipt__row">
+                <span>{paymentLabel}:</span><span /><span>{fmt(paid)}</span>
+              </div>
+              {change > 0 && (
+                <div className="pay-receipt__row">
+                  <span>{t('change')}</span><span /><span>{fmt(change)}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="pay-receipt__bottom">
+              <span>{t('receipt_bottom_no')}</span>
+              <strong>{order?.order_number ?? ''}</strong>
+            </div>
+          </article>
         </div>
 
         {/* Скидка + официант — переехали в нижнюю панель, к сумме полученных
@@ -288,12 +358,6 @@ export default function PaymentScreen({
             сменой официанта. В возвращённом заказе поля нет: там либо возврат
             клиенту, либо доплата за добавленные блюда, а платёж всё равно
             пишется на полный новый итог (прежние платежи уходят в refunded). */}
-
-        {Number(order?.discount_amount) > 0 && (
-          <div className="pay-order__change pay-order__change--discount">
-            <span>{t('discount_word')}</span><strong>−{fmt(order.discount_amount)} {t('currency')}</strong>
-          </div>
-        )}
       </div>
 
       <footer className="pay-screen__foot">

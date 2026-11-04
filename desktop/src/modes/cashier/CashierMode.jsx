@@ -10,6 +10,7 @@ import { onPrintJob } from '../../shared/ws'
 // printers.js — выбор принтера (сотрудник → филиал) из прод-линии.
 import { printJob, startPrintPoller } from '../../shared/printJobs'
 import { pickReceiptPrinter } from '../../shared/printers'
+import { fmtTime } from '../../shared/time'
 import DishModal from '../../components/DishModal'
 import FinancePanel from '../../components/FinancePanel'
 import HistoryPanel from '../../components/HistoryPanel'
@@ -39,7 +40,6 @@ function zoneIcon(name = '') {
   if (n.includes('бронь')) return CalendarClock
   return Armchair
 }
-function fmtTime(iso) { return iso ? new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '' }
 function fmt(n) { return Number(n || 0).toLocaleString('ru-RU') }
 // Роль-слаг сотрудника: по ней решаем, можно ли оформлять долг.
 function roleSlugOf(user = {}) {
@@ -116,6 +116,8 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   // Типы заказа из профиля компании («Другие настройки» веба). null = ещё не
   // загружено или ошибка — считаем всё включённым (как раньше).
   const [orderTypes, setOrderTypes] = useState(null)
+  // Профиль компании: имя в шапке чека и настройки типов заказа.
+  const [company, setCompany] = useState(null)
   const typeOn = (key) => !orderTypes || orderTypes[key] !== false
   // Если текущий тип/доску выключили — откатываемся на первый включённый.
   useEffect(() => {
@@ -187,7 +189,10 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
         setProducts(allProds.filter((p) => sellableTypes.has(String(p.product_type || 'dish'))))
         const map = {}; (pl.items ?? pl ?? []).forEach((p) => { map[p.id] = p }); setPrinterMap(map)
       })
-    companiesApi.profile().then((p) => setOrderTypes(p?.order_types || null)).catch(() => {})
+    companiesApi.profile().then((p) => {
+      setCompany(p || null)
+      setOrderTypes(p?.order_types || null)
+    }).catch(() => {})
     // Способы оплаты из веб-админки (Настройки → «Способ оплаты»). Владелец вводит
     // Uzum, Yandex и т.п. руками — интеграции нет, но на кассе их можно выбрать,
     // а в отчётах видно, через что клиент заплатил. Наличные и карта — свои кнопки.
@@ -678,6 +683,7 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   const paymentOverlay = payExisting ? (
     <PaymentModal
       order={payExisting}
+      company={company}
       onPrint={printOrderReceipt}
       onComplete={completeExistingOrder}
       onCancel={cancelOrder}

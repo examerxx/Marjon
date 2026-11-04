@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { t } from '../shared/i18n'
+import { todayISO } from '../shared/time'
 
 // Кастомный календарь вместо нативного <input type="date">:
 // кнопка DD.MM.YYYY → дропдаун с сеткой месяца и листанием ← →.
@@ -47,7 +48,7 @@ export default function CalendarField({ value, onChange }) {
     })
   }
 
-  const todayIso = new Date().toISOString().slice(0, 10)
+  const todayIso = todayISO()
   const startPad = (new Date(view.y, view.m, 1).getDay() + 6) % 7 // неделя с понедельника
   const daysInMonth = new Date(view.y, view.m + 1, 0).getDate()
   const cells = [

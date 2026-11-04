@@ -6,6 +6,7 @@ import { t } from '../shared/i18n'
 import CalendarField from './CalendarField'
 import CustomSelect from './CustomSelect'
 import { must } from '../shared/permissions'
+import { parseApiDate, todayISO } from '../shared/time'
 import { toast } from './Toast'
 
 // Ключ колонки с сервера → ключ словаря
@@ -33,7 +34,7 @@ const Z_CNT = [
   ['z_payments', 'payments_count'], ['z_fiscal', 'fiscal_receipts_count'],
 ]
 
-function today() { return new Date().toISOString().slice(0, 10) }
+function today() { return todayISO() }
 function isNum(v) { return typeof v === 'number' || (typeof v === 'string' && v !== '' && !isNaN(Number(v)) && /[0-9]/.test(v)) }
 function fmtCell(k, v) {
   if (v == null || v === '') return '—'
@@ -41,8 +42,8 @@ function fmtCell(k, v) {
   if (k === 'order_type') return t.type(String(v))
   // Даты вида 2026-08-05T17:41:00 → 05.08 17:41
   if (/_at$|^date/.test(k) && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) {
-    const d = new Date(v)
-    if (!isNaN(d)) {
+    const d = parseApiDate(v)
+    if (d) {
       const dm = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
       return v.includes('T') || v.includes(' ') ? `${dm} ${d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : dm
     }

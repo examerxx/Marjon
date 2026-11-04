@@ -3,10 +3,10 @@ import { X, Wallet, TrendingUp, TrendingDown, Play, Square } from 'lucide-react'
 import { shifts as shiftsApi, finance } from '../shared/api'
 import { t } from '../shared/i18n'
 import { must } from '../shared/permissions'
+import { fmtDateTime } from '../shared/time'
 import CalendarField from './CalendarField'
 
 function fmt(n) { return Number(n || 0).toLocaleString('ru-RU') }
-function fmtDt(iso) { return iso ? new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '' }
 export default function FinancePanel({ branch, user, onClose }) {
   const [shift, setShift] = useState(null)
   const [txs, setTxs] = useState([])
@@ -66,7 +66,7 @@ export default function FinancePanel({ branch, user, onClose }) {
             {isOpen ? (
               <>
                 <div className="settings-row"><span>{t('status')}</span><span className="fin-badge fin-badge--open">{t('fin_status_open')}</span></div>
-                <div className="settings-row"><span>{t('opened_label')}</span><span>{fmtDt(shift.opened_at)}</span></div>
+                <div className="settings-row"><span>{t('opened_label')}</span><span>{fmtDateTime(shift.opened_at)}</span></div>
                 <div className="settings-row"><span>{t('cash_start_bal')}</span><span>{fmt(shift.opening_cash)} {t('currency')}</span></div>
                 <div className="settings-row settings-row--col">
                   <label>{t('cash_end')}</label>
@@ -125,7 +125,7 @@ export default function FinancePanel({ branch, user, onClose }) {
                     </span>
                     <div className="fin-row__info">
                       <span className="fin-row__cat">{tx.comment || tx.category_name || (tx.direction === 'income' ? t('income') : t('expense'))}</span>
-                      <span className="fin-row__date">{fmtDt(tx.date)}</span>
+                      <span className="fin-row__date">{fmtDateTime(tx.date)}</span>
                     </div>
                     <span className={`fin-row__amt fin-row__amt--${tx.direction}`}>
                       {tx.direction === 'income' ? '+' : '−'}{fmt(tx.amount)}

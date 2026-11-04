@@ -4,6 +4,7 @@ import { X, LogOut, Clock, Wallet, ShoppingBag, Store } from 'lucide-react'
 import { shifts } from '../shared/api'
 import { t } from '../shared/i18n'
 import { errorMessage } from '../shared/errorMessage.mjs'
+import { fmtTime } from '../shared/time'
 
 function fmtDuration(seconds) {
   const total = Math.max(0, Math.floor(Number(seconds) || 0))
@@ -15,15 +16,6 @@ function fmtDuration(seconds) {
 
 function fmtMoney(value) {
   return Number(value || 0).toLocaleString('ru-RU')
-}
-
-function fmtTime(iso) {
-  if (!iso) return '—'
-  try {
-    return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-  } catch {
-    return '—'
-  }
 }
 
 /** Профиль сотрудника на терминале: имя, роль, выработка и продажи за день,
@@ -133,7 +125,7 @@ export default function StaffProfileModal({
                 <div className="profile__shift">
                   <div className="profile__shift-row">
                     <span>{t('opened_at')}</span>
-                    <strong>{fmtTime(shift.opened_at)}</strong>
+                    <strong>{fmtTime(shift.opened_at) || '—'}</strong>
                   </div>
                 </div>
               )}

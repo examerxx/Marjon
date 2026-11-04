@@ -3,6 +3,7 @@ import { X, Clock, LogIn, LogOut, Check, Ban, RefreshCw, Search, Users, History 
 import { attendance, auth } from '../shared/api'
 import { t } from '../shared/i18n'
 import { must } from '../shared/permissions'
+import { fmtTime } from '../shared/time'
 import CalendarField from './CalendarField'
 import { toast } from './Toast'
 
@@ -24,9 +25,6 @@ function avatarColor(name = '') {
   return AVATAR_COLORS[h % AVATAR_COLORS.length]
 }
 function roleOf(u) { return u.role_slug || (u.role_slugs && u.role_slugs[0]) }
-function fmtTime(iso) {
-  return iso ? new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : ''
-}
 
 export default function AttendancePanel({ user, onClose }) {
   const [staff, setStaff] = useState([])

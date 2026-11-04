@@ -3,6 +3,7 @@ import { X, Plus, Minus, Ban, Clock, User } from 'lucide-react'
 import { t } from '../shared/i18n'
 import { formatQty } from '../shared/qty'
 import { sanitizeDecimal, sanitizeInt } from '../shared/numeric'
+import { fmtTime } from '../shared/time'
 
 /**
  * DishModal — правка позиции заказа: порция, цена и комментарий.
@@ -170,7 +171,6 @@ export default function DishModal({
     if (total === '') setTotal(String(Math.round(qtyNum * linePrice)))
   }
 
-  const fmtTime = (iso) => (iso ? new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '')
   const addedBy = meta?.addedByName || meta?.waiterName || ''
   const hasMeta = Boolean(addedBy || meta?.createdAt)
 

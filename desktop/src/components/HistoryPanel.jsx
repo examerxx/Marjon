@@ -3,9 +3,8 @@ import { X, History, Printer, Undo2 } from 'lucide-react'
 import { orders, printers as printersApi } from '../shared/api'
 import { pickReceiptPrinter } from '../shared/printers'
 import { t } from '../shared/i18n'
+import { fmtDateTime } from '../shared/time'
 import { toast } from './Toast'
-
-function fmtDt(iso) { return iso ? new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '' }
 
 export default function HistoryPanel({ branch, printerId, onReopen, onClose }) {
   const TYPES = [
@@ -92,7 +91,7 @@ export default function HistoryPanel({ branch, printerId, onReopen, onClose }) {
                     <td>{o.order_type ? t.type(o.order_type) : '—'}</td>
                     <td>{o.table_number || '—'}</td>
                     <td><span className={`hist-status hist-status--${o.status}`}>{t.status(o.status)}</span></td>
-                    <td className="hist-date">{fmtDt(o.created_at)}</td>
+                    <td className="hist-date">{fmtDateTime(o.created_at)}</td>
                     {/* Закрытый заказ можно вернуть в работу: гость вернул блюдо —
                         отменяем позицию с причиной, отдаём сдачу и закрываем снова. */}
                     {onReopen && (
