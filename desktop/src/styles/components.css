@@ -3887,11 +3887,10 @@ body.vkb-open .login-card {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 /* Две группы строк: уже на кухне (saved) и ещё не отправленные (new).
-   Новые подкрашены брендом — кассир видит, что именно уйдёт на кухню. */
+   Новые помечены только левой полосой — фон у всех строк одинаковый. */
 .cashier-cart .cart-item--saved { border-left: 3px solid transparent; }
 .cashier-cart .cart-item--new {
   border-left: 3px solid var(--color-brand);
-  background: var(--color-brand-subtle);
 }
 .cashier-cart .qty-btn { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 9px; background: var(--color-subtle); color: var(--color-text-primary); }
 .cashier-cart .qty-btn:hover { background: var(--neutral-200); }
