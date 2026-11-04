@@ -755,7 +755,7 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
           )}
         </aside>
 
-        <main className="ws__main">
+        <main className="ws__main ws__main--board">
           <div className="board__head">
             <div className="board__title">
               <h2>{orderBoard ? t(activeZone) : t('tables')}</h2>

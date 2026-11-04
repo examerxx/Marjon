@@ -451,6 +451,12 @@
 .ws-user__role { font-size: 12px; color: var(--chrome-text-muted); }
 
 /* ═══ Доска столов (белая) ═══ */
+/* Подложка доски — мягкий голубой #E5F0F9: карточки статусов читаются
+   на нём как стекло на светлой панели. Шапка доски остаётся прозрачной
+   и берёт тот же тон. В тёмной теме возвращаем обычный фон. */
+.ws__main--board { background: #e5f0f9; }
+[data-theme="dark"] .ws__main--board { background: var(--color-bg); }
+
 .board__head {
   display: flex;
   align-items: center;
