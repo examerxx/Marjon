@@ -10,6 +10,7 @@ import { sanitizeDecimal, parseNum } from '../shared/numeric'
 import { parseApiDate } from '../shared/time'
 import { toast } from './Toast'
 import WaiterPicker from './WaiterPicker'
+import logoUrl from '../assets/logo.svg'
 
 /**
  * PaymentScreen — экран оплаты и закрытие заказа (полноэкранный, без оверлея).
@@ -42,6 +43,30 @@ function fmtReceiptDateTime(iso) {
   if (!date) return ''
   const two = (n) => String(n).padStart(2, '0')
   return `${two(date.getDate())}.${two(date.getMonth() + 1)}.${String(date.getFullYear()).slice(-2)} ${two(date.getHours())}:${two(date.getMinutes())}`
+}
+
+/** Шапка экрана оплаты: тот же бренд, что в TopBar, и «Назад» справа от
+ *  текста логотипа. Слоты TopBar не переиспользуем — их id уже заняты
+ *  кассой под оверлеем, порталы нашли бы чужую цель. */
+function PayHead({ title, onBack }) {
+  return (
+    <header className="pay-screen__head">
+      <div className="topbar__brand pay-screen__brand">
+        <span className="topbar__logo-mark">
+          <img className="topbar__logo" src={logoUrl} alt="" aria-hidden="true" />
+        </span>
+        <span className="topbar__brand-text">
+          <span className="topbar__brand-name">MARJON</span>
+          <span className="topbar__brand-tagline">Restaurant OS</span>
+        </span>
+        <button className="icon-btn topbar__back pay-screen__back" onClick={onBack} title={t('back')} aria-label={t('back')}>
+          <ArrowLeft size={22} />
+        </button>
+      </div>
+      <h3>{title}</h3>
+      <span aria-hidden="true" />
+    </header>
+  )
 }
 
 export default function PaymentScreen({
@@ -207,11 +232,7 @@ export default function PaymentScreen({
   if (debtStep === 'form') {
     return (
       <div className="pay-screen">
-        <header className="pay-screen__head">
-          <button className="icon-btn" onClick={closeDebt} title={t('back')}><ArrowLeft size={20} /></button>
-          <h3>{t('debt_title')}</h3>
-          <div style={{ width: 40 }} />
-        </header>
+        <PayHead title={t('debt_title')} onBack={closeDebt} />
         <div className="pay-screen__body pay-screen__body--form">
           <div className="pay-order__cash">
             <div className="pay-order__change"><span>{t('to_pay_label')}</span><strong>{fmt(total)} {t('currency')}</strong></div>
@@ -242,11 +263,10 @@ export default function PaymentScreen({
 
   return (
     <div className="pay-screen">
-      <header className="pay-screen__head">
-        <button className="icon-btn" onClick={onClose} title={t('back')}><ArrowLeft size={22} /></button>
-        <h3>{t('pay_order')} #{order?.order_number ?? ''}{order?.table_number ? ` · ${t('table')} ${order.table_number}` : ''}</h3>
-        <div style={{ width: 40 }} />
-      </header>
+      <PayHead
+        title={`${t('pay_order')} #${order?.order_number ?? ''}${order?.table_number ? ` · ${t('table')} ${order.table_number}` : ''}`}
+        onBack={onClose}
+      />
 
       <div className="pay-screen__body">
         {/* Левая половина — чек, правая — управление оплатой столбцом. */}

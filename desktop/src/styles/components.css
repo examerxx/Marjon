@@ -140,7 +140,7 @@
 .topbar__back-slot {
   display: flex;
   align-items: center;
-  margin-left: 32px;
+  margin-left: 62px;
 }
 .topbar__back-slot:empty { display: none; }
 .topbar__back {
@@ -4346,15 +4346,26 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
   animation: pay-fade var(--transition-fast) ease;
 }
 .pay-screen__head {
-  display: flex; align-items: center; gap: 10px;
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 10px;
   flex: 0 0 auto;
   padding: 6px 16px;
   border-bottom: 1px solid var(--color-border-light);
 }
+/* Бренд — те же классы, что в TopBar; «Назад» стоит справа от текста
+   логотипа, на том же отступе, что и на экране заказа. */
+.pay-screen__brand { justify-self: start; min-width: 0; }
+.pay-screen__back { flex-shrink: 0; margin-left: 62px; }
 .pay-screen__head h3 {
-  flex: 1; min-width: 0; margin: 0;
+  min-width: 0; margin: 0;
   font-size: var(--text-lg); font-weight: 700; color: var(--color-text-primary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center;
+}
+/* Узкое окно: бренд и заголовок не делят центр поровну — заголовок
+   занимает остаток и обрезается, кнопка «Назад» остаётся на месте. */
+@media (max-width: 1100px) {
+  .pay-screen__head { display: flex; }
+  .pay-screen__head h3 { flex: 1 1 auto; }
 }
 /* Экран оплаты: две колонки — чек слева (до центра), управление справа.
    Прокручиваются только чек и правая панель, а не весь экран. */
@@ -5511,9 +5522,10 @@ select.input:focus {
   min-width: 0;
 }
 
-/* Сдвиг поиска вправо от бренда и «Назад». */
+/* Поиск идёт в потоке после бренда: сдвиг «Назад» на 30px уже тянет его
+   вправо, поэтому собственный отступ добавляет только оставшиеся 15px. */
 .topbar-search {
-  margin-left: var(--spacing-xl);
+  margin-left: 9px;
 }
 
 /* ── Карточка блюда — снова компактный диалог по центру ──────────────────
