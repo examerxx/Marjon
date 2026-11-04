@@ -4394,8 +4394,16 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 }
 /* Блоки правой колонки — одной ширины, прижаты к центру экрана. */
 .pay-screen__side > * { width: 100%; max-width: 560px; margin-left: 0; margin-right: auto; }
-/* Экран «в долг» — обычная форма: там скроллится всё тело. */
-.pay-screen__body--form { flex-direction: column; overflow-y: auto; }
+/* Экран «в долг» — компактная форма по центру: не растягиваем поля на всю
+   ширину окна, держим ту же колонку, что и блоки оплаты справа. */
+.pay-screen__body--form { flex-direction: column; align-items: center; overflow-y: auto; }
+.pay-screen__body--form .pay-order__cash { width: 100%; max-width: 560px; padding-top: 6px; }
+/* Кнопки футера — в той же колонке, что и форма. */
+.pay-screen__foot--form .pay-dialog__actions { width: 100%; max-width: 560px; margin: 0 auto; }
+@media (max-width: 980px) {
+  .pay-screen__body--form .pay-order__cash,
+  .pay-screen__foot--form .pay-dialog__actions { max-width: none; }
+}
 /* Узкий экран: колонки становятся друг под другом. */
 @media (max-width: 980px) {
   .pay-screen__body { flex-direction: column; overflow-y: auto; }

@@ -239,7 +239,7 @@ export default function PaymentScreen({
             </div>
           </div>
         </div>
-        <footer className="pay-screen__foot">
+        <footer className="pay-screen__foot pay-screen__foot--form">
           <div className="pay-dialog__actions">
             <button className="btn btn--outline" onClick={closeDebt}>{t('back')}</button>
             <button className="btn btn--primary btn--lg pay-order__close" disabled={busy} onClick={doDebtComplete}>
