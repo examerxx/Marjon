@@ -425,7 +425,8 @@ export const shifts = {
       headers: { Authorization: `Bearer ${token}` },
     }).then((r) => r.data),
   open: (branchId, opening_cash = 0) => api.post('/pos/shifts/open', { branch_id: branchId, opening_cash }).then((r) => r.data),
-  close: (closing_cash = 0) => api.post('/pos/shifts/close', { closing_cash }).then((r) => r.data),
+  close: (branchId, closing_cash = 0) =>
+    api.post('/pos/shifts/close', { branch_id: branchId || undefined, closing_cash }).then((r) => r.data),
   // Сводка для профиля: текущая смена + выработка и продажи сотрудника за день.
   summary: (branchId) => api.get('/pos/shifts/me/summary', {
     params: branchId ? { branch_id: branchId } : {},

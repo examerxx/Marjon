@@ -1632,14 +1632,18 @@ class ShiftService:
         return shift
 
     async def close_shift(self, company_id: UUID, cashier_id: UUID, data: ShiftClose) -> CashierShift:
-        result = await self.db.execute(
-            select(CashierShift).where(
-                CashierShift.company_id == company_id,
-                CashierShift.cashier_id == cashier_id,
-                CashierShift.status == "open",
-            )
+        # Смена у нас открывается на филиал: её мог открыть кассир, а закрыть
+        # должен и официант с того же терминала. Поэтому при наличии branch_id
+        # ищем открытую смену филиала, иначе — смену самого сотрудника.
+        query = select(CashierShift).where(
+            CashierShift.company_id == company_id,
+            CashierShift.status == "open",
         )
-        shift = result.scalar_one_or_none()
+        if data.branch_id is not None:
+            query = query.where(CashierShift.branch_id == data.branch_id)
+        else:
+            query = query.where(CashierShift.cashier_id == cashier_id)
+        shift = (await self.db.execute(query)).scalars().first()
         if not shift:
             raise NotFoundError("Нет открытой смены для закрытия")
 

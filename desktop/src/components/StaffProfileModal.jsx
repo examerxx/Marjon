@@ -63,14 +63,18 @@ export default function StaffProfileModal({
   }, [onClose, closing])
 
   const shift = data?.shift || null
-  const ownShift = shift && String(shift.cashier_id) === String(user.id)
+  // Официант свою смену не открывает — показываем время работы открытой
+  // смены филиала, чтобы профиль выглядел и считался так же, как у кассира.
+  const workedSeconds = Number(data?.worked_seconds) > 0
+    ? data.worked_seconds
+    : (shift ? data?.shift_seconds : 0)
 
   const closeShift = async () => {
     if (closing) return
     setClosing(true)
     setError('')
     try {
-      await shifts.close(Number(closingCash) || 0)
+      await shifts.close(branchId, Number(closingCash) || 0)
       onShiftClosed?.()
     } catch (e) {
       setError(errorMessage(e, t('shift_close_err')))
@@ -107,7 +111,7 @@ export default function StaffProfileModal({
               <div className="profile__stats">
                 <div className="profile__stat">
                   <span className="profile__stat-label"><Clock size={15} /> {t('worked_today')}</span>
-                  <span className="profile__stat-value">{fmtDuration(data?.worked_seconds)}</span>
+                  <span className="profile__stat-value">{fmtDuration(workedSeconds)}</span>
                 </div>
                 <div className="profile__stat">
                   <span className="profile__stat-label"><Wallet size={15} /> {t('sales_today')}</span>
@@ -131,7 +135,6 @@ export default function StaffProfileModal({
                     <span>{t('opened_at')}</span>
                     <strong>{fmtTime(shift.opened_at)}</strong>
                   </div>
-                  {!ownShift && <p className="profile__warning">{t('shift_other_cashier')}</p>}
                 </div>
               )}
             </>
@@ -140,13 +143,13 @@ export default function StaffProfileModal({
           {error && <p className="profile__error">{error}</p>}
 
           <div className="profile__actions">
-            {shift && ownShift && !confirming && (
+            {shift && !confirming && (
               <button className="btn btn--danger profile__close" onClick={() => setConfirming(true)}>
                 <LogOut size={18} /> {t('close_shift')}
               </button>
             )}
 
-            {shift && ownShift && confirming && (
+            {shift && confirming && (
               <div className="profile__confirm">
                 <p>{t('close_shift_confirm')}</p>
                 <label className="profile__field">

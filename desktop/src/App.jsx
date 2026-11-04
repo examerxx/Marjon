@@ -64,6 +64,9 @@ export default function App() {
   // Сотрудник (PIN-вход — текущая сессия)
   const [staffToken, setStaffToken] = useState(() => localStorage.getItem('marjon_token'))
   const [staffUser, setStaffUser] = useState(() => loadJson('marjon_user'))
+  // Филиал сессии: у моноблока branch пуст, поэтому определяем его по залам
+  // при входе сотрудника. Без этого официант видел профиль без смены.
+  const [staffBranchId, setStaffBranchId] = useState(() => localStorage.getItem('marjon_staff_branch'))
   const [mode, setMode] = useState(() => localStorage.getItem('marjon_mode') || null)
 
   // Под-поток входа сотрудника
@@ -119,7 +122,7 @@ export default function App() {
   //     не настроен»);
   //   • залы и заказы грузились без фильтра по филиалу.
   // Сотрудник всегда привязан к филиалу, поэтому берём его branch_id как опору.
-  const effectiveBranchId = branch?.id ?? staffUser?.branch_id ?? null
+  const effectiveBranchId = branch?.id ?? staffUser?.branch_id ?? staffBranchId ?? null
 
   // WebSocket при полном входе
   useEffect(() => {
@@ -189,6 +192,8 @@ export default function App() {
     // Не оставляем терминал как «сотрудника»: вход сотрудника идёт через выбор + PIN
     localStorage.removeItem('marjon_token')
     localStorage.removeItem('marjon_user')
+    localStorage.removeItem('marjon_staff_branch')
+    setStaffBranchId(null)
     setOrgToken(data.access_token)
     setOrgUser(orgU)
     setBranch(br)
@@ -205,12 +210,14 @@ export default function App() {
     if (pending.refresh) localStorage.setItem('marjon_staff_refresh', pending.refresh)
     localStorage.setItem('marjon_user', JSON.stringify(pending.user))
     localStorage.setItem('marjon_mode', pending.mode)
+    if (pending.branchId) localStorage.setItem('marjon_staff_branch', pending.branchId)
+    else localStorage.removeItem('marjon_staff_branch')
     setStaffToken(pending.token)
     setStaffUser(pending.user)
+    setStaffBranchId(pending.branchId || null)
     setSessionPin(pending.pin || '')
     setMode(pending.mode)
     setStaffView('org')
-    setPinEmployee(null)
     setShiftGate(null)
     setShiftError('')
   }, [])
@@ -248,6 +255,7 @@ export default function App() {
         branchId = hallList?.[0]?.branch_id || null
       } catch { /* нет залов — работаем как раньше, без блокировки */ }
     }
+    pending.branchId = branchId
     if (branchId) {
       try {
         const current = await shifts.currentWithToken(data.access_token, branchId)
@@ -304,8 +312,10 @@ export default function App() {
     localStorage.removeItem('marjon_staff_refresh')
     localStorage.removeItem('marjon_user')
     localStorage.removeItem('marjon_mode')
+    localStorage.removeItem('marjon_staff_branch')
     setStaffToken(null)
     setStaffUser(null)
+    setStaffBranchId(null)
     setMode(null)
     setSessionPin('')
     setStaffView(toPersonalCode === true ? 'pin' : 'org')
@@ -328,11 +338,11 @@ export default function App() {
 
   // Полный сброс терминала (отвязка от организации)
   const handleFullReset = useCallback(() => {
-    ['marjon_org_token', 'marjon_org_refresh', 'marjon_org_user', 'marjon_branch', 'marjon_token', 'marjon_staff_refresh', 'marjon_user', 'marjon_mode']
+    ['marjon_org_token', 'marjon_org_refresh', 'marjon_org_user', 'marjon_branch', 'marjon_token', 'marjon_staff_refresh', 'marjon_user', 'marjon_mode', 'marjon_staff_branch']
       .forEach((k) => localStorage.removeItem(k))
     setOrgToken(null); setOrgUser(null); setBranch(null)
-    setStaffToken(null); setStaffUser(null); setMode(null)
-    setStaffView('org'); setPinEmployee(null)
+    setStaffToken(null); setStaffUser(null); setStaffBranchId(null); setMode(null)
+    setStaffView('org')
     setShiftGate(null); setShiftError(''); setProfileOpen(false)
     kitchenWS.disconnect()
   }, [])

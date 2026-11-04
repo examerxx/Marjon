@@ -3464,7 +3464,6 @@ body.vkb-open .login-card {
   display: flex; justify-content: space-between; gap: var(--spacing-md);
   font-size: var(--text-sm); color: var(--color-text-secondary);
 }
-.profile__warning { margin: 0; font-size: var(--text-sm); color: var(--color-warning); }
 .profile__error { margin: 0; font-size: var(--text-sm); color: var(--color-danger); }
 .profile__actions {
   display: flex; flex-direction: column; gap: var(--spacing-sm);
@@ -5442,3 +5441,23 @@ select.input:focus {
 .cashier-cart .cart-take { width: 34px; justify-content: center; }
 .cashier-cart .cart-take__label { display: none; }
 .cashier-cart .cart-take .toggle { transform: scale(0.9); }
+
+/* ── Карточка блюда — снова компактный диалог по центру ──────────────────
+   Полноэкранный «экран вместо модалки» для правки одной позиции выглядел
+   пустым полем: карточка занимала весь монитор, а контента в ней мало.
+   Возвращаем привычный диалог с затемнением, как было раньше. */
+.modal-overlay:has(.dish-modal) {
+  align-items: center;
+  padding: var(--spacing-lg);
+  background: rgba(7, 20, 40, 0.55);
+  backdrop-filter: blur(4px);
+}
+.modal-overlay .modal.dish-modal {
+  width: min(720px, 100%);
+  height: auto;
+  max-height: 88vh;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
+  box-shadow: 0 24px 60px rgba(7, 20, 40, 0.25);
+}
+.modal-overlay .modal.dish-modal .modal__header { position: static; }

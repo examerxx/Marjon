@@ -162,6 +162,10 @@ class ShiftOpen(BaseSchema):
 
 
 class ShiftClose(BaseSchema):
+    # Смена открыта на филиал, поэтому закрыть её может любой сотрудник
+    # терминала (кассир или официант). branch_id необязателен для совместимости:
+    # без него закрываем смену самого сотрудника.
+    branch_id: UUID | None = None
     closing_cash: Decimal = Decimal("0")
 
 
