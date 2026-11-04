@@ -3369,16 +3369,6 @@ body.vkb-open .login-card {
 .pinpad__key--action { background: transparent; color: var(--color-text-muted); }
 .pinpad__key--action:hover { background: var(--color-subtle); }
 .pinpad__key--empty { visibility: hidden; }
-.pinpad__submit {
-  width: 100%; min-height: 66px; margin-top: var(--spacing-xl);
-  border-radius: var(--radius-md);
-  background: var(--color-brand); color: #fff;
-  font-size: var(--text-lg); font-weight: 700;
-  transition: background var(--transition-fast), transform var(--transition-fast);
-}
-.pinpad__submit:hover { background: var(--color-brand-hover); }
-.pinpad__submit:active { transform: scale(0.98); }
-.pinpad__submit:disabled { opacity: 0.5; }
 /* PIN верный, но смена закрыта: вместо цифр — открытие смены */
 .pinpad__shift {
   width: 100%;
@@ -5307,7 +5297,6 @@ select.input:focus {
 .emp-card:focus-visible,
 .mode-card:focus-visible,
 .pinpad__key:focus-visible,
-.pinpad__submit:focus-visible,
 .pinpad__back:focus-visible,
 .login-pin__key:focus-visible,
 .login-btn:focus-visible {

@@ -148,10 +148,6 @@ export default function PinPad({
                 )
               })}
             </div>
-
-            <button className="pinpad__submit" onClick={() => submit(pin)} disabled={pin.length < PIN_LENGTH || busy}>
-              {busy ? t('check') : t('enter')}
-            </button>
           </>
         )}
       </div>
