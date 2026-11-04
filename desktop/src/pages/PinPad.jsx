@@ -30,6 +30,8 @@ export default function PinPad({
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState(false)
   const role = employee.role_slug || (employee.role_slugs && employee.role_slugs[0])
+  // Личный код вводят без выбора сотрудника: тогда шапку с аватаром не рисуем.
+  const hasEmployee = Boolean(employee.name || employee.email)
 
   // pinRef — синхронный источник истины: гасит гонку при быстром вводе (state
   // обновляется асинхронно, ref — сразу). lockRef — синхронный замок отправки.
@@ -91,11 +93,15 @@ export default function PinPad({
 
         {title && <h2 className="pinpad__title">{title}</h2>}
 
-        <div className="pinpad__user">
-          <span className="pinpad__avatar">{initials(employee.name || employee.email)}</span>
-          <span className="pinpad__name">{employee.name || employee.email}</span>
-          <span className="pinpad__role">{t.role(role)}</span>
-        </div>
+        {hasEmployee ? (
+          <div className="pinpad__user">
+            <span className="pinpad__avatar">{initials(employee.name || employee.email)}</span>
+            <span className="pinpad__name">{employee.name || employee.email}</span>
+            <span className="pinpad__role">{t.role(role)}</span>
+          </div>
+        ) : (
+          <p className="pinpad__hint">{t('staff_code_hint')}</p>
+        )}
 
         {shiftClosed ? (
           <div className="pinpad__shift">

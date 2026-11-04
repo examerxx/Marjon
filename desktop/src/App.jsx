@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import ServerSetup from './pages/ServerSetup'
 import LoginPage from './pages/LoginPage'
 import OrganizationScreen from './pages/OrganizationScreen'
-import EmployeeSelector from './pages/EmployeeSelector'
 import PinPad from './pages/PinPad'
 import TopBar from './components/TopBar'
 import BottomBar from './components/BottomBar'
@@ -68,8 +67,7 @@ export default function App() {
   const [mode, setMode] = useState(() => localStorage.getItem('marjon_mode') || null)
 
   // Под-поток входа сотрудника
-  const [staffView, setStaffView] = useState('org')      // org | employees | pin
-  const [pinEmployee, setPinEmployee] = useState(null)
+  const [staffView, setStaffView] = useState('org')      // org | pin
   const [sessionPin, setSessionPin] = useState('')       // PIN текущего входа — для разблокировки экрана
   // PIN верный, но смена закрыта: сессию ещё не фиксируем, показываем
   // «Открыть смену» прямо на PIN-экране.
@@ -218,20 +216,15 @@ export default function App() {
   }, [])
 
   const handleEmployeePin = useCallback(async (pin) => {
-    // PIN должен принадлежать ВЫБРАННОМУ сотруднику (иначе вход был бы «по любому PIN»)
-    const isRealEmp = pinEmployee?.id && /^[0-9a-f-]{16,}$/i.test(String(pinEmployee.id))
-    // Отдаём id выбранного сотрудника: бэкенд сверит PIN только с ним, иначе при
-    // одинаковых PIN у двоих токен приходил чужой и вход отклонялся ниже.
-    const data = await auth.loginByPin(pin, isRealEmp ? pinEmployee.id : undefined)
+    // PIN — личный код сотрудника. Под org-токеном терминала бэкенд сам
+    // находит владельца кода в компании; отдельный выбор сотрудника не нужен.
+    const data = await auth.loginByPin(pin)
     // Токен ещё не сохранён — /me читаем под ним явным заголовком.
     let me = null
-    try { me = await auth.meWithToken(data.access_token) } catch { /* ignore — используем выбранного сотрудника */ }
+    try { me = await auth.meWithToken(data.access_token) } catch { /* ignore — ниже роль из ответа */ }
 
-    if (isRealEmp && me?.id && String(me.id) !== String(pinEmployee.id)) {
-      throw new Error('PIN не соответствует выбранному сотруднику')
-    }
-    const user = me || pinEmployee || {}
-    const m = roleToMode(user, pinEmployee)
+    const user = me || {}
+    const m = roleToMode(user)
     if (!m) {
       // Кухня — только на отдельном экране, касса повару недоступна.
       throw new Error('Повар работает на кухонном экране: откройте kitchen.marjon.tech')
@@ -245,7 +238,7 @@ export default function App() {
       pin,
     }
 
-    let branchId = branch?.id || user?.branch_id || pinEmployee?.branch_id || null
+    let branchId = branch?.id || user?.branch_id || null
     // Моноблок может быть привязан только к компании, а сотрудник — без
     // филиала: тогда branchId пуст и проверка смены молча пропускалась, хотя
     // смена на кассе не открыта. Филиал терминала определяем по его залам.
@@ -269,7 +262,7 @@ export default function App() {
       }
     }
     finalizeStaffLogin(pending)
-  }, [pinEmployee, branch, finalizeStaffLogin])
+  }, [branch, finalizeStaffLogin])
 
   const handleOpenShiftClick = useCallback(async () => {
     if (!shiftGate || shiftBusy) return
@@ -302,12 +295,11 @@ export default function App() {
   const handleCancelShift = useCallback(() => {
     setShiftGate(null)
     setShiftError('')
-    setPinEmployee(null)
-    setStaffView('employees')
+    setStaffView('pin')
   }, [])
 
-  // Выход сотрудника (не отвязывает терминал). toEmployees=true → сразу к выбору сотрудника
-  const handleStaffLogout = useCallback((toEmployees = false) => {
+  // Выход сотрудника (не отвязывает терминал). toPersonalCode=true → к вводу кода
+  const handleStaffLogout = useCallback((toPersonalCode = false) => {
     localStorage.removeItem('marjon_token')
     localStorage.removeItem('marjon_staff_refresh')
     localStorage.removeItem('marjon_user')
@@ -316,8 +308,7 @@ export default function App() {
     setStaffUser(null)
     setMode(null)
     setSessionPin('')
-    setStaffView(toEmployees === true ? 'employees' : 'org')
-    setPinEmployee(null)
+    setStaffView(toPersonalCode === true ? 'pin' : 'org')
     setShiftGate(null)
     setShiftError('')
     setProfileOpen(false)
@@ -418,26 +409,15 @@ export default function App() {
     )
   }
 
-  // Шаг 2 (выбор филиала) убран: моноблок не привязан к филиалу, после входа
-  // сразу идём к выбору сотрудника.
-
-  // Шаг 3: вход сотрудника — организация → выбор сотрудника → пин-пад
+  // Вход сотрудника: организация → личный PIN-код. Отдельного выбора
+  // «Кассир / Официант» нет — код определяет, кто вошёл, а роль приходит с /me.
   if (!isStaffLoggedIn) {
-    if (staffView === 'employees') {
-      return (
-        <EmployeeSelector
-          branch={branch}
-          onSelect={(emp) => { setPinEmployee(emp); setStaffView('pin') }}
-          onBack={() => setStaffView('org')}
-        />
-      )
-    }
-    if (staffView === 'pin' && pinEmployee) {
+    if (staffView === 'pin') {
       return (
         <PinPad
-          employee={pinEmployee}
+          title={t('staff_code_title')}
           onSubmit={handleEmployeePin}
-          onBack={shiftGate ? undefined : () => setStaffView('employees')}
+          onBack={shiftGate ? undefined : () => setStaffView('org')}
           shiftClosed={!!shiftGate}
           shiftBusy={shiftBusy}
           shiftError={shiftError}
@@ -451,7 +431,7 @@ export default function App() {
         <OrganizationScreen
           orgName={orgUser?.company_name || orgUser?.name}
           branchName={branch?.name}
-          onEnter={() => setStaffView('employees')}
+          onEnter={() => setStaffView('pin')}
           onSettings={() => setShowSettings(true)}
           onReset={handleFullReset}
         />
@@ -469,7 +449,6 @@ export default function App() {
   return (
     <div className="app-shell">
       <TopBar
-        onBack={handleNavBack}
         onRefresh={() => window.location.reload()}
         onLock={handleLock}
         onSettings={() => setShowSettings(true)}

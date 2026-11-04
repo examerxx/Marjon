@@ -5,6 +5,8 @@ const DICT = {
     // Общее
     enter: 'Войти', support: 'Служба поддержки', change_org: 'Сменить организацию',
     choose_employee: 'Выберите сотрудника', enter_pin: 'Введите PIN', check: 'Проверка...',
+    staff_code_title: 'Введите личный код',
+    staff_code_hint: 'Код сотрудника определяет, кто вошёл, и его роль',
     settings: 'Настройки', switch_mode: 'Сменить режим', logout: 'Выйти',
     online: 'Онлайн', offline: 'Офлайн', queue_hint: 'Записей ждут синхронизации',
     refresh: 'Обновить', lock_screen: 'Заблокировать экран', locked_title: 'Экран заблокирован', account: 'Аккаунт', minimize: 'Свернуть окно',
@@ -215,6 +217,8 @@ const DICT = {
     // Umumiy
     enter: 'Kirish', support: 'Qo‘llab-quvvatlash', change_org: 'Tashkilotni almashtirish',
     choose_employee: 'Xodimni tanlang', enter_pin: 'PIN kiriting', check: 'Tekshirilmoqda...',
+    staff_code_title: 'Shaxsiy kodni kiriting',
+    staff_code_hint: 'Xodim kodi kim kirganini va lavozimini aniqlaydi',
     settings: 'Sozlamalar', switch_mode: 'Rejimni almashtirish', logout: 'Chiqish',
     online: 'Onlayn', offline: 'Oflayn', queue_hint: 'Yozuvlar sinxronlashni kutmoqda',
     refresh: 'Yangilash', lock_screen: 'Ekranni bloklash', locked_title: 'Ekran bloklangan', account: 'Hisob', minimize: 'Oynani yig‘ish',

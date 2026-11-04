@@ -130,8 +130,10 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   // Слот шапки (TopBar в App.jsx): меню разделов рендерим порталом, чтобы кнопка
   // жила в шапке, а состояние осталось здесь.
   const [hdrActionsSlot, setHdrActionsSlot] = useState(null)
+  const [searchSlot, setSearchSlot] = useState(null)
   useEffect(() => {
     setHdrActionsSlot(document.getElementById('topbar-actions-slot'))
+    setSearchSlot(document.getElementById('topbar-center-slot'))
   }, [])
 
   const loadFloor = useCallback(() => {
@@ -807,6 +809,9 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   // справа сначала уже заказанные блюда, под ними — новые.
   const editingExisting = Boolean(addToOrderId)
   const tableLabel = selectedTable?.number != null ? `${t('table')} ${selectedTable.number}` : t(orderType)
+  const orderTitle = editingExisting
+    ? `${t('order_no')} #${existingOrder?.order_number ?? ''}${selectedTable?.number != null ? ` · ${tableLabel}` : ''}`
+    : (orderType === 'dine_in' ? tableLabel : t(orderType))
   return (
     <div className="floor">
       <aside className="ws-side">
@@ -828,23 +833,6 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
       </aside>
 
       <main className="ws__main">
-        <div className="board__head">
-          <div className="board__title">
-            <h2>
-              {editingExisting
-                ? `${t('order_no')} #${existingOrder?.order_number ?? ''}${selectedTable?.number != null ? ` · ${tableLabel}` : ''}`
-                : (orderType === 'dine_in' ? tableLabel : t(orderType))}
-            </h2>
-            <span className="board__subtitle">{itemCount} {t('items_low')} · {fmt(total)} {t('currency')}</span>
-          </div>
-          <div className="board__head-right">
-            <div className="cashier-products__search">
-              <Search size={18} className="search-icon" />
-              <input className="search-input" placeholder={t('search_dish')} value={search} onChange={(e) => setSearch(e.target.value)} />
-            </div>
-          </div>
-        </div>
-
         <div className="cashier-work">
           <div className="cashier-products">
             <div className="cashier-products__grid">
@@ -865,7 +853,14 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
           </div>
 
           <aside className="cashier-cart">
-            <div className="cashier-cart__header"><ShoppingBag size={20} /><span>{t('order')}</span><span className="cart-count">{itemCount}</span></div>
+            <div className="cashier-cart__header">
+              <ShoppingBag size={18} />
+              <div className="cashier-cart__head-text">
+                <span className="cashier-cart__head-title">{orderTitle}</span>
+                <span className="cashier-cart__head-sub">{itemCount} {t('items_low')} · {fmt(total)} {t('currency')}</span>
+              </div>
+              <span className="cart-count">{itemCount}</span>
+            </div>
             <div className="cashier-cart__items" ref={cartItemsRef}>
               {linesCount === 0 ? <p className="cart-empty">{t('tap_dish_hint')}</p> : (
                 <>
@@ -965,6 +960,21 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
           </aside>
         </div>
       </main>
+
+      {/* Поиск блюда — в центре шапки: так он не отнимает высоту у панели
+          заказа, и она начинается сразу под топбаром. */}
+      {searchSlot && createPortal(
+        <div className="topbar-search">
+          <Search size={18} className="search-icon" />
+          <input
+            className="search-input"
+            placeholder={t('search_dish')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>,
+        searchSlot,
+      )}
 
       {editLine && (
         <DishModal

@@ -3340,6 +3340,7 @@ body.vkb-open .login-card {
   color: var(--color-text-primary);
 }
 .pinpad__user { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: var(--spacing-lg); }
+.pinpad__hint { margin: 0 auto var(--spacing-lg); max-width: 36ch; text-align: center; font-size: var(--text-md); line-height: 1.45; color: var(--color-text-muted); }
 .pinpad__avatar {
   width: 72px; height: 72px; display: grid; place-items: center;
   border-radius: var(--radius-full); background: var(--color-brand); color: #fff;
@@ -5345,3 +5346,104 @@ select.input:focus {
   font-style: italic;
   text-wrap: balance;
 }
+
+/* ═══ Касса: поиск в центре шапки и компактная панель заказа ═══
+   Поиск переехал из шапки доски в топбар (портал из CashierMode). Так панель
+   заказа начинается сразу под шапкой и получает высоту, которую раньше
+   занимал ряд «Заказ #… + поиск». */
+.topbar-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: min(560px, 46vw);
+}
+.topbar-search .search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+.topbar-search .search-input {
+  height: 42px;
+  min-height: 42px;
+  background: var(--color-subtle);
+}
+
+/* Шапка панели заказа: название заказа и сумма вместо отдельной доски */
+.cashier-cart__header {
+  flex-wrap: nowrap;
+  padding: 10px 12px;
+  gap: 8px;
+}
+.cashier-cart__head-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+.cashier-cart__head-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cashier-cart__head-sub {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cashier-cart__header .cart-count { margin-left: auto; }
+
+/* Строки заказа плотнее: в ту же высоту помещается больше позиций */
+.cashier-cart__items { padding: 8px; gap: 4px; }
+.cashier-cart__items .cart-item {
+  gap: 8px;
+  padding: 7px 9px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+}
+.cashier-cart .qty-btn { width: 32px; height: 32px; border-radius: 8px; }
+.cashier-cart .qty-btn--edit { width: 30px; height: 32px; }
+.cashier-cart .qty-value { min-width: 20px; font-size: 14px; }
+.cart-item__name,
+.cart-item__price { font-size: 13px; }
+.cart-item__meta { font-size: 10.5px; }
+
+/* Итог и кнопка действия — ниже и тише, но остаются крупной целью */
+.cashier-cart__total { padding: 10px 12px; }
+.total-row--final { font-size: 20px; }
+.cashier-cart__actions { padding: 10px 12px; }
+.cart-btn { min-height: 54px; font-size: 16px; }
+.cashier-cart > .cashier-cart__note { margin: 0 12px 8px; min-height: 38px; }
+
+/* Поиск стоит ровно по центру экрана, а не между логотипом и кнопками:
+   абсолютное позиционирование вынимает слот из потока, поэтому центрируется
+   относительно всей шапки. */
+.topbar { position: relative; }
+.topbar__center {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: min(560px, 46vw);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.topbar-search { width: 100%; }
+
+/* «С собой» в строке заказа — компактный переключатель без подписи (подпись
+   осталась в title): иначе каждая строка переносилась на две линии и список
+   занимал вдвое больше высоты. */
+.cashier-cart__items .cart-item:has(.cart-take) { flex-wrap: nowrap; row-gap: 0; }
+.cashier-cart__items .cart-item:has(.cart-take) .cart-item__controls { flex-basis: auto; }
+.cashier-cart__items .cart-item:has(.cart-take) .cart-item__controls .qty-btn { flex: 0 0 auto; width: 30px; }
+.cashier-cart .cart-take { width: 34px; justify-content: center; }
+.cashier-cart .cart-take__label { display: none; }
+.cashier-cart .cart-take .toggle { transform: scale(0.9); }
