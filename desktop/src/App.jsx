@@ -8,7 +8,6 @@ import BottomBar from './components/BottomBar'
 import SettingsModal from './components/SettingsModal'
 import StaffProfileModal from './components/StaffProfileModal'
 import CashierMode from './modes/cashier/CashierMode'
-import WaiterMode from './modes/waiter/WaiterMode'
 import { auth, branding, flushQueue, halls, queueSize, shifts } from './shared/api'
 import { DEFAULT_SERVER_URL } from './shared/config'
 import { t } from './shared/i18n'
@@ -18,7 +17,9 @@ import { connectPrinterWS, disconnectPrinterWS } from './shared/ws'
 
 const MODES = {
   cashier: { component: CashierMode, label: 'Касса' },
-  waiter: { component: WaiterMode, label: 'Официант' },
+  // Официант работает на том же экране, что и кассир: зал, заказ, «Меню».
+  // Доступ к разделам режут права (can/must), а не отдельная урезанная вёрстка.
+  waiter: { component: CashierMode, label: 'Официант' },
   // Курьер = урезанная касса: только заказы «с собой», без столов и кнопок кассира
   courier: { component: CashierMode, label: 'Курьер' },
 }
