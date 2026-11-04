@@ -93,15 +93,13 @@ export default function PinPad({
 
         {title && !shiftClosed && <h2 className="pinpad__title">{title}</h2>}
 
-        {!shiftClosed && (hasEmployee ? (
+        {!shiftClosed && hasEmployee && (
           <div className="pinpad__user">
             <span className="pinpad__avatar">{initials(employee.name || employee.email)}</span>
             <span className="pinpad__name">{employee.name || employee.email}</span>
             <span className="pinpad__role">{t.role(role)}</span>
           </div>
-        ) : (
-          <p className="pinpad__hint">{t('staff_code_hint')}</p>
-        ))}
+        )}
 
         {shiftClosed ? (
           <div className="pinpad__shift">

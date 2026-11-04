@@ -3340,7 +3340,6 @@ body.vkb-open .login-card {
   color: var(--color-text-primary);
 }
 .pinpad__user { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: var(--spacing-lg); }
-.pinpad__hint { margin: 0 auto var(--spacing-lg); max-width: 36ch; text-align: center; font-size: var(--text-md); line-height: 1.45; color: var(--color-text-muted); }
 .pinpad__avatar {
   width: 72px; height: 72px; display: grid; place-items: center;
   border-radius: var(--radius-full); background: var(--color-brand); color: #fff;
