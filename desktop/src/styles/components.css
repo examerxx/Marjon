@@ -4394,16 +4394,6 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 }
 /* Блоки правой колонки — одной ширины, прижаты к центру экрана. */
 .pay-screen__side > * { width: 100%; max-width: 560px; margin-left: 0; margin-right: auto; }
-/* Экран «в долг» — компактная форма по центру: не растягиваем поля на всю
-   ширину окна, держим ту же колонку, что и блоки оплаты справа. */
-.pay-screen__body--form { flex-direction: column; align-items: center; overflow-y: auto; }
-.pay-screen__body--form .pay-order__cash { width: 100%; max-width: 560px; padding-top: 6px; }
-/* Кнопки футера — в той же колонке, что и форма. */
-.pay-screen__foot--form .pay-dialog__actions { width: 100%; max-width: 560px; margin: 0 auto; }
-@media (max-width: 980px) {
-  .pay-screen__body--form .pay-order__cash,
-  .pay-screen__foot--form .pay-dialog__actions { max-width: none; }
-}
 /* Узкий экран: колонки становятся друг под другом. */
 @media (max-width: 980px) {
   .pay-screen__body { flex-direction: column; overflow-y: auto; }
@@ -4483,6 +4473,20 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 .pay-method__ico { display: inline-flex; flex-shrink: 0; color: var(--color-text-muted); }
 .pay-method__opt:hover:not(:disabled) .pay-method__ico { color: var(--color-brand); }
 .pay-method__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Долг — та же карточка, что и выбор способа: итоги, поля клиента, действия. */
+.pay-debt { gap: 10px; }
+.pay-debt__sum {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--color-brand-bg);
+}
+.pay-debt__sum .pay-order__change { margin-top: 0; }
+.pay-debt__sum .pay-order__change span { font-size: var(--text-sm); font-weight: 600; color: var(--color-text-secondary); }
+.pay-debt__sum .pay-order__change strong { font-size: var(--text-md); }
+.pay-debt__actions { display: flex; gap: 8px; }
+.pay-debt__actions .btn { flex: 1 1 0; justify-content: center; white-space: nowrap; }
+.pay-debt__actions .btn--primary { flex: 1.35 1 0; }
 .pay-screen__row { display: flex; gap: 8px; }
 .pay-screen__row .btn--eq { flex: 1 1 0; justify-content: center; white-space: nowrap; }
 /* Сумма к получению — одно поле на любой способ оплаты */

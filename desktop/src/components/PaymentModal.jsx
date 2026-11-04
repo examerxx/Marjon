@@ -119,13 +119,17 @@ export default function PaymentScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order?.total_amount, order?.discount_amount])
 
-  // Выбор способа закрывается по Escape и тапом по подложке.
+  // Модалки выбора способа и долга закрываются по Escape и тапом по подложке.
   useEffect(() => {
-    if (!askPay) return
-    function onKey(e) { if (e.key === 'Escape') setAskPay(false) }
+    if (!askPay && debtStep !== 'form') return
+    function onKey(e) {
+      if (e.key !== 'Escape') return
+      setAskPay(false)
+      if (debtStep === 'form') setDebtStep('none')
+    }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [askPay])
+  }, [askPay, debtStep])
 
   /**
    * Тап по сумме к оплате подставляет полную сумму в поле «Получено».
@@ -217,39 +221,6 @@ export default function PaymentScreen({
     ...customMethods.map((m) => ({ value: m.name, label: m.name, icon: <Wallet size={18} /> })),
     ...(debtAllowed ? [{ value: 'debt', label: t('debt'), icon: <Wallet size={18} /> }] : []),
   ]
-
-  // Закрытие в долг — отдельный экран поверх оплаты
-  if (debtStep === 'form') {
-    return (
-      <div className="pay-screen">
-        <PayHead title={t('debt_title')} onBack={closeDebt} />
-        <div className="pay-screen__body pay-screen__body--form">
-          <div className="pay-order__cash">
-            <div className="pay-order__change"><span>{t('to_pay_label')}</span><strong>{fmt(total)} {t('currency')}</strong></div>
-            <div className="pay-order__change pay-order__change--short"><span>{t('debt_left')}</span><strong>{fmt(dueNow)} {t('currency')}</strong></div>
-            <div className="login-field" style={{ marginTop: 'var(--spacing-md)' }}>
-              <label className="login-field__label">{t('debt_client')}</label>
-              <input className="login-field__input" value={debtorName}
-                onChange={(e) => setDebtorName(e.target.value)} placeholder={t('debt_client_ph')} />
-            </div>
-            <div className="login-field">
-              <label className="login-field__label">{t('debt_phone')}</label>
-              <input className="login-field__input" type="tel" inputMode="tel" value={formatPhone(debtorPhone)}
-                onChange={(e) => setDebtorPhone(extractPhoneDigits(e.target.value))} placeholder="+998 __ ___-__-__" />
-            </div>
-          </div>
-        </div>
-        <footer className="pay-screen__foot pay-screen__foot--form">
-          <div className="pay-dialog__actions">
-            <button className="btn btn--outline" onClick={closeDebt}>{t('back')}</button>
-            <button className="btn btn--primary btn--lg pay-order__close" disabled={busy} onClick={doDebtComplete}>
-              {busy ? spin : <CheckCircle size={20} />} {t('debt_close')}
-            </button>
-          </div>
-        </footer>
-      </div>
-    )
-  }
 
   return (
     <div className="pay-screen">
@@ -480,6 +451,45 @@ export default function PaymentScreen({
                   {busy && method === option.value && spin}
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Долг — такая же карточка поверх оплаты, как выбор способа,
+          а не отдельный полноэкранный шаг. */}
+      {debtStep === 'form' && (
+        <div
+          className="pay-method"
+          role="dialog" aria-modal="true" aria-label={t('debt_title')}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) closeDebt() }}
+        >
+          <div className="pay-method__card pay-debt">
+            <div className="pay-method__head">
+              <span className="pay-method__title">{t('debt_title')}</span>
+              <button className="icon-btn" onClick={closeDebt} title={t('back')} aria-label={t('back')}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="pay-debt__sum">
+              <div className="pay-order__change"><span>{t('to_pay_label')}</span><strong>{fmt(total)} {t('currency')}</strong></div>
+              <div className="pay-order__change pay-order__change--short"><span>{t('debt_left')}</span><strong>{fmt(dueNow)} {t('currency')}</strong></div>
+            </div>
+            <div className="login-field">
+              <label className="login-field__label">{t('debt_client')}</label>
+              <input className="login-field__input" value={debtorName}
+                onChange={(e) => setDebtorName(e.target.value)} placeholder={t('debt_client_ph')} />
+            </div>
+            <div className="login-field">
+              <label className="login-field__label">{t('debt_phone')}</label>
+              <input className="login-field__input" type="tel" inputMode="tel" value={formatPhone(debtorPhone)}
+                onChange={(e) => setDebtorPhone(extractPhoneDigits(e.target.value))} placeholder="+998 __ ___-__-__" />
+            </div>
+            <div className="pay-debt__actions">
+              <button className="btn btn--outline" onClick={closeDebt}>{t('back')}</button>
+              <button className="btn btn--primary" disabled={busy} onClick={doDebtComplete}>
+                {busy ? spin : <CheckCircle size={18} />} {t('debt_close')}
+              </button>
             </div>
           </div>
         </div>
