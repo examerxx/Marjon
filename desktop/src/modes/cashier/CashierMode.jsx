@@ -132,10 +132,14 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   const [hdrActionsSlot, setHdrActionsSlot] = useState(null)
   const [searchSlot, setSearchSlot] = useState(null)
   const [backSlot, setBackSlot] = useState(null)
+  const [typeSlot, setTypeSlot] = useState(null)
+  const [tablesSlot, setTablesSlot] = useState(null)
   useEffect(() => {
     setHdrActionsSlot(document.getElementById('topbar-actions-slot'))
     setSearchSlot(document.getElementById('topbar-center-slot'))
     setBackSlot(document.getElementById('topbar-back-slot'))
+    setTypeSlot(document.getElementById('topbar-order-types-slot'))
+    setTablesSlot(document.getElementById('topbar-tables-slot'))
   }, [])
 
   // Liquid Glass: блик на кнопках категорий идёт за пальцем/курсором.
@@ -295,6 +299,13 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   ]
   // Активна доска заказов (доставка/с собой), а не столов
   const orderBoard = activeZone === 'delivery' || activeZone === 'takeaway'
+  // Переключатель «Столы / С собой / Доставка» живёт в шапке (портал ниже):
+  // в шапке доски он занимал строку и переносился, из-за чего сетка столов
+  // начиналась ниже. Здесь только вычисляем, что показывать.
+  const canSwitchTypes = can(user, 'can_change_order_type')
+  const showTakeawayTab = !courier && canSwitchTypes && typeOn('takeaway')
+  const showDeliveryTab = !courier && canSwitchTypes && typeOn('delivery')
+  const showTypeTabs = showTakeawayTab || showDeliveryTab
   const boardOrders = activeZone === 'delivery' ? deliveryOrders : takeawayOrders
   const shownZones = activeZone === 'all' ? zones : zones.filter((z) => z.id === activeZone)
   const shownTables = activeZone === 'all' ? allTables : allTables.filter((tb) => tb.zoneId === activeZone)
@@ -765,12 +776,11 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
                   : `${shownTables.length} ${t('tables_low')} · ${busyCount} ${t('busy_low')}`}
               </span>
             </div>
-            <div className="board__head-right">
-              {orderBoard && !courier && <button className="btn btn--outline btn--sm" onClick={() => setActiveZone('all')}><ArrowLeft size={18} /> {t('to_tables')}</button>}
-              {orderBoard && <button className="btn btn--primary btn--sm" onClick={() => openOrder(activeZone, null)}><Plus size={18} /> {t('new_order')}</button>}
-              {!courier && can(user, 'can_change_order_type') && typeOn('takeaway') && <button className="btn btn--outline btn--sm" onClick={() => setActiveZone('takeaway')}><ShoppingBag size={18} /> {t('takeaway')}</button>}
-              {!courier && can(user, 'can_change_order_type') && typeOn('delivery') && <button className="btn btn--outline btn--sm" onClick={() => setActiveZone('delivery')}><Bike size={18} /> {t('delivery')}</button>}
-            </div>
+            {orderBoard && (
+              <div className="board__head-right">
+                <button className="btn btn--primary btn--sm" onClick={() => openOrder(activeZone, null)}><Plus size={18} /> {t('new_order')}</button>
+              </div>
+            )}
           </div>
           <div className="board__scroll">
             {orderBoard ? (
@@ -831,6 +841,47 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
             ))}
           </div>
         </main>
+        {/* «Столы» — слева, перед брендом MARJON */}
+        {showTypeTabs && tablesSlot && createPortal(
+          <div className="topbar-order-types" role="group" aria-label={t('receipt_order_type')}>
+            <button
+              type="button"
+              className={`topbar-type ${orderBoard ? '' : 'is-active'}`}
+              onClick={() => setActiveZone('all')}
+              aria-pressed={!orderBoard}
+            >
+              <LayoutGrid size={18} /> {t('tables')}
+            </button>
+          </div>,
+          tablesSlot,
+        )}
+        {/* «С собой» и «Доставка» — справа, перед меню «…». Так они не занимают
+            строку доски, а сетка столов/заказов начинается выше. */}
+        {showTypeTabs && typeSlot && createPortal(
+          <div className="topbar-order-types topbar-order-types--split" role="group" aria-label={t('receipt_order_type')}>
+            {showTakeawayTab && (
+              <button
+                type="button"
+                className={`topbar-type ${activeZone === 'takeaway' ? 'is-active' : ''}`}
+                onClick={() => setActiveZone('takeaway')}
+                aria-pressed={activeZone === 'takeaway'}
+              >
+                <ShoppingBag size={18} /> {t('takeaway')}
+              </button>
+            )}
+            {showDeliveryTab && (
+              <button
+                type="button"
+                className={`topbar-type ${activeZone === 'delivery' ? 'is-active' : ''}`}
+                onClick={() => setActiveZone('delivery')}
+                aria-pressed={activeZone === 'delivery'}
+              >
+                <Bike size={18} /> {t('delivery')}
+              </button>
+            )}
+          </div>,
+          typeSlot,
+        )}
         {/* Меню разделов — иконка-кнопка в шапке рядом с блокировкой и настройками.
             Официанту оно не нужно: его работа — блюда и печать чека. */}
         {hdrActionsSlot && !courier && !isWaiter && createPortal(

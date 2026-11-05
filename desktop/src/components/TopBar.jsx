@@ -33,12 +33,16 @@ export default function TopBar({
             Стоит справа от текста логотипа — так просил владелец. */}
         <div className="topbar__back-slot" id="topbar-back-slot" />
       </div>
+      {/* Кнопка «Столы» — сразу после бренда MARJON */}
+      <div className="topbar__tables-slot" id="topbar-tables-slot" />
 
       {/* Центральный слот: рабочие экраны рендерят сюда поиск порталом.
           Держим его всегда, чтобы портал находил цель при первом рендере. */}
       <div className="topbar__center" id="topbar-center-slot">{children}</div>
 
       <div className="topbar__actions">
+        {/* Слот переключателя типа заказа: стоит справа, перед меню «…» */}
+        <div className="topbar__order-types-slot" id="topbar-order-types-slot" />
         {/* Слот для дропдауна разделов режима — иконка-кнопка рядом с блокировкой и настройками */}
         <div className="topbar__actions-slot" id="topbar-actions-slot" />
         {onRefresh && (

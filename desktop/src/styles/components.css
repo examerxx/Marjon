@@ -129,6 +129,13 @@
   z-index: var(--z-dropdown);
 }
 
+/* Слот кнопки «Столы» — сразу после бренда MARJON */
+.topbar__tables-slot {
+  display: flex;
+  align-items: center;
+}
+.topbar__tables-slot:empty { display: none; }
+
 .topbar__brand {
   display: flex;
   align-items: center;
@@ -211,6 +218,55 @@
   justify-content: center;
 }
 
+/* Переключатель типа заказа в шапке: «Столы» — сразу после бренда,
+   «С собой / Доставка» — справа, перед меню «…».
+   Раньше кнопки жили в шапке доски, занимали строку и переносились —
+   сетка столов начиналась ниже. */
+.topbar-order-types {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-subtle);
+}
+.topbar-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: calc(var(--radius-md) - 2px);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.topbar-type:hover {
+  background: var(--chrome-hover);
+  color: var(--chrome-text);
+}
+.topbar-type.is-active {
+  background: var(--color-brand);
+  color: var(--color-text-inverse);
+  box-shadow: var(--shadow-xs);
+}
+.topbar-type.is-active svg { color: var(--color-text-inverse); }
+/* «С собой» и «Доставка» — две разные руки, две разные кнопки. В общем лотке
+   они стояли вплотную и сливались в одну пилюлю, поэтому кассир промахивался.
+   Раздвигаем их внутри лотка и добавляем такие же поля по краям, чтобы лоток
+   не «съежался» вокруг первой и последней кнопки. */
+.topbar-order-types--split {
+  gap: 22px;
+  padding: 4px 11px;
+}
+
 .status-dot {
   width: 10px;
   height: 10px;
@@ -240,6 +296,13 @@
   gap: var(--spacing-sm);
 }
 .topbar__actions-slot:empty { display: none; }
+/* Переключатель типа заказа — справа, перед меню «…» */
+.topbar__order-types-slot {
+  display: flex;
+  align-items: center;
+  margin-right: var(--spacing-sm);
+}
+.topbar__order-types-slot:empty { display: none; }
 /* Открытое меню разделов — та же заливка, что у активной навигации */
 .topbar .hmenu .icon-btn.is-active {
   background: var(--chrome-active);
