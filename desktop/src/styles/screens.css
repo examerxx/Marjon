@@ -581,8 +581,8 @@
   --tcard-accent: rgba(255, 255, 255, 0.55);
   background:
     radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 55%),
-    linear-gradient(180deg, rgba(253, 250, 190, 0.96) 0%, rgba(250, 243, 166, 0.94) 46%, rgba(232, 220, 120, 0.97) 100%);
-  background-color: rgba(250, 243, 166, 0.55);
+    linear-gradient(180deg, rgba(250, 247, 176, 0.96) 0%, rgba(246, 238, 150, 0.94) 46%, rgba(226, 213, 106, 0.97) 100%);
+  background-color: rgba(246, 238, 150, 0.57);
   -webkit-backdrop-filter: blur(18px) saturate(170%);
   backdrop-filter: blur(18px) saturate(170%);
   box-shadow:
@@ -608,8 +608,8 @@
   --tcard-accent: rgba(255, 255, 255, 0.5);
   background:
     radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 55%),
-    linear-gradient(180deg, rgba(98, 205, 157, 0.95) 0%, rgba(83, 182, 133, 0.93) 46%, rgba(52, 145, 100, 0.96) 100%);
-  background-color: rgba(83, 182, 133, 0.55);
+    linear-gradient(180deg, rgba(90, 196, 149, 0.95) 0%, rgba(75, 173, 126, 0.93) 46%, rgba(46, 137, 94, 0.96) 100%);
+  background-color: rgba(75, 173, 126, 0.57);
   -webkit-backdrop-filter: blur(18px) saturate(170%);
   backdrop-filter: blur(18px) saturate(170%);
   box-shadow:
