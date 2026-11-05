@@ -858,7 +858,7 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
         {/* «С собой» и «Доставка» — справа, перед меню «…». Так они не занимают
             строку доски, а сетка столов/заказов начинается выше. */}
         {showTypeTabs && typeSlot && createPortal(
-          <div className="topbar-order-types topbar-order-types--split" role="group" aria-label={t('receipt_order_type')}>
+          <div className="topbar-order-types" role="group" aria-label={t('receipt_order_type')}>
             {showTakeawayTab && (
               <button
                 type="button"

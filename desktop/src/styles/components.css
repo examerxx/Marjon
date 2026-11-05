@@ -222,60 +222,23 @@
    «С собой / Доставка» — справа, перед меню «…».
    Раньше кнопки жили в шапке доски, занимали строку и переносились —
    сетка столов начиналась ниже. */
+/* Все три кнопки — то же стекло, что и карточки локаций слева:
+   полупрозрачная многослойная заливка, размытие фона, блик по верхней
+   кромке и мягкая тень. Серый лоток под ними убран: каждая кнопка сама
+   себе карточка, и между ними настоящий зазор, по ним не промахнуться. */
 .topbar-order-types {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
-  background: var(--color-subtle);
+  gap: 14px;
 }
 .topbar-type {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: calc(var(--radius-md) - 2px);
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-family: inherit;
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-semibold);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-.topbar-type:hover {
-  background: var(--chrome-hover);
-  color: var(--chrome-text);
-}
-.topbar-type.is-active {
-  background: var(--color-brand);
-  color: var(--color-text-inverse);
-  box-shadow: var(--shadow-xs);
-}
-.topbar-type.is-active svg { color: var(--color-text-inverse); }
-/* «С собой» и «Доставка» — то же стекло, что и кнопки локаций слева:
-   полупрозрачная многослойная заливка, размытие фона, блик по верхней
-   кромке и мягкая тень. Общий серый лоток под ними убран — каждая кнопка
-   теперь сама себе карточка, и между ними настоящий зазор. */
-.topbar-order-types--split {
-  gap: 14px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: none;
-}
-.topbar-order-types--split .topbar-type {
-  --mx: 22%;
-  --my: 0%;
   position: relative;
   isolation: isolate;
   overflow: hidden;
   box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   height: 48px;
   padding: 0 18px;
   border: 1px solid rgba(255, 255, 255, 0.78);
@@ -283,7 +246,12 @@
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.6) 46%, rgba(226, 235, 245, 0.52) 100%);
   background-color: rgba(255, 255, 255, 0.5);
   color: var(--color-text-secondary);
+  font-family: inherit;
   font-size: 15px;
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   -webkit-backdrop-filter: blur(22px) saturate(190%);
   backdrop-filter: blur(22px) saturate(190%);
   box-shadow:
@@ -299,7 +267,8 @@
     background-color 0.22s ease,
     color 0.18s ease;
 }
-.topbar-order-types--split .topbar-type::before {
+/* Статичный блик: свет сверху-слева + холодный рефлекс снизу. */
+.topbar-type::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -311,7 +280,7 @@
     linear-gradient(0deg, rgba(94, 140, 190, 0.06) 0%, rgba(94, 140, 190, 0) 34%);
   pointer-events: none;
 }
-.topbar-order-types--split .topbar-type:hover {
+.topbar-type:hover {
   border-color: rgba(255, 255, 255, 0.95);
   background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.76) 46%, rgba(234, 241, 249, 0.66) 100%);
   background-color: rgba(255, 255, 255, 0.85);
@@ -324,8 +293,9 @@
     0 2px 4px rgba(15, 35, 60, 0.06),
     0 14px 30px -16px rgba(15, 35, 60, 0.28);
 }
-.topbar-order-types--split .topbar-type:hover > svg { color: var(--chrome-text); }
-.topbar-order-types--split .topbar-type:active {
+.topbar-type:hover > svg { color: var(--chrome-text); }
+/* Тактильный отклик: стекло слегка «пружинит» под пальцем. */
+.topbar-type:active {
   transform: scale(0.972);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.8),
@@ -333,7 +303,7 @@
     0 1px 2px rgba(15, 35, 60, 0.04);
 }
 /* Выбранная — тинтованное брендовое стекло, как активная локация. */
-.topbar-order-types--split .topbar-type.is-active {
+.topbar-type.is-active {
   border-color: rgba(255, 255, 255, 0.5);
   background:
     radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 55%),
@@ -348,12 +318,12 @@
     0 10px 26px -10px rgba(29, 181, 181, 0.6),
     0 2px 6px rgba(15, 35, 60, 0.12);
 }
-.topbar-order-types--split .topbar-type.is-active::before {
+.topbar-type.is-active::before {
   background:
     radial-gradient(120% 130% at 14% -18%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.12) 36%, rgba(255, 255, 255, 0) 64%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 44%);
 }
-.topbar-order-types--split .topbar-type.is-active:hover {
+.topbar-type.is-active:hover {
   background:
     radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0) 55%),
     linear-gradient(180deg, rgba(74, 222, 222, 0.96) 0%, rgba(29, 181, 181, 0.95) 46%, rgba(16, 132, 132, 0.97) 100%);
@@ -365,8 +335,12 @@
     0 14px 32px -12px rgba(29, 181, 181, 0.7),
     0 2px 8px rgba(15, 35, 60, 0.14);
 }
+/* Иконка выбранной кнопки всегда белая — и в покое, и под курсором:
+   правило выше (:hover) тяжелее по порядку, поэтому дублируем его здесь. */
+.topbar-type.is-active > svg,
+.topbar-type.is-active:hover > svg { color: var(--color-text-inverse); }
 /* Тёмная тема: стекло тонируется тёмным, блики приглушены — как у локаций. */
-[data-theme="dark"] .topbar-order-types--split .topbar-type {
+[data-theme="dark"] .topbar-type {
   border-color: rgba(255, 255, 255, 0.1);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 55%, rgba(255, 255, 255, 0.03) 100%);
   background-color: rgba(255, 255, 255, 0.04);
@@ -377,19 +351,16 @@
     inset 0 0 0 1px rgba(255, 255, 255, 0.03),
     0 2px 8px rgba(0, 0, 0, 0.34);
 }
-[data-theme="dark"] .topbar-order-types--split .topbar-type::before {
+[data-theme="dark"] .topbar-type::before {
   background:
     radial-gradient(120% 130% at 14% -18%, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.05) 36%, rgba(255, 255, 255, 0) 64%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 44%);
 }
-[data-theme="dark"] .topbar-order-types--split .topbar-type:hover {
+[data-theme="dark"] .topbar-type:hover {
   border-color: rgba(255, 255, 255, 0.16);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 55%, rgba(255, 255, 255, 0.05) 100%);
   background-color: rgba(255, 255, 255, 0.09);
   color: #fff;
-}
-[data-theme="dark"] .topbar-order-types--split .topbar-type.is-active {
-  color: var(--color-text-inverse);
 }
 
 .status-dot {
