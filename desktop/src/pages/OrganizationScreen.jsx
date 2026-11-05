@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Settings, LogIn, Phone, LogOut } from 'lucide-react'
 import { t } from '../shared/i18n'
-import logoUrl from '../assets/logo.svg'
+import logoUrl from '../assets/logo-mark.png'
 
 /**
  * OrganizationScreen — экран организации (домашний, до входа сотрудника).

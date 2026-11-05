@@ -10,7 +10,7 @@ import { sanitizeDecimal, parseNum } from '../shared/numeric'
 import { parseApiDate } from '../shared/time'
 import { toast } from './Toast'
 import WaiterPicker from './WaiterPicker'
-import logoUrl from '../assets/logo.svg'
+import logoUrl from '../assets/logo-mark.png'
 
 /**
  * PaymentScreen — экран оплаты и закрытие заказа (полноэкранный, без оверлея).

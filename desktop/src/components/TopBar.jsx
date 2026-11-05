@@ -1,6 +1,6 @@
 import { RefreshCw, Lock, User, Settings } from 'lucide-react'
 import { t } from '../shared/i18n'
-import logoUrl from '../assets/logo.svg'
+import logoUrl from '../assets/logo-mark.png'
 
 /**
  * TopBar — верхняя панель для всех режимов: бренд-блок и кнопки управления.

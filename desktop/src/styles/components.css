@@ -192,8 +192,8 @@
   background: var(--color-card);
   box-shadow: var(--shadow-xs);
 }
-/* Знак задаём по ширине: пропорции держит viewBox SVG (шире, чем выше),
-   поэтому фиксированная высота выдавила бы его за края карточки. */
+/* Знак задаём по ширине: эмблема шире, чем выше (купол), поэтому
+   фиксированная высота выдавила бы её за края карточки. */
 .topbar__logo {
   display: block;
   width: 40px;
@@ -599,7 +599,7 @@ body.vkb-open .login-card {
 .login-card__logo-mark img {
   display: block;
   width: 44px;
-  height: 44px;
+  height: auto;
 }
 .login-card__logo-text { line-height: 1; }
 .login-card__subtitle {
@@ -3427,15 +3427,15 @@ body.vkb-open .login-card {
   text-align: center;
 }
 .org-screen__brand { display: flex; align-items: center; gap: 14px; margin-bottom: var(--spacing-md); }
-/* Знак бренда на тёмном фоне (фото зала): белая плитка, иначе тёмно-синий
-   терминал логотипа сливается с фотографией. */
+/* Знак бренда на тёмном фоне (фото зала): белая плитка, иначе золотая
+   эмблема теряется на фотографии. */
 .org-screen__mark {
   width: 56px; height: 56px; display: grid; place-items: center;
   border-radius: 16px; background: #fff; color: #fff;
   font-family: var(--font-display); font-weight: 700; font-size: 28px;
   box-shadow: 0 8px 28px var(--color-brand-glow);
 }
-.org-screen__mark img { display: block; width: 44px; height: 44px; }
+.org-screen__mark img { display: block; width: 46px; height: auto; }
 .org-screen__names { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
 .org-screen__org { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: #fff; letter-spacing: 0.02em; }
 .org-screen__branch { font-size: 15px; color: rgba(255, 255, 255, 0.7); }
