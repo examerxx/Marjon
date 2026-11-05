@@ -178,19 +178,16 @@
 .topbar__back:hover {
   color: var(--color-brand);
 }
-/* Карточка знака с лёгкой обводкой — повторяет .brand-mark веб-админки.
-   В светлой теме фон совпадает с хромом, так что читается только обводка.
-   Обводку берём светлым токеном: он уже задан под оба хрома. */
+/* Знак без карточки-обводки: на белом хроме золотой купол сам держит
+   бренд, рамка только дробит его. Размер площадки оставляем прежним,
+   чтобы шапка не «прыгала». */
 .topbar__logo-mark {
   display: grid;
   place-items: center;
   width: 54px;
   height: 54px;
   flex-shrink: 0;
-  border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
-  background: var(--color-card);
-  box-shadow: var(--shadow-xs);
 }
 /* Знак задаём по ширине: эмблема шире, чем выше (купол), поэтому
    фиксированная высота выдавила бы её за края карточки.
@@ -198,13 +195,13 @@
    карточки, иначе в шапке бренд мелит и не цепляет взгляд. */
 .topbar__logo {
   display: block;
-  width: 48px;
+  width: 52px;
   height: auto;
   user-select: none;
   -webkit-user-drag: none;
 }
 /* Название режима видно в нижней панели, здесь — только бренд.
-   Подпись намеренно тише имени: мелкий кегль, разрядка, приглушённый цвет. */
+   Имя — золото бренда, подпись намеренно тише: мелкий кегль, разрядка. */
 .topbar__brand-text {
   display: flex;
   flex-direction: column;
@@ -217,7 +214,7 @@
   font-weight: var(--font-weight-bold);
   line-height: 1.1;
   letter-spacing: 0.04em;
-  color: var(--color-text-primary);
+  color: var(--gold-700);
 }
 .topbar__brand-tagline {
   margin-top: 3px;
@@ -227,7 +224,7 @@
   line-height: 1.1;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: var(--gold-500);
 }
 .topbar__subtitle {
   font-size: var(--text-sm);
@@ -243,148 +240,82 @@
 
 /* Переключатель типа заказа в шапке: «Столы» — сразу после бренда,
    «С собой / Доставка» — справа, перед меню «…».
-   Раньше кнопки жили в шапке доски, занимали строку и переносились —
-   сетка столов начиналась ниже. */
-/* Все три кнопки — то же стекло, что и карточки локаций слева:
-   полупрозрачная многослойная заливка, размытие фона, блик по верхней
-   кромке и мягкая тень. Серый лоток под ними убран: каждая кнопка сама
-   себе карточка, и между ними настоящий зазор, по ним не промахнуться. */
+   По образцу: золотой лоток, внутри сегменты. Выбор — тёмно-синяя пилюля
+   с белым текстом (белый на золоте не читается, поэтому активный сегмент
+   не золотой, а navy). */
 .topbar-order-types {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(201, 166, 88, 0.55);
+  border-radius: 26px;
+  background: linear-gradient(180deg, #e6d09a 0%, #c9a85f 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -1px 0 rgba(122, 97, 39, 0.18),
+    0 6px 16px -10px rgba(140, 108, 40, 0.55);
 }
 .topbar-type {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 48px;
-  padding: 0 18px;
-  border: 1px solid rgba(255, 255, 255, 0.78);
+  height: 40px;
+  padding: 0 16px;
+  border: 0;
   border-radius: 22px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.6) 46%, rgba(226, 235, 245, 0.52) 100%);
-  background-color: rgba(255, 255, 255, 0.5);
-  color: var(--color-text-secondary);
+  background: transparent;
+  color: var(--neutral-900);
   font-family: inherit;
   font-size: 15px;
   font-weight: var(--font-weight-semibold);
   white-space: nowrap;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  -webkit-backdrop-filter: blur(22px) saturate(190%);
-  backdrop-filter: blur(22px) saturate(190%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -1px 0 rgba(13, 32, 56, 0.06),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
-    0 1px 2px rgba(15, 35, 60, 0.05),
-    0 10px 24px -14px rgba(15, 35, 60, 0.22);
   transition:
     transform 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.35),
     box-shadow 0.22s ease,
-    border-color 0.22s ease,
     background-color 0.22s ease,
     color 0.18s ease;
 }
-/* Статичный блик: свет сверху-слева + холодный рефлекс снизу. */
-.topbar-type::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background:
-    radial-gradient(120% 130% at 14% -18%, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.42) 34%, rgba(255, 255, 255, 0) 62%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 38%),
-    linear-gradient(0deg, rgba(94, 140, 190, 0.06) 0%, rgba(94, 140, 190, 0) 34%);
-  pointer-events: none;
-}
-.topbar-type:hover {
-  border-color: rgba(255, 255, 255, 0.95);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.76) 46%, rgba(234, 241, 249, 0.66) 100%);
-  background-color: rgba(255, 255, 255, 0.85);
-  color: var(--chrome-text);
-  transform: translateY(-1px);
-  box-shadow:
-    inset 0 1px 0 #fff,
-    inset 0 -1px 0 rgba(13, 32, 56, 0.07),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
-    0 2px 4px rgba(15, 35, 60, 0.06),
-    0 14px 30px -16px rgba(15, 35, 60, 0.28);
-}
-.topbar-type:hover > svg { color: var(--chrome-text); }
-/* Тактильный отклик: стекло слегка «пружинит» под пальцем. */
-.topbar-type:active {
-  transform: scale(0.972);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    inset 0 2px 6px rgba(15, 35, 60, 0.08),
-    0 1px 2px rgba(15, 35, 60, 0.04);
-}
-/* Выбранная — тинтованное брендовое стекло, как активная локация. */
+.topbar-type > svg { color: var(--neutral-800); }
+.topbar-type:hover { background: rgba(255, 255, 255, 0.45); }
+/* Тактильный отклик: сегмент слегка «пружинит» под пальцем. */
+.topbar-type:active { transform: scale(0.972); }
 .topbar-type.is-active {
-  border-color: rgba(255, 255, 255, 0.5);
-  background:
-    radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 55%),
-    linear-gradient(180deg, rgba(64, 213, 213, 0.94) 0%, rgba(29, 181, 181, 0.92) 46%, rgba(17, 138, 138, 0.95) 100%);
-  background-color: rgba(29, 181, 181, 0.55);
+  background: linear-gradient(180deg, #2a4c7a 0%, #10294c 46%, #081c38 100%);
   color: var(--color-text-inverse);
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.14);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.65),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.16),
-    inset 0 0 22px rgba(255, 255, 255, 0.1),
-    0 10px 26px -10px rgba(29, 181, 181, 0.6),
-    0 2px 6px rgba(15, 35, 60, 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 6px 16px -8px rgba(11, 31, 63, 0.7);
 }
-.topbar-type.is-active::before {
-  background:
-    radial-gradient(120% 130% at 14% -18%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.12) 36%, rgba(255, 255, 255, 0) 64%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 44%);
-}
-.topbar-type.is-active:hover {
-  background:
-    radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0) 55%),
-    linear-gradient(180deg, rgba(74, 222, 222, 0.96) 0%, rgba(29, 181, 181, 0.95) 46%, rgba(16, 132, 132, 0.97) 100%);
-  color: var(--color-text-inverse);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.7),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.16),
-    inset 0 0 26px rgba(255, 255, 255, 0.12),
-    0 14px 32px -12px rgba(29, 181, 181, 0.7),
-    0 2px 8px rgba(15, 35, 60, 0.14);
-}
-/* Иконка выбранной кнопки всегда белая — и в покое, и под курсором:
-   правило выше (:hover) тяжелее по порядку, поэтому дублируем его здесь. */
 .topbar-type.is-active > svg,
 .topbar-type.is-active:hover > svg { color: var(--color-text-inverse); }
-/* Тёмная тема: стекло тонируется тёмным, блики приглушены — как у локаций. */
-[data-theme="dark"] .topbar-type {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 55%, rgba(255, 255, 255, 0.03) 100%);
-  background-color: rgba(255, 255, 255, 0.04);
-  color: rgba(231, 237, 246, 0.78);
+.topbar-type.is-active:hover { background: linear-gradient(180deg, #33588c 0%, #14325c 46%, #0a2242 100%); }
+/* Тёмная тема: лоток — приглушённое золото, выбор — золотая пилюля
+   с тёмным текстом (тёмно-синий на тёмном хроме пропал бы). */
+[data-theme="dark"] .topbar-order-types {
+  border-color: rgba(220, 190, 123, 0.3);
+  background: linear-gradient(180deg, rgba(220, 190, 123, 0.18) 0%, rgba(176, 142, 66, 0.12) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
-    0 2px 8px rgba(0, 0, 0, 0.34);
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.35);
 }
-[data-theme="dark"] .topbar-type::before {
-  background:
-    radial-gradient(120% 130% at 14% -18%, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.05) 36%, rgba(255, 255, 255, 0) 64%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 44%);
+[data-theme="dark"] .topbar-type { color: rgba(245, 238, 220, 0.82); }
+[data-theme="dark"] .topbar-type > svg { color: rgba(245, 238, 220, 0.7); }
+[data-theme="dark"] .topbar-type:hover { background: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .topbar-type.is-active {
+  background: linear-gradient(180deg, #c9a658 0%, #94762f 100%);
+  color: var(--neutral-950);
+  text-shadow: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 6px 16px -8px rgba(0, 0, 0, 0.6);
 }
-[data-theme="dark"] .topbar-type:hover {
-  border-color: rgba(255, 255, 255, 0.16);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 55%, rgba(255, 255, 255, 0.05) 100%);
-  background-color: rgba(255, 255, 255, 0.09);
-  color: #fff;
-}
+[data-theme="dark"] .topbar-type.is-active > svg,
+[data-theme="dark"] .topbar-type.is-active:hover > svg { color: var(--neutral-950); }
 
 .status-dot {
   width: 10px;
@@ -539,7 +470,7 @@
 .login-page__bg {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at top right, rgba(29, 181, 181, 0.08) 0%, transparent 60%),
+  background: radial-gradient(ellipse at top right, rgba(176, 142, 66, 0.10) 0%, transparent 60%),
               radial-gradient(ellipse at bottom left, rgba(37, 99, 235, 0.05) 0%, transparent 50%);
   pointer-events: none;
 }
@@ -756,7 +687,7 @@ body.vkb-open .login-card {
 .login-pin__dot--filled {
   background: var(--color-brand);
   border-color: var(--color-brand);
-  box-shadow: 0 0 8px rgba(29, 181, 181, 0.4);
+  box-shadow: 0 0 8px rgba(176, 142, 66, 0.45);
 }
 
 @keyframes shake {
@@ -886,7 +817,7 @@ body.vkb-open .login-card {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  background: rgba(29, 181, 181, 0.1);
+  background: rgba(176, 142, 66, 0.12);
   color: var(--color-brand);
   flex-shrink: 0;
 }
@@ -1821,7 +1752,7 @@ body.vkb-open .login-card {
   width: 88px;
   height: 88px;
   border-radius: var(--radius-full);
-  background: rgba(29, 181, 181, 0.12);
+  background: rgba(176, 142, 66, 0.14);
   color: var(--color-brand);
 }
 
@@ -2762,7 +2693,7 @@ body.vkb-open .login-card {
 .table-card--new,
 .table-card--accepted,
 .table-card--cooking { border-color: var(--color-info); background: var(--color-info-bg); }
-.table-card--ready { border-color: var(--color-brand); background: var(--color-brand-bg, rgba(29,181,181,0.12)); }
+.table-card--ready { border-color: var(--color-brand); background: var(--color-brand-bg, rgba(176, 142, 66, 0.14)); }
 
 /* Детали стола */
 .waiter-detail { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
@@ -3268,11 +3199,15 @@ body.vkb-open .login-card {
   box-shadow: var(--shadow-sm);
 }
 .topbar__subtitle { color: var(--chrome-text-muted); }
-.topbar__brand-name { color: var(--chrome-text); }
-.topbar__brand-tagline { color: var(--chrome-text-muted); }
+/* Бренд в шапке — золото; его светлый тон задан в блоке TopBar выше.
+   На тёмном хроме то же золото, только светлее ступенью. */
+[data-theme="dark"] .topbar__brand-name { color: var(--gold-300); }
+[data-theme="dark"] .topbar__brand-tagline { color: var(--gold-400); }
 /* Тёмный элемент лого почти сливается с тёмно-синим хромом — осветляем сам
    знак и добавляем контур, иначе купол в шапке просто провал в фон. */
-[data-theme="dark"] .topbar__logo { filter: brightness(1.7) saturate(1.1) drop-shadow(0 0 1.5px var(--chrome-text-muted)); }
+/* Знак уже золотой и сам по себе светлый — на тёмном хроме его только
+   слегка подсвечиваем и обводим, иначе передержанный фильтр его выбелит. */
+[data-theme="dark"] .topbar__logo { filter: brightness(1.2) saturate(1.05) drop-shadow(0 0 1.5px var(--chrome-text-muted)); }
 .topbar .icon-btn { color: var(--color-text-secondary); }
 .topbar .icon-btn:hover { background: var(--chrome-hover); color: var(--chrome-text); }
 .topbar .filter-chip { background: var(--color-subtle); color: var(--color-text-secondary); }
@@ -3339,7 +3274,7 @@ body.vkb-open .login-card {
 }
 .login-page__bg {
   background:
-    radial-gradient(ellipse at top right, rgba(29, 181, 181, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at top right, rgba(176, 142, 66, 0.14) 0%, transparent 55%),
     radial-gradient(ellipse at bottom left, rgba(37, 99, 235, 0.10) 0%, transparent 50%);
 }
 .login-card {
@@ -4157,7 +4092,7 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 .fin-form .input { flex: 1; min-height: 48px; }
 .fin-actions { display: flex; gap: var(--spacing-md); }
 .fin-btn { flex: 1; min-height: 54px; font-weight: 700; color: #fff; border: none; }
-/* Приход — фирменный teal, расход — danger; ховеры по токенам палитры */
+/* Приход — фирменный gold, расход — danger; ховеры по токенам палитры */
 .fin-btn--in { background: var(--color-brand); }
 .fin-btn--in:hover { background: var(--color-brand-dark); }
 .fin-btn--out { background: var(--color-danger); }
@@ -4564,9 +4499,9 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
   overscroll-behavior: contain;
   display: flex; justify-content: flex-end; align-items: flex-start;
   padding: 18px;
-  border: 1px solid rgba(15, 35, 60, 0.06);
+  border: 1px solid rgba(92, 74, 32, 0.08);
   border-radius: 22px;
-  background: linear-gradient(180deg, #e6ebf4 0%, #d7dfeb 100%);
+  background: linear-gradient(180deg, #f7f3e7 0%, #ece4d2 100%);
 }
 /* Правая половина — столбец управления оплатой. */
 .pay-screen__side {
@@ -5008,7 +4943,7 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 [data-theme="dark"] .emp-screen__panel { background: var(--color-card); }
 [data-theme="dark"] .pinpad { background: var(--color-card); }
 [data-theme="dark"] .pinpad__key:hover { background: var(--color-surface-hover); }
-[data-theme="dark"] .server-setup__icon { background: rgba(29, 181, 181, 0.18); }
+[data-theme="dark"] .server-setup__icon { background: rgba(176, 142, 66, 0.22); }
 
 /* Экранная клавиатура — тёмные клавиши */
 [data-theme="dark"] .vkb { background: var(--neutral-800); border-top-color: var(--color-border); box-shadow: none; }
@@ -5299,12 +5234,12 @@ body.vkb-lift .app-shell {
 [data-theme="dark"] .modal-overlay { background: rgba(4, 10, 20, 0.80); }
 /* Ховер способов оплаты — светлее текущего, а не белый */
 [data-theme="dark"] .pay-method-btn:hover { background: var(--neutral-700); }
-[data-theme="dark"] .pay-method-btn.is-active { color: var(--teal-300); }
-[data-theme="dark"] .pay-method-btn svg { color: var(--teal-300); }
+[data-theme="dark"] .pay-method-btn.is-active { color: var(--gold-300); }
+[data-theme="dark"] .pay-method-btn svg { color: var(--gold-300); }
 /* Статусы в истории — читаемые на тёмном */
 [data-theme="dark"] .hist-status { background: var(--neutral-700); color: var(--color-text-secondary); }
 [data-theme="dark"] .hist-status--completed { background: var(--color-success-bg); color: var(--green-300); }
-[data-theme="dark"] .hist-status--ready { background: var(--color-brand-bg); color: var(--teal-300); }
+[data-theme="dark"] .hist-status--ready { background: var(--color-brand-bg); color: var(--gold-300); }
 [data-theme="dark"] .hist-status--cooking,
 [data-theme="dark"] .hist-status--accepted { background: var(--color-warning-bg); color: var(--amber-400); }
 
@@ -5551,7 +5486,7 @@ body.vkb-lift .app-shell {
 /* Ховеры без хардкод-хексов */
 .btn-danger:hover { background: var(--red-600); }
 .btn-success:hover { background: var(--green-600); }
-/* Основная кнопка — мягкая бирюзовая тень для глубины */
+/* Основная кнопка — тёплая золотая тень для глубины */
 .btn-primary,
 .btn--primary {
   box-shadow: 0 2px 8px var(--color-brand-glow);
@@ -5758,7 +5693,7 @@ select.input:focus {
 /* ═══ Главные CTA — стеклянные пилюли как у категорий ═══════════════════
    «К оплате» / «Создать заказ» и «Закрыть заказ» повторяют материал
    активной категории в сайдбаре: многослойная брендовая заливка, блик
-   по верхней кромке, внутреннее свечение и мягкая бирюзовая тень. */
+   по верхней кромке, внутреннее свечение и тёплая золотая тень. */
 .cart-btn--pay,
 .pay-order__close.btn--primary {
   position: relative;
@@ -5768,8 +5703,8 @@ select.input:focus {
   border-radius: 22px;
   background:
     radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 55%),
-    linear-gradient(180deg, rgba(64, 213, 213, 0.94) 0%, rgba(29, 181, 181, 0.92) 46%, rgba(17, 138, 138, 0.95) 100%);
-  background-color: rgba(29, 181, 181, 0.55);
+    linear-gradient(180deg, rgba(42, 76, 122, 0.95) 0%, rgba(16, 41, 76, 0.96) 46%, rgba(8, 28, 56, 0.97) 100%);
+  background-color: rgba(11, 31, 63, 0.55);
   color: var(--color-text-inverse);
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.14);
   -webkit-backdrop-filter: blur(18px) saturate(170%);
@@ -5778,7 +5713,7 @@ select.input:focus {
     inset 0 1px 0 rgba(255, 255, 255, 0.65),
     inset 0 -1px 0 rgba(0, 0, 0, 0.16),
     inset 0 0 22px rgba(255, 255, 255, 0.1),
-    0 10px 26px -10px rgba(29, 181, 181, 0.6),
+    0 10px 26px -10px rgba(176, 142, 66, 0.45),
     0 2px 6px rgba(15, 35, 60, 0.12);
   transition:
     transform 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.35),
@@ -5802,25 +5737,25 @@ select.input:focus {
 .pay-order__close.btn--primary:hover {
   background:
     radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0) 55%),
-    linear-gradient(180deg, rgba(74, 222, 222, 0.96) 0%, rgba(29, 181, 181, 0.95) 46%, rgba(16, 132, 132, 0.97) 100%);
+    linear-gradient(180deg, rgba(51, 88, 140, 0.96) 0%, rgba(20, 50, 92, 0.97) 46%, rgba(10, 34, 66, 0.98) 100%);
   color: var(--color-text-inverse);
   transform: translateY(-1px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.7),
     inset 0 -1px 0 rgba(0, 0, 0, 0.16),
     inset 0 0 26px rgba(255, 255, 255, 0.12),
-    0 14px 32px -12px rgba(29, 181, 181, 0.7),
+    0 14px 32px -12px rgba(176, 142, 66, 0.5),
     0 2px 8px rgba(15, 35, 60, 0.14);
 }
 .cart-btn--pay:active,
 .pay-order__close.btn--primary:active {
   transform: scale(0.972);
   background:
-    linear-gradient(180deg, rgba(56, 200, 200, 0.96) 0%, rgba(24, 160, 160, 0.95) 48%, rgba(15, 124, 124, 0.97) 100%);
+    linear-gradient(180deg, rgba(30, 58, 96, 0.96) 0%, rgba(13, 35, 66, 0.96) 48%, rgba(6, 20, 42, 0.97) 100%);
   box-shadow:
     inset 0 2px 8px rgba(0, 0, 0, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    0 4px 14px -8px rgba(29, 181, 181, 0.55);
+    0 4px 14px -8px rgba(176, 142, 66, 0.4);
 }
 /* Тёмная тема: стекло тонируется темнее, блики тише. */
 [data-theme="dark"] .cart-btn--pay,
@@ -5828,9 +5763,9 @@ select.input:focus {
   border-color: rgba(255, 255, 255, 0.22);
   background:
     radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 55%),
-    linear-gradient(180deg, rgba(48, 196, 196, 0.92) 0%, rgba(20, 148, 148, 0.94) 100%);
-  background-color: rgba(20, 148, 148, 0.6);
-  color: #fff;
+    linear-gradient(180deg, rgba(201, 166, 88, 0.92) 0%, rgba(146, 118, 47, 0.94) 100%);
+  background-color: rgba(146, 118, 47, 0.6);
+  color: var(--neutral-950);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.3),
     inset 0 -1px 0 rgba(0, 0, 0, 0.35),
@@ -5840,13 +5775,13 @@ select.input:focus {
 [data-theme="dark"] .pay-order__close.btn--primary:hover {
   background:
     radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0) 55%),
-    linear-gradient(180deg, rgba(64, 209, 209, 0.96) 0%, rgba(24, 158, 158, 0.96) 100%);
+    linear-gradient(180deg, rgba(220, 190, 123, 0.96) 0%, rgba(160, 130, 58, 0.96) 100%);
 }
 /* Без backdrop-filter стекло держится на плотной заливке и кромке. */
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .cart-btn--pay,
   .pay-order__close.btn--primary {
-    background: linear-gradient(180deg, #3fcfcf 0%, #1db5b5 46%, #118a8a 100%);
+    background: linear-gradient(180deg, #2a4c7a 0%, #10294c 46%, #081c38 100%);
   }
 }
 @media (prefers-reduced-motion: reduce) {
