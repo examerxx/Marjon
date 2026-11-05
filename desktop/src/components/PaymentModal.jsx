@@ -311,6 +311,9 @@ export default function PaymentScreen({
         </div>
 
         <div className="pay-screen__side">
+          {/* Прокручиваются только поля оплаты: кнопки печати и закрытия стоят
+              вне скролл-контейнера, иначе он обрезал их мягкую тень по краям. */}
+          <div className="pay-screen__controls">
           {/* Возврат в закрытый заказ */}
           {reopening && (
             <div className="pay-order__reopen">
@@ -409,6 +412,7 @@ export default function PaymentScreen({
               {t('cancel_order')}
             </button>
           )}
+          </div>
 
           {/* Печать и закрытие — столбцом, прижаты к низу колонки. */}
           <div className="pay-screen__actions">
