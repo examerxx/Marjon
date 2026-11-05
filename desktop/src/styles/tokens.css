@@ -183,6 +183,7 @@
   --bottombar-height: 34px;
   --sidebar-width: 84px;
   --sidebar-width-expanded: 240px;
+  --ws-side-width: 248px;      /* сайдбар локаций на рабочем экране */
   --header-height: 64px;
   --footer-height: 40px;
 

@@ -143,7 +143,7 @@
 
 /* ═══ Сайдбар локаций (один цвет с шапкой) ═══ */
 .ws-side {
-  width: 248px;
+  width: var(--ws-side-width);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
