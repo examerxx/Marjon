@@ -554,7 +554,7 @@
 .tcard__meta > svg { width: 13px; height: 13px; flex-shrink: 0; }
 /* Сумма заказа в карточке стола: 800 читалось слишком жирно — тонкий вес,
    акцент и так держит брендовый цвет */
-.tcard__amount { font-size: 15px; font-weight: 500; color: var(--color-brand); }
+.tcard__amount { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }
 /* В общей строке с временем (карточки доставки/«с собой») сумма уходит вправо. */
 .tcard__meta .tcard__amount { margin-left: auto; }
 
