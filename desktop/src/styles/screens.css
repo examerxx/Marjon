@@ -490,15 +490,23 @@
 .legend__swatch--busy { background: var(--color-warning); }
 .legend__swatch--check { background: var(--color-success); }
 
-/* position: relative — карточки рисуются над водяным знаком доски. */
-.board__scroll { position: relative; flex: 1; overflow-y: auto; padding: 12px 26px 28px; }
-.tgroup { margin-bottom: 28px; }
+/* position: relative — карточки рисуются над водяным знаком доски.
+   Пустой низ экрана — не пустота, а запас: столы раздвигаем им. Минимумы
+   clamp'а считаются под окно 732px (там они и работают), на высоком экране
+   ряды расходятся ещё сильнее. */
+.board__scroll {
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 32px 22px;
+}
+.tgroup { margin-bottom: clamp(50px, 6.5vh, 70px); }
 .tgroup:last-child { margin-bottom: 0; }
 .tgroup__title {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: clamp(16px, 2vh, 22px);
   font-family: var(--font-display);
   font-size: 15px;
   font-weight: 700;
@@ -508,7 +516,7 @@
 .tgrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 16px;
+  gap: clamp(24px, 3.2vh, 36px);
 }
 
 /* Фон карточки кодирует статус стола: свободен — белый, занят — жёлтый,
