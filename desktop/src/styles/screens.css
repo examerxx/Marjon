@@ -453,25 +453,8 @@
 /* ═══ Доска столов (белая) ═══ */
 /* Подложка доски — мягкий голубой #E5F0F9: карточки статусов читаются
    на нём как стекло на светлой панели. В тёмной теме возвращаем обычный фон. */
-.ws__main--board { position: relative; background: #e5f0f9; }
+.ws__main--board { background: #e5f0f9; }
 [data-theme="dark"] .ws__main--board { background: var(--color-bg); }
-/* Знак бренда как водяной знак: крупный купол над доской. Стоим по центру
-   верхней половины — между зонами столов, чтобы карточки его не «съедали».
-   Прокрутка карточек под ним не двигается. */
-.ws__main--board::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: url('../assets/logo-mark.png') center 26% / min(520px, 46vw) auto no-repeat;
-  opacity: 0.14;
-  pointer-events: none;
-}
-/* Тёмная доска: знак тёмно-бирюзовый, на тёмном фоне он исчезает.
-   Осветляем сам знак и поднимаем непрозрачность — бренд должен читаться. */
-[data-theme="dark"] .ws__main--board::before {
-  opacity: 0.26;
-  filter: brightness(2.3) saturate(0.9);
-}
 
 .legend { display: flex; align-items: center; gap: 16px; }
 .legend__item { display: inline-flex; align-items: center; gap: 9px; font-size: 13px; color: var(--color-text-secondary); }
@@ -490,12 +473,10 @@
 .legend__swatch--busy { background: var(--color-warning); }
 .legend__swatch--check { background: var(--color-success); }
 
-/* position: relative — карточки рисуются над водяным знаком доски.
-   Пустой низ экрана — не пустота, а запас: столы раздвигаем им. Минимумы
+/* Пустой низ экрана — не пустота, а запас: столы раздвигаем им. Минимумы
    clamp'а считаются под окно 732px (там они и работают), на высоком экране
    ряды расходятся ещё сильнее. */
 .board__scroll {
-  position: relative;
   flex: 1;
   overflow-y: auto;
   padding: 18px 32px 22px;
