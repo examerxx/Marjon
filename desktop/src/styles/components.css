@@ -153,13 +153,13 @@
 }
 
 /* Сводка доски («11 столов · 9 занято») — в шапке за брендом, с отступом
-   50px: владелец просил отодвинуть её от логотипа. Отдельная строка
+   90px: владелец просил отодвинуть её от логотипа. Отдельная строка
    заголовка над сеткой съедала ~40px по вертикали; теперь карточки
    начинаются от самого верха экрана. */
 .topbar__board-slot {
   display: flex;
   align-items: center;
-  margin-left: 50px;
+  margin-left: 90px;
 }
 .topbar__board-slot:empty { display: none; }
 .topbar-board {
@@ -5327,7 +5327,7 @@ body.vkb-lift .app-shell {
   position: sticky;
   top: 0;
   z-index: 2;
-  min-height: var(--topbar-height);
+  min-height: 72px;   /* не привязан к топбару: шапка модалки остаётся прежней */
   padding-inline: var(--spacing-2xl);
   background: var(--color-surface);
 }
