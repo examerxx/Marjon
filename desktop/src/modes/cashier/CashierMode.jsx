@@ -134,12 +134,14 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   const [backSlot, setBackSlot] = useState(null)
   const [typeSlot, setTypeSlot] = useState(null)
   const [tablesSlot, setTablesSlot] = useState(null)
+  const [boardSlot, setBoardSlot] = useState(null)
   useEffect(() => {
     setHdrActionsSlot(document.getElementById('topbar-actions-slot'))
     setSearchSlot(document.getElementById('topbar-center-slot'))
     setBackSlot(document.getElementById('topbar-back-slot'))
     setTypeSlot(document.getElementById('topbar-order-types-slot'))
     setTablesSlot(document.getElementById('topbar-tables-slot'))
+    setBoardSlot(document.getElementById('topbar-board-slot'))
   }, [])
 
   // Liquid Glass: блик на кнопках категорий идёт за пальцем/курсором.
@@ -767,21 +769,6 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
         </aside>
 
         <main className="ws__main ws__main--board">
-          <div className="board__head">
-            <div className="board__title">
-              <h2>{orderBoard ? t(activeZone) : t('tables')}</h2>
-              <span className="board__subtitle">
-                {orderBoard
-                  ? `${boardOrders.length} ${t('orders_low')}`
-                  : `${shownTables.length} ${t('tables_low')} · ${busyCount} ${t('busy_low')}`}
-              </span>
-            </div>
-            {orderBoard && (
-              <div className="board__head-right">
-                <button className="btn btn--primary btn--sm" onClick={() => openOrder(activeZone, null)}><Plus size={18} /> {t('new_order')}</button>
-              </div>
-            )}
-          </div>
           <div className="board__scroll">
             {orderBoard ? (
               boardOrders.length === 0 ? <p className="empty-text">{t('no_orders')}</p> : (
@@ -854,6 +841,22 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
             </button>
           </div>,
           tablesSlot,
+        )}
+        {/* Сводка доски — в шапке, рядом с кнопкой «Столы». Отдельная строка
+            заголовка над сеткой съедала место: теперь карточки начинаются
+            сразу от верха экрана. */}
+        {boardSlot && createPortal(
+          <div className="topbar-board">
+            <span className="topbar-board__meta">
+              {orderBoard
+                ? `${boardOrders.length} ${t('orders_low')}`
+                : `${shownTables.length} ${t('tables_low')} · ${busyCount} ${t('busy_low')}`}
+            </span>
+            {orderBoard && (
+              <button className="btn btn--primary btn--sm" onClick={() => openOrder(activeZone, null)}><Plus size={18} /> {t('new_order')}</button>
+            )}
+          </div>,
+          boardSlot,
         )}
         {/* «С собой» и «Доставка» — справа, перед меню «…». Так они не занимают
             строку доски, а сетка столов/заказов начинается выше. */}

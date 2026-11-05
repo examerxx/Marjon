@@ -223,6 +223,8 @@ export default function App() {
     setShiftError('')
   }, [])
 
+  // PIN-вход того, чей код набран. Возвращает 'logged' — сессия открыта,
+  // 'shift_gate' — код верный, но смена закрыта (решать будет вызывающий экран).
   const handleEmployeePin = useCallback(async (pin) => {
     // PIN — личный код сотрудника. Под org-токеном терминала бэкенд сам
     // находит владельца кода в компании; отдельный выбор сотрудника не нужен.
@@ -264,13 +266,14 @@ export default function App() {
           // PIN верный, смена закрыта → на месте цифр показываем «Открыть смену».
           setShiftGate({ ...pending, branchId })
           setShiftError('')
-          return
+          return 'shift_gate'
         }
       } catch {
         // Нет связи/ошибка проверки — не запираем кассира, работаем как раньше.
       }
     }
     finalizeStaffLogin(pending)
+    return 'logged'
   }, [branch, finalizeStaffLogin])
 
   const handleOpenShiftClick = useCallback(async () => {
@@ -307,8 +310,10 @@ export default function App() {
     setStaffView('pin')
   }, [])
 
-  // Выход сотрудника (не отвязывает терминал). toPersonalCode=true → к вводу кода
-  const handleStaffLogout = useCallback((toPersonalCode = false) => {
+  // Выход сотрудника (не отвязывает терминал). toPersonalCode=true → к вводу кода.
+  // keepShiftGate=true используется разблокировкой: чужой код набран, смена
+  // закрыта — прежняя сессия уходит, а «Открыть смену» на экране кода остаётся.
+  const handleStaffLogout = useCallback((toPersonalCode = false, keepShiftGate = false) => {
     localStorage.removeItem('marjon_token')
     localStorage.removeItem('marjon_staff_refresh')
     localStorage.removeItem('marjon_user')
@@ -320,8 +325,10 @@ export default function App() {
     setMode(null)
     setSessionPin('')
     setStaffView(toPersonalCode === true ? 'pin' : 'org')
-    setShiftGate(null)
-    setShiftError('')
+    if (!keepShiftGate) {
+      setShiftGate(null)
+      setShiftError('')
+    }
     setProfileOpen(false)
     kitchenWS.disconnect()
   }, [])
@@ -378,19 +385,37 @@ export default function App() {
         doUnlock(); return true
       }
     } catch { /* неверный PIN или сервер недоступен — отказ ниже */ }
+    // 3) Код принадлежит другому сотруднику. Терминал общий: входим под ним и
+    //    роль сама решает экран (касса / официант), иначе официант не попал бы
+    //    на свой профиль, пока кассир держит сессию.
+    try {
+      const res = await handleEmployeePin(pin)
+      if (res === 'logged') {
+        doUnlock(); return true
+      }
+      if (res === 'shift_gate') {
+        // Смена закрыта: прежняя сессия уходит, остаётся экран кода с «Открыть смену».
+        handleStaffLogout(true, true)
+        setIsLocked(false)
+        try { window.electron?.setLocked?.(false) } catch { /* not in electron */ }
+        return true
+      }
+    } catch { /* чужого кода нет / офлайн — отказ */ }
     return false
-  }, [staffUser, sessionPin, doUnlock])
+  }, [staffUser, sessionPin, doUnlock, handleEmployeePin, handleStaffLogout])
 
   // Electron: при попытке закрыть окно в режиме блокировки — показываем PIN-экран
   useEffect(() => {
     try { window.electron?.onRequestExitPin?.(() => setIsLocked(true)) } catch { /* not in electron */ }
   }, [])
 
-  // ── Экран блокировки: тот же пин-пад с уже выбранным сотрудником ──
+  // ── Экран блокировки: тот же пин-пад, что и при входе. Код вводит любой
+  // сотрудник терминала, поэтому чужое имя и аватар здесь не показываем —
+  // иначе официант, набравший свой код, видел бы на экране кассира.
   if (isLocked && isStaffLoggedIn) {
     return (
       <PinPad
-        employee={staffUser || {}}
+        employee={{}}
         title={t('locked_title')}
         onSubmit={async (pin) => { if (!(await handleUnlock(pin))) throw new Error('bad-pin') }}
       />

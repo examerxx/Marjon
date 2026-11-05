@@ -136,6 +136,27 @@
 }
 .topbar__tables-slot:empty { display: none; }
 
+/* Сводка доски («11 столов · 9 занято») — в шапке, сразу за кнопкой «Столы».
+   Отдельная строка заголовка над сеткой съедала ~40px по вертикали; теперь
+   карточки начинаются от самого верха экрана. */
+.topbar__board-slot {
+  display: flex;
+  align-items: center;
+}
+.topbar__board-slot:empty { display: none; }
+.topbar-board {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.topbar-board__meta {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--chrome-text-muted);
+  white-space: nowrap;
+}
+.topbar-board .btn { height: 40px; padding: 0 16px; font-size: var(--text-sm); }
+
 .topbar__brand {
   display: flex;
   align-items: center;
@@ -4976,9 +4997,6 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 .pay-order__cancel { color: var(--color-danger); border-color: var(--color-danger); }
 .pay-order__cancel:hover { background: var(--color-danger-bg); color: var(--color-danger); }
 
-/* Поиск блюда в шапке доски — фиксированная длина, поле тянется на всю ширину */
-.board__head-right .cashier-products__search { width: 340px; max-width: 42vw; }
-
 /* ═══════════════════════════════════════════════════════════════════
    ТЁМНАЯ ТЕМА — экраны входа, клавиатура, столы (были жёстко белые)
    ═══════════════════════════════════════════════════════════════════ */
@@ -5005,31 +5023,9 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 .btn--outline { border-color: var(--color-border-strong); color: var(--color-text-secondary); background: var(--color-surface); }
 .btn--outline:hover { border-color: var(--color-brand); color: #fff; background: var(--color-brand); }
 .btn--outline:hover > svg { color: #fff; }
-.board__head-right .btn--sm { min-height: 46px; padding: 0 16px; font-size: var(--text-sm); font-weight: 600; }
-.board__head-right .btn--sm > svg { color: var(--color-brand); }
-/* На основной (залитой) кнопке иконка должна быть белой, а не бирюзовой (сливалась с фоном) */
-.board__head-right .btn--primary.btn--sm > svg { color: #fff; }
-.board__head-right .btn--sm:hover > svg { color: #fff; }
 
-/* Кухня без сайдбара (5.3): фильтры-чипы + стоп-лист вынесены в шапку.
-   main занимает всю ширину, фильтры — компактные кнопки с активным состоянием. */
+/* Кухня без сайдбара (5.3): main занимает всю ширину экрана. */
 .ws__main--full { flex: 1; min-width: 0; }
-.board__head-right { flex-wrap: wrap; }
-.board__head-right .btn.is-active { border-color: var(--color-brand); background: var(--color-brand); color: #fff; }
-.board__head-right .btn.is-active > svg { color: #fff; }
-.board__filter-count {
-  display: inline-grid;
-  place-items: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: var(--radius-full);
-  background: var(--color-subtle);
-  color: var(--color-text-secondary);
-  font-size: var(--text-xs);
-  font-weight: 700;
-}
-.board__head-right .btn.is-active .board__filter-count { background: rgba(255, 255, 255, 0.25); color: #fff; }
 
 /* Дропдаун шапки (7.3): Финансы/История/Отчёты собраны в одно меню */
 .hmenu { position: relative; display: inline-flex; }
@@ -5308,10 +5304,6 @@ body.vkb-lift .app-shell {
 [data-theme="dark"] .hist-status--ready { background: var(--color-brand-bg); color: var(--teal-300); }
 [data-theme="dark"] .hist-status--cooking,
 [data-theme="dark"] .hist-status--accepted { background: var(--color-warning-bg); color: var(--amber-400); }
-/* Верхние кнопки экрана столов — светлый текст и иконки, не teal */
-[data-theme="dark"] .board__head-right .btn { color: rgba(255, 255, 255, 0.88); border-color: rgba(255, 255, 255, 0.22); }
-[data-theme="dark"] .board__head-right .btn svg { color: rgba(255, 255, 255, 0.88); }
-[data-theme="dark"] .board__head-right .btn:hover { background: rgba(255, 255, 255, 0.08); }
 
 /* ═══════════════════════════════════════════════════════════════════
    РЕДИЗАЙН — ЭКРАНЫ ВМЕСТО МОДАЛОК (белый холст + бирюза)
