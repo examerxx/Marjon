@@ -453,8 +453,20 @@
 /* ═══ Доска столов (белая) ═══ */
 /* Подложка доски — мягкий голубой #E5F0F9: карточки статусов читаются
    на нём как стекло на светлой панели. В тёмной теме возвращаем обычный фон. */
-.ws__main--board { background: #e5f0f9; }
+.ws__main--board { position: relative; background: #e5f0f9; }
 [data-theme="dark"] .ws__main--board { background: var(--color-bg); }
+/* Знак бренда как водяной знак: крупный полупрозрачный купол по центру
+   доски. Пустое место между столами держит бренд и не мешает статусам;
+   прокрутка карточек под ним не двигается. */
+.ws__main--board::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('../assets/logo-mark.png') center 46% / min(520px, 46vw) auto no-repeat;
+  opacity: 0.13;
+  pointer-events: none;
+}
+[data-theme="dark"] .ws__main--board::before { opacity: 0.12; }
 
 .legend { display: flex; align-items: center; gap: 16px; }
 .legend__item { display: inline-flex; align-items: center; gap: 9px; font-size: 13px; color: var(--color-text-secondary); }
@@ -473,7 +485,8 @@
 .legend__swatch--busy { background: var(--color-warning); }
 .legend__swatch--check { background: var(--color-success); }
 
-.board__scroll { flex: 1; overflow-y: auto; padding: 12px 26px 28px; }
+/* position: relative — карточки рисуются над водяным знаком доски. */
+.board__scroll { position: relative; flex: 1; overflow-y: auto; padding: 12px 26px 28px; }
 .tgroup { margin-bottom: 28px; }
 .tgroup:last-child { margin-bottom: 0; }
 .tgroup__title {
