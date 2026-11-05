@@ -132,15 +132,13 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
   const [hdrActionsSlot, setHdrActionsSlot] = useState(null)
   const [searchSlot, setSearchSlot] = useState(null)
   const [backSlot, setBackSlot] = useState(null)
-  const [typeSlot, setTypeSlot] = useState(null)
-  const [tablesSlot, setTablesSlot] = useState(null)
+  const [tabsSlot, setTabsSlot] = useState(null)
   const [boardSlot, setBoardSlot] = useState(null)
   useEffect(() => {
     setHdrActionsSlot(document.getElementById('topbar-actions-slot'))
     setSearchSlot(document.getElementById('topbar-center-slot'))
     setBackSlot(document.getElementById('topbar-back-slot'))
-    setTypeSlot(document.getElementById('topbar-order-types-slot'))
-    setTablesSlot(document.getElementById('topbar-tables-slot'))
+    setTabsSlot(document.getElementById('topbar-tabs-slot'))
     setBoardSlot(document.getElementById('topbar-board-slot'))
   }, [])
 
@@ -828,8 +826,10 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
             ))}
           </div>
         </main>
-        {/* «Столы» — слева, перед брендом MARJON */}
-        {showTypeTabs && tablesSlot && createPortal(
+        {/* «Столы / С собой / Доставка» — одна лента по центру шапки:
+            раньше «Столы» стояли у бренда, а остальные — у меню «…», и
+            переключатель читался как два разных контрола. */}
+        {showTypeTabs && tabsSlot && createPortal(
           <div className="topbar-order-types" role="group" aria-label={t('receipt_order_type')}>
             <button
               type="button"
@@ -839,29 +839,6 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
             >
               <LayoutGrid size={18} /> {t('tables')}
             </button>
-          </div>,
-          tablesSlot,
-        )}
-        {/* Сводка доски — в шапке, рядом с кнопкой «Столы». Отдельная строка
-            заголовка над сеткой съедала место: теперь карточки начинаются
-            сразу от верха экрана. */}
-        {boardSlot && createPortal(
-          <div className="topbar-board">
-            <span className="topbar-board__meta">
-              {orderBoard
-                ? `${boardOrders.length} ${t('orders_low')}`
-                : `${shownTables.length} ${t('tables_low')} · ${busyCount} ${t('busy_low')}`}
-            </span>
-            {orderBoard && (
-              <button className="btn btn--primary btn--sm" onClick={() => openOrder(activeZone, null)}><Plus size={18} /> {t('new_order')}</button>
-            )}
-          </div>,
-          boardSlot,
-        )}
-        {/* «С собой» и «Доставка» — справа, перед меню «…». Так они не занимают
-            строку доски, а сетка столов/заказов начинается выше. */}
-        {showTypeTabs && typeSlot && createPortal(
-          <div className="topbar-order-types" role="group" aria-label={t('receipt_order_type')}>
             {showTakeawayTab && (
               <button
                 type="button"
@@ -883,7 +860,23 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
               </button>
             )}
           </div>,
-          typeSlot,
+          tabsSlot,
+        )}
+        {/* Сводка доски — в шапке, рядом с кнопкой «Столы». Отдельная строка
+            заголовка над сеткой съедала место: теперь карточки начинаются
+            сразу от верха экрана. */}
+        {boardSlot && createPortal(
+          <div className="topbar-board">
+            <span className="topbar-board__meta">
+              {orderBoard
+                ? `${boardOrders.length} ${t('orders_low')}`
+                : `${shownTables.length} ${t('tables_low')} · ${busyCount} ${t('busy_low')}`}
+            </span>
+            {orderBoard && (
+              <button className="btn btn--primary btn--sm" onClick={() => openOrder(activeZone, null)}><Plus size={18} /> {t('new_order')}</button>
+            )}
+          </div>,
+          boardSlot,
         )}
         {/* Меню разделов — иконка-кнопка в шапке рядом с блокировкой и настройками.
             Официанту оно не нужно: его работа — блюда и печать чека. */}

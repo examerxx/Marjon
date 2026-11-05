@@ -129,12 +129,15 @@
   z-index: var(--z-dropdown);
 }
 
-/* Слот кнопки «Столы» — сразу после бренда MARJON */
-.topbar__tables-slot {
+/* Слот переключателя типа заказа — по центру шапки. Авто-поля делят
+   свободное место поровну, поэтому лента стоит посередине между брендом
+   и иконками, но не наезжает на поиск: в тесной шапке поля схлопываются. */
+.topbar__tabs-slot {
   display: flex;
   align-items: center;
+  margin: 0 auto;
 }
-.topbar__tables-slot:empty { display: none; }
+.topbar__tabs-slot:empty { display: none; }
 
 /* Сводка доски («11 столов · 9 занято») — в шапке, сразу за кнопкой «Столы».
    Отдельная строка заголовка над сеткой съедала ~40px по вертикали; теперь
@@ -238,23 +241,25 @@
   justify-content: center;
 }
 
-/* Переключатель типа заказа в шапке: «Столы» — сразу после бренда,
-   «С собой / Доставка» — справа, перед меню «…».
-   По образцу: золотой лоток, внутри сегменты. Выбор — тёмно-синяя пилюля
-   с белым текстом (белый на золоте не читается, поэтому активный сегмент
-   не золотой, а navy). */
+/* Переключатель типа заказа в шапке: «Столы / С собой / Доставка» одной
+   лентой по центру. Материал — тот же светлый крем-золото, что у кнопок
+   категорий (локаций): насыщенный золотой лоток перетягивал на себя
+   внимание с доски. Выбор — тёмно-синяя пилюля с белым текстом (белый
+   на золоте не читается, поэтому активный сегмент не золотой, а navy). */
 .topbar-order-types {
   display: flex;
   align-items: center;
   gap: 4px;
   padding: 4px;
-  border: 1px solid rgba(201, 166, 88, 0.55);
+  border: 1px solid rgba(201, 166, 88, 0.45);
   border-radius: 26px;
-  background: linear-gradient(180deg, #e6d09a 0%, #c9a85f 100%);
+  background:
+    radial-gradient(120% 160% at 18% -30%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 58%),
+    linear-gradient(180deg, rgba(250, 243, 226, 0.98) 0%, rgba(238, 226, 198, 0.97) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -1px 0 rgba(122, 97, 39, 0.18),
-    0 6px 16px -10px rgba(140, 108, 40, 0.55);
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 rgba(122, 97, 39, 0.1),
+    0 8px 20px -16px rgba(92, 74, 32, 0.5);
 }
 .topbar-type {
   display: inline-flex;
@@ -279,7 +284,7 @@
     color 0.18s ease;
 }
 .topbar-type > svg { color: var(--neutral-800); }
-.topbar-type:hover { background: rgba(255, 255, 255, 0.45); }
+.topbar-type:hover { background: rgba(255, 255, 255, 0.78); }
 /* Тактильный отклик: сегмент слегка «пружинит» под пальцем. */
 .topbar-type:active { transform: scale(0.972); }
 .topbar-type.is-active {
@@ -294,14 +299,16 @@
 .topbar-type.is-active > svg,
 .topbar-type.is-active:hover > svg { color: var(--color-text-inverse); }
 .topbar-type.is-active:hover { background: linear-gradient(180deg, #33588c 0%, #14325c 46%, #0a2242 100%); }
-/* Тёмная тема: лоток — приглушённое золото, выбор — золотая пилюля
-   с тёмным текстом (тёмно-синий на тёмном хроме пропал бы). */
+/* Тёмная тема: лоток — то же стекло, что у кнопок категорий; выбор —
+   золотая пилюля с тёмным текстом (тёмно-синий на тёмном хроме пропал бы). */
 [data-theme="dark"] .topbar-order-types {
-  border-color: rgba(220, 190, 123, 0.3);
-  background: linear-gradient(180deg, rgba(220, 190, 123, 0.18) 0%, rgba(176, 142, 66, 0.12) 100%);
+  border-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 55%, rgba(255, 255, 255, 0.03) 100%);
+  background-color: rgba(255, 255, 255, 0.04);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 2px 8px rgba(0, 0, 0, 0.35);
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.34);
 }
 [data-theme="dark"] .topbar-type { color: rgba(245, 238, 220, 0.82); }
 [data-theme="dark"] .topbar-type > svg { color: rgba(245, 238, 220, 0.7); }
@@ -334,8 +341,10 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  margin-left: auto;   /* раньше вправо тянул .topbar__status — он уехал в футер */
 }
+/* Без переключателя типов (курьер, недостающие права) авто-поля ленты нет —
+   тогда действия сами прижимаются к правому краю. */
+.topbar__tabs-slot:empty + .topbar__actions { margin-left: auto; }
 
 /* Слот шапки: дропдаун разделов приходит порталом из рабочего режима
    (см. CashierMode). Пустой слот скрываем — иначе он забирает gap шапки
@@ -346,13 +355,6 @@
   gap: var(--spacing-sm);
 }
 .topbar__actions-slot:empty { display: none; }
-/* Переключатель типа заказа — справа, перед меню «…» */
-.topbar__order-types-slot {
-  display: flex;
-  align-items: center;
-  margin-right: var(--spacing-sm);
-}
-.topbar__order-types-slot:empty { display: none; }
 /* Открытое меню разделов — та же заливка, что у активной навигации */
 .topbar .hmenu .icon-btn.is-active {
   background: var(--chrome-active);
@@ -5657,9 +5659,10 @@ select.input:focus {
 .cashier-cart > .cashier-cart__note { margin: 0 12px 8px; min-height: 38px; }
 
 /* Поиск стоит за брендом, с отступом вправо — рядом с кнопкой «Назад».
-   Шапка читается как [MARJON] [←] [поиск] … [действия]. */
+   Шапка читается как [MARJON] [←] [поиск] … [действия].
+   Расти слоту нельзя: иначе он выдавливает ленту типов из центра шапки. */
 .topbar__center {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   justify-content: flex-start;
   min-width: 0;
 }
