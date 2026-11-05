@@ -184,8 +184,8 @@
 .topbar__logo-mark {
   display: grid;
   place-items: center;
-  width: 46px;
-  height: 46px;
+  width: 54px;
+  height: 54px;
   flex-shrink: 0;
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
@@ -193,10 +193,12 @@
   box-shadow: var(--shadow-xs);
 }
 /* Знак задаём по ширине: эмблема шире, чем выше (купол), поэтому
-   фиксированная высота выдавила бы её за края карточки. */
+   фиксированная высота выдавила бы её за края карточки.
+   У купола вокруг самого знака прозрачные поля — ширину держим больше
+   карточки, иначе в шапке бренд мелит и не цепляет взгляд. */
 .topbar__logo {
   display: block;
-  width: 40px;
+  width: 48px;
   height: auto;
   user-select: none;
   -webkit-user-drag: none;
@@ -3268,8 +3270,9 @@ body.vkb-open .login-card {
 .topbar__subtitle { color: var(--chrome-text-muted); }
 .topbar__brand-name { color: var(--chrome-text); }
 .topbar__brand-tagline { color: var(--chrome-text-muted); }
-/* Тёмный элемент лого почти сливается с тёмно-синим хромом — обводим контур */
-[data-theme="dark"] .topbar__logo { filter: drop-shadow(0 0 1.5px var(--chrome-text-muted)); }
+/* Тёмный элемент лого почти сливается с тёмно-синим хромом — осветляем сам
+   знак и добавляем контур, иначе купол в шапке просто провал в фон. */
+[data-theme="dark"] .topbar__logo { filter: brightness(1.7) saturate(1.1) drop-shadow(0 0 1.5px var(--chrome-text-muted)); }
 .topbar .icon-btn { color: var(--color-text-secondary); }
 .topbar .icon-btn:hover { background: var(--chrome-hover); color: var(--chrome-text); }
 .topbar .filter-chip { background: var(--color-subtle); color: var(--color-text-secondary); }
