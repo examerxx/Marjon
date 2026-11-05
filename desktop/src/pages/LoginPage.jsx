@@ -5,7 +5,7 @@ import { t } from '../shared/i18n'
 import { formatPhone, fullPhone, isPhoneComplete, extractPhoneDigits } from '../shared/phone'
 import logoUrl from '../assets/logo-mark.png'
 
-// Знак бренда — золотая купольная эмблема MARJON, тот же файл, что в шапке
+// Знак бренда — бирюзовый купол MARJON, тот же файл, что в шапке
 // десктопа. Раньше на экране входа стояло просто слово «MARJON» текстом, и вход
 // выглядел как другое приложение.
 function BrandLogo() {

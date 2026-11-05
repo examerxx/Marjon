@@ -3427,8 +3427,8 @@ body.vkb-open .login-card {
   text-align: center;
 }
 .org-screen__brand { display: flex; align-items: center; gap: 14px; margin-bottom: var(--spacing-md); }
-/* Знак бренда на тёмном фоне (фото зала): белая плитка, иначе золотая
-   эмблема теряется на фотографии. */
+/* Знак бренда на тёмном фоне (фото зала): белая плитка-подложка, иначе
+   тонкие грани купола сливаются с фотографией. */
 .org-screen__mark {
   width: 56px; height: 56px; display: grid; place-items: center;
   border-radius: 16px; background: #fff; color: #fff;
