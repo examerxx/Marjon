@@ -1,28 +1,21 @@
 /* ═══════════════════════════════════════════════════════════════════
    MARJON Desktop — Дизайн-токены (СВЕТЛАЯ тема)
-   Палитра: White · Gold (шампань/бронза) · Cream · Navy
+   Палитра фронтенда: White · Teal (голубой) · Blue (синий) · Navy
+   Источник истины: frontend/src/styles/marjon-tokens.css
    ═══════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Gold — бренд (тёплое золото) ── */
-  --gold-50:  #fbf6e9;
-  --gold-100: #f5e8c6;
-  --gold-200: #ead4a0;
-  --gold-300: #dcbe7b;
-  --gold-400: #c9a658;
-  --gold-500: #b08e42;
-  --gold-600: #94762f;
-  --gold-700: #7a6127;
-  --gold-800: #5c4a20;
-  --gold-900: #3e3116;
-
-  /* ── Cream — тёплые поверхности (фон доски, тонировки, обводки) ── */
-  --cream-25:  #fbf9f3;
-  --cream-50:  #f7f3e7;
-  --cream-100: #f2ecdd;
-  --cream-200: #e7dfc9;
-  --cream-300: #d8cdaf;
-  --cream-400: #c4b795;
+  /* ── Teal — бренд (голубой) ── */
+  --teal-50:  #ecfeff;
+  --teal-100: #cffafe;
+  --teal-200: #a5f3fc;
+  --teal-300: #67e8f9;
+  --teal-400: #22d3ee;
+  --teal-500: #1db5b5;
+  --teal-600: #0fa3a3;
+  --teal-700: #0e8080;
+  --teal-800: #0d6262;
+  --teal-900: #0a4a4a;
 
   /* ── Blue — интерактивный (синий) ── */
   --blue-50:  #eff6ff;
@@ -66,12 +59,12 @@
   /* ═══ СЕМАНТИЧЕСКИЕ АЛИАСЫ (СВЕТЛАЯ ТЕМА) ═══ */
 
   /* Бренд */
-  --color-brand:        var(--gold-600);
-  --color-brand-hover:  var(--gold-700);
-  --color-brand-dark:   var(--gold-800);
-  --color-brand-subtle: var(--gold-50);
-  --color-brand-bg:     rgba(176, 142, 66, 0.14);
-  --color-brand-glow:   rgba(176, 142, 66, 0.28);
+  --color-brand:        var(--teal-500);
+  --color-brand-hover:  var(--teal-400);
+  --color-brand-dark:   var(--teal-600);
+  --color-brand-subtle: var(--teal-50);
+  --color-brand-bg:     rgba(29, 181, 181, 0.12);
+  --color-brand-glow:   rgba(29, 181, 181, 0.22);
 
   /* Интерактив (ТОЛЬКО ссылки) */
   --color-interactive:       var(--blue-600);
@@ -84,27 +77,27 @@
   --color-text-placeholder: var(--neutral-400);
   --color-text-inverse:     #ffffff;
 
-  /* Поверхности (светлые, тёплые) */
-  --color-bg:            var(--cream-25);
+  /* Поверхности (светлые) */
+  --color-bg:            var(--neutral-50);
   --color-card:          var(--neutral-0);
   --color-surface:       var(--neutral-0);
-  --color-surface-hover: var(--cream-100);
-  --color-subtle:        var(--cream-100);
+  --color-surface-hover: var(--neutral-100);
+  --color-subtle:        var(--neutral-100);
 
-  /* Границы — тёплые: холодный серый на креме читается как грязь */
-  --color-border:        var(--cream-300);
-  --color-border-light:  var(--cream-200);
-  --color-border-strong: var(--cream-400);
-  --color-border-focus:  var(--gold-500);
+  /* Границы */
+  --color-border:        var(--neutral-200);
+  --color-border-light:  var(--neutral-100);
+  --color-border-strong: var(--neutral-300);
+  --color-border-focus:  var(--teal-500);
 
-  /* ── ХРОМ (хедер / сайдбар / боттомбар) — БЕЛЫЙ, доска тонирована кремом ── */
+  /* ── ХРОМ (хедер / сайдбар / боттомбар) — БЕЛЫЙ, 1:1 с палитрой фронта ── */
   --chrome-bg:         var(--neutral-0);        /* белый хедер */
   --chrome-bg-2:       var(--neutral-0);        /* белый сайдбар */
   --chrome-text:       var(--neutral-900);      /* тёмный текст на белом */
   --chrome-text-muted: var(--neutral-500);
-  --chrome-hover:      var(--cream-100);        /* лёгкая заливка при наведении */
-  --chrome-active:     var(--color-brand-bg);   /* активная навигация — gold-тинт */
-  --chrome-border:     var(--cream-200);
+  --chrome-hover:      var(--neutral-100);       /* лёгкая заливка при наведении */
+  --chrome-active:     var(--color-brand-bg);    /* активная навигация — teal-тинт */
+  --chrome-border:     var(--neutral-200);
 
   /* ── Статусы ── */
   --color-success:    var(--green-500);
@@ -158,12 +151,12 @@
   --radius-xl: 28px;
   --radius-full: 9999px;
 
-  /* ── Тени (тёплое дерево-тонированные, для кремового фона) ── */
-  --shadow-xs: 0 1px 3px rgba(92, 74, 32, .05);
-  --shadow-sm: 0 2px 8px rgba(92, 74, 32, .07);
-  --shadow-md: 0 8px 24px rgba(92, 74, 32, .09);
-  --shadow-lg: 0 16px 48px rgba(92, 74, 32, .12);
-  --shadow-xl: 0 24px 64px rgba(92, 74, 32, .14);
+  /* ── Тени (navy-тонированные, для светлого фона) ── */
+  --shadow-xs: 0 1px 3px rgba(11, 31, 63, .05);
+  --shadow-sm: 0 2px 8px rgba(11, 31, 63, .07);
+  --shadow-md: 0 8px 24px rgba(11, 31, 63, .09);
+  --shadow-lg: 0 16px 48px rgba(11, 31, 63, .12);
+  --shadow-xl: 0 24px 64px rgba(11, 31, 63, .14);
   --shadow-glow: 0 8px 32px var(--color-brand-glow);
 
   /* ── Отступы (база 4px) ── */
@@ -223,8 +216,8 @@
   --color-border-light:  rgba(255, 255, 255, 0.07);
   --color-border-strong: rgba(255, 255, 255, 0.20);
 
-  --color-brand-subtle:  rgba(176, 142, 66, 0.16);
-  --color-brand-bg:      rgba(176, 142, 66, 0.22);
+  --color-brand-subtle:  rgba(29, 181, 181, 0.14);
+  --color-brand-bg:      rgba(29, 181, 181, 0.18);
 
   --color-success-bg: rgba(22, 163, 74, 0.22);
   --color-warning-bg: rgba(245, 158, 11, 0.22);
@@ -237,7 +230,7 @@
   --chrome-text:       #e7edf6;
   --chrome-text-muted: rgba(255, 255, 255, 0.62);
   --chrome-hover:      rgba(255, 255, 255, 0.09);
-  --chrome-active:     rgba(176, 142, 66, 0.26);
+  --chrome-active:     rgba(29, 181, 181, 0.22);
   --chrome-border:     rgba(255, 255, 255, 0.08);
 
   /* Тени глубже на тёмном фоне */

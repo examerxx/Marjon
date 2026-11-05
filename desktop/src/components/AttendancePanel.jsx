@@ -13,7 +13,7 @@ import { toast } from './Toast'
 
 // Владелец/менеджер/кладовщик не работают на кассе-терминале — прячем из ростера.
 const HIDDEN_ROLES = ['owner', 'manager', 'warehouse']
-const AVATAR_COLORS = ['#b08e42', '#2563eb', '#7c3aed', '#f59e0b', '#16a34a', '#ef4444', '#7a6127', '#e11d48']
+const AVATAR_COLORS = ['#1db5b5', '#2563eb', '#7c3aed', '#f59e0b', '#16a34a', '#ef4444', '#0e8080', '#e11d48']
 
 function initials(name = '') {
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || '?'
