@@ -179,7 +179,7 @@
   --touch-min: 60px;
   --touch-target: 64px;
   --touch-comfortable: 72px;
-  --topbar-height: 52px;
+  --topbar-height: 62px;   /* чуть выше кнопок 60px, чтобы они не выходили за панель */
   --bottombar-height: 34px;
   --sidebar-width: 84px;
   --sidebar-width-expanded: 240px;
