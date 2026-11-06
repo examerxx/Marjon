@@ -35,7 +35,7 @@ export default function HeaderMenu({ title, Icon = MoreVertical, items = [], var
         aria-label={title}
         aria-expanded={open ? 'true' : 'false'}
       >
-        <Icon size={22} />
+        <Icon size={variant === 'dock' ? 26 : 22} />
         {variant === 'dock' && <span>{label || title}</span>}
       </button>
       {open && (

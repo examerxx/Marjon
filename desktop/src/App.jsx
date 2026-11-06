@@ -506,7 +506,7 @@ export default function App() {
         />
       </main>
 
-      <BottomBar isOnline={isOnline} queued={queued} />
+      <BottomBar />
       {settingsOverlay}
       {profileOpen && (
         <StaffProfileModal

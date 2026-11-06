@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Search, Plus, Minus, Utensils, Pencil,
-  LayoutGrid, Armchair, DoorClosed, Sun, Wine, CalendarClock, ArrowLeft, Users, Clock, Wallet, BarChart3, ShoppingBag, Bike, Boxes, Printer, Receipt,
-  Bell, ClipboardList, Lock, Settings, Banknote, RefreshCw, List, MoreHorizontal,
+  Search, Plus, Minus, Utensils, Pencil, Coffee, CupSoda, Coins,
+  LayoutGrid, Armchair, DoorClosed, Sun, Wine, CalendarClock, ArrowLeft, Users, User, Clock, Wallet, BarChart3, ShoppingBag, Bike, Boxes, Printer, Receipt,
+  Bell, ClipboardList, Lock, Settings, RefreshCw, List, MoreHorizontal,
 } from 'lucide-react'
 import { orders, payments, menu, halls as hallsApi, printers as printersApi, customers as customersApi, auth as authApi, finance as financeApi, companies as companiesApi } from '../../shared/api'
 import { onPrintJob } from '../../shared/ws'
@@ -11,7 +11,7 @@ import { onPrintJob } from '../../shared/ws'
 // printers.js — выбор принтера (сотрудник → филиал) из прод-линии.
 import { printJob, startPrintPoller } from '../../shared/printJobs'
 import { pickReceiptPrinter } from '../../shared/printers'
-import { fmtTime } from '../../shared/time'
+import { fmtTime, parseApiDate } from '../../shared/time'
 import DishModal from '../../components/DishModal'
 import FinancePanel from '../../components/FinancePanel'
 import HistoryPanel from '../../components/HistoryPanel'
@@ -42,10 +42,18 @@ function zoneIcon(name = '') {
   return Armchair
 }
 function fmt(n) { return Number(n || 0).toLocaleString('ru-RU') }
+// Иконка строки заказа: напитки — чашка/стакан, блюда — вилка с ножом.
+function itemIcon(name = '') {
+  const n = String(name).toLowerCase()
+  if (/компот|сок|лимонад|кола|морс/.test(n)) return CupSoda
+  if (/чай|кофе|капучино|латте|эспрессо/.test(n)) return Coffee
+  return Utensils
+}
 // Сколько минут заказ в работе — подпись «(38 мин)» на карточке стола.
 function minutesSince(iso) {
-  if (!iso) return 0
-  const diff = Date.now() - new Date(iso).getTime()
+  const date = parseApiDate(iso)
+  if (!date) return 0
+  const diff = Date.now() - date.getTime()
   return diff > 0 ? Math.floor(diff / 60000) : 0
 }
 // Роль-слаг сотрудника: по ней решаем, можно ли оформлять долг.
@@ -318,7 +326,6 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
   const boardOrders = activeZone === 'delivery' ? deliveryOrders : takeawayOrders
   const shownZones = activeZone === 'all' ? zones : zones.filter((z) => z.id === activeZone)
   const shownTables = activeZone === 'all' ? allTables : allTables.filter((tb) => tb.zoneId === activeZone)
-  const busyCount = shownTables.filter((tb) => tableStatus(tb) !== 'free').length
 
   // ── Один экран заказа: и новый стол, и редактирование существующего ──
   function resetOrderDraft() {
@@ -754,6 +761,13 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
   const onlyWaiters = staff.filter((u) => roleOf(u) === 'waiter')
   const hallWaiters = onlyWaiters.length > 0 ? onlyWaiters : staff
   const selectedWaiter = hallWaiters.find((w) => String(w.id) === String(waiterFilter)) || null
+  // По умолчанию схема открывается на первом официанте — как в POS.
+  const waiterPicked = useRef(false)
+  useEffect(() => {
+    if (waiterPicked.current || hallWaiters.length === 0) return
+    waiterPicked.current = true
+    setWaiterFilter(hallWaiters[0].id)
+  }, [staff])
   const belongsToWaiter = (o, w) => {
     if (!o || !w) return false
     if (o.waiter_id && String(o.waiter_id) === String(w.id)) return true
@@ -762,16 +776,17 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
   const ordersOfWaiter = (w) => orderList.filter((o) => o.order_type === 'dine_in' && belongsToWaiter(o, w))
   const tablesForZone = (z) => {
     const list = z.tables || []
-    // В «Схеме зала» выбранный официант сужает доску до своих столов.
+    // В «Схеме зала» выбранный официант сужает доску до своих занятых
+    // столов; свободные ячейки остаются на месте — на них заводят заказ.
     if (hallMode !== 'scheme' || !selectedWaiter) return list
     return list.filter((tb) => {
       const o = orderFor(tb)
-      return o ? belongsToWaiter(o, selectedWaiter) : false
+      return !o || belongsToWaiter(o, selectedWaiter)
     })
   }
 
   // Карточка занятого стола/заказа: зелёная шапка, состав заказа, итог.
-  const orderCard = (o, { icon: HeadIcon = Armchair } = {}) => {
+  const orderCard = (o, { icon: HeadIcon = Utensils } = {}) => {
     const items = (o.items || []).filter((it) => it.status !== 'cancelled')
     const shown = items.slice(0, 4)
     const mins = minutesSince(o.created_at)
@@ -787,32 +802,31 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
         onClick={() => { if (!courier) openExistingOrder(o) }}
       >
         <span className="hcard__head">
-          <span className="hcard__title"><HeadIcon size={15} /> {label}</span>
-          <span className="hcard__seats"><Users size={13} /> {o.persons_count || 0}</span>
+          <span className="hcard__title"><HeadIcon size={18} /> {label}</span>
+          <span className="hcard__seats"><Users size={17} /> {o.persons_count || 0}</span>
         </span>
         <span className="hcard__body">
           <span className="hcard__time">
-            <Clock size={12} /> {fmtTime(o.created_at)}{mins > 0 ? ` (${mins} ${t('min_short')})` : ''}
+            <Clock size={13} /> {fmtTime(o.created_at)}{mins > 0 ? ` (${mins} ${t('min_short')})` : ''}
           </span>
-          {o.customer_phone && (
+          {orderBoard && o.customer_phone && (
             <span className="hcard__client">{formatPhone(extractPhoneDigits(o.customer_phone)) || o.customer_phone}</span>
           )}
-          {o.customer_address && <span className="hcard__client">{o.customer_address}</span>}
+          {orderBoard && o.customer_address && <span className="hcard__client">{o.customer_address}</span>}
           <span className="hcard__items">
-            {shown.map((it) => (
-              <span className="hcard__item" key={it.id}>
-                <Utensils size={11} /> {formatQty(it.quantity)} × {it.name}
-              </span>
-            ))}
+            {shown.map((it) => {
+              const ItemIcon = itemIcon(it.name)
+              return (
+                <span className="hcard__item" key={it.id}>
+                  <ItemIcon size={14} /> {formatQty(it.quantity)} × {it.name}
+                </span>
+              )
+            })}
             {items.length > shown.length && <span className="hcard__more">+{items.length - shown.length}</span>}
             {items.length === 0 && <span className="hcard__item hcard__item--muted">{t.status(o.status)}</span>}
           </span>
-          {o.receipt_printed_at && <span className="hcard__state">{t('await')}</span>}
-          {!o.receipt_printed_at && o.status === 'ready' && (
-            <span className="hcard__state hcard__state--ready">{t('ready')}</span>
-          )}
         </span>
-        <span className="hcard__foot"><Banknote size={14} /> {fmt(o.total_amount)} {t('currency')}</span>
+        <span className="hcard__foot"><Coins size={19} /> {fmt(o.total_amount)} {t('currency')}</span>
       </button>
     )
   }
@@ -825,35 +839,26 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
       className="hcard hcard--free"
       onClick={() => tapTable(tb)}
     >
-      <span className="hcard__plus"><Plus size={22} /></span>
-      <span className="hcard__free-title">{t('table')} {tb.number}</span>
-      <span className="hcard__free-sub">{t('open_table')} · {tb.capacity || 4}</span>
+      <span className="hcard__plus"><Plus size={26} /></span>
+      <span className="hcard__free-title">{t('add_table')}</span>
     </button>
   )
 
   // Верхние разделы: события, заказы, меню (стоп-лист), блокировка.
   const topNav = navSlot && createPortal(
     <>
-      {must(user, 'can_approve_attendance') && (
-        <button className="topnav-btn" onClick={() => setAttOpen(true)}>
-          <Bell size={21} /><span>{t('nav_events')}</span>
-        </button>
-      )}
-      {can(user, 'can_view_closed_orders') && (
-        <button className="topnav-btn" onClick={() => setHistOpen(true)}>
-          <ClipboardList size={21} /><span>{t('orders')}</span>
-        </button>
-      )}
-      {can(user, 'can_view_stop_list') && (
-        <button className="topnav-btn" onClick={() => setStopOpen(true)}>
-          <Utensils size={21} /><span>{t('menu_more')}</span>
-        </button>
-      )}
-      {onLock && (
-        <button className="topnav-btn" onClick={onLock}>
-          <Lock size={21} /><span>{t('nav_lock')}</span>
-        </button>
-      )}
+      <button className="topnav-btn topnav-btn--alert" onClick={() => setAttOpen(true)}>
+        <Bell size={24} /><span>{t('nav_events')}</span>
+      </button>
+      <button className="topnav-btn" onClick={() => setHistOpen(true)}>
+        <ClipboardList size={24} /><span>{t('orders')}</span>
+      </button>
+      <button className="topnav-btn" onClick={() => setStopOpen(true)}>
+        <LayoutGrid size={24} /><span>{t('menu_more')}</span>
+      </button>
+      <button className="topnav-btn" onClick={onLock}>
+        <Lock size={24} /><span>{t('nav_lock')}</span>
+      </button>
     </>,
     navSlot,
   )
@@ -880,24 +885,24 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     <>
       {onSettings && (
         <button className="dock__item" onClick={onSettings}>
-          <Settings size={22} /><span>{t('settings')}</span>
+          <Settings size={26} /><span>{t('settings')}</span>
         </button>
       )}
       {!courier && (
         <>
           <button className={`dock__item ${view === 'floor' && hallMode === 'scheme' ? 'is-active' : ''}`} onClick={() => goHall('scheme')}>
-            <LayoutGrid size={22} /><span>{t('scheme_hall')}</span>
+            <LayoutGrid size={26} /><span>{t('scheme_hall')}</span>
           </button>
-          <button className={`dock__item dock__item--sep ${view === 'floor' && hallMode === 'tables' ? 'is-active' : ''}`} onClick={() => goHall('tables')}>
-            <List size={22} /><span>{t('all_tables')}</span>
+          <button className={`dock__item ${view === 'floor' && hallMode === 'tables' ? 'is-active' : ''}`} onClick={() => goHall('tables')}>
+            <List size={26} /><span>{t('all_tables')}</span>
           </button>
           <button className={`dock__item dock__item--sep ${view === 'floor' && hallMode === 'waiters' ? 'is-active' : ''}`} onClick={() => goHall('waiters')}>
-            <Users size={22} /><span>{t('by_waiters')}</span>
+            <Users size={26} /><span>{t('by_waiters')}</span>
           </button>
         </>
       )}
       <button className="dock__item dock__item--sep" onClick={() => openOrder(courier ? 'delivery' : 'takeaway', null)}>
-        <Receipt size={22} /><span>{t('quick_check')}</span>
+        <Receipt size={26} /><span>{t('quick_check')}</span>
       </button>
       <HeaderMenu
         title={t('more')}
@@ -916,10 +921,9 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     const visibleTables = hallMode === 'scheme' && selectedWaiter
       ? shownTables.filter((tb) => {
         const o = orderFor(tb)
-        return o ? belongsToWaiter(o, selectedWaiter) : false
+        return !o || belongsToWaiter(o, selectedWaiter)
       })
       : shownTables
-    const visibleBusy = visibleTables.filter((tb) => tableStatus(tb) !== 'free').length
     const visibleZones = shownZones
       .map((zone) => ({ zone, tables: tablesForZone(zone) }))
       .filter(({ tables }) => tables.length > 0)
@@ -927,11 +931,6 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
       .map((waiter) => ({ waiter, orders: ordersOfWaiter(waiter) }))
       .filter(({ orders }) => orders.length > 0)
     const unassignedOrders = orderList.filter((o) => o.order_type === 'dine_in' && !o.waiter_id && !o.waiter_name)
-    const summary = orderBoard
-      ? `${boardOrders.length} ${t('orders_low')}`
-      : hallMode === 'waiters'
-        ? `${waiterSections.reduce((n, s) => n + s.orders.length, 0)} ${t('orders_low')}`
-        : `${visibleTables.length} ${t('tables_low')} · ${visibleBusy} ${t('busy_low')}`
 
     return (
       <div className="floor">
@@ -967,10 +966,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
           ) : (
             <>
               <div className="hall-side__head">
-                <Users size={18} /><span>{t('waiters')}</span>
-                {selectedWaiter && (
-                  <button className="hall-side__reset" onClick={() => setWaiterFilter(null)}>{t('all')}</button>
-                )}
+                <Users size={20} /><span>{t('waiters')}</span>
               </div>
               <nav className="hall-side__nav">
                 {hallWaiters.map((w, i) => (
@@ -981,7 +977,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
                   >
                     <span className="hall-item__badge">{i + 1}</span>
                     <span className="hall-item__name">{w.name}</span>
-                    <span className="hall-item__count"><Users size={13} /> {ordersOfWaiter(w).length}</span>
+                    <span className="hall-item__count"><User size={14} /> {ordersOfWaiter(w).length}</span>
                   </button>
                 ))}
               </nav>
@@ -990,50 +986,50 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
         </aside>
 
         <main className="ws__main ws__main--board">
-          <div className="hall-board__head">
-            <div className="hall-types" role="group" aria-label={t('receipt_order_type')}>
-              {showTypeTabs && (
-                <>
-                  <button
-                    type="button"
-                    className={`hall-type ${orderBoard ? '' : 'is-active'}`}
-                    onClick={() => setActiveZone('all')}
-                    aria-pressed={!orderBoard}
-                  >
-                    <LayoutGrid size={16} /> {t('tables')}
-                  </button>
-                  {showTakeawayTab && (
+          {orderBoard && (
+            <div className="hall-board__head">
+              <div className="hall-types" role="group" aria-label={t('receipt_order_type')}>
+                {showTypeTabs && (
+                  <>
                     <button
                       type="button"
-                      className={`hall-type ${activeZone === 'takeaway' ? 'is-active' : ''}`}
-                      onClick={() => setActiveZone('takeaway')}
-                      aria-pressed={activeZone === 'takeaway'}
+                      className={`hall-type ${orderBoard ? '' : 'is-active'}`}
+                      onClick={() => setActiveZone('all')}
+                      aria-pressed={!orderBoard}
                     >
-                      <ShoppingBag size={16} /> {t('takeaway')}
+                      <LayoutGrid size={16} /> {t('tables')}
                     </button>
-                  )}
-                  {showDeliveryTab && (
-                    <button
-                      type="button"
-                      className={`hall-type ${activeZone === 'delivery' ? 'is-active' : ''}`}
-                      onClick={() => setActiveZone('delivery')}
-                      aria-pressed={activeZone === 'delivery'}
-                    >
-                      <Bike size={16} /> {t('delivery')}
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-            <div className="hall-board__meta">
-              <span className="hall-board__summary">{summary}</span>
-              {orderBoard && (
+                    {showTakeawayTab && (
+                      <button
+                        type="button"
+                        className={`hall-type ${activeZone === 'takeaway' ? 'is-active' : ''}`}
+                        onClick={() => setActiveZone('takeaway')}
+                        aria-pressed={activeZone === 'takeaway'}
+                      >
+                        <ShoppingBag size={16} /> {t('takeaway')}
+                      </button>
+                    )}
+                    {showDeliveryTab && (
+                      <button
+                        type="button"
+                        className={`hall-type ${activeZone === 'delivery' ? 'is-active' : ''}`}
+                        onClick={() => setActiveZone('delivery')}
+                        aria-pressed={activeZone === 'delivery'}
+                      >
+                        <Bike size={16} /> {t('delivery')}
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+              <div className="hall-board__meta">
+                <span className="hall-board__summary">{boardOrders.length} {t('orders_low')}</span>
                 <button className="hall-board__new" onClick={() => openOrder(activeZone, null)}>
                   <Plus size={16} /> {t('new_order')}
                 </button>
-              )}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="board__scroll">
             {orderBoard ? (
@@ -1070,6 +1066,17 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
                     )}
                   </>
                 )
+            ) : hallMode === 'scheme' ? (
+              visibleTables.length === 0 ? (
+                <p className="empty-text empty-text--board">{t('no_orders')}</p>
+              ) : (
+                <div className="hgrid">
+                  {visibleTables.map((tb) => {
+                    const o = orderFor(tb)
+                    return o ? orderCard(o) : freeTableCard(tb)
+                  })}
+                </div>
+              )
             ) : visibleZones.length === 0 ? (
               <p className="empty-text empty-text--board">{t('no_orders')}</p>
             ) : visibleZones.map(({ zone, tables }) => (
