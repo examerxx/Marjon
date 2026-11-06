@@ -3279,22 +3279,8 @@ body.vkb-open .login-card {
 .bottom-stats__item { color: var(--chrome-text-muted); }
 .bottom-stats__item strong { color: var(--chrome-text); }
 
-/* ── Нижняя панель и сайдбар ──
-   На рабочем экране панель начинается от правого края сайдбара и не уходит
-   под него: сайдбар тянется до самого низа окна (на нём этом держится
-   нижний орнамент). Панель вынимаем из потока, а рабочей области справа
-   оставляем под неё место, чтобы нижний ряд столов не прятался за ней.
-   Экраны без сайдбара (кухня и т.п.) сохраняют панель во всю ширину. */
-.app-shell:has(.ws-side) .bottombar {
-  position: absolute;
-  left: var(--ws-side-width);
-  right: 0;
-  bottom: 0;
-  z-index: 1;
-}
-.app-shell:has(.ws-side) .floor > main {
-  margin-bottom: var(--bottombar-height);
-}
+/* Нижний док и рабочая область теперь живут в общем потоке App-каркаса:
+   док — отдельная плавающая карточка под контентом (см. hall.css). */
 
 /* ── Sidebar (одного цвета с хедером) ── */
 .sidebar {

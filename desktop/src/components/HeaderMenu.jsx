@@ -8,7 +8,7 @@ import { MoreVertical } from 'lucide-react'
  * кнопки шапки; название меню уходит в title/aria-label.
  * items: [{ id, label, Icon, onClick }]. Закрывается по клику вне и по Esc.
  */
-export default function HeaderMenu({ title, Icon = MoreVertical, items = [] }) {
+export default function HeaderMenu({ title, Icon = MoreVertical, items = [], variant = 'icon', label }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -29,16 +29,17 @@ export default function HeaderMenu({ title, Icon = MoreVertical, items = [] }) {
   return (
     <div className="hmenu" ref={ref}>
       <button
-        className={`icon-btn ${open ? 'is-active' : ''}`}
+        className={variant === 'dock' ? `dock__item ${open ? 'is-active' : ''}` : `icon-btn ${open ? 'is-active' : ''}`}
         onClick={() => setOpen((v) => !v)}
         title={title}
         aria-label={title}
         aria-expanded={open ? 'true' : 'false'}
       >
         <Icon size={22} />
+        {variant === 'dock' && <span>{label || title}</span>}
       </button>
       {open && (
-        <div className="hmenu__dropdown" role="menu">
+        <div className={`hmenu__dropdown ${variant === 'dock' ? 'hmenu__dropdown--up' : ''}`} role="menu">
           {items.map(({ id, label: itemLabel, Icon: ItemIcon, onClick }) => (
             <button
               key={id}

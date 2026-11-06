@@ -486,10 +486,11 @@ export default function App() {
   return (
     <div className="app-shell">
       <TopBar
-        onRefresh={() => window.location.reload()}
-        onLock={handleLock}
-        onSettings={() => setShowSettings(true)}
+        venueName={branch?.name || orgUser?.company_name}
+        userName={staffUser?.name}
+        userRole={modeLabel}
         onAccount={handleAccount}
+        onExit={() => handleStaffLogout(true)}
       />
 
       <main className="app-shell__content">
@@ -499,12 +500,13 @@ export default function App() {
           courier={activeMode === 'courier'}
           onLogout={handleStaffLogout}
           onBack={handleNavBack}
+          onLock={handleLock}
+          onSettings={() => setShowSettings(true)}
           onSwitchMode={(m) => { if (MODES[m]) { localStorage.setItem('marjon_mode', m); setMode(m) } }}
         />
       </main>
 
-      <BottomBar userName={staffUser?.name} branchName={branch?.name} mode={modeLabel}
-                 isOnline={isOnline} queued={queued} />
+      <BottomBar isOnline={isOnline} queued={queued} />
       {settingsOverlay}
       {profileOpen && (
         <StaffProfileModal

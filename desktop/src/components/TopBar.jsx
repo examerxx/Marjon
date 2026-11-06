@@ -1,22 +1,30 @@
-import { RefreshCw, Lock, User, Settings } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ChevronDown, LogOut, User, UtensilsCrossed } from 'lucide-react'
 import { t } from '../shared/i18n'
 import logoUrl from '../assets/logo-mark.png'
 
 /**
- * TopBar — верхняя панель для всех режимов: бренд-блок и кнопки управления.
- * Бренд повторяет веб-админку (.brand-mark / .brand-title / .brand-subtitle):
- * знак в карточке с лёгкой обводкой, рядом MARJON и тише — Restaurant OS.
- * Часы и статус связи переехали в BottomBar — в шапке они перетягивали
- * внимание кассира.
+ * TopBar — плавающая белая шапка рабочего экрана: бренд, заведение,
+ * разделы режима (слот), профиль сотрудника, выход и карточка времени.
+ * Часы переехали сюда из нижней панели: в доке они не помещались рядом
+ * с крупными вкладками.
  */
 export default function TopBar({
-  subtitle,
-  onRefresh,
-  onLock,
-  onSettings,
+  venueName,
+  userName,
+  userRole,
   onAccount,
+  onExit,
   children,
 }) {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  const time = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+  const date = now.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+
   return (
     <header className="topbar">
       <div className="topbar__brand">
@@ -28,46 +36,44 @@ export default function TopBar({
           <span className="topbar__brand-name">MARJON</span>
           <span className="topbar__brand-tagline">Restaurant OS</span>
         </span>
-        {subtitle && <span className="topbar__subtitle">{subtitle}</span>}
-        {/* Слот «Назад»: экран заказа рендерит сюда стрелку порталом.
-            Стоит справа от текста логотипа — так просил владелец. */}
-        <div className="topbar__back-slot" id="topbar-back-slot" />
       </div>
-      {/* Сводка доски («11 столов · 9 занято») — рядом с брендом,
-          чтобы над сеткой столов не оставалось отдельной строки заголовка. */}
-      <div className="topbar__board-slot" id="topbar-board-slot" />
 
-      {/* Центральный слот: рабочие экраны рендерят сюда поиск порталом.
-          Держим его всегда, чтобы портал находил цель при первом рендере. */}
+      {/* Слот «Назад»: экран заказа рендерит сюда стрелку порталом. */}
+      <div className="topbar__back-slot" id="topbar-back-slot" />
+
+      <span className="topbar__rule" aria-hidden="true" />
+
+      {venueName && (
+        <div className="topbar__venue" title={venueName}>
+          <UtensilsCrossed size={18} />
+          <span>{venueName}</span>
+        </div>
+      )}
+
+      {/* Разделы режима: «События / Заказы / Меню / Блокировка» приходят порталом. */}
+      <nav className="topbar__nav" id="topbar-nav-slot" aria-label={t('menu_more')} />
+
+      {/* Центральный слот: экран заказа рендерит сюда поиск блюда. */}
       <div className="topbar__center" id="topbar-center-slot">{children}</div>
 
-      {/* Переключатель типа заказа («Столы / С собой / Доставка») — одна лента
-          по центру шапки: авто-поля делят свободное место поровну. */}
-      <div className="topbar__tabs-slot" id="topbar-tabs-slot" />
-
-      <div className="topbar__actions">
-        {/* Слот для дропдауна разделов режима — иконка-кнопка рядом с блокировкой и настройками */}
-        <div className="topbar__actions-slot" id="topbar-actions-slot" />
-        {onRefresh && (
-          <button className="icon-btn" onClick={onRefresh} title={t('refresh')}>
-            <RefreshCw size={22} />
+      <div className="topbar__account">
+        <button className="topbar__account-btn" onClick={onAccount} title={t('account')}>
+          <span className="topbar__account-ico"><User size={19} /></span>
+          <span className="topbar__account-text">
+            <span className="topbar__account-role">{userRole ? `${userRole}:` : t('staff')}</span>
+            <span className="topbar__account-name">{userName || t('account')}</span>
+          </span>
+          <ChevronDown size={18} className="topbar__account-chevron" />
+        </button>
+        {onExit && (
+          <button className="topbar__exit" onClick={onExit} title={t('logout')} aria-label={t('logout')}>
+            <LogOut size={20} />
           </button>
         )}
-        {onLock && (
-          <button className="icon-btn" onClick={onLock} title={t('lock_screen')}>
-            <Lock size={22} />
-          </button>
-        )}
-        {onSettings && (
-          <button className="icon-btn" onClick={onSettings} title={t('settings')}>
-            <Settings size={22} />
-          </button>
-        )}
-        {onAccount && (
-          <button className="icon-btn" onClick={onAccount} title={t('account')}>
-            <User size={22} />
-          </button>
-        )}
+        <div className="topbar__clock-card">
+          <span className="topbar__time">{time}</span>
+          <span className="topbar__date">{date}</span>
+        </div>
       </div>
     </header>
   )

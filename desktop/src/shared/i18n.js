@@ -81,6 +81,10 @@ const DICT = {
     new_orders_auto: 'Новые заказы появятся автоматически', done: 'Готово', order_ready_give: 'Заказ готов, отдать',
     // Официант
     all_tables: 'Все столы', hall: 'Зал', new_order: 'Новый заказ',
+    // Верхняя лента и нижний док
+    nav_events: 'События', nav_lock: 'Блокировка', waiters: 'Официанты',
+    scheme_hall: 'Схема зала', by_waiters: 'По официантам', quick_check: 'Быстрый чек', more: 'Ещё',
+    open_table: 'Открыть стол', min_short: 'мин',
     no_halls: 'Нет залов. Добавьте их в веб-админке.', add_dishes: 'Добавить блюда',
     close_order: 'Закрыть заказ', no_table: 'Без стола', guests: 'Гостей',
     order_comment: 'Комментарий к заказу...', add_dishes_empty: 'Добавьте блюда',
@@ -294,6 +298,10 @@ const DICT = {
     new_orders_auto: 'Yangi buyurtmalar avtomatik paydo bo‘ladi', done: 'Tayyor', order_ready_give: 'Buyurtma tayyor, berish',
     // Ofitsiant
     all_tables: 'Barcha stollar', hall: 'Zal', new_order: 'Yangi buyurtma',
+    // Yuqori lenta va pastki dok
+    nav_events: 'Voqealar', nav_lock: 'Bloklash', waiters: 'Ofitsiantlar',
+    scheme_hall: 'Zal sxemasi', by_waiters: 'Ofitsiantlar bo‘yicha', quick_check: 'Tezkor chek', more: 'Yana',
+    open_table: 'Stolni ochish', min_short: 'daq',
     no_halls: 'Zallar yo‘q. Ularni veb-admin panelda qo‘shing.', add_dishes: 'Taom qo‘shish',
     close_order: 'Buyurtmani yopish', no_table: 'Stolsiz', guests: 'Mehmonlar',
     order_comment: 'Buyurtmaga izoh...', add_dishes_empty: 'Taom qo‘shing',

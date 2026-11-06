@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Search, Plus, Minus, Utensils, Pencil,
-  LayoutGrid, Armchair, DoorClosed, Sun, Wine, CalendarClock, ArrowLeft, Users, Clock, Wallet, History, BarChart3, Ban, ShoppingBag, Bike, Boxes, Printer, Receipt,
+  LayoutGrid, Armchair, DoorClosed, Sun, Wine, CalendarClock, ArrowLeft, Users, Clock, Wallet, BarChart3, ShoppingBag, Bike, Boxes, Printer, Receipt,
+  Bell, ClipboardList, Lock, Settings, Banknote, RefreshCw, List, MoreHorizontal,
 } from 'lucide-react'
 import { orders, payments, menu, halls as hallsApi, printers as printersApi, customers as customersApi, auth as authApi, finance as financeApi, companies as companiesApi } from '../../shared/api'
 import { onPrintJob } from '../../shared/ws'
@@ -41,6 +42,12 @@ function zoneIcon(name = '') {
   return Armchair
 }
 function fmt(n) { return Number(n || 0).toLocaleString('ru-RU') }
+// Сколько минут заказ в работе — подпись «(38 мин)» на карточке стола.
+function minutesSince(iso) {
+  if (!iso) return 0
+  const diff = Date.now() - new Date(iso).getTime()
+  return diff > 0 ? Math.floor(diff / 60000) : 0
+}
 // Роль-слаг сотрудника: по ней решаем, можно ли оформлять долг.
 function roleSlugOf(user = {}) {
   return String(user?.role_slug || user?.role_slugs?.[0] || '').toLowerCase()
@@ -70,7 +77,7 @@ function orderToLines(order) {
     }))
 }
 
-export default function CashierMode({ user = {}, onBack, courier = false }) {
+export default function CashierMode({ user = {}, onBack, onLock, onSettings, courier = false }) {
   const [zones, setZones] = useState([])
   const [orderList, setOrderList] = useState([])
   const [activeZone, setActiveZone] = useState(courier ? 'delivery' : 'all')
@@ -81,6 +88,10 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
 
   // Курьер стартует на доске своих заказов (доставка). Физических столов у него нет
   const [view, setView] = useState('floor')  // floor | order
+  // Нижний док: «Схема зала» (официанты + залы), «Все столы» (залы),
+  // «По официантам» (столы сгруппированы по ответственным).
+  const [hallMode, setHallMode] = useState('scheme')   // scheme | tables | waiters
+  const [waiterFilter, setWaiterFilter] = useState(null)   // id официанта или null
   const [orderType, setOrderType] = useState(courier ? 'delivery' : 'dine_in')
   const [selectedTable, setSelectedTable] = useState(null)
 
@@ -129,17 +140,15 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
 
   // Слот шапки (TopBar в App.jsx): меню разделов рендерим порталом, чтобы кнопка
   // жила в шапке, а состояние осталось здесь.
-  const [hdrActionsSlot, setHdrActionsSlot] = useState(null)
   const [searchSlot, setSearchSlot] = useState(null)
   const [backSlot, setBackSlot] = useState(null)
-  const [tabsSlot, setTabsSlot] = useState(null)
-  const [boardSlot, setBoardSlot] = useState(null)
+  const [navSlot, setNavSlot] = useState(null)
+  const [dockSlot, setDockSlot] = useState(null)
   useEffect(() => {
-    setHdrActionsSlot(document.getElementById('topbar-actions-slot'))
     setSearchSlot(document.getElementById('topbar-center-slot'))
     setBackSlot(document.getElementById('topbar-back-slot'))
-    setTabsSlot(document.getElementById('topbar-tabs-slot'))
-    setBoardSlot(document.getElementById('topbar-board-slot'))
+    setNavSlot(document.getElementById('topbar-nav-slot'))
+    setDockSlot(document.getElementById('bottombar-nav-slot'))
   }, [])
 
   // Liquid Glass: блик на кнопках категорий идёт за пальцем/курсором.
@@ -738,27 +747,241 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
     />
   ) : null
 
+  // ── Схема зала: официанты, их столы и карточки заказов ──
+  const roleOf = (u) => String(u?.role_slug || u?.role_slugs?.[0] || '').toLowerCase()
+  // В сайдбаре — именно официанты; если в филиале их нет, показываем весь персонал,
+  // чтобы список не оставался пустым.
+  const onlyWaiters = staff.filter((u) => roleOf(u) === 'waiter')
+  const hallWaiters = onlyWaiters.length > 0 ? onlyWaiters : staff
+  const selectedWaiter = hallWaiters.find((w) => String(w.id) === String(waiterFilter)) || null
+  const belongsToWaiter = (o, w) => {
+    if (!o || !w) return false
+    if (o.waiter_id && String(o.waiter_id) === String(w.id)) return true
+    return Boolean(o.waiter_name && w.name && o.waiter_name === w.name)
+  }
+  const ordersOfWaiter = (w) => orderList.filter((o) => o.order_type === 'dine_in' && belongsToWaiter(o, w))
+  const tablesForZone = (z) => {
+    const list = z.tables || []
+    // В «Схеме зала» выбранный официант сужает доску до своих столов.
+    if (hallMode !== 'scheme' || !selectedWaiter) return list
+    return list.filter((tb) => {
+      const o = orderFor(tb)
+      return o ? belongsToWaiter(o, selectedWaiter) : false
+    })
+  }
+
+  // Карточка занятого стола/заказа: зелёная шапка, состав заказа, итог.
+  const orderCard = (o, { icon: HeadIcon = Armchair } = {}) => {
+    const items = (o.items || []).filter((it) => it.status !== 'cancelled')
+    const shown = items.slice(0, 4)
+    const mins = minutesSince(o.created_at)
+    const label = o.table_number != null
+      ? `${t('table')} ${o.table_number}`
+      : `#${o.order_number ?? ''}`
+    const variant = o.receipt_printed_at ? 'pay' : o.status === 'ready' ? 'check' : 'busy'
+    return (
+      <button
+        key={o.id}
+        type="button"
+        className={`hcard hcard--${variant}`}
+        onClick={() => { if (!courier) openExistingOrder(o) }}
+      >
+        <span className="hcard__head">
+          <span className="hcard__title"><HeadIcon size={15} /> {label}</span>
+          <span className="hcard__seats"><Users size={13} /> {o.persons_count || 0}</span>
+        </span>
+        <span className="hcard__body">
+          <span className="hcard__time">
+            <Clock size={12} /> {fmtTime(o.created_at)}{mins > 0 ? ` (${mins} ${t('min_short')})` : ''}
+          </span>
+          {o.customer_phone && (
+            <span className="hcard__client">{formatPhone(extractPhoneDigits(o.customer_phone)) || o.customer_phone}</span>
+          )}
+          {o.customer_address && <span className="hcard__client">{o.customer_address}</span>}
+          <span className="hcard__items">
+            {shown.map((it) => (
+              <span className="hcard__item" key={it.id}>
+                <Utensils size={11} /> {formatQty(it.quantity)} × {it.name}
+              </span>
+            ))}
+            {items.length > shown.length && <span className="hcard__more">+{items.length - shown.length}</span>}
+            {items.length === 0 && <span className="hcard__item hcard__item--muted">{t.status(o.status)}</span>}
+          </span>
+          {o.receipt_printed_at && <span className="hcard__state">{t('await')}</span>}
+          {!o.receipt_printed_at && o.status === 'ready' && (
+            <span className="hcard__state hcard__state--ready">{t('ready')}</span>
+          )}
+        </span>
+        <span className="hcard__foot"><Banknote size={14} /> {fmt(o.total_amount)} {t('currency')}</span>
+      </button>
+    )
+  }
+
+  // Свободный стол — крупный «+» как на схеме зала.
+  const freeTableCard = (tb) => (
+    <button
+      key={tb.id ?? tb.number}
+      type="button"
+      className="hcard hcard--free"
+      onClick={() => tapTable(tb)}
+    >
+      <span className="hcard__plus"><Plus size={22} /></span>
+      <span className="hcard__free-title">{t('table')} {tb.number}</span>
+      <span className="hcard__free-sub">{t('open_table')} · {tb.capacity || 4}</span>
+    </button>
+  )
+
+  // Верхние разделы: события, заказы, меню (стоп-лист), блокировка.
+  const topNav = navSlot && createPortal(
+    <>
+      {must(user, 'can_approve_attendance') && (
+        <button className="topnav-btn" onClick={() => setAttOpen(true)}>
+          <Bell size={21} /><span>{t('nav_events')}</span>
+        </button>
+      )}
+      {can(user, 'can_view_closed_orders') && (
+        <button className="topnav-btn" onClick={() => setHistOpen(true)}>
+          <ClipboardList size={21} /><span>{t('orders')}</span>
+        </button>
+      )}
+      {can(user, 'can_view_stop_list') && (
+        <button className="topnav-btn" onClick={() => setStopOpen(true)}>
+          <Utensils size={21} /><span>{t('menu_more')}</span>
+        </button>
+      )}
+      {onLock && (
+        <button className="topnav-btn" onClick={onLock}>
+          <Lock size={21} /><span>{t('nav_lock')}</span>
+        </button>
+      )}
+    </>,
+    navSlot,
+  )
+
+  const goHall = (mode) => {
+    setView('floor')
+    setHallMode(mode)
+    setActiveZone('all')
+    setWaiterFilter(null)
+  }
+
+  // «Ещё»: остальные разделы, которые не поместились в док и верхнюю ленту.
+  const moreItems = [
+    { id: 'refresh', label: t('refresh'), Icon: RefreshCw, onClick: () => window.location.reload() },
+    ...(must(user, 'can_view_finance') ? [{ id: 'fin', label: t('finance'), Icon: Wallet, onClick: () => setFinOpen(true) }] : []),
+    { id: 'rep', label: t('reports'), Icon: BarChart3, onClick: () => setRepOpen(true) },
+    ...(must(user, 'can_manage_staff') ? [{ id: 'staff', label: t('dev_staff'), Icon: Users, onClick: () => setStaffOpen(true) }] : []),
+    ...(must(user, 'can_manage_staff') ? [{ id: 'wh', label: t('dev_warehouse'), Icon: Boxes, onClick: () => setWhOpen(true) }] : []),
+    { id: 'print', label: t('print'), Icon: Printer, onClick: () => setPrintOpen(true) },
+  ]
+
+  // Нижний док: рабочие доски и быстрый чек.
+  const dock = dockSlot && createPortal(
+    <>
+      {onSettings && (
+        <button className="dock__item" onClick={onSettings}>
+          <Settings size={22} /><span>{t('settings')}</span>
+        </button>
+      )}
+      {!courier && (
+        <>
+          <button className={`dock__item ${view === 'floor' && hallMode === 'scheme' ? 'is-active' : ''}`} onClick={() => goHall('scheme')}>
+            <LayoutGrid size={22} /><span>{t('scheme_hall')}</span>
+          </button>
+          <button className={`dock__item dock__item--sep ${view === 'floor' && hallMode === 'tables' ? 'is-active' : ''}`} onClick={() => goHall('tables')}>
+            <List size={22} /><span>{t('all_tables')}</span>
+          </button>
+          <button className={`dock__item dock__item--sep ${view === 'floor' && hallMode === 'waiters' ? 'is-active' : ''}`} onClick={() => goHall('waiters')}>
+            <Users size={22} /><span>{t('by_waiters')}</span>
+          </button>
+        </>
+      )}
+      <button className="dock__item dock__item--sep" onClick={() => openOrder(courier ? 'delivery' : 'takeaway', null)}>
+        <Receipt size={22} /><span>{t('quick_check')}</span>
+      </button>
+      <HeaderMenu
+        title={t('more')}
+        label={t('more')}
+        Icon={MoreHorizontal}
+        variant="dock"
+        items={moreItems}
+      />
+    </>,
+    dockSlot,
+  )
+
   // ═══ Вид: столы (кассир) / доска заказов (курьер) ═══
   if (view === 'floor') {
+    // Столы текущей доски с учётом фильтра по официанту.
+    const visibleTables = hallMode === 'scheme' && selectedWaiter
+      ? shownTables.filter((tb) => {
+        const o = orderFor(tb)
+        return o ? belongsToWaiter(o, selectedWaiter) : false
+      })
+      : shownTables
+    const visibleBusy = visibleTables.filter((tb) => tableStatus(tb) !== 'free').length
+    const visibleZones = shownZones
+      .map((zone) => ({ zone, tables: tablesForZone(zone) }))
+      .filter(({ tables }) => tables.length > 0)
+    const waiterSections = hallWaiters
+      .map((waiter) => ({ waiter, orders: ordersOfWaiter(waiter) }))
+      .filter(({ orders }) => orders.length > 0)
+    const unassignedOrders = orderList.filter((o) => o.order_type === 'dine_in' && !o.waiter_id && !o.waiter_name)
+    const summary = orderBoard
+      ? `${boardOrders.length} ${t('orders_low')}`
+      : hallMode === 'waiters'
+        ? `${waiterSections.reduce((n, s) => n + s.orders.length, 0)} ${t('orders_low')}`
+        : `${visibleTables.length} ${t('tables_low')} · ${visibleBusy} ${t('busy_low')}`
+
     return (
       <div className="floor">
-        <aside className="ws-side">
+        <aside className="ws-side hall-side">
           {courier ? (
             <>
-              <div className="ws-side__label">{t('orders')}</div>
-              <nav className="ws-side__nav">
-                <button className={`zone ${activeZone === 'delivery' ? 'zone--active' : ''}`} onClick={() => setActiveZone('delivery')}>
-                  <Bike size={20} /><span className="zone__name">{t('delivery')}</span><span className="zone__count">{deliveryOrders.length}</span>
+              <div className="hall-side__head"><Bike size={18} /><span>{t('orders')}</span></div>
+              <nav className="hall-side__nav">
+                <button className="hall-item hall-item--active" onClick={() => setActiveZone('delivery')}>
+                  <span className="hall-item__badge"><Bike size={18} /></span>
+                  <span className="hall-item__name">{t('delivery')}</span>
+                  <span className="hall-item__count">{deliveryOrders.length}</span>
                 </button>
+              </nav>
+            </>
+          ) : hallMode === 'tables' ? (
+            <>
+              <div className="hall-side__head"><DoorClosed size={18} /><span>{t('locations')}</span></div>
+              <nav className="hall-side__nav">
+                {zoneNav.map(({ id, name, count, Icon }) => (
+                  <button
+                    key={id}
+                    className={`hall-item ${activeZone === id ? 'hall-item--active' : ''}`}
+                    onClick={() => { setActiveZone(id); setWaiterFilter(null) }}
+                  >
+                    <span className="hall-item__badge"><Icon size={18} /></span>
+                    <span className="hall-item__name">{name}</span>
+                    <span className="hall-item__count">{count}</span>
+                  </button>
+                ))}
               </nav>
             </>
           ) : (
             <>
-              <div className="ws-side__label">{t('locations')}</div>
-              <nav className="ws-side__nav">
-                {zoneNav.map(({ id, name, count, Icon }) => (
-                  <button key={id} className={`zone ${activeZone === id ? 'zone--active' : ''}`} onClick={() => setActiveZone(id)}>
-                    <Icon size={20} /><span className="zone__name">{name}</span><span className="zone__count">{count}</span>
+              <div className="hall-side__head">
+                <Users size={18} /><span>{t('waiters')}</span>
+                {selectedWaiter && (
+                  <button className="hall-side__reset" onClick={() => setWaiterFilter(null)}>{t('all')}</button>
+                )}
+              </div>
+              <nav className="hall-side__nav">
+                {hallWaiters.map((w, i) => (
+                  <button
+                    key={w.id}
+                    className={`hall-item ${String(waiterFilter) === String(w.id) ? 'hall-item--active' : ''}`}
+                    onClick={() => setWaiterFilter((cur) => (String(cur) === String(w.id) ? null : w.id))}
+                  >
+                    <span className="hall-item__badge">{i + 1}</span>
+                    <span className="hall-item__name">{w.name}</span>
+                    <span className="hall-item__count"><Users size={13} /> {ordersOfWaiter(w).length}</span>
                   </button>
                 ))}
               </nav>
@@ -767,135 +990,103 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
         </aside>
 
         <main className="ws__main ws__main--board">
+          <div className="hall-board__head">
+            <div className="hall-types" role="group" aria-label={t('receipt_order_type')}>
+              {showTypeTabs && (
+                <>
+                  <button
+                    type="button"
+                    className={`hall-type ${orderBoard ? '' : 'is-active'}`}
+                    onClick={() => setActiveZone('all')}
+                    aria-pressed={!orderBoard}
+                  >
+                    <LayoutGrid size={16} /> {t('tables')}
+                  </button>
+                  {showTakeawayTab && (
+                    <button
+                      type="button"
+                      className={`hall-type ${activeZone === 'takeaway' ? 'is-active' : ''}`}
+                      onClick={() => setActiveZone('takeaway')}
+                      aria-pressed={activeZone === 'takeaway'}
+                    >
+                      <ShoppingBag size={16} /> {t('takeaway')}
+                    </button>
+                  )}
+                  {showDeliveryTab && (
+                    <button
+                      type="button"
+                      className={`hall-type ${activeZone === 'delivery' ? 'is-active' : ''}`}
+                      onClick={() => setActiveZone('delivery')}
+                      aria-pressed={activeZone === 'delivery'}
+                    >
+                      <Bike size={16} /> {t('delivery')}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+            <div className="hall-board__meta">
+              <span className="hall-board__summary">{summary}</span>
+              {orderBoard && (
+                <button className="hall-board__new" onClick={() => openOrder(activeZone, null)}>
+                  <Plus size={16} /> {t('new_order')}
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="board__scroll">
             {orderBoard ? (
-              boardOrders.length === 0 ? <p className="empty-text">{t('no_orders')}</p> : (
-                <div className="tgrid">
-                  {boardOrders.map((o) => {
-                    const variant = o.status === 'ready' ? 'check' : o.receipt_printed_at ? 'pay' : 'busy'
-                    return (
-                      <button key={o.id} className={`tcard tcard--${variant}`} onClick={() => { if (!courier) openExistingOrder(o) }}>
-                        <div className="tcard__top">
-                          <span className="tcard__num">#{o.order_number ?? ''}</span>
-                          <span className="tcard__seats">{activeZone === 'delivery' ? <Bike /> : <ShoppingBag />}</span>
-                        </div>
-                        {o.customer_phone && <span className="tcard__client">{formatPhone(extractPhoneDigits(o.customer_phone)) || o.customer_phone}</span>}
-                        {activeZone === 'delivery' && o.customer_address && <span className="tcard__client">{o.customer_address}</span>}
-                        <span className="tcard__meta"><Clock /> {fmtTime(o.created_at)}
-                          {o.total_amount != null && <span className="tcard__amount">{fmt(o.total_amount)} {t('currency')}</span>}
-                        </span>
-                        <span className="tcard__status">{t.status(o.status)}</span>
-                      </button>
-                    )
-                  })}
+              boardOrders.length === 0 ? <p className="empty-text empty-text--board">{t('no_orders')}</p> : (
+                <div className="hgrid">
+                  {boardOrders.map((o) => orderCard(o, { icon: activeZone === 'delivery' ? Bike : ShoppingBag }))}
                 </div>
               )
-            ) : loading ? <p className="empty-text">{t('loading')}</p> : shownZones.length === 0 ? (
-              <div className="empty-text" role={hallsError ? 'alert' : 'status'}>
+            ) : loading ? <p className="empty-text empty-text--board">{t('loading')}</p> : shownZones.length === 0 ? (
+              <div className="empty-text empty-text--board" role={hallsError ? 'alert' : 'status'}>
                 <p>{hallsError || t('no_halls')}</p>
                 <button className="btn btn--primary btn--sm" onClick={loadFloor}>{t('retry')}</button>
               </div>
-            ) : shownZones.map((z) => (
-              <section className="tgroup" key={z.id}>
-                <div className="tgroup__title">{z.name} <span>{(z.tables || []).length} {t('tables_low')}</span></div>
-                <div className="tgrid">
-                  {(z.tables || []).map((tb) => {
-                    const o = orderFor(tb); const st = tableStatus(tb)
-                    const variant = st === 'free' ? 'free' : st === 'ready' ? 'check' : st === 'await' ? 'pay' : 'busy'
-                    return (
-                      <button key={tb.id ?? tb.number} className={`tcard tcard--${variant}`} onClick={() => tapTable(tb)}>
-                        <div className="tcard__top">
-                          <span className="tcard__num">{tb.number}</span>
-                          <span className="tcard__seats"><Users /> {tb.capacity || 4}</span>
+            ) : hallMode === 'waiters' ? (
+              waiterSections.length === 0 && unassignedOrders.length === 0
+                ? <p className="empty-text empty-text--board">{t('no_orders')}</p>
+                : (
+                  <>
+                    {waiterSections.map(({ waiter: w, orders }) => (
+                      <section className="hgroup" key={w.id}>
+                        <div className="hgroup__title">
+                          {w.name} <span>{orders.length} {t('orders_low')}</span>
                         </div>
-                        {o ? (
-                          <>
-                            <div className="tcard__order">
-                              <span className="tcard__client">{t('order_no')} #{o.order_number ?? ''}</span>
-                              <span className="tcard__time"><Clock /> {fmtTime(o.created_at)}</span>
-                            </div>
-                            {o.total_amount != null && <span className="tcard__amount">{fmt(o.total_amount)} {t('currency')}</span>}
-                          </>
-                        ) : <div className="tcard__spacer" />}
-                        <span className="tcard__status">{t(st)}</span>
-                      </button>
-                    )
+                        <div className="hgrid">{orders.map((o) => orderCard(o))}</div>
+                      </section>
+                    ))}
+                    {unassignedOrders.length > 0 && (
+                      <section className="hgroup">
+                        <div className="hgroup__title">
+                          {t('waiter_not_set')} <span>{unassignedOrders.length} {t('orders_low')}</span>
+                        </div>
+                        <div className="hgrid">{unassignedOrders.map((o) => orderCard(o))}</div>
+                      </section>
+                    )}
+                  </>
+                )
+            ) : visibleZones.length === 0 ? (
+              <p className="empty-text empty-text--board">{t('no_orders')}</p>
+            ) : visibleZones.map(({ zone, tables }) => (
+              <section className="hgroup" key={zone.id}>
+                <div className="hgroup__title">
+                  {zone.name} <span>{tables.length} {t('tables_low')}</span>
+                </div>
+                <div className="hgrid">
+                  {tables.map((tb) => {
+                    const o = orderFor(tb)
+                    return o ? orderCard(o) : freeTableCard(tb)
                   })}
                 </div>
               </section>
             ))}
           </div>
         </main>
-        {/* «Столы / С собой / Доставка» — одна лента по центру шапки:
-            раньше «Столы» стояли у бренда, а остальные — у меню «…», и
-            переключатель читался как два разных контрола. */}
-        {showTypeTabs && tabsSlot && createPortal(
-          <div className="topbar-order-types" role="group" aria-label={t('receipt_order_type')}>
-            <button
-              type="button"
-              className={`topbar-type ${orderBoard ? '' : 'is-active'}`}
-              onClick={() => setActiveZone('all')}
-              aria-pressed={!orderBoard}
-            >
-              <LayoutGrid size={18} /> {t('tables')}
-            </button>
-            {showTakeawayTab && (
-              <button
-                type="button"
-                className={`topbar-type ${activeZone === 'takeaway' ? 'is-active' : ''}`}
-                onClick={() => setActiveZone('takeaway')}
-                aria-pressed={activeZone === 'takeaway'}
-              >
-                <ShoppingBag size={18} /> {t('takeaway')}
-              </button>
-            )}
-            {showDeliveryTab && (
-              <button
-                type="button"
-                className={`topbar-type ${activeZone === 'delivery' ? 'is-active' : ''}`}
-                onClick={() => setActiveZone('delivery')}
-                aria-pressed={activeZone === 'delivery'}
-              >
-                <Bike size={18} /> {t('delivery')}
-              </button>
-            )}
-          </div>,
-          tabsSlot,
-        )}
-        {/* Сводка доски — в шапке, рядом с кнопкой «Столы». Отдельная строка
-            заголовка над сеткой съедала место: теперь карточки начинаются
-            сразу от верха экрана. */}
-        {boardSlot && createPortal(
-          <div className="topbar-board">
-            <span className="topbar-board__meta">
-              {orderBoard
-                ? `${boardOrders.length} ${t('orders_low')}`
-                : `${shownTables.length} ${t('tables_low')} · ${busyCount} ${t('busy_low')}`}
-            </span>
-            {orderBoard && (
-              <button className="btn btn--primary btn--sm" onClick={() => openOrder(activeZone, null)}><Plus size={18} /> {t('new_order')}</button>
-            )}
-          </div>,
-          boardSlot,
-        )}
-        {/* Меню разделов — иконка-кнопка в шапке рядом с блокировкой и настройками.
-            Официанту оно не нужно: его работа — блюда и печать чека. */}
-        {hdrActionsSlot && !courier && !isWaiter && createPortal(
-          <HeaderMenu
-            title={t('menu_more')}
-            items={[
-              ...(can(user, 'can_view_stop_list') ? [{ id: 'stop', label: t('stoplist'), Icon: Ban, onClick: () => setStopOpen(true) }] : []),
-              ...(must(user, 'can_view_finance') ? [{ id: 'fin', label: t('finance'), Icon: Wallet, onClick: () => setFinOpen(true) }] : []),
-              ...(must(user, 'can_approve_attendance') ? [{ id: 'att', label: t('attendance_page'), Icon: Clock, onClick: () => setAttOpen(true) }] : []),
-              ...(can(user, 'can_view_closed_orders') ? [{ id: 'hist', label: t('history'), Icon: History, onClick: () => setHistOpen(true) }] : []),
-              { id: 'rep', label: t('reports'), Icon: BarChart3, onClick: () => setRepOpen(true) },
-              ...(must(user, 'can_manage_staff') ? [{ id: 'staff', label: t('dev_staff'), Icon: Users, onClick: () => setStaffOpen(true) }] : []),
-              ...(must(user, 'can_manage_staff') ? [{ id: 'wh', label: t('dev_warehouse'), Icon: Boxes, onClick: () => setWhOpen(true) }] : []),
-              { id: 'print', label: t('print'), Icon: Printer, onClick: () => setPrintOpen(true) },
-            ]}
-          />,
-          hdrActionsSlot,
-        )}
         {finOpen && <FinancePanel branch={{ id: user.branch_id }} user={user} onClose={() => setFinOpen(false)} />}
         {histOpen && <HistoryPanel branch={{ id: user.branch_id }} printerId={user.printer_id} onReopen={canCloseBill ? reopenOrder : undefined} onClose={() => setHistOpen(false)} />}
         {repOpen && <ReportsPanel branch={{ id: user.branch_id }} user={user} onClose={() => setRepOpen(false)} />}
@@ -906,6 +1097,8 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
         {printOpen && <BatchPrintPanel branch={{ id: user.branch_id }} printerId={user.printer_id} onClose={() => setPrintOpen(false)} />}
         {paymentOverlay}
         {promptCfg && <InputPromptModal {...promptCfg} onClose={() => setPromptCfg(null)} />}
+        {topNav}
+        {dock}
       </div>
     )
   }
@@ -1106,6 +1299,8 @@ export default function CashierMode({ user = {}, onBack, courier = false }) {
       )}
       {paymentOverlay}
       {promptCfg && <InputPromptModal {...promptCfg} onClose={() => setPromptCfg(null)} />}
+      {topNav}
+      {dock}
     </div>
   )
 }

@@ -8,6 +8,7 @@ import './styles/tokens.css'
 import './styles/global.css'
 import './styles/components.css'
 import './styles/screens.css'
+import './styles/hall.css'
 
 // Применяем сохранённую тему до первого рендера (иначе тёмная не срабатывает)
 document.documentElement.setAttribute('data-theme', localStorage.getItem('marjon_theme') || 'light')
