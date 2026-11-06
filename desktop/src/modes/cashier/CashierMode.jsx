@@ -993,7 +993,13 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     const waiterSections = hallWaiters
       .map((waiter) => ({ waiter, orders: ordersOfWaiter(waiter) }))
       .filter(({ orders }) => orders.length > 0)
+    // Выбранный в рейле официант фильтрует доску: у Эльёра — только его заказы,
+    // у Азиза — только его. Без фильтра (старт/таблицы) видны все секции.
+    const visibleSections = waiterFilter
+      ? waiterSections.filter(({ waiter }) => String(waiter.id) === String(waiterFilter))
+      : waiterSections
     const unassignedOrders = orderList.filter((o) => o.order_type === 'dine_in' && !o.waiter_id && !o.waiter_name)
+    const showUnassigned = !waiterFilter && unassignedOrders.length > 0
     // Свободные столы показываем и в «По официантам»: без заказов доска
     // не пустует, а предлагает те же ячейки «Добавить заказ».
     const freeTables = shownTables.filter((tb) => !orderFor(tb))
@@ -1038,7 +1044,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
                   <button
                     key={w.id}
                     className={`hall-item ${String(waiterFilter) === String(w.id) ? 'hall-item--active' : ''}`}
-                    onClick={() => setWaiterFilter((cur) => (String(cur) === String(w.id) ? null : w.id))}
+                    onClick={() => setWaiterFilter(w.id)}
                   >
                     <span className="hall-item__badge">{i + 1}</span>
                     <span className="hall-item__name">{w.name}</span>
@@ -1075,11 +1081,11 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
                 <button className="btn btn--primary btn--sm" onClick={loadFloor}>{t('retry')}</button>
               </div>
             ) : hallMode === 'waiters' ? (
-              waiterSections.length === 0 && unassignedOrders.length === 0 && freeTables.length === 0
+              visibleSections.length === 0 && !showUnassigned && freeTables.length === 0
                 ? <p className="empty-text empty-text--board">{t('no_orders')}</p>
                 : (
                   <>
-                    {waiterSections.map(({ waiter: w, orders }) => (
+                    {visibleSections.map(({ waiter: w, orders }) => (
                       <section className="hgroup" key={w.id}>
                         <div className="hgroup__title">
                           {w.name} <span>{orders.length} {t.count(orders.length, 'orders')}</span>
@@ -1087,7 +1093,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
                         <div className="hgrid">{orders.map((o) => orderCard(o))}</div>
                       </section>
                     ))}
-                    {unassignedOrders.length > 0 && (
+                    {showUnassigned && (
                       <section className="hgroup">
                         <div className="hgroup__title">
                           {t('waiter_not_set')} <span>{unassignedOrders.length} {t.count(unassignedOrders.length, 'orders')}</span>
