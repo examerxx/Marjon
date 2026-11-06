@@ -840,7 +840,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
       onClick={() => tapTable(tb)}
     >
       <span className="hcard__plus"><Plus size={26} /></span>
-      <span className="hcard__free-title">{t('add_table')}</span>
+      <span className="hcard__free-title">{t('add_order')}</span>
     </button>
   )
 
@@ -861,6 +861,42 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
       </button>
     </>,
     navSlot,
+  )
+
+  // Тип заказа живёт в шапке: над сеткой столов больше нет строки, поэтому
+  // карточки начинаются от самого верха доски.
+  const typeTabs = searchSlot && view === 'floor' && showTypeTabs && createPortal(
+    <div className="hall-types hall-types--top" role="group" aria-label={t('receipt_order_type')}>
+      <button
+        type="button"
+        className={`hall-type ${orderBoard ? '' : 'is-active'}`}
+        onClick={() => setActiveZone('all')}
+        aria-pressed={!orderBoard}
+      >
+        <LayoutGrid size={16} /> {t('tables')}
+      </button>
+      {showTakeawayTab && (
+        <button
+          type="button"
+          className={`hall-type ${activeZone === 'takeaway' ? 'is-active' : ''}`}
+          onClick={() => setActiveZone('takeaway')}
+          aria-pressed={activeZone === 'takeaway'}
+        >
+          <ShoppingBag size={16} /> {t('takeaway')}
+        </button>
+      )}
+      {showDeliveryTab && (
+        <button
+          type="button"
+          className={`hall-type ${activeZone === 'delivery' ? 'is-active' : ''}`}
+          onClick={() => setActiveZone('delivery')}
+          aria-pressed={activeZone === 'delivery'}
+        >
+          <Bike size={16} /> {t('delivery')}
+        </button>
+      )}
+    </div>,
+    searchSlot,
   )
 
   const goHall = (mode) => {
@@ -931,6 +967,9 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
       .map((waiter) => ({ waiter, orders: ordersOfWaiter(waiter) }))
       .filter(({ orders }) => orders.length > 0)
     const unassignedOrders = orderList.filter((o) => o.order_type === 'dine_in' && !o.waiter_id && !o.waiter_name)
+    // Свободные столы показываем и в «По официантам»: без заказов доска
+    // не пустует, а предлагает те же ячейки «Добавить заказ».
+    const freeTables = shownTables.filter((tb) => !orderFor(tb))
 
     return (
       <div className="floor">
@@ -948,8 +987,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
             </>
           ) : hallMode === 'tables' ? (
             <>
-              <div className="hall-side__head"><DoorClosed size={18} /><span>{t('locations')}</span></div>
-              <nav className="hall-side__nav">
+              <nav className="hall-side__nav hall-side__nav--flush">
                 {zoneNav.map(({ id, name, count, Icon }) => (
                   <button
                     key={id}
@@ -988,40 +1026,6 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
         <main className="ws__main ws__main--board">
           {orderBoard && (
             <div className="hall-board__head">
-              <div className="hall-types" role="group" aria-label={t('receipt_order_type')}>
-                {showTypeTabs && (
-                  <>
-                    <button
-                      type="button"
-                      className={`hall-type ${orderBoard ? '' : 'is-active'}`}
-                      onClick={() => setActiveZone('all')}
-                      aria-pressed={!orderBoard}
-                    >
-                      <LayoutGrid size={16} /> {t('tables')}
-                    </button>
-                    {showTakeawayTab && (
-                      <button
-                        type="button"
-                        className={`hall-type ${activeZone === 'takeaway' ? 'is-active' : ''}`}
-                        onClick={() => setActiveZone('takeaway')}
-                        aria-pressed={activeZone === 'takeaway'}
-                      >
-                        <ShoppingBag size={16} /> {t('takeaway')}
-                      </button>
-                    )}
-                    {showDeliveryTab && (
-                      <button
-                        type="button"
-                        className={`hall-type ${activeZone === 'delivery' ? 'is-active' : ''}`}
-                        onClick={() => setActiveZone('delivery')}
-                        aria-pressed={activeZone === 'delivery'}
-                      >
-                        <Bike size={16} /> {t('delivery')}
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
               <div className="hall-board__meta">
                 <span className="hall-board__summary">{boardOrders.length} {t('orders_low')}</span>
                 <button className="hall-board__new" onClick={() => openOrder(activeZone, null)}>
@@ -1044,7 +1048,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
                 <button className="btn btn--primary btn--sm" onClick={loadFloor}>{t('retry')}</button>
               </div>
             ) : hallMode === 'waiters' ? (
-              waiterSections.length === 0 && unassignedOrders.length === 0
+              waiterSections.length === 0 && unassignedOrders.length === 0 && freeTables.length === 0
                 ? <p className="empty-text empty-text--board">{t('no_orders')}</p>
                 : (
                   <>
@@ -1062,6 +1066,14 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
                           {t('waiter_not_set')} <span>{unassignedOrders.length} {t('orders_low')}</span>
                         </div>
                         <div className="hgrid">{unassignedOrders.map((o) => orderCard(o))}</div>
+                      </section>
+                    )}
+                    {freeTables.length > 0 && (
+                      <section className="hgroup">
+                        <div className="hgroup__title">
+                          {t('free_tables')} <span>{freeTables.length} {t('tables_low')}</span>
+                        </div>
+                        <div className="hgrid">{freeTables.map((tb) => freeTableCard(tb))}</div>
                       </section>
                     )}
                   </>
@@ -1105,6 +1117,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
         {paymentOverlay}
         {promptCfg && <InputPromptModal {...promptCfg} onClose={() => setPromptCfg(null)} />}
         {topNav}
+        {typeTabs}
         {dock}
       </div>
     )
@@ -1307,6 +1320,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
       {paymentOverlay}
       {promptCfg && <InputPromptModal {...promptCfg} onClose={() => setPromptCfg(null)} />}
       {topNav}
+      {typeTabs}
       {dock}
     </div>
   )

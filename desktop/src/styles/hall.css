@@ -43,7 +43,7 @@
 .topbar {
   height: 70px;
   padding: 0 14px 0 18px;
-  gap: 16px;
+  gap: 12px;
   border: none;
   border-radius: var(--hall-radius);
   background: linear-gradient(180deg, #ffffff 0%, #f7fafd 100%);
@@ -76,10 +76,11 @@
 
 .topbar__venue {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 10px;
   height: 48px;
-  max-width: 300px;
+  max-width: 280px;
   padding: 0 4px;
   border: none;
   border-radius: 12px;
@@ -103,7 +104,7 @@
 .topbar__nav {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
 }
 .topbar__nav:empty { display: none; }
 .topnav-btn {
@@ -113,9 +114,9 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-width: 82px;
+  min-width: 76px;
   height: 66px;
-  padding: 4px 10px;
+  padding: 4px 8px;
   border: none;
   border-radius: 14px;
   background: transparent;
@@ -142,8 +143,27 @@
   box-shadow: 0 0 0 2px #fff;
 }
 
-.topbar__center { justify-content: center; }
+.topbar__center { flex: 1 1 auto; min-width: 0; justify-content: center; }
 .topbar__center:empty { flex: 1 1 auto; }
+/* Переключатель типа заказа переехал в шапку: на доске он больше не занимает
+   строку, поэтому сетка столов начинается от верхнего края. */
+.hall-types--top {
+  flex-shrink: 0;
+  padding: 4px;
+  border-radius: 14px;
+  background: #eef3f9;
+}
+.hall-types--top .hall-type {
+  height: 40px;
+  padding: 0 12px;
+  color: #33475d;
+}
+.hall-types--top .hall-type:hover { background: #e2ebf4; color: #16283c; }
+.hall-types--top .hall-type.is-active {
+  background: linear-gradient(135deg, #0fa8ab 0%, #0a8f9b 100%);
+  color: #fff;
+  box-shadow: 0 10px 20px -14px rgba(10, 143, 155, 0.9);
+}
 /* На экране заказа в шапке живёт поиск — заведение уступает ему место. */
 .topbar:has(.topbar-search) .topbar__venue,
 .topbar:has(.topbar-search) .topbar__rule { display: none; }
@@ -406,6 +426,8 @@
   overscroll-behavior: contain;
   scrollbar-width: thin;
 }
+/* Без заголовка «Локации» список начинается от верха сайдбара. */
+.hall-side__nav--flush { padding-top: 6px; }
 
 .hall-item {
   display: grid;
@@ -477,7 +499,7 @@
 .hall-board__head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   flex-shrink: 0;
   padding: 0 2px 12px;
@@ -551,8 +573,10 @@
   padding: 0 2px 6px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
+  /* Без видимой полосы прокрутки: доска остаётся чистой, колесо работает. */
+  scrollbar-width: none;
 }
+.board__scroll::-webkit-scrollbar { width: 0; height: 0; }
 .hgroup { margin-bottom: 18px; }
 .hgroup:last-child { margin-bottom: 0; }
 .hgroup__title {
