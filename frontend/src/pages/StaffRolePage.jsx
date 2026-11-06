@@ -397,9 +397,9 @@ function StaffRolePage({ role = "all" }) {
         mutationLocks.release("staff-save");
         return;
       }
-      // PIN для терминала: ровно 4 цифры (пад на кассе принимает только 4).
-      // Пустое поле — не трогаем: у сотрудника остаётся прежний код.
-      if (form.pin && !/^\d{4}$/.test(form.pin)) {
+      // PIN для терминала: 4–8 цифр (пад на кассе принимает 4–8 и подтверждается
+      // кнопкой). Пустое поле — не трогаем: у сотрудника остаётся прежний код.
+      if (form.pin && !/^\d{4,8}$/.test(form.pin)) {
         setSaveErrorField("pin");
         setSaveError(t("staff.error.pin_four"));
         mutationLocks.release("staff-save");
@@ -408,7 +408,7 @@ function StaffRolePage({ role = "all" }) {
       // KITCHEN-01: повару PIN обязателен — это единственный способ войти на
       // кухонный экран. Раньше поле можно было оставить пустым, карточка
       // сохранялась, и смена обнаруживала проблему уже у плиты.
-      if (isKitchenView && !editingId && !/^\d{4}$/.test(form.pin)) {
+      if (isKitchenView && !editingId && !/^\d{4,8}$/.test(form.pin)) {
         setSaveErrorField("pin");
         setSaveError(t("staff.error.pin_required_kitchen"));
         mutationLocks.release("staff-save");
@@ -568,10 +568,10 @@ function StaffRolePage({ role = "all" }) {
       mutationLocks.release("staff-save");
       return;
     }
-    // PIN отдельным полем: 4 цифры, пусто — прежний код не трогаем.
-    if (form.pin && !/^\d{4}$/.test(form.pin)) {
+    // PIN отдельным полем: 4–8 цифр, пусто — прежний код не трогаем.
+    if (form.pin && !/^\d{4,8}$/.test(form.pin)) {
       setSaveErrorField("pin");
-      setSaveError("PIN — ровно 4 цифры.");
+      setSaveError("PIN — от 4 до 8 цифр.");
       mutationLocks.release("staff-save");
       return;
     }

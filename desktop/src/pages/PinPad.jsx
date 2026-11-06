@@ -2,15 +2,18 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { ArrowLeft, Delete, Play } from 'lucide-react'
 import { t } from '../shared/i18n'
 
-// Длина PIN-кода фиксирована: все PIN 4-значные. Пад не принимает 5-ю цифру
-// и отправляет автоматически по вводу 4-й (без задержки).
-const PIN_LENGTH = 4
+// PIN задаётся в карточке сотрудника: от 4 до 8 цифр. Пад принимает 4–8
+// цифр и проверяет код по кнопке подтверждения (или Enter). Раньше ввод
+// ограничивался 4 цифрами с автопроверкой — 5–8-значный PIN из веб-админки
+// было невозможно набрать.
+const PIN_MIN = 4
+const PIN_MAX = 8
 
 function initials(name = '') {
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || '?'
 }
 
-/** PinPad — ввод PIN выбранного сотрудника. onSubmit(pin) → Promise. Ровно 4 цифры.
+/** PinPad — ввод PIN выбранного сотрудника. onSubmit(pin) → Promise. 4–8 цифр.
  *  title — необязательный заголовок (напр. «Экран заблокирован»).
  *  onBack — если не передан, кнопка «Назад» скрыта (режим блокировки).
  *  shiftClosed — PIN верный, но смена не открыта: вместо цифр показываем
@@ -39,8 +42,8 @@ export default function PinPad({
   const lockRef = useRef(false)
 
   const submit = useCallback(async (value) => {
-    if (lockRef.current || value.length < PIN_LENGTH) return
-    lockRef.current = true   // замок сразу — быстрые клики после 4-й цифры игнорируются
+    if (lockRef.current || value.length < PIN_MIN) return
+    lockRef.current = true   // замок сразу — повторные клики по «✓» игнорируются
     setBusy(true); setError(false)
     try {
       await onSubmit(value)
@@ -58,13 +61,13 @@ export default function PinPad({
   }, [onSubmit])
 
   const press = useCallback((d) => {
-    // Жёсткий лимит длины: 5-ю цифру не набрать даже при очень быстрых кликах
-    if (lockRef.current || pinRef.current.length >= PIN_LENGTH) return
+    if (lockRef.current || pinRef.current.length >= PIN_MAX) return
     const next = pinRef.current + d
     pinRef.current = next
     setPin(next)
-    // Набрали полный PIN — сразу проверяем (без задержки)
-    if (next.length >= PIN_LENGTH) submit(next)
+    // 8 — максимум, дальше цифр нет: такой код проверяем сразу. 4–7 цифр
+    // ждут кнопки «✓», иначе 5–8-значный PIN не набрать.
+    if (next.length >= PIN_MAX) submit(next)
   }, [submit])
 
   const back = useCallback(() => {
@@ -84,7 +87,7 @@ export default function PinPad({
     return () => window.removeEventListener('keydown', onKey)
   }, [press, back, submit, shiftClosed])
 
-  const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'back']
+  const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'ok', '0', 'back']
 
   return (
     <div className="pinpad-screen">
@@ -127,15 +130,26 @@ export default function PinPad({
         ) : (
           <>
             <div className={`pinpad__dots ${error ? 'pinpad__dots--error' : ''}`}>
-              {/* Фиксированные 4 точки: PIN всегда 4-значный */}
-              {Array.from({ length: PIN_LENGTH }, (_, i) => (
+              {/* 4 точки по умолчанию; при вводе 5–8-й цифры дорожка растёт */}
+              {Array.from({ length: Math.max(PIN_MIN, pin.length) }, (_, i) => (
                 <span key={i} className={`pinpad__dot ${i < pin.length ? 'pinpad__dot--filled' : ''}`} />
               ))}
             </div>
 
             <div className="pinpad__grid">
               {KEYS.map((k, i) => {
-                if (k === '') return <span key={i} className="pinpad__key pinpad__key--empty" />
+                if (k === 'ok') return (
+                  <button
+                    key={i}
+                    type="button"
+                    className="pinpad__key pinpad__key--action pinpad__key--ok"
+                    onClick={() => submit(pinRef.current)}
+                    disabled={busy || pin.length < PIN_MIN}
+                    aria-label={t('enter')}
+                  >
+                    <Play size={26} />
+                  </button>
+                )
                 if (k === 'back') return (
                   <button key={i} className="pinpad__key pinpad__key--action" onClick={back} disabled={busy}>
                     <Delete size={26} />

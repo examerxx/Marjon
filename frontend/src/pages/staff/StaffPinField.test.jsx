@@ -50,7 +50,7 @@ async function openEditDrawer() {
 }
 
 function typePin(dialog, value) {
-  fireEvent.change(within(dialog).getByPlaceholderText("4 цифры"), { target: { value } });
+  fireEvent.change(within(dialog).getByPlaceholderText("4–8 цифр"), { target: { value } });
 }
 
 describe("PIN сотрудника в карточке", () => {
@@ -78,7 +78,7 @@ describe("PIN сотрудника в карточке", () => {
   it("в правке PIN ставится отдельным запросом после сохранения карточки", async () => {
     const dialog = await openEditDrawer();
     // Поле пустое: прежний код не показываем и не затираем.
-    expect(within(dialog).getByPlaceholderText("4 цифры").value).toBe("");
+    expect(within(dialog).getByPlaceholderText("4–8 цифр").value).toBe("");
     typePin(dialog, "9876");
     fireEvent.click(within(dialog).getByRole("button", { name: "Сохранить" }));
     await waitFor(() => expect(api.patch).toHaveBeenCalledWith("/auth/users/waiter-uuid/pin", { pin: "9876" }));
@@ -91,7 +91,7 @@ describe("PIN сотрудника в карточке", () => {
     const dialog = await openEditDrawer();
     typePin(dialog, "12");
     fireEvent.click(within(dialog).getByRole("button", { name: "Сохранить" }));
-    expect(await within(dialog).findByText("PIN — ровно 4 цифры.")).toBeInTheDocument();
+    expect(await within(dialog).findByText("PIN — от 4 до 8 цифр.")).toBeInTheDocument();
     expect(api.patch).not.toHaveBeenCalled();
   });
 
@@ -106,6 +106,6 @@ describe("PIN сотрудника в карточке", () => {
     fireEvent.click(screen.getByRole("button", { name: /Добавить/ }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).queryByText("PIN для кассы")).toBeNull();
-    expect(within(dialog).queryByPlaceholderText("4 цифры")).toBeNull();
+    expect(within(dialog).queryByPlaceholderText("4–8 цифр")).toBeNull();
   });
 });

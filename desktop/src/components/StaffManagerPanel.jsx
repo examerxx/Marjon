@@ -12,7 +12,7 @@ import CustomSelect from './CustomSelect'
 const ASSIGNABLE_ROLES = ['cashier', 'waiter', 'kitchen', 'courier', 'warehouse']
 
 const asItems = (raw) => (Array.isArray(raw) ? raw : raw?.items || [])
-const onlyDigits = (s) => String(s || '').replace(/\D/g, '').slice(0, 4)
+const onlyDigits = (s) => String(s || '').replace(/\D/g, '').slice(0, 8)
 // Владелец/админ — карточка только для чтения (совпадает с анти-эскалацией бэкенда).
 const isAdminRow = (u) => (u.role_slugs || [u.role_slug]).some((s) => s === 'owner' || s === 'admin')
 
@@ -74,11 +74,11 @@ export default function StaffManagerPanel({ onClose }) {
         userId = created?.id || created?.user?.id
       }
       else await auth.updateUser(editing.id, payload)
-      // PIN: 4 цифры, отдельным эндпоинтом PATCH /users/{id}/pin.
+      // PIN: 4–8 цифр, отдельным эндпоинтом PATCH /users/{id}/pin.
       // При создании обязателен, на правке пусто = «не менять».
       const pin = onlyDigits(form.pin)
       if (editing === 'new' || pin !== '') {
-        if (!/^\d{4}$/.test(pin)) { toast(t('staff_pin_invalid'), 'error'); setSaving(false); return }
+        if (!/^\d{4,8}$/.test(pin)) { toast(t('staff_pin_invalid'), 'error'); setSaving(false); return }
         await auth.setPin(userId, pin)
       }
       toast(t('saved'), 'ok')

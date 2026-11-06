@@ -130,6 +130,9 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
   const unlockedWaiters = useRef(new Set())
   const [creating, setCreating] = useState(false)         // создание заказа (лоадер кнопки)
   const [staff, setStaff] = useState([])                 // сотрудники (для смены официанта)
+  // Кто сегодня вошёл по PIN / открыл смену. Сайдбар «По официантам» показывает
+  // только их, а не весь штат филиала.
+  const [activeStaffIds, setActiveStaffIds] = useState([])
   const [printerMap, setPrinterMap] = useState({})
   const [addToOrderId, setAddToOrderId] = useState(null) // id заказа, в который ДОБАВЛЯЕМ блюда (иначе создаём новый)
   const [existingOrder, setExistingOrder] = useState(null) // снимок заказа, который редактируем
@@ -220,6 +223,21 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
       document.removeEventListener('visibilitychange', onVisible)
     }
   }, [loadFloor])
+
+  // «Активные сегодня»: кто вошёл по PIN с начала локальных суток (открытие
+  // смены тоже требует PIN-входа). Обновляем раз в минуту — официанты
+  // подходят к терминалу в течение дня.
+  const refreshActiveStaff = useCallback(() => {
+    authApi.activeStaff()
+      .then((ids) => setActiveStaffIds((Array.isArray(ids) ? ids : []).map(String)))
+      .catch(() => { /* офлайн — показываем прежний список/весь штат */ })
+  }, [])
+
+  useEffect(() => {
+    refreshActiveStaff()
+    const id = setInterval(refreshActiveStaff, 60000)
+    return () => clearInterval(id)
+  }, [refreshActiveStaff])
 
   useEffect(() => {
     Promise.all([menu.categories().catch(() => []), menu.products().catch(() => []), printersApi.list().catch(() => [])])
@@ -802,26 +820,38 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
   // чтобы список не оставался пустым.
   const onlyWaiters = staff.filter((u) => roleSlugOf(u) === 'waiter')
   const waitersAll = onlyWaiters.length > 0 ? onlyWaiters : staff
-  // Сотрудник, который ввёл свой PIN, стоит первым: его заказы открываются
-  // по умолчанию, остальные официанты остаются в списке следом.
-  const selfIndex = waitersAll.findIndex((w) => String(w.id) === String(user.id))
-  const hallWaiters = selfIndex > 0
-    ? [waitersAll[selfIndex], ...waitersAll.filter((_, i) => i !== selfIndex)]
-    : waitersAll
-  const meWaiter = hallWaiters.find((w) => String(w.id) === String(user.id)) || null
-  // По умолчанию выбран тот, кто вошёл по PIN (иначе — первый официант).
-  const waiterPicked = useRef(false)
-  useEffect(() => {
-    if (waiterPicked.current || hallWaiters.length === 0) return
-    waiterPicked.current = true
-    setWaiterFilter((meWaiter || hallWaiters[0]).id)
-  }, [staff])
   const belongsToWaiter = (o, w) => {
     if (!o || !w) return false
     if (o.waiter_id && String(o.waiter_id) === String(w.id)) return true
     return Boolean(o.waiter_name && w.name && o.waiter_name === w.name)
   }
   const ordersOfWaiter = (w) => orderList.filter((o) => o.order_type === 'dine_in' && belongsToWaiter(o, w))
+  // Сайдбар показывает только активных сегодня: вошёл по PIN / открыл смену
+  // (activeStaffIds) либо уже имеет заказ. Сотрудник за этим терминалом
+  // остаётся всегда; если список активных пуст или недоступен — весь штат.
+  const activeSet = new Set(activeStaffIds)
+  const worksToday = (w) => activeSet.size === 0
+    || activeSet.has(String(w.id))
+    || String(w.id) === String(user.id)
+    || orderList.some((o) => o.order_type === 'dine_in' && belongsToWaiter(o, w))
+  const waitersToday = waitersAll.filter(worksToday)
+  // Сотрудник, который ввёл свой PIN, стоит первым: его заказы открываются
+  // по умолчанию, остальные официанты остаются в списке следом.
+  const selfIndex = waitersToday.findIndex((w) => String(w.id) === String(user.id))
+  const hallWaiters = selfIndex > 0
+    ? [waitersToday[selfIndex], ...waitersToday.filter((_, i) => i !== selfIndex)]
+    : waitersToday
+  const meWaiter = hallWaiters.find((w) => String(w.id) === String(user.id)) || null
+  // По умолчанию выбран тот, кто вошёл по PIN (иначе — первый активный официант).
+  // Если выбранный выпал из списка (смена закончилась) — выбираем заново.
+  const waiterPicked = useRef(false)
+  useEffect(() => {
+    if (hallWaiters.length === 0) return
+    const stillThere = waiterFilter && hallWaiters.some((w) => String(w.id) === String(waiterFilter))
+    if (waiterPicked.current && stillThere) return
+    waiterPicked.current = true
+    setWaiterFilter((meWaiter || hallWaiters[0]).id)
+  }, [staff, activeStaffIds])
 
   // Карточка занятого стола/заказа: зелёная шапка, состав заказа, итог.
   const orderCard = (o, { icon: HeadIcon = Utensils } = {}) => {
@@ -1106,7 +1136,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
                         <div className="hgroup__title">
                           {t('free_tables')} <span>{freeTables.length} {t.count(freeTables.length, 'tables')}</span>
                         </div>
-                        <div className="hgrid">{freeTables.map((tb) => freeTableCard(tb))}</div>
+                        <div className="hgrid hgrid--free">{freeTables.map((tb) => freeTableCard(tb))}</div>
                       </section>
                     )}
                   </>

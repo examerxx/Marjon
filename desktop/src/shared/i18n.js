@@ -181,7 +181,7 @@ const DICT = {
     // Управление сотрудниками
     required_fields: 'Заполните имя и роль', saved: 'Сохранено', save_failed: 'Не удалось сохранить',
     staff_add: 'Добавить сотрудника', staff_name: 'Имя', staff_phone: 'Телефон', staff_role: 'Роль',
-    staff_pin: 'PIN-код', staff_pin_keep: 'Оставить прежний', staff_pin_invalid: 'PIN — 2–8 цифр',
+    staff_pin: 'PIN-код', staff_pin_keep: 'Оставить прежний', staff_pin_invalid: 'PIN — 4–8 цифр',
     staff_active: 'Активен', staff_inactive: 'неактивен', staff_readonly: 'Только чтение',
     // Права кассиров
     rights_select: 'Выберите сотрудника, чтобы изменить права.',
@@ -400,7 +400,7 @@ const DICT = {
     // Xodimlarni boshqarish
     required_fields: 'Ism va rolni to‘ldiring', saved: 'Saqlandi', save_failed: 'Saqlab bo‘lmadi',
     staff_add: 'Xodim qo‘shish', staff_name: 'Ism', staff_phone: 'Telefon', staff_role: 'Rol',
-    staff_pin: 'PIN-kod', staff_pin_keep: 'Avvalgisini qoldirish', staff_pin_invalid: 'PIN — 2–8 raqam',
+    staff_pin: 'PIN-kod', staff_pin_keep: 'Avvalgisini qoldirish', staff_pin_invalid: 'PIN — 4–8 raqam',
     staff_active: 'Faol', staff_inactive: 'nofaol', staff_readonly: 'Faqat o‘qish',
     // Kassir huquqlari
     rights_select: 'Huquqlarni o‘zgartirish uchun xodimni tanlang.',

@@ -1,8 +1,9 @@
 # SlowAPI registers a wrapper whose global namespace is ``slowapi.extension``.
 # Keep endpoint annotations runtime-evaluated in this module so FastAPI sees
 # concrete request models after ``@limiter.limit`` wraps the function.
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, status, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -17,7 +18,6 @@ from app.modules.auth.dependencies import (
     require_company_app_user,
     require_kitchen_device,
     require_staff_lister,
-    require_terminal_or_web_owner,
     require_web_owner,
 )
 from app.modules.auth.models import RefreshToken, User
@@ -631,18 +631,28 @@ async def branch_colleagues(
     return result
 
 
-# A session counts as "active" for one shift
-_SESSION_WINDOW = timedelta(hours=16)
-
-
 @router.get("/active-staff", response_model=list[str])
 async def active_staff(
-    current_user: User = Depends(require_terminal_or_web_owner),
+    current_user: User = Depends(require_staff_lister),
     db: AsyncSession = Depends(get_db),
 ):
-    """IDs of staff with a live session: an unrevoked, unexpired refresh token
-    issued within the current shift window."""
+    """IDs of staff active today: a live session (unrevoked, unexpired refresh
+    token) issued since local midnight. Opening a shift requires a PIN login,
+    so the person who opened today's shift is included by construction.
+
+    Shift rows themselves are per-branch (cashier_shifts has a single open
+    shift per branch), so they cannot tell which waiter is working — the
+    per-employee session is the signal the POS sidebar needs."""
+    tz_name = (
+        await db.execute(select(Company.timezone).where(Company.id == current_user.company_id))
+    ).scalar_one_or_none() or "Asia/Tashkent"
+    try:
+        tz = ZoneInfo(tz_name)
+    except (ZoneInfoNotFoundError, KeyError):
+        tz = ZoneInfo("Asia/Tashkent")
+
     now = datetime.now(timezone.utc)
+    day_start = now.astimezone(tz).replace(hour=0, minute=0, second=0, microsecond=0)
     rows = await db.execute(
         select(RefreshToken.user_id)
         .join(User, User.id == RefreshToken.user_id)
@@ -651,7 +661,7 @@ async def active_staff(
             or_(User.email.is_(None), ~User.email.like(TERMINAL_EMAIL_LIKE)),
             RefreshToken.revoked_at.is_(None),
             RefreshToken.expires_at > now,
-            RefreshToken.created_at > now - _SESSION_WINDOW,
+            RefreshToken.created_at >= day_start,
         )
         .distinct()
     )

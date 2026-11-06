@@ -354,9 +354,9 @@ export default function StaffFormModal({
               <input
                 autoComplete="off"
                 inputMode="numeric"
-                maxLength={4}
+                maxLength={8}
                 value={form.pin}
-                onChange={(event) => updateForm("pin", event.target.value.replace(/\D/g, "").slice(0, 4))}
+                onChange={(event) => updateForm("pin", event.target.value.replace(/\D/g, "").slice(0, 8))}
                 placeholder={t("pages.staff.staffformmodal.4_tsifry")}
                 aria-invalid={saveErrorField === "pin" && saveError ? true : undefined}
                 aria-describedby={
