@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, LogOut, User, UtensilsCrossed } from 'lucide-react'
+import { ChevronDown, LogOut, User } from 'lucide-react'
 import { t } from '../shared/i18n'
 
 /** Фирменный знак MARJON: два наклонных штриха и синяя капля. */
@@ -41,7 +41,6 @@ function shortName(name = '') {
  * (слот), профиль сотрудника, выход и карточка времени.
  */
 export default function TopBar({
-  venueName,
   userName,
   userRole,
   onAccount,
@@ -69,14 +68,6 @@ export default function TopBar({
       <div className="topbar__back-slot" id="topbar-back-slot" />
 
       <span className="topbar__rule" aria-hidden="true" />
-
-      {venueName && (
-        <button className="topbar__venue" title={venueName} onClick={onAccount}>
-          <UtensilsCrossed size={21} />
-          <span>{venueName}</span>
-          <ChevronDown size={19} className="topbar__venue-chevron" />
-        </button>
-      )}
 
       {/* Разделы режима: «События / Заказы / Меню / Блокировка» приходят порталом. */}
       <nav className="topbar__nav" id="topbar-nav-slot" aria-label={t('menu_more')} />

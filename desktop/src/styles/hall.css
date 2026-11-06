@@ -41,7 +41,7 @@
 
 /* ── Верхняя плавающая панель ──────────────────────────────────── */
 .topbar {
-  height: 70px;
+  height: 64px;
   padding: 0 14px 0 18px;
   gap: 12px;
   border: none;
@@ -54,13 +54,13 @@
 .topbar__logo-mark {
   display: flex;
   align-items: center;
-  width: 58px;
-  height: 44px;
+  width: 52px;
+  height: 40px;
 }
-.topbar__logo { width: 58px; height: auto; display: block; }
+.topbar__logo { width: 52px; height: auto; display: block; }
 .topbar__brand-name {
   font-family: var(--font-display);
-  font-size: 23px;
+  font-size: 21px;
   font-weight: 800;
   letter-spacing: 0.045em;
   text-transform: uppercase;
@@ -68,38 +68,11 @@
 }
 .topbar__rule {
   width: 1px;
-  height: 44px;
+  height: 40px;
   flex: 0 0 auto;
   background: rgba(22, 40, 63, 0.13);
 }
 .topbar__back-slot { margin-left: 0; }
-
-.topbar__venue {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 10px;
-  height: 48px;
-  max-width: 280px;
-  padding: 0 4px;
-  border: none;
-  border-radius: 12px;
-  background: transparent;
-  color: #16283f;
-  font-family: inherit;
-  font-size: 16.5px;
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  cursor: pointer;
-}
-.topbar__venue > svg { color: #24384d; flex-shrink: 0; }
-.topbar__venue > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.topbar__venue-chevron { color: #4a5d72; flex-shrink: 0; }
-.topbar__venue:hover { background: #f1f5fa; }
 
 .topbar__nav {
   display: flex;
@@ -115,7 +88,7 @@
   justify-content: center;
   gap: 6px;
   min-width: 76px;
-  height: 66px;
+  height: 60px;
   padding: 4px 8px;
   border: none;
   border-radius: 14px;
@@ -164,8 +137,7 @@
   color: #fff;
   box-shadow: 0 10px 20px -14px rgba(10, 143, 155, 0.9);
 }
-/* На экране заказа в шапке живёт поиск — заведение уступает ему место. */
-.topbar:has(.topbar-search) .topbar__venue,
+/* На экране заказа в шапке живёт поиск — разделитель уступает ему место. */
 .topbar:has(.topbar-search) .topbar__rule { display: none; }
 
 /* Профиль, выход и часы */
@@ -177,7 +149,7 @@
 }
 .topbar__divider {
   width: 1px;
-  height: 44px;
+  height: 40px;
   margin-right: 4px;
   background: rgba(22, 40, 63, 0.13);
 }
@@ -185,7 +157,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  height: 54px;
+  height: 50px;
   padding: 0 6px;
   border: none;
   border-radius: 14px;
@@ -247,7 +219,7 @@
   justify-content: center;
   gap: 1px;
   min-width: 104px;
-  height: 54px;
+  height: 50px;
   padding: 0 12px;
   border: none;
   border-radius: 12px;
@@ -648,35 +620,28 @@
   white-space: nowrap;
 }
 .hcard__title > svg { flex-shrink: 0; }
-.hcard__seats {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 0;
-  border-radius: 0;
-  background: none;
-  font-size: 14px;
-  font-weight: 700;
-}
 .hcard__body {
   display: flex;
   flex-direction: column;
   gap: 6px;
   flex: 1 1 auto;
-  padding: 9px 13px 11px;
+  padding: 11px 13px;
   background: #fff;
 }
+/* Время работы заказа живёт в зелёной шапке справа — на месте, где раньше
+   было число гостей. */
 .hcard__time {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  padding: 5px 10px;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 3px 8px;
   border-radius: 8px;
-  background: #e6edf4;
-  color: #24384e;
-  font-size: 13px;
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 .hcard__client {
   overflow: hidden;
@@ -774,7 +739,6 @@
 @media (max-width: 1500px) {
   .topbar { gap: 12px; }
   .topnav-btn { min-width: 74px; }
-  .topbar__venue { max-width: 250px; }
   .floor > .ws-side { width: 270px; }
 }
 @media (max-width: 1280px) {
@@ -789,7 +753,6 @@
 }
 @media (max-width: 1100px) {
   .topbar { gap: 10px; padding: 0 10px 0 14px; }
-  .topbar__venue { display: none; }
   .topbar__rule { display: none; }
   .topbar__clock-card { display: none; }
   .floor > .ws-side { width: 226px; }

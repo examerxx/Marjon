@@ -1109,42 +1109,34 @@ describe("SettingsPlacesPage — branch UX", () => {
     expect(settingsService.createPlace.mock.calls[0][0]).not.toHaveProperty("branch_id");
   });
 
-  it("multiple active branches → selector required, canonical Branch.id sent", async () => {
+  it("multiple active branches → no branch field, first active branch is used", async () => {
     mockBranches(TWO_BRANCHES);
     renderPage();
     await screen.findByText("Зал");
     fireEvent.click(screen.getByRole("button", { name: "Добавить место" }));
     const form = document.querySelector(".settings-form");
-    expect(within(form).getByText("Филиал")).toBeInTheDocument();
-    expect(branchTrigger()).not.toBeNull();
+    expect(within(form).queryByText("Филиал")).toBeNull();
+    expect(branchTrigger()).toBeNull();
     fireEvent.change(within(form).getByPlaceholderText("Введите название места"), { target: { value: "VIP" } });
-
-    // submitting without a choice is refused locally — no silent branches[0]
     fireEvent.click(within(form).getByRole("button", { name: "Добавить" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Выберите филиал");
-    expect(settingsService.createPlace).not.toHaveBeenCalled();
-
-    fireEvent.click(branchTrigger());
-    fireEvent.click(screen.getByRole("option", { name: "Второй филиал" }));
-    expect(branchTrigger().textContent).toBe("Второй филиал");
-    fireEvent.click(within(form).getByRole("button", { name: "Добавить" }));
-    await waitFor(() => expect(settingsService.createPlace).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "VIP", branch_id: "b-second" })));
-    // identity is the canonical UUID, never an array index
+    await waitFor(() => expect(settingsService.createPlace).toHaveBeenCalledTimes(1));
     const { branch_id: sent } = settingsService.createPlace.mock.calls[0][0];
-    expect(sent).toBe("b-second");
+    expect(sent).toBe("b-main");
+    // identity is the canonical UUID, never an array index
     expect(Number.isInteger(Number(sent))).toBe(false);
   });
 
-  it("inactive branches are not offered", async () => {
-    mockBranches([...TWO_BRANCHES, { id: "b-dead", name: "Закрытый филиал", is_active: false }]);
+  it("inactive branches are skipped when the place picks a branch", async () => {
+    mockBranches([{ id: "b-dead", name: "Закрытый филиал", is_active: false }, ...TWO_BRANCHES]);
     renderPage();
     await screen.findByText("Зал");
     fireEvent.click(screen.getByRole("button", { name: "Добавить место" }));
-    fireEvent.click(branchTrigger());
-    const panel = document.querySelector("#hall-branch-select-listbox");
-    expect(within(panel).queryByRole("option", { name: "Закрытый филиал" })).toBeNull();
-    expect(within(panel).getByRole("option", { name: "Второй филиал" })).toBeInTheDocument();
+    const form = document.querySelector(".settings-form");
+    expect(branchTrigger()).toBeNull();
+    fireEvent.change(within(form).getByPlaceholderText("Введите название места"), { target: { value: "VIP" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Добавить" }));
+    await waitFor(() => expect(settingsService.createPlace).toHaveBeenCalledTimes(1));
+    expect(settingsService.createPlace.mock.calls[0][0].branch_id).toBe("b-main");
   });
 
   it("zero branches → no selector, no fabricated branch, backend stays authoritative", async () => {
@@ -1164,15 +1156,14 @@ describe("SettingsPlacesPage — branch UX", () => {
   });
 
   // HallUpdate has no branch_id, so edit mode must not offer reassignment.
-  it("edit mode never offers branch reassignment", async () => {
+  it("edit mode has no branch field and never sends branch_id", async () => {
     mockBranches(TWO_BRANCHES);
     renderPage();
     await screen.findByText("Зал");
     fireEvent.click(screen.getAllByRole("button", { name: "Редактировать" })[0]);
     const form = document.querySelector(".settings-form");
     expect(branchTrigger()).toBeNull();
-    // shown read-only for context only
-    expect(within(form).getByText(/Филиал:/)).toBeInTheDocument();
+    expect(within(form).queryByText(/Филиал/)).toBeNull();
     fireEvent.click(within(form).getByRole("button", { name: "Сохранить" }));
     await waitFor(() => expect(settingsService.updatePlace).toHaveBeenCalledTimes(1));
     expect(settingsService.updatePlace.mock.calls[0][1]).not.toHaveProperty("branch_id");

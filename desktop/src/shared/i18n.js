@@ -27,7 +27,8 @@ const DICT = {
     to_tables: 'К столам', no_dishes: 'Нет блюд', tap_dish_hint: 'Нажмите на блюдо, чтобы добавить',
     discount: 'Скидка %', discount_word: 'Скидка', to_pay: 'К оплате', order_no: 'Заказ',
     cash: 'Наличные', card: 'Карта', mixed: 'Смешанная', other_method: 'Другой', apply: 'Применить',
-    items_low: 'позиций', tables_low: 'столов', busy_low: 'занято', in_work: 'в работе', orders_low: 'заказов',
+    items_low: 'позиций', tables_low: 'столов', tables_one: 'стол', tables_few: 'стола',
+    busy_low: 'занято', in_work: 'в работе', orders_low: 'заказов', orders_one: 'заказ', orders_few: 'заказа',
     create_order_error: 'Ошибка создания заказа',
     load_halls_error: 'Не удалось загрузить залы. Проверьте связь и повторите попытку.',
     order_closed: 'Заказ закрыт', close_order_error: 'Не удалось закрыть заказ',
@@ -83,9 +84,10 @@ const DICT = {
     all_tables: 'Все столы', hall: 'Зал', new_order: 'Новый заказ',
     // Верхняя лента и нижний док
     nav_events: 'События', nav_lock: 'Блокировка', waiters: 'Официанты',
-    scheme_hall: 'Схема зала', by_waiters: 'По официантам', quick_check: 'Быстрый чек', more: 'Ещё',
+    by_waiters: 'По официантам', quick_check: 'Быстрый чек', more: 'Ещё',
     open_table: 'Открыть стол', add_order: 'Добавить заказ',
     free_tables: 'Свободные столы', min_short: 'мин',
+    other_waiter_order: 'Заказ другого официанта', other_waiter_pin_hint: 'введите PIN, чтобы добавить блюда',
     no_halls: 'Нет залов. Добавьте их в веб-админке.', add_dishes: 'Добавить блюда',
     close_order: 'Закрыть заказ', no_table: 'Без стола', guests: 'Гостей',
     order_comment: 'Комментарий к заказу...', add_dishes_empty: 'Добавьте блюда',
@@ -301,9 +303,10 @@ const DICT = {
     all_tables: 'Barcha stollar', hall: 'Zal', new_order: 'Yangi buyurtma',
     // Yuqori lenta va pastki dok
     nav_events: 'Voqealar', nav_lock: 'Bloklash', waiters: 'Ofitsiantlar',
-    scheme_hall: 'Zal sxemasi', by_waiters: 'Ofitsiantlar bo‘yicha', quick_check: 'Tezkor chek', more: 'Yana',
+    by_waiters: 'Ofitsiantlar bo‘yicha', quick_check: 'Tezkor chek', more: 'Yana',
     open_table: 'Stolni ochish', add_order: 'Buyurtma qo‘shish',
     free_tables: 'Bo‘sh stollar', min_short: 'daq',
+    other_waiter_order: 'Boshqa ofitsiant buyurtmasi', other_waiter_pin_hint: 'taom qo‘shish uchun PIN kiriting',
     no_halls: 'Zallar yo‘q. Ularni veb-admin panelda qo‘shing.', add_dishes: 'Taom qo‘shish',
     close_order: 'Buyurtmani yopish', no_table: 'Stolsiz', guests: 'Mehmonlar',
     order_comment: 'Buyurtmaga izoh...', add_dishes_empty: 'Taom qo‘shing',
@@ -445,6 +448,16 @@ export function lang() {
 export function t(key) {
   const l = lang()
   return (DICT[l] && DICT[l][key]) || DICT.ru[key] || key
+}
+// Согласование числительных: t.count(3, 'orders') → «3 заказа» / «3 buyurtma».
+t.count = (n, base) => {
+  const num = Math.abs(Number(n) || 0)
+  if (lang() === 'uz') return t(base + '_low')
+  const mod10 = num % 10
+  const mod100 = num % 100
+  if (mod10 === 1 && mod100 !== 11) return t(base + '_one')
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return t(base + '_few')
+  return t(base + '_low')
 }
 // Хелпер для статусов заказа: t.status('cooking') → «Готовится»/«Tayyorlanmoqda»
 t.status = (s) => t('st_' + String(s || 'new'))

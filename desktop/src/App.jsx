@@ -486,7 +486,6 @@ export default function App() {
   return (
     <div className="app-shell">
       <TopBar
-        venueName={branch?.name || orgUser?.company_name}
         userName={staffUser?.name}
         userRole={modeLabel}
         onAccount={handleAccount}

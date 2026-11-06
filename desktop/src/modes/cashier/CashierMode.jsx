@@ -96,9 +96,9 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
 
   // Курьер стартует на доске своих заказов (доставка). Физических столов у него нет
   const [view, setView] = useState('floor')  // floor | order
-  // Нижний док: «Схема зала» (официанты + залы), «Все столы» (залы),
-  // «По официантам» (столы сгруппированы по ответственным).
-  const [hallMode, setHallMode] = useState('scheme')   // scheme | tables | waiters
+  // Нижний док: «Все столы» (залы) и «По официантам» (заказы сгруппированы
+  // по ответственным). По официантам — стартовая доска.
+  const [hallMode, setHallMode] = useState('waiters')   // tables | waiters
   const [waiterFilter, setWaiterFilter] = useState(null)   // id официанта или null
   const [orderType, setOrderType] = useState(courier ? 'delivery' : 'dine_in')
   const [selectedTable, setSelectedTable] = useState(null)
@@ -125,6 +125,9 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
   const [printOpen, setPrintOpen] = useState(false)   // Пакетная печать (меню «…», всем)
   const [payExisting, setPayExisting] = useState(null)   // существующий заказ на оплату/закрытие
   const [promptCfg, setPromptCfg] = useState(null)        // модалка ввода (пароль отмены / новый стол)
+  // Официанты, чужой заказ которых уже открыт по PIN в этой сессии. Повторно
+  // пароль не спрашиваем, пока сотрудник не сменился (компонент перемонтируется).
+  const unlockedWaiters = useRef(new Set())
   const [creating, setCreating] = useState(false)         // создание заказа (лоадер кнопки)
   const [staff, setStaff] = useState([])                 // сотрудники (для смены официанта)
   const [printerMap, setPrinterMap] = useState({})
@@ -340,10 +343,50 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     setExistingOrder(null); setOrderLines([]); setPaidBefore(0)
     setView('order')
   }
+  // Владелец заказа: waiter_id, иначе ищем сотрудника по имени (старые заказы).
+  function orderOwnerId(order) {
+    if (order?.waiter_id) return String(order.waiter_id)
+    if (!order?.waiter_name) return null
+    const match = [...hallWaiters, ...staff].find((w) => w.name && w.name === order.waiter_name)
+    return match ? String(match.id) : null
+  }
+  // Чужой заказ официант открывает только по PIN его владельца. Кассир,
+  // менеджер и владелец работают без подтверждения.
+  function askOrderPin(order, paid) {
+    const ownerId = orderOwnerId(order)
+    const owner = hallWaiters.find((w) => String(w.id) === ownerId)
+      || staff.find((w) => String(w.id) === ownerId)
+    const ownerName = owner?.name || order.waiter_name || t('waiters')
+    setPromptCfg({
+      title: t('other_waiter_order'),
+      hint: `${ownerName} · ${t('other_waiter_pin_hint')}`,
+      placeholder: 'PIN',
+      type: 'password',
+      submitLabel: t('pin_confirm'),
+      onSubmit: async (pin) => {
+        // Неверный PIN бэкенд отдаёт 4xx, поэтому локальную ошибку показываем
+        // сами — иначе в модалке всплывало английское «Invalid PIN».
+        const who = await authApi.verifyPin(pin, ownerId).catch(() => null)
+        if (!who || String(who.id) !== ownerId) throw new Error(t('lp_bad_pin'))
+        unlockedWaiters.current.add(ownerId)
+        setPromptCfg(null)
+        openExistingOrder(order, paid)
+      },
+    })
+  }
   // Снимок заказа → экран. Это ТОТ ЖЕ экран, что и при заказе блюда в пустом
   // столе: слева меню, справа уже заказанные блюда и новые.
   async function openExistingOrder(order, paid = 0) {
     if (!order?.id) return
+    const ownerId = orderOwnerId(order)
+    if (
+      roleSlugOf(user) === 'waiter'
+      && ownerId && ownerId !== String(user.id)
+      && !unlockedWaiters.current.has(ownerId)
+    ) {
+      askOrderPin(order, paid)
+      return
+    }
     const fresh = await orders.get(order.id).catch(() => order)
     resetOrderDraft()
     setOrderType(fresh?.order_type === 'delivery' || fresh?.order_type === 'takeaway' ? fresh.order_type : 'dine_in')
@@ -754,19 +797,24 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     />
   ) : null
 
-  // ── Схема зала: официанты, их столы и карточки заказов ──
-  const roleOf = (u) => String(u?.role_slug || u?.role_slugs?.[0] || '').toLowerCase()
+  // ── По официантам: сотрудники и их заказы ──
   // В сайдбаре — именно официанты; если в филиале их нет, показываем весь персонал,
   // чтобы список не оставался пустым.
-  const onlyWaiters = staff.filter((u) => roleOf(u) === 'waiter')
-  const hallWaiters = onlyWaiters.length > 0 ? onlyWaiters : staff
-  const selectedWaiter = hallWaiters.find((w) => String(w.id) === String(waiterFilter)) || null
-  // По умолчанию схема открывается на первом официанте — как в POS.
+  const onlyWaiters = staff.filter((u) => roleSlugOf(u) === 'waiter')
+  const waitersAll = onlyWaiters.length > 0 ? onlyWaiters : staff
+  // Сотрудник, который ввёл свой PIN, стоит первым: его заказы открываются
+  // по умолчанию, остальные официанты остаются в списке следом.
+  const selfIndex = waitersAll.findIndex((w) => String(w.id) === String(user.id))
+  const hallWaiters = selfIndex > 0
+    ? [waitersAll[selfIndex], ...waitersAll.filter((_, i) => i !== selfIndex)]
+    : waitersAll
+  const meWaiter = hallWaiters.find((w) => String(w.id) === String(user.id)) || null
+  // По умолчанию выбран тот, кто вошёл по PIN (иначе — первый официант).
   const waiterPicked = useRef(false)
   useEffect(() => {
     if (waiterPicked.current || hallWaiters.length === 0) return
     waiterPicked.current = true
-    setWaiterFilter(hallWaiters[0].id)
+    setWaiterFilter((meWaiter || hallWaiters[0]).id)
   }, [staff])
   const belongsToWaiter = (o, w) => {
     if (!o || !w) return false
@@ -774,16 +822,6 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     return Boolean(o.waiter_name && w.name && o.waiter_name === w.name)
   }
   const ordersOfWaiter = (w) => orderList.filter((o) => o.order_type === 'dine_in' && belongsToWaiter(o, w))
-  const tablesForZone = (z) => {
-    const list = z.tables || []
-    // В «Схеме зала» выбранный официант сужает доску до своих занятых
-    // столов; свободные ячейки остаются на месте — на них заводят заказ.
-    if (hallMode !== 'scheme' || !selectedWaiter) return list
-    return list.filter((tb) => {
-      const o = orderFor(tb)
-      return !o || belongsToWaiter(o, selectedWaiter)
-    })
-  }
 
   // Карточка занятого стола/заказа: зелёная шапка, состав заказа, итог.
   const orderCard = (o, { icon: HeadIcon = Utensils } = {}) => {
@@ -803,12 +841,11 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
       >
         <span className="hcard__head">
           <span className="hcard__title"><HeadIcon size={18} /> {label}</span>
-          <span className="hcard__seats"><Users size={17} /> {o.persons_count || 0}</span>
-        </span>
-        <span className="hcard__body">
           <span className="hcard__time">
             <Clock size={13} /> {fmtTime(o.created_at)}{mins > 0 ? ` (${mins} ${t('min_short')})` : ''}
           </span>
+        </span>
+        <span className="hcard__body">
           {orderBoard && o.customer_phone && (
             <span className="hcard__client">{formatPhone(extractPhoneDigits(o.customer_phone)) || o.customer_phone}</span>
           )}
@@ -903,7 +940,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     setView('floor')
     setHallMode(mode)
     setActiveZone('all')
-    setWaiterFilter(null)
+    setWaiterFilter(mode === 'waiters' ? (meWaiter || hallWaiters[0])?.id ?? null : null)
   }
 
   // «Ещё»: остальные разделы, которые не поместились в док и верхнюю ленту.
@@ -926,9 +963,6 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
       )}
       {!courier && (
         <>
-          <button className={`dock__item ${view === 'floor' && hallMode === 'scheme' ? 'is-active' : ''}`} onClick={() => goHall('scheme')}>
-            <LayoutGrid size={26} /><span>{t('scheme_hall')}</span>
-          </button>
           <button className={`dock__item ${view === 'floor' && hallMode === 'tables' ? 'is-active' : ''}`} onClick={() => goHall('tables')}>
             <List size={26} /><span>{t('all_tables')}</span>
           </button>
@@ -953,15 +987,8 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
 
   // ═══ Вид: столы (кассир) / доска заказов (курьер) ═══
   if (view === 'floor') {
-    // Столы текущей доски с учётом фильтра по официанту.
-    const visibleTables = hallMode === 'scheme' && selectedWaiter
-      ? shownTables.filter((tb) => {
-        const o = orderFor(tb)
-        return !o || belongsToWaiter(o, selectedWaiter)
-      })
-      : shownTables
     const visibleZones = shownZones
-      .map((zone) => ({ zone, tables: tablesForZone(zone) }))
+      .map((zone) => ({ zone, tables: zone.tables || [] }))
       .filter(({ tables }) => tables.length > 0)
     const waiterSections = hallWaiters
       .map((waiter) => ({ waiter, orders: ordersOfWaiter(waiter) }))
@@ -1027,7 +1054,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
           {orderBoard && (
             <div className="hall-board__head">
               <div className="hall-board__meta">
-                <span className="hall-board__summary">{boardOrders.length} {t('orders_low')}</span>
+                <span className="hall-board__summary">{boardOrders.length} {t.count(boardOrders.length, 'orders')}</span>
                 <button className="hall-board__new" onClick={() => openOrder(activeZone, null)}>
                   <Plus size={16} /> {t('new_order')}
                 </button>
@@ -1055,7 +1082,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
                     {waiterSections.map(({ waiter: w, orders }) => (
                       <section className="hgroup" key={w.id}>
                         <div className="hgroup__title">
-                          {w.name} <span>{orders.length} {t('orders_low')}</span>
+                          {w.name} <span>{orders.length} {t.count(orders.length, 'orders')}</span>
                         </div>
                         <div className="hgrid">{orders.map((o) => orderCard(o))}</div>
                       </section>
@@ -1063,7 +1090,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
                     {unassignedOrders.length > 0 && (
                       <section className="hgroup">
                         <div className="hgroup__title">
-                          {t('waiter_not_set')} <span>{unassignedOrders.length} {t('orders_low')}</span>
+                          {t('waiter_not_set')} <span>{unassignedOrders.length} {t.count(unassignedOrders.length, 'orders')}</span>
                         </div>
                         <div className="hgrid">{unassignedOrders.map((o) => orderCard(o))}</div>
                       </section>
@@ -1071,30 +1098,19 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
                     {freeTables.length > 0 && (
                       <section className="hgroup">
                         <div className="hgroup__title">
-                          {t('free_tables')} <span>{freeTables.length} {t('tables_low')}</span>
+                          {t('free_tables')} <span>{freeTables.length} {t.count(freeTables.length, 'tables')}</span>
                         </div>
                         <div className="hgrid">{freeTables.map((tb) => freeTableCard(tb))}</div>
                       </section>
                     )}
                   </>
                 )
-            ) : hallMode === 'scheme' ? (
-              visibleTables.length === 0 ? (
-                <p className="empty-text empty-text--board">{t('no_orders')}</p>
-              ) : (
-                <div className="hgrid">
-                  {visibleTables.map((tb) => {
-                    const o = orderFor(tb)
-                    return o ? orderCard(o) : freeTableCard(tb)
-                  })}
-                </div>
-              )
             ) : visibleZones.length === 0 ? (
               <p className="empty-text empty-text--board">{t('no_orders')}</p>
             ) : visibleZones.map(({ zone, tables }) => (
               <section className="hgroup" key={zone.id}>
                 <div className="hgroup__title">
-                  {zone.name} <span>{tables.length} {t('tables_low')}</span>
+                  {zone.name} <span>{tables.length} {t.count(tables.length, 'tables')}</span>
                 </div>
                 <div className="hgrid">
                   {tables.map((tb) => {

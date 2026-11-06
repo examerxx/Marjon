@@ -109,7 +109,7 @@ function prefersReducedMotion() {
 // `price` holds RAW digits for the structured Hall.price_amount column
 // (Phase 5C-2). Hall.condition is a legacy human-readable note and is NEVER
 // written from here, so an unrelated price edit cannot destroy it.
-const EMPTY_HALL_FORM = { name: "", percent: "", pricing_type: "", price: "", is_active: true, branch_id: "" };
+const EMPTY_HALL_FORM = { name: "", percent: "", pricing_type: "", price: "", is_active: true };
 const EMPTY_TABLE_FORM = { number: "", capacity: "4", is_active: true };
 
 function tablesLabel(count) {
@@ -490,20 +490,12 @@ export default function SettingsPlacesPage() {
       setViewSwitched(true);
     }
   }, [hallIdParam]);
-  // Phase 5C-1: a hall is created under the sole ACTIVE branch automatically, so
-  // the selector only appears when the choice is genuinely ambiguous (>1). Never
-  // a silent branches[0] pick.
+  // «Филиал» из формы места убран: место всегда создаётся в первом активном
+  // филиале. При единственном филиале бэкенд резолвит его сам.
   const activeBranches = useMemo(
     () => branches.filter((b) => b && b.is_active !== false),
     [branches],
   );
-  const needsBranchChoice = activeBranches.length > 1;
-  // HallUpdate has no branch_id, so the branch is READ-ONLY once the hall
-  // exists — shown for context only, never as a reassignment control.
-  function branchName(branchId) {
-    if (!branchId || activeBranches.length < 2) return "";
-    return branches.find((b) => String(b.id) === String(branchId))?.name || "";
-  }
   // Phase 5C-6B: split the flat, backend-ordered hall list into per-branch
   // blocks (order preserved). Each block is an isolated sortable group so a
   // hall can never be dragged across branches. A branch label is shown only
@@ -618,7 +610,7 @@ export default function SettingsPlacesPage() {
       branch_id: "",
     });
     setDrawerError("");
-    setHallDrawer({ mode: "edit", id: hall.id, branch_id: hall.branch_id });
+    setHallDrawer({ mode: "edit", id: hall.id });
   }
   function hallPayload() {
     const name = hallForm.name.trim();
@@ -642,9 +634,10 @@ export default function SettingsPlacesPage() {
     // human-readable note with no field in this form, so it is never written.
     const base = { name, percent, pricing_type, price_amount };
     if (hallDrawer?.mode === "edit") return { ...base, is_active: hallForm.is_active };
-    // HallCreate has no is_active (create is always active) and only accepts
-    // branch_id — sent solely when the user actually had to choose.
-    if (needsBranchChoice && hallForm.branch_id) return { ...base, branch_id: hallForm.branch_id };
+    // HallCreate has no is_active (create is always active). Без выбора филиала
+    // в форме место привязываем к первому активному; при единственном филиале
+    // branch_id не шлём — бэкенд резолвит его сам.
+    if (activeBranches.length > 1) return { ...base, branch_id: activeBranches[0].id };
     return base;
   }
   async function saveHall(event) {
@@ -652,9 +645,6 @@ export default function SettingsPlacesPage() {
     if (!locks.acquire("hall-save")) return;
     const payload = hallPayload();
     if (!payload) { setDrawerError("Укажите название места и корректный процент (0–100)."); locks.release("hall-save"); return; }
-    if (hallDrawer?.mode === "create" && needsBranchChoice && !hallForm.branch_id) {
-      setDrawerError("Выберите филиал."); locks.release("hall-save"); return;
-    }
     setSaving(true); setDrawerError("");
     try {
       if (hallDrawer.mode === "edit") {
@@ -966,24 +956,6 @@ export default function SettingsPlacesPage() {
             </header>
             <div className="settings-form__body">
               <label className="settings-form__wide"><span>{tr("pages.settings.settingsplacespage.nazvanie_mesta")}</span><input autoFocus value={hallForm.name} placeholder={tr("pages.settings.settingsplacespage.vvedite_nazvanie_mesta")} onChange={(e) => setHallForm((f) => ({ ...f, name: e.target.value }))} /></label>
-              {/* Phase 5C-1: only shown when there is a real choice to make. With
-                  a single active branch the backend resolves it server-side. */}
-              {hallDrawer.mode === "create" && needsBranchChoice ? (
-                <div className="settings-form__wide settings-field">
-                  <label className="settings-field__label" htmlFor="hall-branch-select">{tr("pages.settings.settingsplacespage.filial")}</label>
-                  <MarjonSelect
-                    id="hall-branch-select"
-                    label={tr("pages.settings.settingsplacespage.filial")}
-                    placeholder={tr("pages.settings.settingsplacespage.vyberite_filial")}
-                    value={hallForm.branch_id}
-                    options={activeBranches.map((b) => ({ value: b.id, label: b.name }))}
-                    onChange={(next) => setHallForm((f) => ({ ...f, branch_id: next }))}
-                  />
-                </div>
-              ) : null}
-              {hallDrawer.mode === "edit" && branchName(hallDrawer.branch_id) ? (
-                <p className="settings-form__context settings-form__wide">{tr("pages.settings.settingsplacespage.filial_2")} <strong>{branchName(hallDrawer.branch_id)}</strong></p>
-              ) : null}
               <label className="settings-form__wide"><span>{tr("pages.settings.settingsplacespage.obsluzhivaniya_v_zavedenii")}</span><input value={hallForm.percent} inputMode="decimal" placeholder={tr("pages.settings.settingsplacespage.vvedite")} onChange={(e) => setHallForm((f) => ({ ...f, percent: e.target.value }))} /></label>
               {/* The hint is trigger text, not a row in the panel, so it can
                   never be chosen. Clearing goes through the × control, which is
