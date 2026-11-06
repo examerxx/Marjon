@@ -489,7 +489,6 @@ export default function App() {
         userName={staffUser?.name}
         userRole={modeLabel}
         onAccount={handleAccount}
-        onExit={() => handleStaffLogout(true)}
       />
 
       <main className="app-shell__content">

@@ -74,48 +74,6 @@
 }
 .topbar__back-slot { margin-left: 0; }
 
-.topbar__nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.topbar__nav:empty { display: none; }
-.topnav-btn {
-  position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 76px;
-  height: 60px;
-  padding: 4px 8px;
-  border: none;
-  border-radius: 14px;
-  background: transparent;
-  color: #24384d;
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
-}
-.topnav-btn:hover { background: #f1f5fa; }
-.topnav-btn:active { transform: scale(0.97); }
-.topnav-btn > svg { color: #24384d; }
-.topnav-btn--alert::after {
-  content: '';
-  position: absolute;
-  top: 7px;
-  right: calc(50% - 22px);
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #e8332a;
-  box-shadow: 0 0 0 2px #fff;
-}
-
 .topbar__center { flex: 1 1 auto; min-width: 0; justify-content: center; }
 .topbar__center:empty { flex: 1 1 auto; }
 /* Переключатель типа заказа переехал в шапку: на доске он больше не занимает
@@ -140,7 +98,7 @@
 /* На экране заказа в шапке живёт поиск — разделитель уступает ему место. */
 .topbar:has(.topbar-search) .topbar__rule { display: none; }
 
-/* Профиль, выход и часы */
+/* Часы и профиль справа */
 .topbar__account {
   display: flex;
   align-items: center;
@@ -199,19 +157,6 @@
   color: #101c2a;
 }
 .topbar__account-chevron { color: #33475d; flex-shrink: 0; }
-.topbar__exit {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 12px;
-  background: transparent;
-  color: #24384d;
-  cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease;
-}
-.topbar__exit:hover { background: #fdf0ef; color: var(--color-danger); }
 .topbar__clock-card {
   display: flex;
   flex-direction: column;
@@ -747,13 +692,11 @@
 /* ── Адаптив ───────────────────────────────────────────────────── */
 @media (max-width: 1500px) {
   .topbar { gap: 12px; }
-  .topnav-btn { min-width: 74px; }
   .floor > .ws-side { width: 270px; }
 }
 @media (max-width: 1280px) {
   .topbar__brand-name { font-size: 21px; }
   .topbar__logo-mark, .topbar__logo { width: 52px; }
-  .topnav-btn { min-width: 66px; padding: 4px 7px; font-size: 12px; }
   .topbar__account-name { max-width: 120px; }
   .topbar__clock-card { min-width: 92px; }
   .floor > .ws-side { width: 248px; }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, LogOut, User } from 'lucide-react'
+import { ChevronDown, User } from 'lucide-react'
 import { t } from '../shared/i18n'
 
 /** Фирменный знак MARJON: два наклонных штриха и синяя капля. */
@@ -44,7 +44,6 @@ export default function TopBar({
   userName,
   userRole,
   onAccount,
-  onExit,
   children,
 }) {
   const [now, setNow] = useState(() => new Date())
@@ -69,14 +68,15 @@ export default function TopBar({
 
       <span className="topbar__rule" aria-hidden="true" />
 
-      {/* Разделы режима: «События / Заказы / Меню / Блокировка» приходят порталом. */}
-      <nav className="topbar__nav" id="topbar-nav-slot" aria-label={t('menu_more')} />
-
       {/* Центральный слот: экран заказа рендерит сюда поиск блюда. */}
       <div className="topbar__center" id="topbar-center-slot">{children}</div>
 
       <div className="topbar__account">
         <span className="topbar__divider" aria-hidden="true" />
+        <div className="topbar__clock-card">
+          <span className="topbar__time">{time}</span>
+          <span className="topbar__date">{date}</span>
+        </div>
         <button className="topbar__account-btn" onClick={onAccount} title={t('account')}>
           <span className="topbar__account-ico"><User size={21} /></span>
           <span className="topbar__account-text">
@@ -85,15 +85,6 @@ export default function TopBar({
           </span>
           <ChevronDown size={19} className="topbar__account-chevron" />
         </button>
-        {onExit && (
-          <button className="topbar__exit" onClick={onExit} title={t('logout')} aria-label={t('logout')}>
-            <LogOut size={22} />
-          </button>
-        )}
-        <div className="topbar__clock-card">
-          <span className="topbar__time">{time}</span>
-          <span className="topbar__date">{date}</span>
-        </div>
       </div>
     </header>
   )

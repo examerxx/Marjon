@@ -152,16 +152,14 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderTypes])
 
-  // Слот шапки (TopBar в App.jsx): меню разделов рендерим порталом, чтобы кнопка
-  // жила в шапке, а состояние осталось здесь.
+  // Слоты шапки (TopBar в App.jsx): поиск и «назад» рендерим порталом, чтобы
+  // элементы жили в шапке, а состояние осталось здесь.
   const [searchSlot, setSearchSlot] = useState(null)
   const [backSlot, setBackSlot] = useState(null)
-  const [navSlot, setNavSlot] = useState(null)
   const [dockSlot, setDockSlot] = useState(null)
   useEffect(() => {
     setSearchSlot(document.getElementById('topbar-center-slot'))
     setBackSlot(document.getElementById('topbar-back-slot'))
-    setNavSlot(document.getElementById('topbar-nav-slot'))
     setDockSlot(document.getElementById('bottombar-nav-slot'))
   }, [])
 
@@ -913,25 +911,6 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     </button>
   )
 
-  // Верхние разделы: события, заказы, меню (стоп-лист), блокировка.
-  const topNav = navSlot && createPortal(
-    <>
-      <button className="topnav-btn topnav-btn--alert" onClick={() => setAttOpen(true)}>
-        <Bell size={24} /><span>{t('nav_events')}</span>
-      </button>
-      <button className="topnav-btn" onClick={() => setHistOpen(true)}>
-        <ClipboardList size={24} /><span>{t('orders')}</span>
-      </button>
-      <button className="topnav-btn" onClick={() => setStopOpen(true)}>
-        <LayoutGrid size={24} /><span>{t('menu_more')}</span>
-      </button>
-      <button className="topnav-btn" onClick={onLock}>
-        <Lock size={24} /><span>{t('nav_lock')}</span>
-      </button>
-    </>,
-    navSlot,
-  )
-
   // Тип заказа живёт в шапке: над сеткой столов больше нет строки, поэтому
   // карточки начинаются от самого верха доски.
   const typeTabs = searchSlot && view === 'floor' && showTypeTabs && createPortal(
@@ -975,9 +954,14 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     setWaiterFilter(mode === 'waiters' ? (meWaiter || hallWaiters[0])?.id ?? null : null)
   }
 
-  // «Ещё»: остальные разделы, которые не поместились в док и верхнюю ленту.
+  // Верхние разделы живут в доке «Ещё»: шапка оставляет только бренд,
+  // переключатель типа заказа и профиль справа.
   const moreItems = [
     { id: 'refresh', label: t('refresh'), Icon: RefreshCw, onClick: () => window.location.reload() },
+    { id: 'events', label: t('nav_events'), Icon: Bell, onClick: () => setAttOpen(true) },
+    { id: 'orders', label: t('orders'), Icon: ClipboardList, onClick: () => setHistOpen(true) },
+    { id: 'stop', label: t('menu_more'), Icon: LayoutGrid, onClick: () => setStopOpen(true) },
+    { id: 'lock', label: t('nav_lock'), Icon: Lock, onClick: onLock },
     ...(must(user, 'can_view_finance') ? [{ id: 'fin', label: t('finance'), Icon: Wallet, onClick: () => setFinOpen(true) }] : []),
     { id: 'rep', label: t('reports'), Icon: BarChart3, onClick: () => setRepOpen(true) },
     ...(must(user, 'can_manage_staff') ? [{ id: 'staff', label: t('dev_staff'), Icon: Users, onClick: () => setStaffOpen(true) }] : []),
@@ -1170,7 +1154,6 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
         {printOpen && <BatchPrintPanel branch={{ id: user.branch_id }} printerId={user.printer_id} onClose={() => setPrintOpen(false)} />}
         {paymentOverlay}
         {promptCfg && <InputPromptModal {...promptCfg} onClose={() => setPromptCfg(null)} />}
-        {topNav}
         {typeTabs}
         {dock}
       </div>
@@ -1373,7 +1356,6 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
       )}
       {paymentOverlay}
       {promptCfg && <InputPromptModal {...promptCfg} onClose={() => setPromptCfg(null)} />}
-      {topNav}
       {typeTabs}
       {dock}
     </div>
