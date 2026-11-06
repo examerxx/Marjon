@@ -658,6 +658,7 @@ async def active_staff(
         .join(User, User.id == RefreshToken.user_id)
         .where(
             User.company_id == current_user.company_id,
+            User.is_active.is_(True),
             or_(User.email.is_(None), ~User.email.like(TERMINAL_EMAIL_LIKE)),
             RefreshToken.revoked_at.is_(None),
             RefreshToken.expires_at > now,

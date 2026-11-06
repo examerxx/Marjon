@@ -1033,17 +1033,40 @@ class AuthService:
             # тот же код входил бы то одним, то другим сотрудником.
             stmt.order_by(User.created_at, User.id)
         )
+        # Совпавший код владельца и рабочего сотрудника на терминале отдаём
+        # рабочему: иначе код официанта 1111 открывал кассу под «Админом»
+        # (владелец создан раньше), и смена стартовала не с того профиля.
+        # Код владельца продолжает работать, когда он один такой.
+        privileged_fallback: User | None = None
         for candidate in result.scalars().all():
             if not await self._pin_candidate_allowed(candidate, branch_id, allowed_role_slugs):
                 continue
             if await verify_password(pin, candidate.pin_hash):
+                if await self._has_privileged_role(candidate.id):
+                    privileged_fallback = privileged_fallback or candidate
+                    continue
                 return await self.pin_login(
                     candidate.id,
                     pin,
                     auth_scope=auth_scope,
                     branch_id=branch_id or candidate.branch_id,
                 )
+        if privileged_fallback is not None:
+            return await self.pin_login(
+                privileged_fallback.id,
+                pin,
+                auth_scope=auth_scope,
+                branch_id=branch_id or privileged_fallback.branch_id,
+            )
         raise UnauthorizedError("Invalid PIN")
+
+    async def _has_privileged_role(self, user_id: UUID) -> bool:
+        slugs = set((await self.db.execute(
+            select(Role.slug)
+            .join(UserRole, UserRole.role_id == Role.id)
+            .where(UserRole.user_id == user_id)
+        )).scalars().all())
+        return bool(slugs & {"owner", "admin"})
 
     async def _pin_candidate_allowed(
         self,

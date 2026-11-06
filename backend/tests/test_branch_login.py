@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import async_sessionmaker
+
+from app.modules.auth.models import User
+from app.modules.auth.security import hash_password
 from tests.conftest import register_company
 
 LOGIN = "+998901112233"
@@ -76,6 +81,56 @@ async def test_terminal_lists_staff_and_pin_login_with_user_id(client):
     active = await client.get("/auth/active-staff", headers=term_headers)
     assert active.status_code == 200
     assert staff["id"] in active.json()
+
+
+async def test_shared_pin_prefers_working_staff_over_owner(client, db_engine):
+    """Один и тот же код у владельца и кассира не должен открывать кассу под
+    владельцем: на терминале приоритет у рабочей роли, код владельца остаётся
+    запасным (сработает, когда он один такой)."""
+    owner_headers, _ = await _company_with_branch_login(client, slug="sharedpin")
+    staff = await _cashier_with_pin(client, owner_headers, pin="1111")
+
+    session_factory = async_sessionmaker(db_engine, expire_on_commit=False)
+    async with session_factory() as session:
+        owner = (await session.execute(
+            select(User).where(User.email == "owner@sharedpin.example.com")
+        )).scalar_one()
+        owner.pin_hash = await hash_password("1111")
+        await session.commit()
+
+    terminal = (await client.post(
+        "/auth/branch-login", json={"login": LOGIN, "password": PASSWORD}
+    )).json()
+    term_headers = {"Authorization": f"Bearer {terminal['access_token']}"}
+
+    resp = await client.post("/auth/pin-login", headers=term_headers, json={"pin": "1111"})
+    assert resp.status_code == 200, resp.text
+    me = await client.get(
+        "/auth/me", headers={"Authorization": f"Bearer {resp.json()['access_token']}"}
+    )
+    assert me.json()["email"] == "cashier@acme.example.com"
+    assert me.json()["id"] == staff["id"]
+
+
+async def test_active_staff_excludes_deactivated_employee(client):
+    owner_headers, _ = await _company_with_branch_login(client, slug="activeoff")
+    staff = await _cashier_with_pin(client, owner_headers)
+
+    terminal = (await client.post(
+        "/auth/branch-login", json={"login": LOGIN, "password": PASSWORD}
+    )).json()
+    term_headers = {"Authorization": f"Bearer {terminal['access_token']}"}
+    login = await client.post(
+        "/auth/pin-login", headers=term_headers, json={"pin": "1234", "user_id": staff["id"]}
+    )
+    assert login.status_code == 200
+    assert staff["id"] in (await client.get("/auth/active-staff", headers=term_headers)).json()
+
+    off = await client.patch(
+        f"/auth/users/{staff['id']}", headers=owner_headers, json={"is_active": False}
+    )
+    assert off.status_code == 200, off.text
+    assert staff["id"] not in (await client.get("/auth/active-staff", headers=term_headers)).json()
 
 
 async def test_branch_colleagues_scopes_to_the_caller_own_branch(client):

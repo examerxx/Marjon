@@ -200,6 +200,11 @@ async def seed():
                 category_id=cat.id,
                 name=prod_name,
                 price=Decimal(str(price)),
+                # Демо-себестоимость 35% от цены: без неё заказ не сохраняет
+                # cost_price_snapshot и «Чистая прибыль» на дашборде владельца
+                # честно показывает «Недоступно» (историческая себестоимость
+                # не записана). В реальном заведении владелец ставит свою.
+                cost_price=Decimal(str(price)) * Decimal("0.35"),
                 unit="шт",
                 is_active=True,
                 is_available=True,

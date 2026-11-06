@@ -817,9 +817,11 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
 
   // ── По официантам: сотрудники и их заказы ──
   // В сайдбаре — именно официанты; если в филиале их нет, показываем весь персонал,
-  // чтобы список не оставался пустым.
-  const onlyWaiters = staff.filter((u) => roleSlugOf(u) === 'waiter')
-  const waitersAll = onlyWaiters.length > 0 ? onlyWaiters : staff
+  // чтобы список не оставался пустым. Уволенные/отключённые карточки не показываем
+  // вовсе: /auth/staff-users отдаёт их для раздела «Сотрудники», а не для кассы.
+  const activeStaffList = staff.filter((u) => u.is_active !== false)
+  const onlyWaiters = activeStaffList.filter((u) => roleSlugOf(u) === 'waiter')
+  const waitersAll = onlyWaiters.length > 0 ? onlyWaiters : activeStaffList
   const belongsToWaiter = (o, w) => {
     if (!o || !w) return false
     if (o.waiter_id && String(o.waiter_id) === String(w.id)) return true
