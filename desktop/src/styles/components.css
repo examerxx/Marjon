@@ -3540,11 +3540,8 @@ body.vkb-open .login-card {
 .pinpad__key:active { transform: scale(0.94); background: var(--color-brand); color: #fff; }
 .pinpad__key--action { background: transparent; color: var(--color-text-muted); }
 .pinpad__key--action:hover { background: var(--color-subtle); }
-/* Подтверждение кода: 4–8 цифр вводятся без автопроверки, поэтому в пустой
-   ячейке сетки стоит «Play». Неактивно, пока не набраны 4 цифры. */
-.pinpad__key--ok { background: var(--color-brand); color: #fff; }
-.pinpad__key--ok:hover { background: var(--color-brand-dark); }
-.pinpad__key--ok:disabled { background: var(--color-subtle); color: var(--color-text-muted); opacity: 0.5; }
+/* Код проверяется автоматически после 4-й цифры — ячейка подтверждения
+   осталась пустой, чтобы «0» стоял по центру нижнего ряда. */
 .pinpad__key--empty { visibility: hidden; }
 /* PIN верный, но смена закрыта: вместо цифр — открытие смены */
 .pinpad__shift {
