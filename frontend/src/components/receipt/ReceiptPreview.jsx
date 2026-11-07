@@ -3,6 +3,7 @@ import { groupReceiptItems, normalizeSeparator, rasterRuleGeometry, receiptStaff
 import { webFormat } from "../../utils/webTime";
 import { CHEF_DEFAULT_BLOCK_STYLES, CUSTOMER_BLOCKS, KITCHEN_BLOCKS, normalizeLineSpacing } from "../../api/receipt";
 import { orderedBlocks, customerReceiptBlocks } from "../../pages/settings/receiptBlockOrder";
+import { t } from "../../i18n/t";
 
 // Демо-заказ превью. Дату/время намеренно НЕ храним константой: превью всегда
 // показывает сегодняшний момент (подставляется в ReceiptPreview при рендере),
@@ -223,14 +224,14 @@ function CustomerItems({ items = [], styles = {} }) {
   return (
     <div className="receipt-preview__items" style={tableColumnStyle(fontSize, items)} data-receipt-items>
       <div className="receipt-preview__items-head" style={{ fontSize }}>
-        <span>Блюдо</span>
-        <span>Кол-во</span>
-        <span>Сумма</span>
+        <span>{t("components.receipt.receiptpreview.blyudo")}</span>
+        <span>{t("components.receipt.receiptpreview.kol_vo")}</span>
+        <span>{t("components.receipt.receiptpreview.summa")}</span>
       </div>
       <ReceiptRule solid />
       {items.map((item, index) => (
         <div className="receipt-preview__item-row" key={item.id || `${itemName(item)}-${index}`}>
-          <span className="receipt-preview__item-name">{itemName(item)}</span>
+          <span className="receipt-preview__item-name">{t(itemName(item))}</span>
           <span>{itemQuantity(item)}</span>
           <span>{money(itemTotal(item))}</span>
         </div>
@@ -245,7 +246,7 @@ function PaymentRows({ rows }) {
     <div className="receipt-preview__payments">
       {rows.map((row) => (
         <div className="receipt-preview__payment-row" key={row.label}>
-          <span>{row.label}:</span>
+          <span>{t(row.label)}:</span>
           <b>{money(row.amount)}</b>
         </div>
       ))}
@@ -276,12 +277,12 @@ function CustomerReceipt({ template = {}, org, order }) {
     if (!hasValue(value)) return;
     push("info", (
       <div className={`receipt-preview__info-row ${blockClass(block, styles)}`} key={`${block}-${label}`}>
-        <b>{label}</b><span>{value}</span>
+        <b>{t(label)}</b><span>{value}</span>
       </div>
     ));
   };
   const summaryRow = (label, value) => push("summary", (
-    <div className="receipt-preview__summary-row" key={`sum-${label}`}><span>{label}</span><b>{money(value)}</b></div>
+    <div className="receipt-preview__summary-row" key={`sum-${label}`}><span>{t(label)}</span><b>{money(value)}</b></div>
   ));
 
   const renderSummary = () => {
@@ -290,7 +291,7 @@ function CustomerReceipt({ template = {}, org, order }) {
     if (isOn(enabled, "serviceFee") && totals.service > 0) {
       const base = (order.items || []).filter((item) => item.status !== "cancelled" && !item.takeaway).reduce((sum, item) => sum + itemTotal(item), 0);
       const rate = order.service_fee_rate ?? (base > 0 ? Math.round(totals.service * 10000 / base) / 100 : 0);
-      summaryRow(rate > 0 ? `Обслуга ${rate}%` : "Обслуга", totals.service);
+      summaryRow(rate > 0 ? t("receipt.preview.service_percent", { rate }) : t("receipt.preview.service"), totals.service);
     }
     if (isOn(enabled, "vat") && totals.tax > 0) summaryRow("Налог", totals.tax);
   };
@@ -305,7 +306,7 @@ function CustomerReceipt({ template = {}, org, order }) {
       if (isOn(enabled, "total")) {
         push("total", (
           <div className={`receipt-preview__total ${blockClass("total", styles)}`} key="total">
-            <span>Итого:</span><b>{money(totals.total)}</b>
+            <span>{t("components.receipt.receiptpreview.itogo")}</span><b>{money(totals.total)}</b>
           </div>
         ));
       }
@@ -318,7 +319,7 @@ function CustomerReceipt({ template = {}, org, order }) {
     // nothing when no logo is uploaded, and the preview must agree.
     if (block === "logo") { if (org?.logo) push("header", <img className="receipt-preview__logo" src={org.logo} alt={restaurantName} key="logo" />); }
     else if (block === "restaurantName") push("header", <div className={`receipt-preview__brand ${cls}`} style={{ fontSize: { standard: 23.33, large: 35, xlarge: 58.33 }[styles.restaurantName?.size || "large"], fontWeight: styles.restaurantName?.weight === "standard" ? 400 : 700 }} key="rn">{restaurantName}</div>);
-    else if (block === "orderNumber") { if (!showTopNumber) infoRow("orderNumber", "Номер заказа:", getOrderNumber(order)); infoRow("orderNumber", "Тип заказа:", formatReceiptOrderType(order.order_type)); }
+    else if (block === "orderNumber") { if (!showTopNumber) infoRow("orderNumber", "Номер заказа:", getOrderNumber(order)); infoRow("orderNumber", "Тип заказа:", t(formatReceiptOrderType(order.order_type))); }
     else if (block === "table") infoRow("table", "Номер стола:", order.table_number);
     else if (block === "waiter") {
       const staff = order.receipt_staff?.length ? order.receipt_staff : [{ label: receiptStaffLabel(order), name: order.waiter }];
@@ -330,7 +331,7 @@ function CustomerReceipt({ template = {}, org, order }) {
     else if (block === "thankYouText") push("footer", <strong className={cls} key="ty">{template.thankYouText || "XARIDINGIZ UCHUN RAXMAT!"}</strong>);
     else if (block === "bottomOrderNumber") push(numberAtTop ? "header" : "footer", (
       <div className={`receipt-preview__bottomnum ${cls}`} key="bon">
-        <span className="receipt-preview__bottomnum-caption">НОМЕР ЗАКАЗА</span>
+        <span className="receipt-preview__bottomnum-caption">{t("components.receipt.receiptpreview.nomer_zakaza")}</span>
         {/* Same proportions as the raster fonts (48/72/96/180 dots), at the
             preview's 17.5px body / printer's 24-dot body reference scale. */}
         <b className="receipt-preview__bottomnum-value" style={{ fontSize: { standard: 35, large: 70, xlarge: 131.25, xxlarge: 160.42 }[styles.bottomOrderNumber?.size || "large"], fontWeight: styles.bottomOrderNumber?.weight === "bold" ? 700 : 400 }}>{getOrderNumber(order)}</b>
@@ -471,9 +472,9 @@ function KitchenItemsTable({ items = [], comments = true, showSums = false, styl
   return (
     <div className={`receipt-preview__items receipt-preview__items--kitchen${showSums ? "" : " receipt-preview__items--no-sum"}`} style={tableColumnStyle(rowStyle.fontSize, items, showSums)} data-receipt-items>
       <div className="receipt-preview__items-head" style={{ fontSize: 15, fontWeight: 700 }}>
-        <span>Блюдо</span>
-        <span>Кол-во</span>
-        {showSums ? <span>Сумма</span> : null}
+        <span>{t("components.receipt.receiptpreview.blyudo")}</span>
+        <span>{t("components.receipt.receiptpreview.kol_vo")}</span>
+        {showSums ? <span>{t("components.receipt.receiptpreview.summa")}</span> : null}
       </div>
       <ReceiptRule solid />
       {items.map((item, index) => {
@@ -482,13 +483,13 @@ function KitchenItemsTable({ items = [], comments = true, showSums = false, styl
           <Fragment key={item.id || `${itemName(item)}-${index}`}>
             {index > 0 ? <ReceiptRule /> : null}
             <div className={`receipt-preview__item-row${index === 0 ? " receipt-preview__item-row--first" : ""}`} style={rowStyle}>
-              <span className="receipt-preview__item-name" style={{ fontSize: "inherit", fontWeight: "inherit" }}>{itemName(item)}</span>
+              <span className="receipt-preview__item-name" style={{ fontSize: "inherit", fontWeight: "inherit" }}>{t(itemName(item))}</span>
               <span style={{ fontSize: "inherit", fontWeight: "inherit" }}>{itemQuantity(item)}</span>
               {showSums ? <span style={{ fontSize: "inherit", fontWeight: "inherit" }}>{hasValue(item.total ?? item.amount ?? item.price) ? money(itemMoneyValue(item)) : ""}</span> : null}
             </div>
             {notes.map((note) => (
               <div key={note} className="receipt-preview__item-note-row">
-                <span>! {note}</span>
+                <span>! {t(note)}</span>
               </div>
             ))}
           </Fragment>
@@ -514,7 +515,7 @@ function KitchenReceipt({ template = {}, order }) {
   const infoRow = (block, label, value) => {
     if (!hasValue(value)) return;
     push("info", (
-      <div className={`receipt-preview__info-row ${kitchenBlockClass(block, styles)}`} style={kitchenBlockStyle(block, styles)} key={`${block}-${label}`}><b>{label}</b><span>{value}</span></div>
+      <div className={`receipt-preview__info-row ${kitchenBlockClass(block, styles)}`} style={kitchenBlockStyle(block, styles)} key={`${block}-${label}`}><b>{t(label)}</b><span>{value}</span></div>
     ));
   };
 
@@ -527,7 +528,7 @@ function KitchenReceipt({ template = {}, order }) {
       const value = formatKitchenOrderType(order.order_type);
       if (hasValue(value)) push("heading", <div key="type" data-kitchen-order-type
         className={`receipt-preview__kitchen-type ${kitchenBlockClass(block, styles)}`}
-        style={{ ...kitchenBlockStyle(block, styles), textAlign: styles.orderNumber?.align || "center" }}>{value}</div>);
+        style={{ ...kitchenBlockStyle(block, styles), textAlign: styles.orderNumber?.align || "center" }}>{t(value)}</div>);
     }
     else if (block === "table") infoRow("table", "Стол:", order.table_number);
     else if (block === "waiter") infoRow("waiter", `${receiptStaffLabel(order)}:`, order.waiter);
@@ -542,7 +543,7 @@ function KitchenReceipt({ template = {}, order }) {
     <KitchenItemsTable key="items" items={orderItems} comments={commentOn} showSums={showSums} styles={styles} />
   ));
   if (commentOn && hasValue(order.note)) push("note", (
-    <div className={`receipt-preview__kitchen-comment ${kitchenBlockClass("comment", styles)}`} style={kitchenBlockStyle("comment", styles)} key="note"><b>Комментарий:</b><span>- {order.note}</span></div>
+    <div className={`receipt-preview__kitchen-comment ${kitchenBlockClass("comment", styles)}`} style={kitchenBlockStyle("comment", styles)} key="note"><b>{t("components.receipt.receiptpreview.kommentariy")}</b><span>- {t(order.note)}</span></div>
   ));
 
   const wrapRun = (run) => {

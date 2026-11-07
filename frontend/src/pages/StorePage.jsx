@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import Icon from "../components/Icon";
+import { t } from "../i18n/t";
 
 /**
  * Marjon store — страница кабинета владельца (/store).
@@ -80,30 +81,29 @@ export default function StorePage() {
     <section className="card card-pad">
       <div className="section-header">
         <div>
-          <span className="eyebrow">Marjon store</span>
-          <h2>Приложение для кассы и моноблока</h2>
+          <span className="eyebrow">{t("eyebrow.marjon_store")}</span>
+          <h2>{t("pages.storepage.prilozhenie_dlya_kassy_i_monobloka")}</h2>
           <p className="section-window__description">
-            Установщик Marjon Desktop для Windows: касса, моноблок, кухня и склад.
-            Для работы нужен интернет — приложение подключается к серверу Marjon.
+            {t("pages.storepage.ustanovschik_marjon_desktop_dlya_windows_kassa")}
           </p>
         </div>
       </div>
 
       {loadState === "loading" ? (
         <div className="dashboard-empty" role="status">
-          <p>Загрузка списка файлов...</p>
+          <p>{t("pages.storepage.zagruzka_spiska_faylov")}</p>
         </div>
       ) : null}
 
       {loadState === "error" ? (
         <div className="dashboard-empty" role="alert">
-          <p>Не удалось загрузить список файлов. Обновите страницу или обратитесь в поддержку.</p>
+          <p>{t("pages.storepage.ne_udalos_zagruzit_spisok_faylov_obnovite_stranitsu")}</p>
         </div>
       ) : null}
 
       {loadState === "empty" ? (
         <div className="dashboard-empty" role="status">
-          <p>Файлов для скачивания пока нет.</p>
+          <p>{t("pages.storepage.faylov_dlya_skachivaniya_poka_net")}</p>
         </div>
       ) : null}
 
@@ -112,13 +112,13 @@ export default function StorePage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Версия</th>
-                <th>Платформа</th>
-                <th>Файл</th>
-                <th>Размер</th>
-                <th>Дата</th>
+                <th>{t("pages.storepage.versiya")}</th>
+                <th>{t("pages.storepage.platforma")}</th>
+                <th>{t("pages.storepage.fayl")}</th>
+                <th>{t("pages.storepage.razmer")}</th>
+                <th>{t("pages.storepage.data")}</th>
                 <th>SHA-256</th>
-                <th>Скачать</th>
+                <th>{t("pages.storepage.skachat")}</th>
               </tr>
             </thead>
             <tbody>
@@ -163,7 +163,7 @@ export default function StorePage() {
                           download
                         >
                           <Icon name="bi-download" size={16} />
-                          <span>Скачать</span>
+                          <span>{t("pages.storepage.skachat")}</span>
                         </a>
                       ) : (
                         "—"

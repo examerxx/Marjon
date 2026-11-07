@@ -360,7 +360,7 @@ export default function App() {
 
   // Полный сброс терминала (отвязка от организации)
   const handleFullReset = useCallback(() => {
-    revokeStaffSession()
+    revokeStaffSession();
     ['marjon_org_token', 'marjon_org_refresh', 'marjon_org_user', 'marjon_branch', 'marjon_token', 'marjon_staff_refresh', 'marjon_user', 'marjon_mode', 'marjon_staff_branch']
       .forEach((k) => localStorage.removeItem(k))
     setOrgToken(null); setOrgUser(null); setBranch(null)

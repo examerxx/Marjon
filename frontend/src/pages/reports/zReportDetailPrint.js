@@ -1,4 +1,5 @@
 import { formatMoney } from "./reportMoney";
+import { t } from "../../i18n/t";
 
 // Per-entity Z-report print document (ZR-PRINT-01C), deliberately SEPARATE from
 // the frozen whole-shift builder in ZReportPage.jsx. That one knows nothing
@@ -102,12 +103,12 @@ export function waiterServiceUnits(netSales, percent) {
 // some other percentage.
 export function normalizeWaiterPercent(raw) {
   const text = String(raw ?? "").trim();
-  if (!text) return { percent: null, label: "не задан" };
+  if (!text) return { percent: null, label: t("pages.reports.zreportdetailprint.ne_zadan") };
   const parsed = parseDecimal(text);
-  if (parsed === null) return { percent: null, label: "недопустимое значение" };
+  if (parsed === null) return { percent: null, label: t("pages.reports.zreportdetailprint.nedopustimoe_znachenie") };
   const value = Number(text);
   if (!Number.isFinite(value) || value < 0 || value > 100) {
-    return { percent: null, label: "недопустимое значение" };
+    return { percent: null, label: t("pages.reports.zreportdetailprint.nedopustimoe_znachenie") };
   }
   return { percent: text, label: `${text}%` };
 }
@@ -154,7 +155,7 @@ function hallTable(figures) {
   const body = HALL_ROWS.map(([label, key, cell]) => row(label, cell(figures?.[key]))).join("");
   // Итого is the backend's own net_sales, never a frontend re-derivation.
   return `<table class="zrd-table"><tbody>${body}</tbody>`
-    + `<tfoot><tr class="zrd-strong"><td>Итого</td>`
+    + `<tfoot><tr class="zrd-strong"><td>{t("Итого")}</td>`
     + `<td>${escapeHtml(moneyCell(figures?.net_sales))}</td></tr></tfoot></table>`;
 }
 
@@ -176,12 +177,12 @@ function cashierTable(figures) {
   });
   const body = methods.length
     ? methods.map((item, index) => row(item?.method, unitsCell(amounts[index]))).join("")
-    : `<tr><td colspan="2">Нет оплат за выбранный период</td></tr>`;
+    : `<tr><td colspan="2">${t("pages.reports.zreportdetailprint.net_oplat_za_vybrannyy_period")}</td></tr>`;
   const total = amounts.some((value) => value === null)
     ? null
     : amounts.reduce((accumulator, value) => accumulator + value, 0n);
   return `<table class="zrd-table"><tbody>${body}</tbody>`
-    + `<tfoot><tr class="zrd-strong"><td>Итого</td>`
+    + `<tfoot><tr class="zrd-strong"><td>{t("Итого")}</td>`
     + `<td>${escapeHtml(unitsCell(total))}</td></tr></tfoot></table>`;
 }
 
@@ -248,14 +249,14 @@ function waiterSummaryTable(entities, totals, percentState) {
     ? null
     : amounts.reduce((accumulator, value) => accumulator + value, 0n);
   const foot = entities.length > 1
-    ? `<tfoot><tr class="zrd-strong"><td>Итого</td>`
+    ? `<tfoot><tr class="zrd-strong"><td>{t("Итого")}</td>`
       + `<td>${escapeHtml(moneyCell(totals?.net_sales))}</td>`
       + `<td>${escapeHtml(moneyCell(totals?.service_fee_total))}</td>`
       + `<td>${escapeHtml(unitsCell(total))}</td></tr></tfoot>`
     : "";
   return `${subhead(`Обслуга по официантам (процент: ${percentState.label})`)}`
     + `<table class="zrd-table zrd-table--waiter">`
-    + `<thead><tr><th>Имя</th><th>Сумма заказов</th><th>Сумма услуги</th><th>Обслуга официанта</th></tr></thead>`
+    + `<thead><tr><th>{t("Имя")}</th><th>{t("Сумма заказов")}</th><th>{t("Сумма услуги")}</th><th>{t("Обслуга официанта")}</th></tr></thead>`
     + `<tbody>${body}</tbody>`
     + foot
     + `</table>`;

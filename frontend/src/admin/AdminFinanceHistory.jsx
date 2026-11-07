@@ -11,6 +11,7 @@ import { isAbortError, useLatestRequest } from "../hooks/useAsyncSafety";
 import { getAdminFinanceLoadMessage, keepWheelInsideScroller } from "./AdminShared";
 
 import { extractAdminFinanceItems, useDefaultAdminFinanceOrganizationId } from "./AdminFinanceOperations";
+import { t } from "../i18n/t";
 
 export function AdminFinanceHistoryPage({ search, onNotify }) {
   const { organizationId, loadState: organizationLoadState } = useDefaultAdminFinanceOrganizationId(onNotify);
@@ -171,8 +172,8 @@ export function AdminFinanceHistoryPage({ search, onNotify }) {
         <div className="admin-income-title">
           <span aria-hidden="true" />
           <div>
-            <h2>История изменений</h2>
-            <p>{filteredRows.length} записей журнала.</p>
+            <h2>{t("admin.adminfinancehistory.istoriya_izmeneniy")}</h2>
+            <p>{filteredRows.length} {t("admin.adminfinancehistory.zapisey_zhurnala")}</p>
           </div>
         </div>
       </div>
@@ -188,14 +189,14 @@ export function AdminFinanceHistoryPage({ search, onNotify }) {
             <tr>
               <th>№</th>
               <th>ID</th>
-              <th>Дата</th>
-              <th>Компания ID</th>
-              <th>Организация</th>
-              <th>Новая сумма</th>
-              <th>Старая сумма</th>
-              <th>Тип</th>
-              <th>Пользователь</th>
-              <th>Комментарии</th>
+              <th>{t("admin.adminfinancehistory.data")}</th>
+              <th>{t("admin.adminfinancehistory.kompaniya_id")}</th>
+              <th>{t("admin.adminfinancehistory.organizatsiya")}</th>
+              <th>{t("admin.adminfinancehistory.novaya_summa")}</th>
+              <th>{t("admin.adminfinancehistory.staraya_summa")}</th>
+              <th>{t("admin.adminfinancehistory.tip")}</th>
+              <th>{t("admin.adminfinancehistory.polzovatel")}</th>
+              <th>{t("admin.adminfinancehistory.kommentarii")}</th>
             </tr>
           </thead>
           <tbody>
@@ -214,23 +215,23 @@ export function AdminFinanceHistoryPage({ search, onNotify }) {
               </tr>
             ))}
             {loadState === "error" || organizationLoadState === "error" ? (
-              <tr><td colSpan="10" className="admin-history-empty" role="alert">Не удалось загрузить историю изменений.</td></tr>
+              <tr><td colSpan="10" className="admin-history-empty" role="alert">{t("admin.adminfinancehistory.ne_udalos_zagruzit_istoriyu_izmeneniy")}</td></tr>
             ) : !pageRows.length ? (
               <tr>
-                <td colSpan="10" className="admin-history-empty">История изменений не найдена.</td>
+                <td colSpan="10" className="admin-history-empty">{t("admin.adminfinancehistory.istoriya_izmeneniy_ne_naydena")}</td>
               </tr>
             ) : null}
           </tbody>
         </table>
       </div>
 
-      <div className="admin-history-scrollbar" aria-label="Р“РѕСЂРёР·РѕРЅС‚Р°Р»СЊРЅР°СЏ РїСЂРѕРєСЂСѓС‚РєР° С‚Р°Р±Р»РёС†С‹">
+      <div className="admin-history-scrollbar" aria-label={t("admin.adminfinancehistory.r_r_s_rer_r_r_s_r_r_s_r_r_s_r_s_r_r_s_s_s_r_r_s_r_r")}>
         <button
           type="button"
           className="admin-history-scrollbar__button is-prev"
           onClick={() => scrollHistoryBy(-1)}
           disabled={historyScroll.max <= 0}
-          aria-label="РџСЂРѕРєСЂСѓС‚РёС‚СЊ РІР»РµРІРѕ"
+          aria-label={t("admin.adminfinancehistory.r_s_r_r_s_s_s_res_s_r_r_r_r_r")}
         />
         <div
           className="admin-history-scrollbar__track"
@@ -255,12 +256,12 @@ export function AdminFinanceHistoryPage({ search, onNotify }) {
           className="admin-history-scrollbar__button is-next"
           onClick={() => scrollHistoryBy(1)}
           disabled={historyScroll.max <= 0}
-          aria-label="РџСЂРѕРєСЂСѓС‚РёС‚СЊ РІРїСЂР°РІРѕ"
+          aria-label={t("admin.adminfinancehistory.r_s_r_r_s_s_s_res_s_r_r_s_r_r_r")}
         />
       </div>
 
       <div className="admin-history-pager">
-        <button type="button" onClick={() => goToPage(page - 1)} disabled={page === 1} aria-label="Предыдущая страница">
+        <button type="button" onClick={() => goToPage(page - 1)} disabled={page === 1} aria-label={t("admin.adminfinancehistory.predyduschaya_stranitsa")}>
           <Icon name="bi-chevron-left" size={14} />
         </button>
         {[1, 2, 3].map((item) => (
@@ -270,7 +271,7 @@ export function AdminFinanceHistoryPage({ search, onNotify }) {
         ))}
         <span>...</span>
         <button type="button" onClick={() => onNotify?.("Доступны следующие страницы истории после загрузки с сервера.")}>23</button>
-        <button type="button" onClick={() => goToPage(page + 1)} disabled={page === totalPages} aria-label="Следующая страница">
+        <button type="button" onClick={() => goToPage(page + 1)} disabled={page === totalPages} aria-label={t("admin.adminfinancehistory.sleduyuschaya_stranitsa")}>
           <Icon name="bi-chevron-right" size={14} />
         </button>
       </div>
@@ -372,21 +373,21 @@ export function AdminCashierBackgroundPage({ search, onNotify }) {
         <div className="admin-income-title">
           <span aria-hidden="true" />
           <div>
-            <h2>Фон для кассира</h2>
-            <p>{filteredBackgrounds.length} фонов для кассового экрана.</p>
+            <h2>{t("admin.adminfinancehistory.fon_dlya_kassira")}</h2>
+            <p>{filteredBackgrounds.length} {t("admin.adminfinancehistory.fonov_dlya_kassovogo_ekrana")}</p>
           </div>
         </div>
         <button type="button" className="admin-income-add" onClick={openCreate}>
-          <span>Добавить</span>
+          <span>{t("admin.adminfinancehistory.dobavit")}</span>
           <Icon name="bi-plus-lg" size={15} />
         </button>
       </div>
 
-      <div className="admin-cashier-bg-table" role="table" aria-label="Фоны для кассира">
+      <div className="admin-cashier-bg-table" role="table" aria-label={t("admin.adminfinancehistory.fony_dlya_kassira")}>
         <div className="admin-cashier-bg-row admin-cashier-bg-head" role="row">
-          <span>Название</span>
-          <span>Фото</span>
-          <span aria-label="Действия" />
+          <span>{t("admin.adminfinancehistory.nazvanie")}</span>
+          <span>{t("admin.adminfinancehistory.foto")}</span>
+          <span aria-label={t("admin.adminfinancehistory.deystviya")} />
         </div>
         {filteredBackgrounds.map((row) => (
           <div className="admin-cashier-bg-row" role="row" key={row.id}>
@@ -395,19 +396,19 @@ export function AdminCashierBackgroundPage({ search, onNotify }) {
               <img src={row.photo} alt={row.name} loading="lazy" />
             </span>
             <span className="admin-payment-actions">
-              <button type="button" className="admin-income-icon is-edit" onClick={() => openEdit(row)} aria-label="Редактировать фон">
+              <button type="button" className="admin-income-icon is-edit" onClick={() => openEdit(row)} aria-label={t("admin.adminfinancehistory.redaktirovat_fon")}>
                 <Icon name="bi-pencil" size={15} />
               </button>
-              <button type="button" className="admin-income-icon is-delete" onClick={() => deleteBackground(row)} aria-label="Удалить фон">
+              <button type="button" className="admin-income-icon is-delete" onClick={() => deleteBackground(row)} aria-label={t("admin.adminfinancehistory.udalit_fon")}>
                 <Icon name="bi-trash3" size={15} />
               </button>
             </span>
           </div>
         ))}
         {loadState === "error" ? (
-          <div className="admin-income-empty" role="alert">Не удалось загрузить фоны кассира.</div>
+          <div className="admin-income-empty" role="alert">{t("admin.adminfinancehistory.ne_udalos_zagruzit_fony_kassira")}</div>
         ) : !filteredBackgrounds.length ? (
-          <div className="admin-income-empty">Фоны для кассира не найдены.</div>
+          <div className="admin-income-empty">{t("admin.adminfinancehistory.fony_dlya_kassira_ne_naydeny")}</div>
         ) : null}
       </div>
 
@@ -418,23 +419,23 @@ export function AdminCashierBackgroundPage({ search, onNotify }) {
               <div>
                 <h3>{editor.mode === "create" ? "Добавить Фон" : "Изменить Фон"}</h3>
               </div>
-              <button type="button" className="admin-income-dialog__close" onClick={closeEditor} aria-label="Закрыть">
+              <button type="button" className="admin-income-dialog__close" onClick={closeEditor} aria-label={t("admin.adminfinancehistory.zakryt")}>
                 <Icon name="bi-x-lg" size={16} />
               </button>
             </div>
 
             <label className="admin-income-field">
-              <span>Название <b>*</b></span>
+              <span>{t("admin.adminfinancehistory.nazvanie")} <b>*</b></span>
               <input
                 value={draftName}
                 onChange={(event) => setDraftName(event.target.value)}
-                placeholder="Введите название фона"
+                placeholder={t("admin.adminfinancehistory.vvedite_nazvanie_fona")}
                 autoFocus
               />
             </label>
 
             <label className="admin-income-field">
-              <span>Сортировка</span>
+              <span>{t("admin.adminfinancehistory.sortirovka")}</span>
               <input
                 type="number"
                 min="1"
@@ -444,22 +445,22 @@ export function AdminCashierBackgroundPage({ search, onNotify }) {
             </label>
 
             <div className="admin-cashier-upload">
-              <span>Загрузить изображение</span>
+              <span>{t("admin.adminfinancehistory.zagruzit_izobrazhenie")}</span>
               <input ref={fileInputRef} type="file" accept="image/*" onChange={chooseImage} />
               <button type="button" onClick={() => fileInputRef.current?.click()}>
                 <Icon name="bi-image" size={15} />
-                <span>Выбрать изображение</span>
+                <span>{t("admin.adminfinancehistory.vybrat_izobrazhenie")}</span>
               </button>
             </div>
 
             {draftPhoto.trim() ? (
               <div className="admin-cashier-bg-dialog__preview">
-                <img src={draftPhoto.trim()} alt="Предпросмотр фона" />
+                <img src={draftPhoto.trim()} alt={t("admin.adminfinancehistory.predprosmotr_fona")} />
               </div>
             ) : null}
 
             <div className="admin-income-dialog__actions is-single">
-              <button type="submit" className="is-primary">Сохранить</button>
+              <button type="submit" className="is-primary">{t("admin.adminfinancehistory.sohranit")}</button>
             </div>
           </form>
         </div>

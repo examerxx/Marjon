@@ -5,14 +5,16 @@ import Icon from "../../components/Icon";
 import ReportEmptyState from "../../components/ReportEmptyState";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../../hooks/useAsyncSafety";
 import "./SettingsPrintersPage.css";
+import { t } from "../../i18n/t";
 
 const RESOURCE = "printers";
 
-// Simplified V2 contract: the form collects exactly { name, ip, active }.
-// printer_type/connection_type/port fall back to canonical backend defaults
-// (receipt / network / 9100) because the backend requires printer_type while
-// the simplified entity deliberately exposes no technical fields.
+// Simplified V2 contract: the form collects { name, ip, type, active }.
+// printer_type is a real routing role: "kitchen" printers receive cook tickets
+// automatically (PrinterService.auto_print_kitchen), "receipt" printers are for
+// cashier receipts. connection_type/port fall back to canonical defaults.
 const DEFAULT_PRINTER_TYPE = "receipt";
+const PRINTER_TYPE_OPTIONS = ["receipt", "kitchen"];
 const DEFAULT_CONNECTION_TYPE = "network";
 const DEFAULT_PORT = 9100;
 
@@ -46,19 +48,22 @@ export const apiMapFormToPayload = (form, { editing }) => {
   if (!name) return null;
   const ip = String(form.ip ?? "").trim();
   if (!ip) return null;
+  const printer_type = PRINTER_TYPE_OPTIONS.includes(form.type)
+    ? form.type
+    : DEFAULT_PRINTER_TYPE;
   if (editing) {
-    return { name, ip_address: ip, is_active: Boolean(form.active) };
+    return { name, ip_address: ip, is_active: Boolean(form.active), printer_type };
   }
   return {
     name,
-    printer_type: DEFAULT_PRINTER_TYPE,
+    printer_type,
     connection_type: DEFAULT_CONNECTION_TYPE,
     ip_address: ip,
     port: DEFAULT_PORT,
   };
 };
 
-const EMPTY_FORM = { name: "", ip: "", active: true };
+const EMPTY_FORM = { name: "", ip: "", type: DEFAULT_PRINTER_TYPE, active: true };
 
 function extractItems(data) {
   if (Array.isArray(data)) return data;
@@ -122,7 +127,12 @@ function SettingsPrintersPage() {
 
   const openEdit = (row) => {
     setEditingId(row.id);
-    setForm({ name: row.name, ip: row.ip, active: row.active });
+    setForm({
+      name: row.name,
+      ip: row.ip,
+      type: row.printerType === "kitchen" ? "kitchen" : DEFAULT_PRINTER_TYPE,
+      active: row.active,
+    });
     setFormError("");
     setDrawerMode("edit");
   };
@@ -203,24 +213,24 @@ function SettingsPrintersPage() {
           <div className="settings-title-group">
             <span className="settings-accent-bar" />
             <div>
-              <p>Настройки</p>
-              <h1>Настройка принтеров</h1>
+              <p>{t("pages.settings.settingsprinterspage.nastroyki")}</p>
+              <h1>{t("pages.settings.settingsprinterspage.nastroyka_printerov")}</h1>
             </div>
           </div>
           <div className="settings-actions">
             <button type="button" onClick={openAdd}>
               <Icon name="bi-plus" size={18} aria-hidden="true" />
-              Добавить принтер
+              {t("pages.settings.settingsprinterspage.dobavit_printer")}
             </button>
           </div>
         </header>
 
         {loading ? (
-          <div className="settings-empty-state" role="status">Загрузка...</div>
+          <div className="settings-empty-state" role="status">{t("pages.settings.settingsprinterspage.zagruzka")}</div>
         ) : error && rows.length === 0 ? (
           <div className="settings-empty-state" role="alert">
             {error}
-            <button type="button" className="settings-places-retry" onClick={() => window.location.reload()}>Повторить</button>
+            <button type="button" className="settings-places-retry" onClick={() => window.location.reload()}>{t("pages.settings.settingsprinterspage.povtorit")}</button>
           </div>
         ) : (
           <>
@@ -232,10 +242,11 @@ function SettingsPrintersPage() {
                 <thead>
                   <tr>
                     <th>№</th>
-                    <th>Название</th>
-                    <th>IP адрес</th>
-                    <th>Статус</th>
-                    <th>Действия</th>
+                    <th>{t("pages.settings.settingsprinterspage.nazvanie")}</th>
+                    <th>{t("pages.settings.settingsprinterspage.ip_adres")}</th>
+                    <th>{t("pages.settings.settingsprinterspage.tip")}</th>
+                    <th>{t("pages.settings.settingsprinterspage.status")}</th>
+                    <th>{t("pages.settings.settingsprinterspage.deystviya")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -245,17 +256,22 @@ function SettingsPrintersPage() {
                       <td>{row.name || "—"}</td>
                       <td>{row.ip || row.devicePath || "—"}</td>
                       <td>
+                        {row.printerType === "kitchen"
+                          ? t("pages.settings.settingsprinterspage.kuhnya")
+                          : t("pages.settings.settingsprinterspage.kassa")}
+                      </td>
+                      <td>
                         <span className={`settings-status-badge ${row.active ? "is-active" : "is-inactive"}`}>
                           <span className="settings-status-badge__dot" aria-hidden="true" />
-                          {row.active ? "Активен" : "Не активен"}
+                          {row.active ? t("staff.active") : t("pages.settings.settingsprinterspage.ne_aktiven")}
                         </span>
                       </td>
                       <td>
                         <div className="settings-row-actions">
-                          <button type="button" className="settings-action-edit" aria-label={`Редактировать «${row.name}»`} onClick={() => openEdit(row)}>
+                          <button type="button" className="settings-action-edit" aria-label={t("pages.settings.settingsprinterspage.redaktirovat_printer", { name: row.name })} onClick={() => openEdit(row)}>
                             <Icon name="bi-pencil" size={15} />
                           </button>
-                          <button type="button" className="settings-action-delete" aria-label={`Удалить «${row.name}»`} disabled={deleting} onClick={() => setDeleteTarget(row)}>
+                          <button type="button" className="settings-action-delete" aria-label={t("pages.settings.settingspaymentmethodspage.udalit", { name: row.name })} disabled={deleting} onClick={() => setDeleteTarget(row)}>
                             <Icon name="bi-trash3" size={15} />
                           </button>
                         </div>
@@ -264,8 +280,8 @@ function SettingsPrintersPage() {
                   ))}
                   {!error && rows.length === 0 ? (
                     <tr className="pp-empty-row">
-                      <td colSpan={5} className="pp-empty-cell">
-                        <ReportEmptyState title="Список принтеров пуст" />
+                      <td colSpan={6} className="pp-empty-cell">
+                        <ReportEmptyState title={t("pages.settings.settingsprinterspage.spisok_printerov_pust")} />
                       </td>
                     </tr>
                   ) : null}
@@ -286,13 +302,13 @@ function SettingsPrintersPage() {
                   <p>{editingId ? "Редактирование" : "Новая запись"}</p>
                   <h2 id="printer-drawer-title">{editingId ? "Редактировать принтер" : "Добавить принтер"}</h2>
                 </div>
-                <button type="button" aria-label="Закрыть" disabled={saving} onClick={closeDrawer}>
+                <button type="button" aria-label={t("pages.settings.settingsprinterspage.zakryt")} disabled={saving} onClick={closeDrawer}>
                   <Icon name="bi-x-lg" size={20} />
                 </button>
               </header>
               <div className="settings-form__body">
                 <label>
-                  <span>Название</span>
+                  <span>{t("pages.settings.settingsprinterspage.nazvanie")}</span>
                   <input
                     autoFocus
                     value={form.name}
@@ -300,7 +316,7 @@ function SettingsPrintersPage() {
                   />
                 </label>
                 <label>
-                  <span>IP адрес</span>
+                  <span>{t("pages.settings.settingsprinterspage.ip_adres")}</span>
                   <input
                     inputMode="decimal"
                     value={form.ip}
@@ -308,8 +324,18 @@ function SettingsPrintersPage() {
                     onChange={(event) => setForm((cur) => ({ ...cur, ip: event.target.value }))}
                   />
                 </label>
+                <label>
+                  <span>{t("pages.settings.settingsprinterspage.tip_printera")}</span>
+                  <select
+                    value={form.type}
+                    onChange={(event) => setForm((cur) => ({ ...cur, type: event.target.value }))}
+                  >
+                    <option value="receipt">{t("pages.settings.settingsprinterspage.chekovyy_kassa")}</option>
+                    <option value="kitchen">{t("pages.settings.settingsprinterspage.kuhonnyy_povar")}</option>
+                  </select>
+                </label>
                 <div className="settings-toggle-field settings-form__wide">
-                  <span>Статус</span>
+                  <span>{t("pages.settings.settingsprinterspage.status")}</span>
                   <label className="settings-switch">
                     <input
                       type="checkbox"
@@ -318,14 +344,14 @@ function SettingsPrintersPage() {
                     />
                     <span className="settings-switch__track" aria-hidden="true"><span className="settings-switch__thumb" /></span>
                     <span className={`settings-switch__label ${form.active ? "is-active" : "is-inactive"}`}>
-                      {form.active ? "Активен" : "Не активен"}
+                      {form.active ? t("staff.active") : t("pages.settings.settingsprinterspage.ne_aktiven")}
                     </span>
                   </label>
                 </div>
               </div>
               {formError ? <p className="settings-form__error" role="alert">{formError}</p> : null}
               <footer className="settings-form__footer">
-                <button type="button" disabled={saving} onClick={closeDrawer}>Отмена</button>
+                <button type="button" disabled={saving} onClick={closeDrawer}>{t("pages.settings.settingsprinterspage.otmena")}</button>
                 <button type="submit" disabled={saving}>{saving ? "Сохранение..." : "Сохранить"}</button>
               </footer>
             </form>
@@ -341,20 +367,20 @@ function SettingsPrintersPage() {
               <header className="settings-form__header">
                 <span className="settings-accent-bar" />
                 <div>
-                  <p>Удаление</p>
-                  <h2 id="printer-delete-title">Удалить принтер?</h2>
+                  <p>{t("pages.settings.settingsprinterspage.udalenie")}</p>
+                  <h2 id="printer-delete-title">{t("pages.settings.settingsprinterspage.udalit_printer")}</h2>
                 </div>
-                <button type="button" aria-label="Закрыть" disabled={deleting} onClick={() => setDeleteTarget(null)}>
+                <button type="button" aria-label={t("pages.settings.settingsprinterspage.zakryt")} disabled={deleting} onClick={() => setDeleteTarget(null)}>
                   <Icon name="bi-x-lg" size={18} />
                 </button>
               </header>
               <div className="settings-form__body">
                 <p id="printer-delete-body" className="settings-confirm__text">
-                  «<strong>{deleteTarget.name}</strong>» будет удалён из настроек.
+                  «<strong>{deleteTarget.name}</strong>{t("pages.settings.settingsprinterspage.budet_udalen_iz_nastroek")}
                 </p>
               </div>
               <footer className="settings-form__footer">
-                <button type="button" autoFocus disabled={deleting} onClick={() => setDeleteTarget(null)}>Отмена</button>
+                <button type="button" autoFocus disabled={deleting} onClick={() => setDeleteTarget(null)}>{t("pages.settings.settingsprinterspage.otmena")}</button>
                 <button type="button" className="settings-confirm__delete" disabled={deleting} onClick={confirmDelete}>
                   {deleting ? "Удаление..." : "Удалить"}
                 </button>

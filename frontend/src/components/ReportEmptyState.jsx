@@ -1,4 +1,5 @@
 import emptyIllustration from "../assets/reports/report-empty-state.png";
+import { t } from "../i18n/t";
 
 // Preload + decode the canonical empty-state PNG ONCE at module load, so it is
 // already in the browser cache and decoded before any report subcategory
@@ -22,7 +23,7 @@ export default function ReportEmptyState({ title, hidden = false, loading = fals
   if (loading) {
     return (
       <div className="owner-report-empty owner-report-empty--illustrated owner-report-empty--loading" role="status" aria-live="polite">
-        <span className="owner-report-empty-loading">Загрузка…</span>
+        <span className="owner-report-empty-loading">{t("components.reportemptystate.zagruzka")}</span>
       </div>
     );
   }

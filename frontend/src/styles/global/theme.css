@@ -176,14 +176,6 @@
   html[data-theme="dark"] body.dashboard-body .dashboard-topbar::before {
     opacity: 0 !important;
   }
-  html[data-theme="dark"] body.dashboard-body .preview-serif-wordmark__full img {
-    filter: url("#marjon-dark-wordmark");
-    mix-blend-mode: normal !important;
-    opacity: .94;
-  }
-  html[data-theme="dark"] body.dashboard-body .preview-serif-wordmark__full {
-    mix-blend-mode: normal;
-  }
   html[data-theme="dark"] body.dashboard-body #dashboardSidebar .sidebar-link {
     --dark-shell-nav-icon: var(--theme-secondary);
     --dark-shell-chevron: var(--theme-muted);
@@ -722,6 +714,39 @@ body.dashboard-body .dashboard-topbar .topbar-theme-toggle svg {
   }
   html[data-theme="dark"] body.dashboard-body .settings-action-delete {
     color: var(--theme-danger) !important;
+  }
+  /* Настройки → Места: строки мест и столов свёрстаны на светлых подложках,
+     а их текст берёт palette-токены, которые в тёмной теме светлеют — на
+     белой строке «12 %» и счётчик столов становились почти невидимыми.
+     Красим саму строку тем же материалом, что и прочие заполненные списки. */
+  html[data-theme="dark"] body.dashboard-body :is(.settings-place, .settings-tbl__row:not(.settings-tbl__head)) {
+    background: var(--theme-control-face) !important;
+    border-color: var(--theme-line) !important;
+  }
+  html[data-theme="dark"] body.dashboard-body .settings-place:hover {
+    border-color: var(--theme-accent) !important;
+    box-shadow: var(--theme-shadow) !important;
+  }
+  html[data-theme="dark"] body.dashboard-body :is(
+    .settings-place__name, .settings-place__price, .settings-place__percent,
+    .settings-tbl__cell, .settings-tbl__cell strong
+  ) {
+    color: var(--theme-text) !important;
+  }
+  html[data-theme="dark"] body.dashboard-body .settings-place__count {
+    color: var(--theme-muted) !important;
+  }
+  /* Архивные строки остаются приглушёнными: та же подложка, но текст ниже
+     по яркости и ромбовидная (dashed) кромка, как в светлой теме. */
+  html[data-theme="dark"] body.dashboard-body :is(.settings-place.is-inactive, .settings-tbl__row.is-inactive) {
+    background: var(--theme-panel) !important;
+    border-color: var(--theme-line) !important;
+  }
+  html[data-theme="dark"] body.dashboard-body :is(
+    .settings-place.is-inactive .settings-place__name,
+    .settings-tbl__row.is-inactive .settings-tbl__cell strong
+  ) {
+    color: var(--theme-secondary) !important;
   }
   html[data-theme="dark"] body.dashboard-body :is(.settings-status-badge.is-active, .settings-switch__label.is-active) {
     color: var(--theme-success) !important;

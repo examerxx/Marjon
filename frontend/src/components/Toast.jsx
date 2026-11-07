@@ -3,6 +3,7 @@
 // не сдвигает контент страницы.
 import { createPortal } from "react-dom";
 import "./Toast.css";
+import { t } from "../i18n/t";
 
 export default function Toast({ kind = "success", title, message, leaving = false, onClose }) {
   const isSuccess = kind !== "error";
@@ -29,7 +30,7 @@ export default function Toast({ kind = "success", title, message, leaving = fals
         <span className="marjon-toast__message">{message}</span>
       </span>
       {onClose ? (
-        <button type="button" className="marjon-toast__close" aria-label="Закрыть уведомление" onClick={onClose}>
+        <button type="button" className="marjon-toast__close" aria-label={t("components.toast.zakryt_uvedomlenie")} onClick={onClose}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>

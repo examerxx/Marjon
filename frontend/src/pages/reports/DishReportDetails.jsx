@@ -6,6 +6,7 @@ import { formatDateLabel } from "../../utils/date";
 import { isOrderedDateRange } from "../../hooks/useAsyncSafety";
 import { toApiDate } from "./reportPeriod";
 import OrderStatus from "./OrderStatus";
+import { t } from "../../i18n/t";
 
 const number = value => Number(value).toLocaleString("ru-RU", { maximumFractionDigits: 3 });
 const money = value => value == null ? "—" : Number(value).toLocaleString("ru-RU", { maximumFractionDigits: 2 }) + " UZS";
@@ -54,20 +55,20 @@ export default function DishReportDetails({ dish, dateFrom, dateTo, filters }) {
   }, [dish, selectedFrom, selectedTo, dateFrom, dateTo, filters]);
   return <section className="dishes-report-page dish-report-detail-page owner-report-view">
     <article className="report-page-card owner-report-surface">
-      <div className="owner-report-header dish-report-header"><div className="owner-report-heading"><span className="report-accent-bar" aria-hidden="true" /><div><span className="owner-report-kicker">Отчёт по блюдам</span><h1>{dish.name}</h1></div></div>
+      <div className="owner-report-header dish-report-header"><div className="owner-report-heading"><span className="report-accent-bar" aria-hidden="true" /><div><span className="owner-report-kicker">{t("pages.reports.dishreportdetails.otchet_po_blyudam")}</span><h1>{dish.name}</h1></div></div>
       <div className="dish-report-metrics">
-        <div><span>Цена позиции</span><strong>{metrics?.price || "—"}</strong></div>
-        <div><span>Продано</span><strong>{metrics ? metrics.quantity + " " + dish.unit : "—"}</strong></div>
-        <div><span>Сумма продаж</span><strong>{metrics?.amount || "—"}</strong></div>
-        <div><span>Себестоимость продаж</span><strong>{money(metrics?.costNum)}</strong></div>
-        <div><span>Прибыль</span><strong>{money(metrics?.profitNum)}</strong></div>
+        <div><span>{t("pages.reports.dishreportdetails.tsena_pozitsii")}</span><strong>{metrics?.price || "—"}</strong></div>
+        <div><span>{t("pages.reports.dishreportdetails.prodano")}</span><strong>{metrics ? metrics.quantity + " " + dish.unit : "—"}</strong></div>
+        <div><span>{t("pages.reports.dishreportdetails.summa_prodazh")}</span><strong>{metrics?.amount || "—"}</strong></div>
+        <div><span>{t("pages.reports.dishreportdetails.sebestoimost_prodazh")}</span><strong>{money(metrics?.costNum)}</strong></div>
+        <div><span>{t("pages.reports.dishreportdetails.pribyl")}</span><strong>{money(metrics?.profitNum)}</strong></div>
       </div>
         <div className="report-actions owner-report-actions"><ReportDateRangePicker variant="canonical" value={period} onChange={setPeriod} buttonAriaLabel="Период продаж позиции" /></div>
       </div>
       {error ? <div role="alert" className="login-error">{error}</div> : null}
-      <div className="owner-report-table-scroll"><table className="report-table owner-report-table dish-order-table" aria-label="Заказы с этой позицией">
+      <div className="owner-report-table-scroll"><table className="report-table owner-report-table dish-order-table" aria-label={t("pages.reports.dishreportdetails.zakazy_s_etoy_pozitsiey")}>
         <colgroup><col style={{ width: "6%" }} /><col style={{ width: "17%" }} /><col style={{ width: "16%" }} /><col style={{ width: "12%" }} /><col style={{ width: "20%" }} /><col style={{ width: "17%" }} /><col style={{ width: "12%" }} /></colgroup>
-        <thead><tr><th>№ заказа</th><th>Дата и время</th><th>Место</th><th>Официант</th><th title="Количество позиции / сумма её продаж в этом заказе">Цена позиции в заказе</th><th>Сумма заказа</th><th>Статус</th></tr></thead>
+        <thead><tr><th>{t("pages.reports.dishreportdetails.zakaza")}</th><th>{t("pages.reports.dishreportdetails.data_i_vremya")}</th><th>{t("pages.reports.dishreportdetails.mesto")}</th><th>{t("pages.reports.dishreportdetails.ofitsiant")}</th><th title={t("pages.reports.dishreportdetails.kolichestvo_pozitsii_summa_ee_prodazh_v_etom_zakaze")}>{t("pages.reports.dishreportdetails.tsena_pozitsii_v_zakaze")}</th><th>{t("pages.reports.dishreportdetails.summa_zakaza")}</th><th>{t("pages.reports.dishreportdetails.status")}</th></tr></thead>
         <tbody>{orders?.map(order => <tr key={order.order_id}><td>{order.order_number}</td><td>{webDateTime(order.created_at) || "—"}</td><td>{[order.hall_name, order.table_number ? "стол " + order.table_number : null].filter(Boolean).join(", ") || "—"}</td><td>{order.waiter_name || "—"}</td><td>{order.position_quantity != null && order.position_amount != null ? number(order.position_quantity) + " / " + money(order.position_amount) : "—"}</td><td>{money(order.total_amount)}</td><td><OrderStatus value={order.status} /></td></tr>)}
           {!orders?.length ? <tr><td colSpan={7}>{error ? "Заказы недоступны" : orders ? "Заказов не найдено" : "Загрузка заказов…"}</td></tr> : null}</tbody>
       </table></div>

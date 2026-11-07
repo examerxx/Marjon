@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import i18n from "../i18n";
 import logo from "../assets/marjon-logo.svg";
-import brandLogo from "../assets/brand/marjon-user-logo.svg";
-import brandWordmark from "../assets/brand/marjon-serif-reference.png";
+import brandLogo from "../assets/brand/marjon-neon-logo-v110.png";
 import { logout } from "../api/client";
 import { canAccessPath, filterNavItems } from "../utils/permissions";
 import { readStoredProfile } from "../utils/profileCache";
@@ -14,6 +13,7 @@ import SidebarNav from "./sidebar/SidebarNav";
 import SidebarAccount from "./sidebar/SidebarAccount";
 import SidebarMobileNav from "./sidebar/SidebarMobileNav";
 import DarkShellWaves from "./preview/DarkShellWaves";
+import { t } from "../i18n/t";
 
 // Оркестратор сайдбара OWNER. Владеет состоянием и обработчиками навигации,
 // аккаунт-меню и мобильной панели; рендер разнесён по презентационным
@@ -157,24 +157,19 @@ export default function Sidebar({ user, collapsed, onToggle }) {
     <aside className={`dashboard-sidebar ${collapsed ? "is-collapsed" : ""}`} id="dashboardSidebar">
       <DarkShellWaves variant="sidebar" />
       <div className="sidebar-brand">
-        <svg width="0" height="0" aria-hidden="true" focusable="false" style={{ position: "absolute" }}>
-          <defs>
-            <filter id="marjon-dark-wordmark" colorInterpolationFilters="sRGB">
-              <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  -0.2126 -0.7152 -0.0722 0 1" />
-              <feComposite in2="SourceGraphic" operator="in" />
-            </filter>
-          </defs>
-        </svg>
         <div className="sidebar-brand__identity">
           <button
-              className="preview-serif-wordmark"
+            className="brand-mark brand-mark--button"
             type="button"
             onClick={onToggle}
-            aria-label={collapsed ? "Открыть меню" : "Свернуть меню"}
+            aria-label={collapsed ? t("sidebar.open_menu") : t("sidebar.collapse_menu")}
           >
-            <img className="preview-brand-symbol" src={brandLogo} alt="" />
-            <span className="preview-serif-wordmark__full"><img src={brandWordmark} alt="MARJON" /></span>
+            <img src={brandLogo} alt="MARJON" className="marjon-logo" decoding="async" />
           </button>
+          <div>
+            <div className="brand-subtitle">ERP SYSTEM</div>
+            <div className="brand-title">MARJON</div>
+          </div>
         </div>
       </div>
 

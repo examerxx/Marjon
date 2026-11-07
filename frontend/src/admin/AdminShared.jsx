@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { webCalendarToday, webDayKey } from "../utils/webTime";
 
 import Icon from '../components/Icon';
+import { t } from "../i18n/t";
 
 const STATUS_GREEN = ["Активна", "Активен", "Проведен", "Завершено", "В норме", "Включено", "ОК"];
 
@@ -206,12 +207,12 @@ export function AdminPageSizeDropdown({ value, options, onChange }) {
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className="admin-page-size__label">Строк</span>
+        <span className="admin-page-size__label">{t("admin.adminshared.strok")}</span>
         <strong>{value}</strong>
         <Icon name="bi-chevron-down" size={14} />
       </button>
       {open ? (
-        <div className="admin-page-size__menu" role="listbox" aria-label="Количество строк">
+        <div className="admin-page-size__menu" role="listbox" aria-label={t("admin.adminshared.kolichestvo_strok")}>
           {options.map((option) => (
             <button
               className={`admin-page-size__option ${option === value ? "is-selected" : ""}`}

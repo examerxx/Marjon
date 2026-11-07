@@ -239,7 +239,7 @@ export default function StaffFormModal({
                   скрыта у менеджера/завсклада как «не поддерживается». */}
               <label className="cashier-photo__upload">
                 <Icon name="bi-camera" size={16} />
-               {t("pages.staff.staffformmodal.zagruzit_foto")}
+                {t("pages.staff.staffformmodal.zagruzit_foto")}
                 <input type="file" accept="image/*" onChange={handlePhotoChange} aria-label={t("pages.staff.staffformmodal.zagruzit_foto")} />
               </label>
             </div>
@@ -367,11 +367,11 @@ export default function StaffFormModal({
                   проверяется при сохранении, а не мелким текстом под полем. */}
               {editingId ? (
                 <small className="muted" id="staff-pin-hint">
-                 {t("pages.staff.staffformmodal.pusto_ostavit_prezhniy_pin_zabyli_kod_vvedite_novyy")}
+                  {t("pages.staff.staffformmodal.pusto_ostavit_prezhniy_pin_zabyli_kod_vvedite_novyy")}
                 </small>
               ) : isKitchenView ? null : (
                 <small className="muted" id="staff-pin-hint">
-                 {t("pages.staff.staffformmodal.kod_dlya_vhoda_na_kasse_mozhno_ostavit_pustym")}
+                  {t("pages.staff.staffformmodal.kod_dlya_vhoda_na_kasse_mozhno_ostavit_pustym")}
                 </small>
               )}
               {saveErrorField === "pin" && saveError ? (
@@ -689,7 +689,7 @@ export default function StaffFormModal({
 
           <div className="staff-form__footer">
             <button type="button" disabled={saving} onClick={closeModal}>
-             {t("pages.staff.staffformmodal.otmenit")}
+              {t("pages.staff.staffformmodal.otmenit")}
             </button>
             <button type="submit" disabled={saving}>{saving ? t("staff.saving") : editingId ? t("staff.save") : t("staff.add")}</button>
           </div>
@@ -792,7 +792,7 @@ export default function StaffFormModal({
             </div>
           </label>
           <label>
-            <span>{editingId ? "Новый пароль" : "Пароль *"}</span>
+            <span>{editingId ? t("Новый пароль") : "Пароль *"}</span>
             <div className="staff-password-field">
               <input
                 required={!editingId}
@@ -888,7 +888,7 @@ export default function StaffFormModal({
             </button>
           </div>
           <p id="staff-rbac-unavailable" className="muted" role="status">
-           {t("pages.staff.staffformmodal.detalnye_prava_dostupa_nedostupny_do_bi_06")}
+            {t("pages.staff.staffformmodal.detalnye_prava_dostupa_nedostupny_do_bi_06")}
           </p>
           <div className="staff-permission-matrix">
             {staffAccessModules.map((module) => {
@@ -909,7 +909,7 @@ export default function StaffFormModal({
                       title={t("pages.staff.staffformmodal.nedostupno_do_bi_06")}
                       onClick={() => toggleAccess(module.key)}
                       aria-pressed={Boolean(moduleAccess.enabled)}
-                      aria-label={`${t(module.label)}: ${moduleAccess.enabled ? "выключить" : "включить"}`}
+                      aria-label={`${t(module.label)}: ${moduleAccess.enabled ? t("common.disable") : t("common.enable")}`}
                     >
                       <b className="staff-mini-switch" aria-hidden="true" />
                     </button>
@@ -1054,7 +1054,7 @@ export default function StaffFormModal({
 
         <div className="staff-form__footer">
           <button type="button" disabled={saving} onClick={closeModal}>
-           {t("pages.staff.staffformmodal.otmena")}
+            {t("pages.staff.staffformmodal.otmena")}
           </button>
           <button type="submit" disabled={saving}>{saving ? t("staff.saving") : editingId ? t("staff.save") : t("staff.add")}</button>
         </div>
@@ -1062,7 +1062,6 @@ export default function StaffFormModal({
     </div>
   );
 }
-
 
 
 

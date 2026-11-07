@@ -297,7 +297,14 @@ class PrinterService:
             jobs.append(job)
         return jobs
 
-    async def auto_print_kitchen(self, company_id: UUID, order_id: UUID) -> list[PrintJob]:
+    async def auto_print_kitchen(
+        self, company_id: UUID, order_id: UUID, item_ids: list[UUID] | None = None,
+    ) -> list[PrintJob]:
+        """Кухонный тикет на все активные kitchen-принтеры филиала.
+
+        item_ids — дозаказ: печатаем ТОЛЬКО переданные позиции, а не весь
+        заказ (остальное повар уже получил отдельным тикетом).
+        """
         order = await self._get_order(company_id, order_id)
         printers = await self.repo.get_by_type(company_id, order.branch_id, "kitchen")
         if not printers:
@@ -309,7 +316,10 @@ class PrinterService:
         jobs = []
         _, kitchen_tpl = await self._get_receipt_templates(company_id)
         for printer in printers:
-            ticket_data = await self._build_kitchen_data(company_id, order)
+            ticket_data = await self._build_kitchen_data(company_id, order, item_ids=item_ids)
+            if item_ids is not None and not ticket_data.items:
+                # Все переданные позиции уже отменены/отданы — печатать пустой тикет незачем.
+                continue
             raw = self._render_kitchen_ticket(printer, ticket_data, kitchen_tpl)
             job = await self._enqueue_and_send(
                 company_id, printer, "kitchen", order_id, raw, server_timeout=AUTO_PRINT_TIMEOUT
@@ -409,7 +419,6 @@ class PrinterService:
             copies=copies,
             status="pending",
         )
-        job = await self.job_repo.save(job)
 
         # Шаг 1. Пробуем напечатать сразу с сервера (принтер в одной сети с бэкендом).
         #
@@ -449,10 +458,14 @@ class PrinterService:
                     job.status = "pending"
                     job.error = str(e)
                     _start_printer_cooldown(printer.id)
-        # Сохраняем в обеих ветках: без записи в БД объект остаётся с
-        # незагруженным updated_at и сериализация ответа падает с MissingGreenlet.
-        if not printed:
-            job = await self.job_repo.save(job)
+        # PRINT-DUP-01: задание сохраняем ОДИН раз и уже с финальным статусом.
+        # Раньше строка писалась заранее как pending, а после успешной печати с
+        # сервера статус «done» не коммитился вовсе: бумага выходила из бэкенда,
+        # а строка в БД оставалась pending — терминал забирал её опросом очереди
+        # и печатал тот же чек второй раз.
+        # Заодно без записи в БД объект остаётся с незагруженным updated_at и
+        # сериализация ответа падает с MissingGreenlet.
+        job = await self.job_repo.save(job)
 
         # Шаг 2. Не напечатали сами — отдаём задание терминалам по WebSocket.
         # Терминал печатает локально и закрывает задание через POST /printers/jobs/{id}/done.
@@ -495,6 +508,9 @@ class PrinterService:
         result = await self.db.execute(
             select(Order)
             .options(selectinload(Order.items))
+            # populate_existing: после дозаказа в identity map лежит заказ со
+            # старым составом — без refresh новый тикет печатается пустым.
+            .execution_options(populate_existing=True)
             .where(Order.id == order_id, Order.company_id == company_id)
         )
         order = result.scalar_one_or_none()
@@ -655,7 +671,12 @@ class PrinterService:
             customer_address=order.customer_address,
         )
 
-    async def _build_kitchen_data(self, company_id: UUID, order: Order) -> KitchenTicketData:
+    async def _build_kitchen_data(
+        self, company_id: UUID, order: Order, item_ids: list[UUID] | None = None,
+    ) -> KitchenTicketData:
+        # Дозаказ печатается по-позиционно: item_ids ограничивает тикет
+        # только новыми блюдами, а не всем составом стола.
+        wanted = set(item_ids) if item_ids is not None else None
         items = [
             KitchenItem(
                 name=item.name,
@@ -668,7 +689,8 @@ class PrinterService:
                 takeaway=item.takeaway,
             )
             for item in order.items
-            if item.status not in ("cancelled", "served")
+            if (wanted is None or item.id in wanted)
+            and item.status not in ("cancelled", "served")
         ]
         waiter_name = await self._resolve_waiter_name(company_id, order)
         # Match the order timestamp in the preview, including stable reprints.

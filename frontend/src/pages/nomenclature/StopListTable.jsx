@@ -15,6 +15,7 @@ import ReportEmptyState from "../../components/ReportEmptyState";
 import StopListManageModal from "./StopListManageModal";
 import { applyLiveMask, formatQuantity, parseQuantityInput } from "./stopListFormat";
 import { historyView } from "./stopListHistory";
+import { t as tr } from "../../i18n/t";
 
 const FLY_MS = 300;
 const SLIDE_MS = 300;
@@ -238,20 +239,20 @@ export default function StopListTable({
       <div
         className="stoplist-grid-scroll"
         role="region"
-        aria-label="Таблица стоп-листа с прокруткой"
+        aria-label={tr("Таблица стоп-листа с прокруткой")}
         tabIndex={0}
         onScroll={handleScroll}
       >
-        <table className="settings-table stoplist-grid-table" aria-label="Стоп-лист">
+        <table className="settings-table stoplist-grid-table" aria-label={tr("Стоп-лист")}>
           <thead>
             <tr>
               <th className="stoplist-col-index">№</th>
-              <th className="stoplist-col-photo">Фото</th>
-              <th className="stoplist-col-name">Блюдо / товар</th>
-              <th className="stoplist-col-stock">Остаток</th>
-              <th className="stoplist-col-prev">Предыдущий лимит</th>
-              <th className="stoplist-col-new">Новый лимит</th>
-              <th className="stoplist-col-actions">Действия</th>
+              <th className="stoplist-col-photo">{tr("Фото")}</th>
+              <th className="stoplist-col-name">{tr("Блюдо / товар")}</th>
+              <th className="stoplist-col-stock">{tr("Остаток")}</th>
+              <th className="stoplist-col-prev">{tr("Предыдущий лимит")}</th>
+              <th className="stoplist-col-new">{tr("Новый лимит")}</th>
+              <th className="stoplist-col-actions">{tr("Действия")}</th>
             </tr>
           </thead>
           <tbody>
@@ -318,7 +319,7 @@ export default function StopListTable({
                       {row.unitLabel ? (
                         <span className="stoplist-unit-text">{row.unitLabel}</span>
                       ) : (
-                        <span className="stoplist-unit-placeholder">ед. изм</span>
+                        <span className="stoplist-unit-placeholder">{tr("ед. изм")}</span>
                       )}
                     </span>
                   </td>
@@ -344,7 +345,7 @@ export default function StopListTable({
                         disabled={saving}
                         onClick={() => setManageId(id)}
                         aria-label={`Управление лимитами: ${row.name}`}
-                        title="Управление лимитами"
+                        title={tr("Управление лимитами")}
                       >
                         <Icon name="bi-arrow-counterclockwise" size={15} />
                       </button>
@@ -358,7 +359,7 @@ export default function StopListTable({
       </div>
       {isEmpty ? (
         <div className="stoplist-empty-overlay">
-          <ReportEmptyState title="Блюд и товаров пока нет" />
+          <ReportEmptyState title={tr("Блюд и товаров пока нет")} />
         </div>
       ) : null}
       <FlyChips flights={flights} />

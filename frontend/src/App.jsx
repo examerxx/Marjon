@@ -43,6 +43,7 @@ import { OrgProvider } from "./context/OrgContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { useAuth } from "./hooks/useAuth";
 import { canAccessPath, canAccessSection, isOwnerWebUser } from "./utils/permissions";
+import { t } from "./i18n/t";
 
 function ProtectedRoute({ children, sectionKey = "" }) {
   const { user, isAuthenticated, loading } = useAuth();
@@ -140,7 +141,7 @@ export function createAppRouter() {
       { path: "settings/receipt", element: <SettingsReceiptPage /> },
       { path: "settings/kitchen-receipt", element: <SettingsKitchenReceiptPage /> },
       { path: "settings/chef-receipt", element: <SettingsKitchenReceiptPage /> },
-      { path: "settings/support", element: <FinanceStubPage title="Тех. поддержка" /> },
+      { path: "settings/support", element: <FinanceStubPage title={t("app.teh_podderzhka")} /> },
       { path: "finance", element: <Navigate to="/finance/transactions" replace /> },
       { path: "finance/transactions", element: <FinanceOperationsOverview /> },
       { path: "finance/operations", element: <FinanceTransactionsPage /> },
@@ -159,7 +160,7 @@ export function createAppRouter() {
       { path: "nomenclature/semi-finished-categories", element: <CategoriesPage key="semi" type="semi" /> },
       { path: "nomenclature/sales-categories", element: <CategoriesPage key="sales" type="sales" /> },
       { path: "store", element: <StorePage /> },
-      { path: "reviews", element: <PlaceholderPage eyebrow="Reviews" title="Отзывы" text="Раздел отзывов будет показывать обратную связь клиентов." /> },
+      { path: "reviews", element: <PlaceholderPage eyebrow="Reviews" title={t("app.otzyvy")} text={t("app.razdel_otzyvov")} /> },
       { path: "orders", element: <OrdersPage /> },
       { path: "menu", element: <MenuPage /> },
       { path: "staff", element: <StaffPage /> },

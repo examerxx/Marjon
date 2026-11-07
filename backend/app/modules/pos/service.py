@@ -713,48 +713,58 @@ class OrderService:
         self, company_id: UUID, order_id: UUID, item_data: OrderItemCreate,
         user: User | None = None,
     ) -> Order:
+        return await self.add_items(company_id, order_id, [item_data], user)
+
+    async def add_items(
+        self, company_id: UUID, order_id: UUID, items_data: list[OrderItemCreate],
+        user: User | None = None,
+    ) -> Order:
         order = await self.get(company_id, order_id)
         if order.status in ("completed", "cancelled"):
             raise ValidationError("Нельзя добавить позицию к завершённому или отменённому заказу")
 
-        product = await self._get_product(company_id, item_data.product_id, for_update=True)
-        # STOP-LIST V1: та же каноническая проверка, что в create().
-        self._ensure_sale_allowed(product, item_data.quantity)
-        # Добавки поднимают цену порции — см. комментарий в create().
-        modifiers_delta = _modifiers_delta(item_data.modifiers)
-        item_total = _quantize((product.price + modifiers_delta) * item_data.quantity)
-        item_discount = _quantize(item_data.discount) if item_data.discount else Decimal("0")
-        item_total_after_discount = max(item_total - item_discount, Decimal("0"))
+        created: list[OrderItem] = []
+        for item_data in items_data:
+            product = await self._get_product(company_id, item_data.product_id, for_update=True)
+            # STOP-LIST V1: та же каноническая проверка, что в create().
+            self._ensure_sale_allowed(product, item_data.quantity)
+            # Добавки поднимают цену порции — см. комментарий в create().
+            modifiers_delta = _modifiers_delta(item_data.modifiers)
+            item_total = _quantize((product.price + modifiers_delta) * item_data.quantity)
+            item_discount = _quantize(item_data.discount) if item_data.discount else Decimal("0")
+            item_total_after_discount = max(item_total - item_discount, Decimal("0"))
 
-        item = OrderItem(
-            order_id=order.id,
-            product_id=product.id,
-            name=product.name,
-            price=product.price,
-            quantity=item_data.quantity,
-            discount=item_discount,
-            total=item_total_after_discount,
-            # Freeze the sale-time per-unit cost: ручная база + состав на
-            # момент продажи. NULL остаётся NULL, когда у блюда нет ни
-            # себестоимости, ни рецепта — неизвестное не становится нулём.
-            cost_price_snapshot=await product_cost_total(self.db, company_id, product),
-            note=item_data.note,
-            modifiers=item_data.modifiers,
-            course=item_data.course,
-            # «С собой» не облагается обслугой; added_by — кто внёс (9.4).
-            takeaway=item_data.takeaway,
-            added_by=(user.id if user else order.waiter_id),
-        )
-        self.db.add(item)
-        await self.db.flush()
+            item = OrderItem(
+                order_id=order.id,
+                product_id=product.id,
+                name=product.name,
+                price=product.price,
+                quantity=item_data.quantity,
+                discount=item_discount,
+                total=item_total_after_discount,
+                # Freeze the sale-time per-unit cost: ручная база + состав на
+                # момент продажи. NULL остаётся NULL, когда у блюда нет ни
+                # себестоимости, ни рецепта — неизвестное не становится нулём.
+                cost_price_snapshot=await product_cost_total(self.db, company_id, product),
+                note=item_data.note,
+                modifiers=item_data.modifiers,
+                course=item_data.course,
+                # «С собой» не облагается обслугой; added_by — кто внёс (9.4).
+                takeaway=item_data.takeaway,
+                added_by=(user.id if user else order.waiter_id),
+            )
+            self.db.add(item)
+            await self.db.flush()
+            created.append(item)
 
-        # D3: списываем порции из дневного лимита блюда (авто-стоп при исчерпании).
-        try:
-            self._apply_sale_to_limit(product, item_data.quantity)
-        except Exception:
-            pass
+            # D3: списываем порции из дневного лимита блюда (авто-стоп при исчерпании).
+            try:
+                self._apply_sale_to_limit(product, item_data.quantity)
+            except Exception:
+                pass
 
-        order.subtotal += item_total_after_discount
+            order.subtotal += item_total_after_discount
+
         # Дозаказ сбрасывает «чек напечатан» (стол снова «в работе») и возвращает
         # заказ на кухню, если он уже был готов/новый/принят.
         order.receipt_printed_at = None
@@ -767,6 +777,20 @@ class OrderService:
             tax_rate=await self._vat_rate(order),
         )
         await self.db.commit()
+        # Дозаказ: кухня должна получить тикет ТОЛЬКО с новыми позициями —
+        # остальные блюда повар уже видел. Пакетный дозаказ печатает один
+        # тикет на все добавленные строки. Чек кассира по-прежнему содержит
+        # весь состав заказа.
+        try:
+            from app.modules.printers.service import PrinterService
+            await PrinterService(self.db).auto_print_kitchen(
+                company_id, order.id, item_ids=[item.id for item in created]
+            )
+        except Exception:
+            logger.warning(
+                "auto_print_kitchen failed for order %s (branch=%s)",
+                order.id, order.branch_id, exc_info=True,
+            )
         return await self.get(company_id, order_id)
 
     # ── Remove item from order ────────────────────────────────────────────────

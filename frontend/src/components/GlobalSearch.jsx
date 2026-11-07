@@ -4,6 +4,7 @@ import { catalogService } from "../api/catalog";
 import { staffService } from "../api/staff";
 import Icon from "./Icon";
 import { isAbortError, useLatestRequest } from "../hooks/useAsyncSafety";
+import { t } from "../i18n/t";
 
 // Static catalog of navigable destinations. Covers the role/terminal entities
 // the owner searches by name ("моноблок", "официант", "кассир", …) plus the
@@ -96,7 +97,7 @@ export default function GlobalSearch() {
     const pool = [...STATIC_INDEX, ...dynamicIndex];
     const scored = [];
     for (const item of pool) {
-      const haystack = normalize(`${item.label} ${item.sub || ""} ${item.keywords || ""}`);
+      const haystack = normalize(`${t(item.label)} ${item.sub || ""} ${item.keywords || ""}`);
       const idx = haystack.indexOf(q);
       if (idx === -1) continue;
       // Prefer matches at the start of the label.
@@ -156,15 +157,15 @@ export default function GlobalSearch() {
           ref={inputRef}
           type="text"
           className="global-search__input"
-          placeholder="Поиск…"
+          placeholder={t("components.globalsearch.poisk")}
           value={query}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          aria-label="Глобальный поиск"
+          aria-label={t("components.globalsearch.globalnyy_poisk")}
         />
         {query ? (
-          <button type="button" className="global-search__clear" onClick={() => { setQuery(""); inputRef.current?.focus(); }} aria-label="Очистить">
+          <button type="button" className="global-search__clear" onClick={() => { setQuery(""); inputRef.current?.focus(); }} aria-label={t("components.globalsearch.ochistit")}>
             <Icon name="bi-x-lg" size={18} />
           </button>
         ) : null}
@@ -180,7 +181,7 @@ export default function GlobalSearch() {
           ) : results.length === 0 ? (
             <div className="global-search__empty">
               <Icon name="bi-search" size={18} />
-              <p>Ничего не найдено по «{query}»</p>
+              <p>{t("components.globalsearch.nichego_ne_naydeno_po")}{query}»</p>
             </div>
           ) : (
             grouped.map(([type, items]) => (
@@ -192,14 +193,14 @@ export default function GlobalSearch() {
                   return (
                     <button
                       type="button"
-                      key={`${item.to}-${item.label}`}
+                      key={`${item.to}-${t(item.label)}`}
                       className={`global-search__result ${idx === activeIndex ? "is-active" : ""}`}
                       onMouseEnter={() => setActiveIndex(idx)}
                       onClick={() => go(item)}
                     >
                       <span className="global-search__result-icon"><Icon name={item.icon} size={18} /></span>
                       <span className="global-search__result-body">
-                        <strong>{item.label}</strong>
+                        <strong>{t(item.label)}</strong>
                         {item.sub ? <small>{item.sub}</small> : null}
                       </span>
                       <Icon name="bi-arrow-return-left" size={18} className="global-search__result-enter" />

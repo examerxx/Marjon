@@ -18,6 +18,12 @@ class OrderItemCreate(BaseSchema):
     takeaway: bool = False
 
 
+class OrderItemsAdd(BaseSchema):
+    """Пакетный дозаказ: касса отправляет все новые строки одной командой,
+    чтобы на кухне вышел один тикет, а не по тикету на каждую позицию."""
+    items: list[OrderItemCreate] = Field(..., min_length=1)
+
+
 class OrderCreate(BaseSchema):
     branch_id: UUID
     terminal_id: UUID | None = None

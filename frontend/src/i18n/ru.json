@@ -173,7 +173,9 @@
     "dishes_unavailable": "Блюда недоступны",
     "archived_suffix": "архив",
     "number_sign": "№",
-    "suppliers_unavailable": "Поставщики недоступны"
+    "suppliers_unavailable": "Поставщики недоступны",
+    "disable": "Выключить",
+    "enable": "Включить"
   },
   "auth": {
     "login": "Вход",
@@ -759,7 +761,17 @@
         "kategoriya": "Категория",
         "ne_vybrana": "Не выбрана",
         "kommentariy": "Комментарий",
-        "otmena": "Отмена"
+        "otmena": "Отмена",
+        "data_i_vremya_operatsii": "Дата и время операции",
+        "vyberite_datu_i_vremya": "Выберите дату и время",
+        "gruppa_kontragentov": "Группа контрагентов",
+        "tolko_chtenie": " — только чтение",
+        "net_kontragentov_v_etoy_gruppe": "Нет контрагентов в этой группе",
+        "net_sposobov_oplaty": "Нет способов оплаты",
+        "naznachenie_operatsii_ili_primechanie": "Назначение операции или примечание",
+        "redaktirovanie_operatsii": "Редактирование операции",
+        "rashodnaya_operatsiya": "Расходная операция",
+        "prihodnaya_operatsiya": "Приходная операция"
       }
     },
     "settings": {
@@ -951,7 +963,13 @@
         "udalit_printer": "Удалить принтер?",
         "budet_udalen_iz_nastroek": "» будет удалён из настроек.",
         "redaktirovat_printer": "Редактировать «{{name}}»",
-        "ne_aktiven": "Не активен"
+        "ne_aktiven": "Не активен",
+        "tip": "Тип",
+        "tip_printera": "Тип принтера",
+        "chekovyy_kassa": "Чековый (касса)",
+        "kuhonnyy_povar": "Кухонный (повар)",
+        "kassa": "Касса",
+        "kuhnya": "Кухня"
       },
       "settingsresourcepage": {
         "vse": "Все",
@@ -1024,7 +1042,8 @@
           "zakazov": "Заказов:",
           "finansovye_operatsii": "Финансовые операции",
           "otkryt_chek": "Открыть чек заказа",
-          "period_istorii": "Период"
+          "period_istorii": "Период",
+          "period_istorii_tranzaktsiy": "Период истории транзакций"
         }
       },
       "profile": {
@@ -1128,7 +1147,12 @@
       "skachat_excel": "Скачать Excel",
       "poisk_po_kontragentu": "Поиск по контрагенту",
       "itogo": "Итого",
-      "po_zaprosu_nichego_ne_naydeno": "По запросу ничего не найдено"
+      "po_zaprosu_nichego_ne_naydeno": "По запросу ничего не найдено",
+      "saldo": "Сальдо",
+      "debitory": "Дебиторы",
+      "kreditory": "Кредиторы",
+      "vid_zadolzhennosti": "Вид задолженности",
+      "vse_kontragenty": "Все контрагенты"
     },
     "dishesreportpage": {
       "net_foto": "Нет фото",
@@ -1223,7 +1247,10 @@
       "rashod_2": "Расход",
       "deystviya": "Действия",
       "zagruzka": "Загрузка...",
-      "tranzaktsiy_net": "Транзакций нет."
+      "tranzaktsiy_net": "Транзакций нет.",
+      "vvod_polozhitelnoy_summy": "Введите положительную сумму.",
+      "ukazhite_datu_i_vremya_operatsii": "Укажите дату и время операции.",
+      "k_obzoru_denezhnyh_operatsiy": "К обзору денежных операций"
     },
     "loginpage": {
       "vhod_filiala": "Вход филиала",
@@ -1962,7 +1989,8 @@
         "nedopustimoe_znachenie": "недопустимое значение",
         "otchet_po_kassiram": "Отчёт по кассирам",
         "otchet_po_ofitsiantam": "Отчёт по официантам",
-        "otchet_po_mestam": "Отчёт по местам"
+        "otchet_po_mestam": "Отчёт по местам",
+        "net_oplat_za_vybrannyy_period": "Нет оплат за выбранный период"
       },
       "cancelledorderdetails": {
         "otchety_otmenennye_blyuda": "Отчёты / Отменённые блюда",
@@ -2166,7 +2194,8 @@
         "etot_produkt_poka_ne_ispolzuetsya_v_blyudah": "Этот продукт пока не используется в блюдах",
         "error": {
           "save": "Не удалось сохранить использование."
-        }
+        },
+        "archive_suffix": "{{name}} (архив)"
       },
       "rawmaterialspage": {
         "sklad": "Склад",
@@ -2399,7 +2428,8 @@
         "sht": "шт",
         "prodazh_poka_net": "Продаж пока нет",
         "novye_zakazy_budut_otobrazhatsya_zdes": "Новые заказы будут отображаться здесь.",
-        "posle_pervyh_zakazov_zdes_poyavyatsya_samye_prodavaemye_pozitsii": "После первых заказов здесь появятся самые продаваемые позиции."
+        "posle_pervyh_zakazov_zdes_poyavyatsya_samye_prodavaemye_pozitsii": "После первых заказов здесь появятся самые продаваемые позиции.",
+        "za_vybrannyy_period_zakazov_net": "За выбранный период заказов нет"
       },
       "dashboarddialogs": {
         "itogo": "Итого",
@@ -2432,7 +2462,8 @@
         "ne_udalos_zagruzit_zakazy": "Не удалось загрузить заказы",
         "ne_udalos_zagruzit_sredniy_chek": "Не удалось загрузить средний чек",
         "otkryt_chek_zakaza": "Открыть чек заказа",
-        "net_dannyh": "Нет данных"
+        "net_dannyh": "Нет данных",
+        "detalizatsiya_pokazatelya": "Детализация показателя"
       },
       "orderreceiptdialog": {
         "chek_zakaza": "Чек заказа",

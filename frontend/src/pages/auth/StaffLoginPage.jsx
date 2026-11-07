@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchStaffUsers } from "../../api/client";
 import Icon from '../../components/Icon';
+import { t } from "../../i18n/t";
 
 export default function StaffLoginPage() {
   const navigate = useNavigate();
@@ -32,18 +33,18 @@ export default function StaffLoginPage() {
     <main className="staff-login">
       <header className="staff-login__head">
         <Link to="/login" className="staff-login__back">
-          <Icon name="bi-arrow-left" size={18} /> Вход по email
+          <Icon name="bi-arrow-left" size={18} /> {t("pages.auth.staffloginpage.vhod_po_email")}
         </Link>
-        <h1>Выберите сотрудника</h1>
-        <p>Нажмите на свой аватар, затем введите PIN-код.</p>
+        <h1>{t("pages.auth.staffloginpage.vyberite_sotrudnika")}</h1>
+        <p>{t("pages.auth.staffloginpage.nazhmite_na_svoy_avatar_zatem_vvedite_pin_kod")}</p>
       </header>
 
       {loading ? (
-        <div className="staff-login__state">Загрузка…</div>
+        <div className="staff-login__state">{t("pages.auth.staffloginpage.zagruzka")}</div>
       ) : error ? (
         <div className="staff-login__state staff-login__state--error">{error}</div>
       ) : employees.length === 0 ? (
-        <div className="staff-login__state">Нет доступных сотрудников</div>
+        <div className="staff-login__state">{t("pages.auth.staffloginpage.net_dostupnyh_sotrudnikov")}</div>
       ) : (
         <div className="staff-login__grid">
           {employees.map((emp) => (

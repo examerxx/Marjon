@@ -348,6 +348,8 @@ export const orders = {
   },
   update: (id, data) => api.patch(`/pos/orders/${id}`, data).then((r) => r.data),
   addItem: (orderId, data) => api.post(`/pos/orders/${orderId}/items`, data).then((r) => r.data),
+  // Пакетный дозаказ: одна команда — один кухонный тикет на все новые блюда.
+  addItems: (orderId, items) => api.post(`/pos/orders/${orderId}/items/bulk`, { items }).then((r) => r.data),
   // reason — причина удаления (журналируется на бэкенде: кто/когда/почему удалил позицию)
   removeItem: (orderId, itemId, reason) => api.delete(`/pos/orders/${orderId}/items/${itemId}`, {
     params: reason ? { reason } : {},

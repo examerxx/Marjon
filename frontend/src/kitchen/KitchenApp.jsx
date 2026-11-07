@@ -41,6 +41,7 @@ import {
   IconWifi,
   IconWifiOff,
 } from "./icons.jsx";
+import { t as tr } from "../i18n/t";
 
 // Бэкенд отдаёт наивный UTC без таймзоны — считаем его UTC, иначе таймеры врут
 function parseTs(ts) {
@@ -164,13 +165,13 @@ function DishRow({ item, busy, onStatus }) {
         <span className="dish__name">{item.name || "Блюдо"}</span>
         {modifiers ? <span className="dish__mods">{modifiers}</span> : null}
         {item.note ? <span className="dish__note">{item.note}</span> : null}
-        {item.takeaway ? <span className="dish__tag">с собой</span> : null}
+        {item.takeaway ? <span className="dish__tag">{tr("с собой")}</span> : null}
       </span>
 
       {st === "ready" ? (
         <span className="dish__done">
           <IconCheck size={18} />
-          <span>Готово</span>
+          <span>{tr("Готово")}</span>
         </span>
       ) : (
         <button
@@ -216,7 +217,7 @@ function Ticket({ order, now, busyId, onItemStatus, onOrderReady }) {
           </span>
         </div>
 
-        <span className="ticket__timer" title="Время с момента заказа">
+        <span className="ticket__timer" title={tr("Время с момента заказа")}>
           <i className={`ticket__dot is-${tone}`} aria-hidden="true" />
           {formatElapsed(order.created_at, now)}
         </span>
@@ -269,7 +270,7 @@ function Ticket({ order, now, busyId, onItemStatus, onOrderReady }) {
             <IconSpinner size={16} />
           ) : allReady ? (
             <>
-              Отдать
+              {tr("Отдать")}
               <IconArrow size={16} />
             </>
           ) : (
@@ -314,8 +315,8 @@ function Rail({ online, soundOn, onSound, onRefresh, onFullscreen, onLogout }) {
           className="rail__btn"
           type="button"
           onClick={onRefresh}
-          title="Обновить заказы"
-          aria-label="Обновить заказы"
+          title={tr("Обновить заказы")}
+          aria-label={tr("Обновить заказы")}
         >
           <IconRefresh size={19} />
         </button>
@@ -324,8 +325,8 @@ function Rail({ online, soundOn, onSound, onRefresh, onFullscreen, onLogout }) {
           className="rail__btn"
           type="button"
           onClick={onFullscreen}
-          title="Во весь экран"
-          aria-label="Во весь экран"
+          title={tr("Во весь экран")}
+          aria-label={tr("Во весь экран")}
         >
           <IconExpand size={19} />
         </button>
@@ -335,8 +336,8 @@ function Rail({ online, soundOn, onSound, onRefresh, onFullscreen, onLogout }) {
         className="rail__btn rail__btn--out"
         type="button"
         onClick={onLogout}
-        title="Сменить повара"
-        aria-label="Сменить повара"
+        title={tr("Сменить повара")}
+        aria-label={tr("Сменить повара")}
       >
         <IconLogout size={19} />
       </button>
@@ -355,7 +356,7 @@ function GateAside({ eyebrow, title, facts, footer }) {
         <img src={logo} alt="" width={44} height={44} decoding="async" />
         <span className="gate__wordmark">
           Marjon
-          <small>кухонный экран</small>
+          <small>{tr("кухонный экран")}</small>
         </span>
       </div>
 
@@ -737,9 +738,9 @@ export default function KitchenApp() {
           eyebrow="Первый запуск"
           title={
             <>
-              Один раз настроить,
+              {tr("Один раз настроить,")}
               <br />
-              дальше — только PIN
+              {tr("дальше — только PIN")}
             </>
           }
           facts={[
@@ -747,17 +748,15 @@ export default function KitchenApp() {
             "PIN повара — четыре цифры на смену",
             "Экран запоминает филиал сам",
           ]}
-          footer={<span className="gate__note">MARJON POS · кухня</span>}
+          footer={<span className="gate__note">{tr("MARJON POS · кухня")}</span>}
         />
 
         <section className="gate__panel">
           <header className="gate__head">
-            <p className="eyebrow">Подключение</p>
-            <h2 className="gate__panel-title">Экран кухни</h2>
+            <p className="eyebrow">{tr("Подключение")}</p>
+            <h2 className="gate__panel-title">{tr("Экран кухни")}</h2>
             <p className="gate__hint">
-              Это логин и пароль <strong>филиала</strong> из карточки филиала
-              (Настройки → Филиалы), а не пароль повара. По ним экран находит свою
-              кухню; повара входят по PIN.
+             {tr("kitchen.kitchenapp.eto_login_i_parol")} <strong>{tr("kitchen.kitchenapp.filiala")}</strong> {tr("kitchen.kitchenapp.iz_kartochki_filiala_nastroyki_filialy_a_ne_parol")}
             </p>
           </header>
 
@@ -770,7 +769,7 @@ export default function KitchenApp() {
             ) : null}
 
             <label className="field">
-              <span className="field__label">Логин филиала</span>
+              <span className="field__label">{tr("Логин филиала")}</span>
               {/* Та же маска, что в веб-логине: код страны — статичный
                   префикс, в поле живут только 9 локальных цифр. Раньше номер
                   вводился сырым текстом, и «+998 90…», «998901…», «90…»
@@ -791,7 +790,7 @@ export default function KitchenApp() {
             </label>
 
             <label className="field">
-              <span className="field__label">Пароль филиала</span>
+              <span className="field__label">{tr("Пароль филиала")}</span>
               <input
                 className="field__input"
                 type="password"
@@ -820,9 +819,9 @@ export default function KitchenApp() {
           eyebrow="Смена"
           title={
             <>
-              Четыре цифры —
+              {tr("Четыре цифры —")}
               <br />
-              и кухня под контролем
+              {tr("и кухня под контролем")}
             </>
           }
           facts={[
@@ -832,7 +831,7 @@ export default function KitchenApp() {
           ]}
           footer={
             <button className="linkbtn" type="button" onClick={handleForgetDevice}>
-              Сбросить привязку экрана
+              {tr("Сбросить привязку экрана")}
             </button>
           }
         />
@@ -840,8 +839,8 @@ export default function KitchenApp() {
         <section className="gate__panel">
           <header className="gate__head">
             <p className="eyebrow">{branch?.name || "Филиал"}</p>
-            <h2 className="gate__panel-title">Вход повара</h2>
-            <p className="gate__hint">Введите PIN из четырёх цифр — вход произойдёт сам.</p>
+            <h2 className="gate__panel-title">{tr("Вход повара")}</h2>
+            <p className="gate__hint">{tr("Введите PIN из четырёх цифр — вход произойдёт сам.")}</p>
           </header>
 
           <div className={`pin ${pinError ? "is-error" : ""} ${pinBusy ? "is-busy" : ""}`}>
@@ -858,7 +857,7 @@ export default function KitchenApp() {
               maxLength={4}
               value={pin}
               onChange={handlePinChange}
-              aria-label="PIN повара, 4 цифры"
+              aria-label={tr("PIN повара, 4 цифры")}
             />
             <div
               className="pin__slots"
@@ -872,7 +871,7 @@ export default function KitchenApp() {
             <p className="pin__msg" role={pinError ? "alert" : undefined}>
               {pinBusy ? (
                 <>
-                  <IconSpinner size={14} /> Проверяем PIN
+                  <IconSpinner size={14} /> {tr("Проверяем PIN")}
                 </>
               ) : pinError ? (
                 pinError
@@ -908,7 +907,7 @@ export default function KitchenApp() {
               type="button"
               disabled={pinBusy || !pin.length}
               onClick={pressBackspace}
-              aria-label="Стереть последнюю цифру"
+              aria-label={tr("Стереть последнюю цифру")}
             >
               <IconBackspace size={22} />
             </button>
@@ -919,9 +918,9 @@ export default function KitchenApp() {
   }
 
   const tabs = [
-    { key: "all", label: "Все", count: summary.total },
-    { key: "cooking", label: "Готовим", count: summary.total - summary.readyToServe },
-    { key: "ready", label: "К отдаче", count: summary.readyToServe },
+    { key: "all", label: tr("common.all"), count: summary.total },
+    { key: "cooking", label: tr("kitchen.kitchenapp.gotovim"), count: summary.total - summary.readyToServe },
+    { key: "ready", label: tr("kitchen.kitchenapp.k_otdache"), count: summary.readyToServe },
   ];
 
   return (
@@ -939,12 +938,12 @@ export default function KitchenApp() {
         <header className="head">
           <div className="head__id">
             <p className="eyebrow">
-              Кухня · {branch?.name || "филиал"}
+              {tr("kitchen.kitchenapp.kuhnya")} {branch?.name || "филиал"}
             </p>
             <h1 className="head__title">{cookName || "Повар"}</h1>
           </div>
 
-          <div className="head__tabs" role="group" aria-label="Фильтр заказов">
+          <div className="head__tabs" role="group" aria-label={tr("Фильтр заказов")}>
             {tabs.map((tab) => (
               <button
                 key={tab.key}
@@ -967,7 +966,7 @@ export default function KitchenApp() {
             </p>
           ) : null}
 
-          <div className="head__clock" aria-label="Текущее время">
+          <div className="head__clock" aria-label={tr("Текущее время")}>
             <span className="clock">
               <b>
                 {clock.hh}:{clock.mm}
@@ -981,15 +980,14 @@ export default function KitchenApp() {
         <main className="board" aria-busy={loading ? "true" : "false"}>
           {error ? (
             <section className="state">
-              <p className="eyebrow">Нет связи</p>
-              <h2 className="state__title">Сервер не отвечает</h2>
+              <p className="eyebrow">{tr("Нет связи")}</p>
+              <h2 className="state__title">{tr("Сервер не отвечает")}</h2>
               <p className="state__text">
-                Заказы не загрузились. Проверьте интернет — экран сам подхватит очередь, как
-                только связь вернётся.
+                {tr("kitchen.kitchenapp.zakazy_ne_zagruzilis_proverte_internet_ekran_sam")}
               </p>
               <button className="btn btn--primary" type="button" onClick={refreshNow}>
                 <IconRefresh size={17} />
-                Обновить
+                {tr("Обновить")}
               </button>
             </section>
           ) : loading ? (
@@ -1001,7 +999,7 @@ export default function KitchenApp() {
                 </div>
               ))}
               <p className="board__loading">
-                <IconSpinner size={15} /> Загружаем заказы
+                <IconSpinner size={15} /> {tr("Загружаем заказы")}
               </p>
             </>
           ) : visibleOrders.length ? (
@@ -1017,28 +1015,27 @@ export default function KitchenApp() {
             ))
           ) : orders.length ? (
             <section className="state">
-              <p className="eyebrow">Фильтр</p>
-              <h2 className="state__title">Здесь пока пусто</h2>
+              <p className="eyebrow">{tr("Фильтр")}</p>
+              <h2 className="state__title">{tr("Здесь пока пусто")}</h2>
               <p className="state__text">
                 {filter === "ready"
                   ? "Все заказы ещё в работе. Как только блюда будут готовы, они появятся здесь."
                   : "В работе нет заказов — все блюда уже отданы."}
               </p>
               <button className="btn" type="button" onClick={() => setFilter("all")}>
-                Показать все заказы
+                {tr("Показать все заказы")}
               </button>
             </section>
           ) : (
             <section className="state state--empty">
               <div className="state__intro">
-                <p className="eyebrow">Очередь пуста</p>
-                <h2 className="state__title">Кухня свободна</h2>
+                <p className="eyebrow">{tr("Очередь пуста")}</p>
+                <h2 className="state__title">{tr("Кухня свободна")}</h2>
                 <p className="state__text">
-                  Новые заказы появятся здесь сами: экран слушает очередь и обновляется
-                  каждые пять секунд.
+                  {tr("kitchen.kitchenapp.novye_zakazy_poyavyatsya_zdes_sami_ekran_slushaet")}
                 </p>
                 <p className="state__sync">
-                  последняя синхронизация <b>{clock.hh}:{clock.mm}:{clock.ss}</b>
+                  {tr("последняя синхронизация")} <b>{clock.hh}:{clock.mm}:{clock.ss}</b>
                 </p>
               </div>
 

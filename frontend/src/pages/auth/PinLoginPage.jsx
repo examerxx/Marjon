@@ -6,6 +6,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { ROLE_HOME } from "../../utils/permissions";
 import Icon from '../../components/Icon';
+import { t } from "../../i18n/t";
 
 const PIN_LENGTH = 4;
 
@@ -57,7 +58,7 @@ export default function PinLoginPage() {
     <main className="pin-login">
       <header className="pin-login__head">
         <Link to="/login/staff" className="pin-login__back">
-          <Icon name="bi-arrow-left" size={18} /> Назад к списку
+          <Icon name="bi-arrow-left" size={18} /> {t("pages.auth.pinloginpage.nazad_k_spisku")}
         </Link>
         <div className="pin-login__user">
           <div className="pin-login__avatar">
@@ -92,12 +93,12 @@ export default function PinLoginPage() {
         <button type="button" className="pin-login__key" onClick={() => handleDigit("0")} disabled={busy}>
           0
         </button>
-        <button type="button" className="pin-login__key pin-login__key--ghost" onClick={handleBackspace} disabled={busy} aria-label="Стереть">
+        <button type="button" className="pin-login__key pin-login__key--ghost" onClick={handleBackspace} disabled={busy} aria-label={t("pages.auth.pinloginpage.steret")}>
           <Icon name="bi-backspace" size={18} />
         </button>
       </div>
 
-      {busy ? <div className="pin-login__busy">Проверка…</div> : null}
+      {busy ? <div className="pin-login__busy">{t("pages.auth.pinloginpage.proverka")}</div> : null}
     </main>
   );
 }

@@ -3,6 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import logo from "../assets/marjon-logo.svg";
 import Icon from "../components/Icon";
 import { readStoredProfile, updateStoredProfile } from "../utils/profileCache";
+import { t } from "../i18n/t";
 
 export default function ProfileSettingsPage() {
   const { user } = useOutletContext();
@@ -22,7 +23,7 @@ export default function ProfileSettingsPage() {
     const file = event.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setMessage("Выберите файл изображения.");
+      setMessage(t("pages.profilesettingspage.select_image_file"));
       return;
     }
 
@@ -38,18 +39,18 @@ export default function ProfileSettingsPage() {
     event.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setMessage("Введите имя профиля.");
+      setMessage(t("pages.profilesettingspage.enter_profile_name"));
       return;
     }
 
     updateStoredProfile(user?.id, { name: trimmedName, photo });
     setName(trimmedName);
-    setMessage("Локальные настройки профиля сохранены на этом устройстве.");
+    setMessage(t("pages.profilesettingspage.settings_saved_local"));
   }
 
   function removePhoto() {
     setPhoto("");
-    setMessage("Фото будет сброшено после сохранения.");
+    setMessage(t("pages.profilesettingspage.photo_will_reset"));
   }
 
   return (
@@ -60,7 +61,7 @@ export default function ProfileSettingsPage() {
             <img src={photo || logo} alt={name || "MARJON"} />
           </div>
           <div>
-            <span>Профиль</span>
+            <span>{t("pages.profilesettingspage.profil")}</span>
             <strong>{name || defaultName}</strong>
             <small>{user?.company_name || "MARJON"}</small>
           </div>
@@ -68,19 +69,19 @@ export default function ProfileSettingsPage() {
 
         <form className="profile-settings-form" onSubmit={handleSubmit}>
           <label>
-            Имя
-            <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Введите имя" />
+            {t("pages.profilesettingspage.imya")}
+            <input value={name} onChange={(event) => setName(event.target.value)} placeholder={t("pages.profilesettingspage.vvedite_imya")} />
           </label>
 
           <label className="profile-settings-form__upload">
-            Фото профиля
+            {t("pages.profilesettingspage.foto_profilya")}
             <input type="file" accept="image/*" onChange={handlePhotoChange} />
-            <span><Icon name="bi-image" size={18} /> Выбрать фото</span>
+            <span><Icon name="bi-image" size={18} /> {t("pages.profilesettingspage.vybrat_foto")}</span>
           </label>
 
           <div className="profile-settings-form__actions">
-            <button type="submit"><Icon name="bi-check2" size={18} /> Сохранить</button>
-            <button type="button" onClick={removePhoto}><Icon name="bi-trash3" size={18} /> Убрать фото</button>
+            <button type="submit"><Icon name="bi-check2" size={18} /> {t("pages.profilesettingspage.sohranit")}</button>
+            <button type="button" onClick={removePhoto}><Icon name="bi-trash3" size={18} /> {t("pages.profilesettingspage.ubrat_foto")}</button>
           </div>
 
           {message ? <p className="profile-settings-form__message">{message}</p> : null}

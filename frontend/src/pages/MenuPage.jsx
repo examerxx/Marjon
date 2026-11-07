@@ -10,6 +10,7 @@ import DishPhotoViewer from "../components/DishPhotoViewer";
 import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/useAsyncSafety";
 import { formatDateLabel, todayInputValue } from "../utils/date";
 import { toApiDate } from "./reports/reportPeriod";
+import { t } from "../i18n/t";
 
 const columns = [
   { key: "index", label: "№", width: 56 },
@@ -34,8 +35,8 @@ const moneyLabel = (value) => `${value.toLocaleString("ru-RU", { maximumFraction
 
 function SalePhoto({ photo, name, onOpen }) {
   const [failed, setFailed] = useState(false);
-  if (!photo || failed) return <span className="sales-photo" aria-label="Нет фото"><Icon name="bi-image" /></span>;
-  return <button type="button" className="sales-photo" aria-label={`Открыть фото ${name}`} aria-haspopup="dialog" onClick={onOpen}>
+  if (!photo || failed) return <span className="sales-photo" aria-label={t("pages.menupage.net_foto")}><Icon name="bi-image" /></span>;
+  return <button type="button" className="sales-photo" aria-label={t("pages.menupage.open_photo", { name })} aria-haspopup="dialog" onClick={onOpen}>
     <img src={photo} alt={name} loading="lazy" decoding="async" onError={() => setFailed(true)} />
   </button>;
 }
@@ -67,7 +68,7 @@ export function mapSalesReport(data) {
       dish: item.name,
       photo: typeof item.image_url === "string" ? item.image_url : "",
       categoryId: item.category_id ?? null,
-      category: item.category_name ?? "Без категории",
+      category: item.category_name ?? t("pages.menupage.no_category"),
       sold: reportNumber(item.quantity),
       avgPrice: reportNumber(item.price),
       revenue,
@@ -125,7 +126,7 @@ export default function MenuPage() {
         setCategories(data.categories);
       })
       .catch((err) => {
-        if (request.isCurrent() && !isAbortError(err)) setOptionsError("Не удалось загрузить категории отчёта.");
+        if (request.isCurrent() && !isAbortError(err)) setOptionsError(t("pages.menupage.error.load_categories"));
       })
       .finally(() => { if (request.isCurrent()) setOptionsLoading(false); });
   }, [beginOptionsRequest]);
@@ -138,7 +139,7 @@ export default function MenuPage() {
     setError("");
     setLoading(true);
     if (!dateFrom || !dateTo || !isOrderedDateRange(dateFrom, dateTo)) {
-      setError("Дата начала периода не может быть позже даты окончания.");
+      setError(t("pages.menupage.error.date_order"));
       setLoading(false);
       return;
     }
@@ -155,7 +156,7 @@ export default function MenuPage() {
       })
       .catch((err) => {
         if (!request.isCurrent() || isAbortError(err)) return;
-        setError(typeof err.response?.data?.detail === "string" ? err.response.data.detail : err.message === "Некорректный ответ отчёта о продажах." ? err.message : "Не удалось загрузить продажи.");
+        setError(typeof err.response?.data?.detail === "string" ? err.response.data.detail : t(err.message === "Некорректный ответ отчёта о продажах." ? "pages.menupage.error.invalid_sales" : "pages.menupage.error.load_sales"));
       })
       .finally(() => { if (request.isCurrent()) setLoading(false); });
   }, [period, filters, beginRequest]);
@@ -186,7 +187,7 @@ export default function MenuPage() {
       case "index": return index + 1;
       case "photo": return <SalePhoto key={row.photo} photo={row.photo} name={row.dish} onOpen={() => setPhotoPreview(row)} />;
       case "dish": return <strong>{row.dish}</strong>;
-      case "category": return <span className="sales-category-pill">{row.category}</span>;
+      case "category": return <span className="sales-category-pill">{t(row.category)}</span>;
       case "sold": return numberLabel(row.sold);
       case "price": return moneyLabel(row.avgPrice);
       case "revenue": return <strong>{moneyLabel(row.revenue)}</strong>;
@@ -201,33 +202,33 @@ export default function MenuPage() {
         <header className="sales-header settings-header">
           <div className="settings-title-group">
             <span className="settings-accent-bar" aria-hidden="true" />
-            <div><p>Меню</p><h1>Продажа</h1></div>
+            <div><p>{t("pages.menupage.menyu")}</p><h1>{t("pages.menupage.prodazha")}</h1></div>
           </div>
           <div className="sales-period owner-report-view orders-report-page">
             <div className="report-actions owner-report-actions">
-              <ReportDateRangePicker variant="canonical" animateExit value={period} onChange={setPeriod} buttonAriaLabel="Период отчёта о продажах" onOpenChange={(open) => { if (open) { closeCategory(); setSettingsOpen(false); } }} />
-              <button className="orders-filter-toggle" type="button" aria-expanded={filtersOpen} aria-controls="sales-filters" onClick={() => { if (filtersOpen) closeCategory(); setFiltersOpen((open) => !open); }}><Icon name="bi-sliders" size={17} /> Фильтровать</button>
+              <ReportDateRangePicker variant="canonical" animateExit value={period} onChange={setPeriod} buttonAriaLabel={t("report_period.sales")} onOpenChange={(open) => { if (open) { closeCategory(); setSettingsOpen(false); } }} />
+              <button className="orders-filter-toggle" type="button" aria-expanded={filtersOpen} aria-controls="sales-filters" onClick={() => { if (filtersOpen) closeCategory(); setFiltersOpen((open) => !open); }}><Icon name="bi-sliders" size={17} /> {t("pages.menupage.filtrovat")}</button>
             </div>
           </div>
         </header>
 
-        <div className="sales-summary-grid" aria-label="Итоги отчёта" aria-busy={loading}>
-          <article className="sales-kpi sales-kpi--income" aria-label="Денежный приход"><div className="sales-kpi-heading"><span>Денежный приход</span></div><strong>{report ? moneyLabel(report.income) : "—"}</strong><small>Все категории · по дате оплаты</small></article>
-          <article className="sales-kpi sales-kpi--revenue" aria-label="Выручка" title={report?.paidRevenue == null ? report?.profitUnavailableReason : undefined}><div className="sales-kpi-heading"><span>Выручка</span></div><strong>{report ? report.paidRevenue == null ? "Недоступно" : moneyLabel(report.paidRevenue) : "—"}</strong><small>Денежный приход − себестоимость блюд</small></article>
-          <article className="sales-kpi sales-kpi--orders" aria-label="Заказы"><div className="sales-kpi-heading"><span>Заказы</span></div><strong>{report ? numberLabel(report.paidOrders) : "—"}</strong><small>Оплаченные завершённые · по дате оплаты</small></article>
-          <article className="sales-kpi sales-kpi--cancelled" aria-label="Отменённые заказы"><Link className="sales-kpi-cancelled-link" to={`/reports/cancelled-dishes?${new URLSearchParams({ dateFrom: toApiDate(period.start) || "", dateTo: toApiDate(period.end) || "" })}`}><div className="sales-kpi-heading"><span>Отменённые заказы</span></div><strong>{report ? numberLabel(report.cancelledOrders) : "—"}</strong><small title="Заказы с отменами, включая отдельные позиции. Для старых отмен без даты используется дата создания заказа.">Все категории · по дате отмены</small></Link></article>
+        <div className="sales-summary-grid" aria-label={t("pages.menupage.itogi_otcheta")} aria-busy={loading}>
+          <article className="sales-kpi sales-kpi--income" aria-label={t("pages.menupage.denezhnyy_prihod")}><div className="sales-kpi-heading"><span>{t("pages.menupage.denezhnyy_prihod")}</span></div><strong>{report ? moneyLabel(report.income) : "—"}</strong><small>{t("pages.menupage.vse_kategorii_po_date_oplaty")}</small></article>
+          <article className="sales-kpi sales-kpi--revenue" aria-label={t("pages.menupage.vyruchka")} title={report?.paidRevenue == null ? t(report?.profitUnavailableReason) : undefined}><div className="sales-kpi-heading"><span>{t("pages.menupage.vyruchka")}</span></div><strong>{report ? report.paidRevenue == null ? t("common.unavailable") : moneyLabel(report.paidRevenue) : "—"}</strong><small>{t("pages.menupage.denezhnyy_prihod_sebestoimost_blyud")}</small></article>
+          <article className="sales-kpi sales-kpi--orders" aria-label={t("pages.menupage.zakazy")}><div className="sales-kpi-heading"><span>{t("pages.menupage.zakazy")}</span></div><strong>{report ? numberLabel(report.paidOrders) : "—"}</strong><small>{t("pages.menupage.oplachennye_zavershennye_po_date_oplaty")}</small></article>
+          <article className="sales-kpi sales-kpi--cancelled" aria-label={t("pages.menupage.otmenennye_zakazy")}><Link className="sales-kpi-cancelled-link" to={`/reports/cancelled-dishes?${new URLSearchParams({ dateFrom: toApiDate(period.start) || "", dateTo: toApiDate(period.end) || "" })}`}><div className="sales-kpi-heading"><span>{t("pages.menupage.otmenennye_zakazy")}</span></div><strong>{report ? numberLabel(report.cancelledOrders) : "—"}</strong><small title={t("pages.menupage.zakazy_s_otmenami_vklyuchaya_otdelnye_pozitsii_dlya")}>{t("pages.menupage.vse_kategorii_po_date_otmeny")}</small></Link></article>
         </div>
         {/* Orders' actual collapse/field/button classes, scoped to a filter island.
             Drafts stay mounted when closed; only this form applies them. */}
         <div className="sales-filter-area owner-report-view orders-report-page">
           <div className={`orders-filter-collapse${filtersOpen ? " is-open" : ""}`}>
             <div className="orders-filter-collapse__inner" inert={!filtersOpen ? true : undefined} aria-hidden={!filtersOpen}>
-              <form id="sales-filters" className="report-filters-grid sales-filters-grid" aria-label="Фильтры продаж" onSubmit={(event) => { event.preventDefault(); closeCategory(); setFilters({ query: draftFilters.query.trim(), categoryId: [...draftFilters.categoryId] }); }}>
-                <label className="report-filter-input"><Icon name="bi-search" size={17} /><input aria-label="Поиск блюда" value={draftFilters.query} onChange={(event) => setDraftFilters((current) => ({ ...current, query: event.target.value }))} placeholder="Поиск блюда и товара" /></label>
+              <form id="sales-filters" className="report-filters-grid sales-filters-grid" aria-label={t("pages.menupage.filtry_prodazh")} onSubmit={(event) => { event.preventDefault(); closeCategory(); setFilters({ query: draftFilters.query.trim(), categoryId: [...draftFilters.categoryId] }); }}>
+                <label className="report-filter-input"><Icon name="bi-search" size={17} /><input aria-label={t("pages.menupage.poisk_blyuda")} value={draftFilters.query} onChange={(event) => setDraftFilters((current) => ({ ...current, query: event.target.value }))} placeholder={t("pages.menupage.poisk_blyuda_i_tovara")} /></label>
                 <div className="sales-category-filter">
-                  <ReportMultiSelect filterKey="saleCategoryId" label="Категория продаж" placeholder="Выберите категорию" options={categories} selected={draftFilters.categoryId} disabled={optionsLoading || !categories.length} open={categoryOpen} closing={categoryClosing} onExitComplete={() => setCategoryClosing(false)} onOpen={() => { setSettingsOpen(false); setCategoryClosing(false); setCategoryOpen(true); }} onClose={closeCategory} onToggle={(id) => setDraftFilters((current) => ({ ...current, categoryId: current.categoryId.includes(id) ? current.categoryId.filter((value) => value !== id) : [...current.categoryId, id] }))} />
+                  <ReportMultiSelect filterKey="saleCategoryId" label={t("pages.menupage.kategoriya_prodazh")} placeholder={t("pages.menupage.vyberite_kategoriyu")} options={categories} selected={draftFilters.categoryId} disabled={optionsLoading || !categories.length} open={categoryOpen} closing={categoryClosing} onExitComplete={() => setCategoryClosing(false)} onOpen={() => { setSettingsOpen(false); setCategoryClosing(false); setCategoryOpen(true); }} onClose={closeCategory} onToggle={(id) => setDraftFilters((current) => ({ ...current, categoryId: current.categoryId.includes(id) ? current.categoryId.filter((value) => value !== id) : [...current.categoryId, id] }))} />
                 </div>
-                <div className="report-filter-buttons"><button className="report-filter-apply" type="submit"><Icon name="bi-sliders" size={17} />Фильтровать</button><button className="report-filter-clear" type="button" onClick={() => { closeCategory(); setDraftFilters(emptyFilters); setFilters({ query: "", categoryId: [] }); }}>Очистить</button></div>
+                <div className="report-filter-buttons"><button className="report-filter-apply" type="submit"><Icon name="bi-sliders" size={17} />{t("pages.menupage.filtrovat")}</button><button className="report-filter-clear" type="button" onClick={() => { closeCategory(); setDraftFilters(emptyFilters); setFilters({ query: "", categoryId: [] }); }}>{t("pages.menupage.ochistit")}</button></div>
               </form>
             </div>
           </div>
@@ -236,20 +237,20 @@ export default function MenuPage() {
 
         <div hidden className="sales-toolbar-meta sales-table-controls">
           <div className="sales-table-settings" ref={settingsRef}>
-            <button type="button" ref={settingsTriggerRef} className="sales-table-settings-btn" aria-expanded={settingsOpen} onClick={() => { setCategoryOpen(false); setSettingsOpen((open) => !open); }}><Icon name="bi-sliders" />Настроить таблицу</button>
+            <button type="button" ref={settingsTriggerRef} className="sales-table-settings-btn" aria-expanded={settingsOpen} onClick={() => { setCategoryOpen(false); setSettingsOpen((open) => !open); }}><Icon name="bi-sliders" />{t("pages.menupage.nastroit_tablitsu")}</button>
             {settingsOpen ? <div className="sales-table-settings-popover">
-              <div className="sales-table-settings-head"><strong>Столбцы</strong><button type="button" aria-label="Закрыть" onClick={() => setSettingsOpen(false)}><Icon name="bi-x-lg" size={14} /></button></div>
-              <div className="sales-column-toggle-list">{columns.map((column) => <label className="sales-column-toggle" key={column.key}><input type="checkbox" checked={visibleColumns[column.key]} disabled={visibleColumns[column.key] && visible.length === 1} onChange={() => toggleColumn(column.key)} /><span className="sales-column-toggle-box">{visibleColumns[column.key] ? <Icon name="bi-check" size={13} /> : null}</span><span>{column.label}</span></label>)}</div>
-              <button type="button" className="sales-column-reset" onClick={() => setVisibleColumns(allColumns)}>Показать все</button>
+              <div className="sales-table-settings-head"><strong>{t("pages.menupage.stolbtsy")}</strong><button type="button" aria-label={t("pages.menupage.zakryt")} onClick={() => setSettingsOpen(false)}><Icon name="bi-x-lg" size={14} /></button></div>
+              <div className="sales-column-toggle-list">{columns.map((column) => <label className="sales-column-toggle" key={column.key}><input type="checkbox" checked={visibleColumns[column.key]} disabled={visibleColumns[column.key] && visible.length === 1} onChange={() => toggleColumn(column.key)} /><span className="sales-column-toggle-box">{visibleColumns[column.key] ? <Icon name="bi-check" size={13} /> : null}</span><span>{t(column.label)}</span></label>)}</div>
+              <button type="button" className="sales-column-reset" onClick={() => setVisibleColumns(allColumns)}>{t("pages.menupage.pokazat_vse")}</button>
             </div> : null}
           </div>
         </div>
 
         {error ? <div className="login-error" role="alert">{error}</div> : <div className="sales-layout">
-          <div className="sales-table-wrap"><div className="sales-table-scroll" tabIndex={0} role="region" aria-label="Таблица продаж — прокрутка" aria-busy={loading}>
-            <table className="sales-table" aria-label="Продажи" style={{ "--sales-grid-min-width": `${tableMinWidth}px` }}>
-              <thead><tr>{visible.map((column) => <th key={column.key} className={`sales-col-${column.key}`}>{column.label}</th>)}</tr></thead>
-              <tbody>{loading || !report?.rows.length ? <tr><td colSpan={visible.length} className="sales-empty"><ReportEmptyState loading={loading} title="Продаж за выбранный период нет." /></td></tr> : report.rows.map((row, index) => <tr key={row.key}>{visible.map(({ key }) => <td key={key} className={`sales-col-${key}`}>{cell(row, key, index)}</td>)}</tr>)}</tbody>
+          <div className="sales-table-wrap"><div className="sales-table-scroll" tabIndex={0} role="region" aria-label={t("pages.menupage.tablitsa_prodazh_prokrutka")} aria-busy={loading}>
+            <table className="sales-table" aria-label={t("pages.menupage.prodazhi")} style={{ "--sales-grid-min-width": `${tableMinWidth}px` }}>
+              <thead><tr>{visible.map((column) => <th key={column.key} className={`sales-col-${column.key}`}>{t(column.label)}</th>)}</tr></thead>
+              <tbody>{loading || !report?.rows.length ? <tr><td colSpan={visible.length} className="sales-empty"><ReportEmptyState loading={loading} title={t("pages.menupage.prodazh_za_vybrannyy_period_net")} /></td></tr> : report.rows.map((row, index) => <tr key={row.key}>{visible.map(({ key }) => <td key={key} className={`sales-col-${key}`}>{cell(row, key, index)}</td>)}</tr>)}</tbody>
             </table>
           </div></div>
         </div>}
