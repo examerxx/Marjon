@@ -23,6 +23,8 @@ import TablesReportPage from "./pages/TablesReportPage";
 import DishesReportPage from "./pages/DishesReportPage";
 import CancelledDishesReportPage from "./pages/CancelledDishesReportPage";
 import DebtorsCreditorsReportPage from "./pages/DebtorsCreditorsReportPage";
+import FinanceOperationsOverview from "./pages/finance/FinanceOperationsOverview";
+import FinanceTransactionsPage from "./pages/FinanceTransactionsPage";
 import FinanceStubPage from "./pages/finance/FinanceStubPage";
 import ZReportPage from "./pages/ZReportPage";
 import WarehousePage, { WarehouseJournalCreateRoute, WarehouseJournalDetailRoute, WarehouseJournalListRoute, WarehouseStockDetailRoute, WarehouseStockListRoute } from "./pages/WarehousePage";
@@ -140,11 +142,11 @@ export function createAppRouter() {
       { path: "settings/chef-receipt", element: <SettingsKitchenReceiptPage /> },
       { path: "settings/support", element: <FinanceStubPage title={t("app.teh_podderzhka")} /> },
       { path: "finance", element: <Navigate to="/finance/transactions" replace /> },
-      { path: "finance/transactions", element: <FinanceStubPage title={t("app.denezhnye_operatsii")} /> },
-      { path: "finance/operations", element: <FinanceStubPage title={t("app.denezhnye_operatsii")} /> },
+      { path: "finance/transactions", element: <FinanceOperationsOverview /> },
+      { path: "finance/operations", element: <FinanceTransactionsPage /> },
       { path: "finance/income-categories", element: <FinanceStubPage title={t("app.kategoriya_prihodov")} /> },
       { path: "finance/expense-categories", element: <FinanceStubPage title={t("app.kategoriya_rashodov")} /> },
-      { path: "finance/debtors-creditors", element: <FinanceStubPage title={t("app.debitory_i_kreditory")} /> },
+      { path: "finance/debtors-creditors", element: <DebtorsCreditorsReportPage finance /> },
       { path: "nomenclature", element: <Navigate to="/nomenclature/dishes" replace /> },
       { path: "nomenclature/dishes", element: <NomenclaturePage type="dishes" /> },
       { path: "nomenclature/sales", element: <SalesCatalogPage /> },

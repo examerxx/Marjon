@@ -51,6 +51,8 @@ function LanguageBoundary({ children }) {
   return <React.Fragment key={i18n.language}>{children}</React.Fragment>;
 }
 
+import "./styles/global/theme.css";
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <LanguageBoundary>
