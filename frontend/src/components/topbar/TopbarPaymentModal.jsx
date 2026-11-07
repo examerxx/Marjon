@@ -5,7 +5,6 @@ import visaLogo from "../../assets/paylogos/visa-mastercard.jpg";
 import marjonBalanceMark from "../../assets/brand/marjon-balance-mark.svg";
 import Icon from "../Icon";
 import { useAnchoredDialogMotion } from "../../hooks/useAnchoredDialogMotion";
-import { t } from "../../i18n/t";
 
 const STEP_TRANSITION_MS = 200;
 const STEP_ORDER = { method: 1, card: 2, confirm: 3, success: 3 };
@@ -99,7 +98,7 @@ function PaymentStepper({ activeStep, onBackToMethods, onBackToCardDetails }) {
           backLabel="Вернуться к выбору способа оплаты"
           testId="balance-step-one"
         />
-        <strong className={activeStep === 1 ? "is-active" : activeStep > 1 ? "is-complete" : ""}>{t("components.topbar.topbarpaymentmodal.sposob_oplaty")}</strong>
+        <strong className={activeStep === 1 ? "is-active" : activeStep > 1 ? "is-complete" : ""}>Способ оплаты</strong>
       </div>
       <i className={activeStep > 1 ? "is-filled" : ""} data-testid="balance-step-connector-one" />
       <div className="balance-card-step__progress-item">
@@ -110,12 +109,12 @@ function PaymentStepper({ activeStep, onBackToMethods, onBackToCardDetails }) {
           backLabel="Вернуться к данным карты"
           testId="balance-step-two"
         />
-        <strong className={activeStep === 2 ? "is-active" : activeStep > 2 ? "is-complete" : ""}>{t("components.topbar.topbarpaymentmodal.dannye_karty")}</strong>
+        <strong className={activeStep === 2 ? "is-active" : activeStep > 2 ? "is-complete" : ""}>Данные карты</strong>
       </div>
       <i className={activeStep > 2 ? "is-filled" : ""} data-testid="balance-step-connector-two" />
       <div className="balance-card-step__progress-item">
         <StepIndicator step={3} activeStep={activeStep} testId="balance-step-three" />
-        <strong className={activeStep === 3 ? "is-active" : ""}>{t("components.topbar.topbarpaymentmodal.podtverzhdenie")}</strong>
+        <strong className={activeStep === 3 ? "is-active" : ""}>Подтверждение</strong>
       </div>
     </div>
   );
@@ -388,17 +387,17 @@ export default function TopbarPaymentModal({
               <strong className="balance-card-step__brand-name">MARJON</strong>
               <span className="balance-card-step__brand-caption">RESTAURANT OS</span>
               <i className="balance-card-step__brand-divider" aria-hidden="true" />
-              <h2>{t("components.topbar.topbarpaymentmodal.udobnoe_popolnenie_balansa")}</h2>
-              <p>{t("components.topbar.topbarpaymentmodal.bystraya_i_bezopasnaya_oplata_dlya_bespereboynoy")}</p>
+              <h2>Удобное пополнение баланса</h2>
+              <p>Быстрая и безопасная оплата для бесперебойной работы вашего ресторана.</p>
             </div>
           </aside>
           <div className="balance-card-step__form balance-payment-shell" data-testid="balance-payment-shell">
             <div className="balance-payment-dialog__head balance-payment-dialog__head--embedded" data-testid="balance-payment-header">
               <div>
-                <span>{t("components.topbar.topbarpaymentmodal.oplata_balansa")}</span>
-                <h2 id="balance-payment-title">{t("components.topbar.topbarpaymentmodal.oplata")}</h2>
+                <span>Оплата баланса</span>
+                <h2 id="balance-payment-title">Оплата</h2>
               </div>
-              <button className="balance-card-back balance-card-back--icon" type="button" aria-label={t("components.topbar.topbarpaymentmodal.zakryt")} onClick={requestClose}>
+              <button className="balance-card-back balance-card-back--icon" type="button" aria-label="Закрыть" onClick={requestClose}>
                 <Icon name="bi-x-lg" size={18} />
               </button>
             </div>
@@ -418,9 +417,9 @@ export default function TopbarPaymentModal({
                 <div className={`balance-payment-dynamic balance-payment-method-step ${stepMotionClassName}`} data-payment-step="method">
                   <div className="balance-payment-dialog__field">
                     <span>Payment ID</span>
-                    <strong>{t("components.topbar.topbarpaymentmodal.nedostupno")}</strong>
+                    <strong>Недоступно</strong>
                   </div>
-                  <div className="balance-payment-methods" role="radiogroup" aria-label={t("components.topbar.topbarpaymentmodal.sposob_oplaty")}>
+                  <div className="balance-payment-methods" role="radiogroup" aria-label="Способ оплаты">
                     <button
                       className={`balance-payment-method ${paymentMethod === "uzcard" ? "is-selected" : ""}`}
                       type="button"
@@ -451,13 +450,13 @@ export default function TopbarPaymentModal({
                 </div>
               ) : renderedStep === "card" ? (
                 <div className={`balance-payment-dynamic balance-payment-card-fields ${stepMotionClassName}`} data-payment-step="card">
-                  <span className="balance-card-step__selected-method">{t("components.topbar.topbarpaymentmodal.vybrannyy_sposob_oplaty")} {paymentMethodLabel}</span>
+                  <span className="balance-card-step__selected-method">Выбранный способ оплаты: {paymentMethodLabel}</span>
                   <label className="balance-card-field">
-                    <span>{t("components.topbar.topbarpaymentmodal.summa")}</span>
+                    <span>Сумма</span>
                     <input
                       type="text"
                       inputMode="numeric"
-                      placeholder={t("components.topbar.topbarpaymentmodal.vvedite_summu")}
+                      placeholder="Введите сумму"
                       value={formatAmountDisplay(cardAmount)}
                       aria-invalid={amountHasError || undefined}
                       className={[cardAmount ? "is-filled" : "", amountHasError ? "is-invalid" : ""].filter(Boolean).join(" ")}
@@ -471,7 +470,7 @@ export default function TopbarPaymentModal({
                   </div>
                   <div className="balance-card-grid">
                     <label className="balance-card-field">
-                      <span>{t("components.topbar.topbarpaymentmodal.nomer_karty")}</span>
+                      <span>Номер карты</span>
                       <input
                         type="text"
                         ref={cardInputRef}
@@ -490,11 +489,11 @@ export default function TopbarPaymentModal({
                       />
                     </label>
                     <label className="balance-card-field">
-                      <span>{t("components.topbar.topbarpaymentmodal.srok_deystviya")}</span>
+                      <span>Срок действия</span>
                       <input
                         type="text"
                         inputMode="numeric"
-                        placeholder={t("components.topbar.topbarpaymentmodal.mm_gg")}
+                        placeholder="ММ/ГГ"
                         autoComplete="off"
                         maxLength={5}
                         value={formatExpiryDisplay(cardExpiry)}
@@ -507,29 +506,29 @@ export default function TopbarPaymentModal({
                   </div>
                   <label className="balance-offer balance-offer--check">
                     <input type="checkbox" checked={offerAccepted} onChange={(e) => setOfferAccepted(e.target.checked)} />
-                    <span>{t("components.topbar.topbarpaymentmodal.ya_oznakomlen_s")} <a href="#" tabIndex={-1} onClick={(e) => e.preventDefault()}>{t("components.topbar.topbarpaymentmodal.publichnoy_ofertoy")}</a></span>
+                    <span>Я ознакомлен с <a href="#" tabIndex={-1} onClick={(e) => e.preventDefault()}>публичной офертой</a></span>
                   </label>
                 </div>
               ) : renderedStep === "confirm" ? (
                 <div className={`balance-payment-dynamic balance-payment-confirmation ${stepMotionClassName}`} data-payment-step="confirm">
-                  <div className="balance-payment-confirmation__card" role="group" aria-label={t("components.topbar.topbarpaymentmodal.svodka_platezha")}>
+                  <div className="balance-payment-confirmation__card" role="group" aria-label="Сводка платежа">
                     <div className="balance-payment-confirmation__row">
-                      <span>{t("components.topbar.topbarpaymentmodal.sposob_oplaty")}</span>
+                      <span>Способ оплаты</span>
                       <strong className="balance-payment-confirmation__method">
                         <img src={paymentMethodLogo} alt="" aria-hidden="true" />
                         {paymentMethodLabel}
                       </strong>
                     </div>
                     <div className="balance-payment-confirmation__row">
-                      <span>{t("components.topbar.topbarpaymentmodal.summa")}</span>
+                      <span>Сумма</span>
                       <strong>{formatAmountDisplay(cardAmount)} UZS</strong>
                     </div>
                     <div className="balance-payment-confirmation__row">
-                      <span>{t("components.topbar.topbarpaymentmodal.karta")}</span>
+                      <span>Карта</span>
                       <strong data-testid="balance-masked-card">{maskedCardNumber}</strong>
                     </div>
                     <div className="balance-payment-confirmation__row">
-                      <span>{t("components.topbar.topbarpaymentmodal.srok_deystviya")}</span>
+                      <span>Срок действия</span>
                       <strong>{formatExpiryDisplay(cardExpiry)}</strong>
                     </div>
                   </div>
@@ -543,8 +542,8 @@ export default function TopbarPaymentModal({
                   <span className="balance-payment-success__icon" aria-hidden="true">
                     <Icon name="bi-check2" size={28} strokeWidth={2.6} />
                   </span>
-                  <h3>{t("components.topbar.topbarpaymentmodal.platezh_prinyat_v_obrabotku")}</h3>
-                  <p>{t("components.topbar.topbarpaymentmodal.my_uvedomim_vas_posle_zaversheniya_operatsii")}</p>
+                  <h3>Платёж принят в обработку</h3>
+                  <p>Мы уведомим вас после завершения операции.</p>
                 </div>
               )}
             </div>

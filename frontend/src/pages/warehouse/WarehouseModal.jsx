@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Icon from "../../components/Icon";
-import { t } from "../../i18n/t";
 
 // Склад: компактная центрированная модалка семьи dishcat-modal
 // (тот же шелл, что «Добавить категорию»: шапка p/h2/X, широкое поле,
@@ -67,33 +66,33 @@ export default function WarehouseModal({ mode, warehouse, saving, error, onClose
           <header className="settings-form__header">
             <span className="settings-accent-bar" />
             <div>
-              <p>{isDelete ? t("pages.warehouse.warehousemodal.udalenie") : isEdit ? t("staff.editing") : t("eyebrow.new_male")}</p>
+              <p>{isDelete ? "Удаление" : isEdit ? "Редактирование" : "Новый"}</p>
               <h2 id="warehouse-modal-title">
-                {isDelete ? t("pages.warehouse.warehousemodal.udalit_sklad") : isEdit ? t("pages.warehouse.warehousemodal.redaktirovat_sklad") : t("pages.warehouse.warehousemodal.dobavit_sklad")}
+                {isDelete ? "Удалить склад?" : isEdit ? "Редактировать склад" : "Добавить склад"}
               </h2>
             </div>
-            <button type="button" disabled={saving} onClick={requestClose} aria-label={t("pages.warehouse.warehousemodal.zakryt")}>
+            <button type="button" disabled={saving} onClick={requestClose} aria-label="Закрыть">
               <Icon name="bi-x-lg" size={20} />
             </button>
           </header>
           {isDelete ? (
             <p className="settings-form__context">
-             {t("pages.warehouse.warehousemodal.sklad")} <strong>«{warehouse?.name || "—"}»</strong> {t("pages.warehouse.warehousemodal.budet_udalen_bez_vozmozhnosti_vosstanovleniya")}
+              Склад <strong>«{warehouse?.name || "—"}»</strong> будет удалён без возможности восстановления.
             </p>
           ) : (
             <div className="settings-form__body">
               <label className="settings-form__wide">
-                <span>{t("pages.warehouse.warehousemodal.nazvanie")}</span>
+                <span>Название *</span>
                 <input
                   autoFocus
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  placeholder={t("pages.warehouse.warehousemodal.vvedite_nazvanie")}
-                  aria-label={t("pages.warehouse.warehousemodal.nazvanie_sklada")}
+                  placeholder="Введите название"
+                  aria-label="Название склада"
                 />
               </label>
               <div className="settings-form__wide warehouse-modal__status">
-                <span>{t("pages.warehouse.warehousemodal.status")}</span>
+                <span>Статус</span>
                 <button
                   type="button"
                   role="switch"
@@ -102,7 +101,7 @@ export default function WarehouseModal({ mode, warehouse, saving, error, onClose
                   onClick={() => setIsActive((value) => !value)}
                 >
                   <span className="wh-status-toggle__track"><span className="wh-status-toggle__thumb" /></span>
-                  <span className="wh-status-toggle__label">{isActive ? t("common.active") : t("pages.warehouse.warehousemodal.arhivirovano")}</span>
+                  <span className="wh-status-toggle__label">{isActive ? "Активно" : "Архивировано"}</span>
                 </button>
               </div>
             </div>
@@ -114,15 +113,15 @@ export default function WarehouseModal({ mode, warehouse, saving, error, onClose
           ) : null}
           <footer className="settings-form__footer">
             <button type="button" disabled={saving} onClick={requestClose}>
-             {t("pages.warehouse.warehousemodal.otmena")}
+              Отмена
             </button>
             {isDelete ? (
               <button type="submit" className="dishcat-confirm__delete" disabled={saving}>
-                {saving ? t("common.deleting") : t("common.delete")}
+                {saving ? "Удаление…" : "Удалить"}
               </button>
             ) : (
               <button type="submit" disabled={saving || !String(name || "").trim()}>
-                {saving ? t("staff.saving") : isEdit ? t("common.save") : t("common.add")}
+                {saving ? "Сохранение…" : isEdit ? "Сохранить" : "Добавить"}
               </button>
             )}
           </footer>

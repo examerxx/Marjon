@@ -3272,13 +3272,15 @@
    относительно видимой области и НЕ зависят ни от min-width таблицы, ни от
    scrollLeft. Горизонтальный скролл и колонки сохраняются. */
 .dish-catalog-page.owner-report-view .dish-grid-wrap {
+  margin-inline: -8px;
+  width: calc(100% + 16px);
   position: relative;
   display: flex;
   flex-direction: column;
   flex: 0 1 auto;
   min-width: 0;
   min-height: 0;
-  max-width: 100%;
+  max-width: calc(100% + 16px);
   height: auto;
   max-height: none;
   padding: 0;
@@ -4849,4 +4851,54 @@ body.dashboard-body .dish-catalog-page.owner-report-view .dish-grid-table .dish-
   font-variant-numeric: tabular-nums;
   text-align: center;
   vertical-align: middle;
+}
+/* Use the table's own scrollbar for wheel and thumb input. */
+.dish-catalog-page.owner-report-view .dish-grid-scroll,
+.finance-catalog-scroll {
+  overflow-y: auto;
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+}
+:is(.dish-catalog-page.owner-report-view .dish-grid-scroll, .finance-catalog-scroll, .kpi-detail-table > thead, .kpi-detail-rows)::-webkit-scrollbar {
+  display: initial;
+  width: 8px;
+  background: #EFF6FF;
+}
+:is(.dish-catalog-page.owner-report-view .dish-grid-scroll, .finance-catalog-scroll, .kpi-detail-rows)::-webkit-scrollbar-track:vertical {
+  margin-top: 0;
+  background: #e4eef6;
+}
+.dish-catalog-page.owner-report-view .dish-grid-scroll::-webkit-scrollbar-thumb:vertical,
+.finance-catalog-scroll::-webkit-scrollbar-thumb,
+.kpi-detail-rows::-webkit-scrollbar-thumb {
+  background: #76cbd3;
+  border-radius: 8px;
+}
+:is(.dish-catalog-page.owner-report-view .dish-grid-scroll, .finance-catalog-scroll, .kpi-detail-rows)::-webkit-scrollbar-button:vertical:single-button {
+  display: block;
+  height: 12px;
+  background: #EFF6FF center / 7px 5px no-repeat;
+}
+.dish-catalog-page.owner-report-view .dish-grid-table thead th:last-child {
+  border-top-right-radius: 0;
+}
+:is(.dish-catalog-page.owner-report-view .dish-grid-scroll, .finance-catalog-scroll, .kpi-detail-rows)::-webkit-scrollbar-button:vertical:decrement:single-button {
+  background-position: center bottom 2px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 6'%3E%3Cpath fill='%2376cbd3' d='M4 0 8 6H0Z'/%3E%3C/svg%3E");
+}
+:is(.dish-catalog-page.owner-report-view .dish-grid-scroll, .finance-catalog-scroll, .kpi-detail-rows)::-webkit-scrollbar-button:vertical:increment:single-button {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 6'%3E%3Cpath fill='%2376cbd3' d='M0 0h8L4 6Z'/%3E%3C/svg%3E");
+}
+.dish-catalog-page.owner-report-view .dish-grid-scroll::-webkit-scrollbar-button:vertical:decrement:single-button {
+  height: 55px;
+}
+.dish-catalog-page.owner-report-view .catalog-external-scrollbar {
+  display: none;
+}
+
+.finance-catalog-scroll::-webkit-scrollbar-button:vertical:decrement:single-button {
+  height: var(--finance-scroll-start, 57px);
+}
+.finance-catalog-scroll::-webkit-scrollbar-button:vertical:increment:single-button {
+  border-bottom-right-radius: 8px;
 }

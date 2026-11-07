@@ -18,7 +18,6 @@ import {
   saveKitchenTemplate,
 } from "../../api/receipt";
 import { isAbortError } from "../../hooks/useAsyncSafety";
-import { t } from "../../i18n/t";
 import "./receiptSettings.css";
 
 // Единый с чеком клиента вид левой колонки: те же сворачиваемые группы.
@@ -123,15 +122,15 @@ export default function ChefReceiptSettingsPage() {
             <div className="settings-title-group">
               <span className="settings-accent-bar" />
               <div>
-                <p>{t("pages.settings.chefreceiptsettingspage.nastroyki")}</p>
-                <h1>{t("pages.settings.chefreceiptsettingspage.nastroyka_cheka_povara")}</h1>
+                <p>Настройки</p>
+                <h1>Настройка чека повара</h1>
               </div>
             </div>
             <div className="receipt-editor-actions receipt-editor-actions--end">
               <ReceiptSeparatorSelect value={template.separator} disabled={loading || saving}
                 onChange={(separator) => setTemplate((current) => ({ ...current, separator }))} />
               <button type="button" className="receipt-btn-primary receipt-save" disabled={saving || loading} onClick={handleSave}>
-                {saving ? t("staff.saving") : t("common.save")}
+                {saving ? "Сохранение..." : "Сохранить"}
               </button>
             </div>
           </div>
@@ -169,14 +168,14 @@ export default function ChefReceiptSettingsPage() {
                   внешнего вида, её трогают после разбора блоков, а не до. */}
               <div className="receipt-section-row receipt-kitchen-spacing">
                 <div className="receipt-segment-group">
-                  <span>{t("pages.settings.chefreceiptsettingspage.mesto_mezhdu_strokami")}</span>
-                  <div className="receipt-segments receipt-line-spacing" role="group" aria-label={t("pages.settings.chefreceiptsettingspage.mesto_mezhdu_strokami_cheka_povara")}>
+                  <span>Место между строками</span>
+                  <div className="receipt-segments receipt-line-spacing" role="group" aria-label="Место между строками чека повара">
                     {LINE_SPACING_OPTIONS.map((option) => (
                       <button key={option.value} type="button"
                         className={normalizeLineSpacing(template.lineSpacing, "medium") === option.value ? "is-active" : ""}
                         aria-pressed={normalizeLineSpacing(template.lineSpacing, "medium") === option.value}
                         onClick={() => setTemplate((current) => ({ ...current, lineSpacing: option.value }))}>
-                        {t(option.label)}
+                        {option.label}
                       </button>
                     ))}
                   </div>

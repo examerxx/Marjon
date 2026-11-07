@@ -1,0 +1,292 @@
+/* Clear, softly bevelled glass for the 5293 sidebar. All reflections stay in
+   the background so the labels remain sharp and the hit areas stay intact. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar {
+  --nav-glass-rim: rgba(176, 185, 201, .3);
+  --nav-glass-face:
+    linear-gradient(165deg, rgba(255,255,255,.48), rgba(255,255,255,.12) 58%, rgba(247,251,253,.24));
+  --nav-glass-accent-face:
+    linear-gradient(180deg, rgba(255,255,255,.22), transparent 45%, rgba(7,73,81,.13) 82%, rgba(255,255,255,.12)),
+    radial-gradient(ellipse at 83% 0%, rgba(207,255,251,.22), transparent 65%),
+    linear-gradient(90deg, rgba(31,139,149,.96), rgba(22,162,169,.93) 65%, rgba(54,202,195,.91));
+  --nav-glass-accent-shadow:
+    inset 0 1px 1px rgba(255,255,255,.47),
+    inset 0 -1px 2px rgba(199,255,251,.25),
+    0 4px 9px -3px rgba(18,112,117,.27);
+  --nav-glass-panel:
+    radial-gradient(ellipse at 12% 0%, rgba(255,255,255,.48), transparent 62%),
+    linear-gradient(160deg, rgba(252,255,255,.78), rgba(229,249,251,.61));
+  --nav-glass-panel-shadow:
+    inset 0 1px 0 rgba(255,255,255,.9),
+    inset 1px 0 0 rgba(255,255,255,.35),
+    inset 0 -1px 0 rgba(113,213,216,.18),
+    0 4px 10px rgba(25,95,105,.12);
+  --nav-glass-bevel:
+    inset 0 1px 0 rgba(255,255,255,.75),
+    inset 0 -1px 0 rgba(255,255,255,.24);
+  --nav-glass-shadow: 0 2px 6px rgba(25,65,85,.07);
+}
+
+/* Search shares the neutral glass material without changing its geometry. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-search .sidebar-search__field {
+  background: var(--nav-glass-face);
+  border-color: var(--nav-glass-rim);
+  -webkit-backdrop-filter: blur(10px) saturate(112%);
+  backdrop-filter: blur(10px) saturate(112%);
+  box-shadow: var(--nav-glass-bevel), var(--nav-glass-shadow);
+}
+
+/* A scrolling box clips both axes, even with overflow-x: visible. Reserve
+   paint space INSIDE the scrollport; matching negative margins preserve the
+   existing button width and position while letting rims and shadows breathe. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav-scroll {
+  box-sizing: border-box;
+  width: calc(100% + 32px);
+  max-width: none;
+  margin: -8px -16px -16px;
+  padding: 8px 16px 16px;
+  scroll-padding-block: 8px 16px;
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item > .sidebar-link {
+  --dark-shell-nav-icon: var(--neutral-700);
+  --dark-shell-chevron: var(--neutral-500);
+  box-sizing: border-box;
+  isolation: isolate;
+  color: var(--neutral-800);
+  border: 1px solid var(--nav-glass-rim);
+  border-radius: 24px;
+  background: var(--nav-glass-face);
+  background-clip: padding-box;
+  -webkit-backdrop-filter: blur(10px) saturate(112%);
+  backdrop-filter: blur(10px) saturate(112%);
+  box-shadow: var(--nav-glass-bevel), var(--nav-glass-shadow);
+  text-shadow: none;
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 200ms cubic-bezier(.2, .7, .3, 1);
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item > .sidebar-link:hover {
+  --dark-shell-nav-icon: var(--teal-700);
+  background-color: rgba(255, 255, 255, .16);
+  border-color: rgba(176, 185, 201, .42);
+  box-shadow:
+    var(--nav-glass-bevel),
+    0 3px 8px rgba(25,65,85,.09);
+  transform: translateY(-1px);
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item > .sidebar-link:active {
+  transform: translateY(0) scale(.985);
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item > .sidebar-link:focus-visible {
+  outline: 2px solid var(--color-brand-dark);
+  outline-offset: 2px;
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-submenu {
+  --owner-submenu-motion-ms: 220ms;
+  --owner-submenu-motion-easing: cubic-bezier(.4, 0, .2, 1);
+  box-sizing: border-box;
+  width: 100%; min-width: 0; max-width: 100%; margin-inline: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  interpolate-size: allow-keywords;
+  border-radius: 20px;
+  background: var(--nav-glass-panel);
+  -webkit-backdrop-filter: blur(8px) saturate(130%);
+  backdrop-filter: blur(8px) saturate(130%);
+  /* Restore 5292's height/opacity motion, overwritten by floating-shell's
+     margin-only transition. Width transitions still serve the collapsed rail. */
+  transition:
+    height var(--owner-submenu-motion-ms) var(--owner-submenu-motion-easing),
+    opacity var(--owner-submenu-motion-ms) var(--owner-submenu-motion-easing),
+    margin-top var(--owner-submenu-motion-ms) var(--owner-submenu-motion-easing),
+    padding var(--owner-submenu-motion-ms) var(--owner-submenu-motion-easing),
+    border-width var(--owner-submenu-motion-ms) var(--owner-submenu-motion-easing),
+    box-shadow var(--owner-submenu-motion-ms) var(--owner-submenu-motion-easing),
+    width 180ms cubic-bezier(.22, 1, .36, 1),
+    min-width 180ms cubic-bezier(.22, 1, .36, 1),
+    max-width 180ms cubic-bezier(.22, 1, .36, 1);
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item.has-submenu.is-open > .sidebar-submenu {
+  --owner-submenu-motion-ms: 220ms;
+  --owner-submenu-motion-easing: cubic-bezier(.22, 1, .36, 1);
+  height: auto;
+  opacity: 1;
+  pointer-events: auto;
+  border: 1px solid rgba(105,207,216,.85);
+  box-shadow: var(--nav-glass-panel-shadow);
+}
+
+/* The category button and submenu are separate surfaces. Their transparent
+   layout host still lets neighbouring sections follow the height animation. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav .sidebar-nav-item.has-submenu {
+  --nav-group-motion-ms: 220ms;
+  --nav-group-motion-easing: cubic-bezier(.4, 0, .2, 1);
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav .sidebar-nav-item.has-submenu.is-open {
+  --nav-group-motion-ms: 220ms;
+  --nav-group-motion-easing: cubic-bezier(.22, 1, .36, 1);
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav .sidebar-nav-item.has-submenu > .sidebar-link {
+  width: 100%;
+  box-shadow: var(--nav-glass-bevel), var(--nav-glass-shadow);
+  -webkit-backdrop-filter: blur(10px) saturate(112%);
+  backdrop-filter: blur(10px) saturate(112%);
+  transform: none;
+  transition: border-radius var(--nav-group-motion-ms) var(--nav-group-motion-easing), background-color 180ms ease, border-color 180ms ease;
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav .sidebar-nav-item.has-submenu > .sidebar-link:not(.is-active):not([aria-expanded="true"]) {
+  background: var(--nav-glass-face);
+}
+
+/* One appearance for the current page and expanded categories, including hover. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item:is(.has-submenu, .is-active) > .sidebar-link:is(.is-active, [aria-expanded="true"]),
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item:is(.has-submenu, .is-active) > .sidebar-link:is(.is-active, [aria-expanded="true"]):hover {
+  --dark-shell-nav-icon: #fff;
+  --dark-shell-chevron: #fff;
+  color: #fff;
+  border-color: rgba(91,218,216,.7);
+  background: var(--nav-glass-accent-face);
+  background-clip: padding-box;
+  box-shadow: var(--nav-glass-accent-shadow);
+  text-shadow: none;
+  transform: none;
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav .sidebar-nav-item.has-submenu > .sidebar-submenu {
+  margin-top: 0;
+  border: 0 solid rgba(105,207,216,.85);
+  border-radius: 20px;
+  background: var(--nav-glass-panel);
+  box-shadow: none;
+  -webkit-backdrop-filter: blur(8px) saturate(130%);
+  backdrop-filter: blur(8px) saturate(130%);
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav .sidebar-nav-item.has-submenu.is-open > .sidebar-submenu {
+  margin-top: 3px;
+  border-width: 1px;
+  padding: 6px 4px 8px;
+  box-shadow: var(--nav-glass-panel-shadow);
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-submenu__link {
+  --dark-shell-nav-icon: #58738C;
+  box-sizing: border-box;
+  position: relative;
+  color: #344B63;
+  font-weight: 500;
+  background: transparent;
+  box-shadow: none;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  opacity: 0;
+  transform: translateY(-12px);
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 220ms cubic-bezier(.22, 1, .36, 1) var(--nav-row-reveal-delay, 0ms),
+    opacity 180ms ease var(--nav-row-reveal-delay, 0ms);
+}
+
+/* Rows emerge inside the clipped list, directly beneath the stationary header.
+   The small, capped stagger never holds up a long section. Closing has no delay. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item.has-submenu.is-open > .sidebar-submenu > .sidebar-submenu__link {
+  opacity: 1;
+  transform: translateY(0);
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item.has-submenu.is-open > .sidebar-submenu > .sidebar-submenu__link:nth-child(2) { --nav-row-reveal-delay: 12ms; }
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item.has-submenu.is-open > .sidebar-submenu > .sidebar-submenu__link:nth-child(3) { --nav-row-reveal-delay: 24ms; }
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item.has-submenu.is-open > .sidebar-submenu > .sidebar-submenu__link:nth-child(4) { --nav-row-reveal-delay: 36ms; }
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item.has-submenu.is-open > .sidebar-submenu > .sidebar-submenu__link:nth-child(n + 5) { --nav-row-reveal-delay: 48ms; }
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-submenu__link:is(:hover, :focus-visible) {
+  --dark-shell-nav-icon: #58738C;
+  color: #263E55;
+  background: rgba(34, 190, 184, .09);
+  border-color: transparent;
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-submenu__link.is-active {
+  --dark-shell-nav-icon: #fff;
+  color: #fff;
+  background: var(--nav-glass-accent-face);
+  -webkit-backdrop-filter: blur(8px) saturate(130%);
+  backdrop-filter: blur(8px) saturate(130%);
+  border-radius: 12px;
+  border-color: rgba(255,255,255,.48);
+  box-shadow:
+    inset 0 0 0 .35px rgba(255,255,255,.55),
+    inset 0 1px 1px rgba(255,255,255,.32),
+    0 3px 7px -3px rgba(22,180,179,.22);
+  font-weight: 500;
+}
+/* Smaller submenu glyphs need a lighter stroke to match the parent icons. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-submenu__icon svg {
+  stroke-width: 1.75;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-submenu__link:not(.is-active):not(:last-child)::after {
+  content: "";
+  display: block;
+  position: absolute;
+  inset: auto 12px -1px 12px;
+  height: 1px;
+  background: rgba(128,194,213,.22);
+  box-shadow: none;
+  pointer-events: none;
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-submenu__link:focus-visible {
+  outline: 2px solid var(--color-brand-dark); outline-offset: -2px;
+}
+
+/* The collapsed menu keeps its existing placement and dimensions. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-collapsed-popover {
+  background: var(--nav-glass-panel);
+  border-color: rgba(255, 255, 255, .8);
+  -webkit-backdrop-filter: blur(8px) saturate(130%);
+  backdrop-filter: blur(8px) saturate(130%);
+  box-shadow: var(--nav-glass-panel-shadow);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav .sidebar-nav-item.has-submenu > .sidebar-submenu,
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav .sidebar-nav-item.has-submenu > .sidebar-link,
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-submenu,
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item > .sidebar-link,
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-collapsed-popover { background-color: var(--neutral-50); }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav .sidebar-nav-item.has-submenu > .sidebar-submenu,
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav .sidebar-nav-item.has-submenu > .sidebar-link,
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-submenu,
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item > .sidebar-link,
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-collapsed-popover {
+    background-color: var(--color-card);
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item > .sidebar-link,
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav .sidebar-nav-item.has-submenu > .sidebar-link,
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-submenu,
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-submenu__link { transition: none; }
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-nav-item > .sidebar-link:is(:hover, :active) { transform: none; }
+}

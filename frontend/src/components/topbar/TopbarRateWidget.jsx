@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { exchangeRatesService } from "../../api/exchangeRates";
 import kgFlag from "../../assets/flags/kg.svg";
 import kzFlag from "../../assets/flags/kz.svg";
@@ -7,7 +8,6 @@ import usFlag from "../../assets/flags/us.svg";
 import uzFlag from "../../assets/flags/uz.svg";
 import Icon from "../Icon";
 import { formatMoneyInput, parseMoneyInput } from "./currencyFormat";
-import { t } from "../../i18n/t";
 
 const RATE_POPOVER_EXIT_MS = 180;
 const SWAP_VALUE_ANIMATION_MS = 180;
@@ -33,6 +33,8 @@ const CURRENCY_COUNTRY_BY_CODE = {
 export default function TopbarRateWidget() {
   const rateWidgetRef = useRef(null);
   const rateTriggerRef = useRef(null);
+  const popoverRef = useRef(null);
+  const [flyoutPosition, setFlyoutPosition] = useState({ left: 12, top: 80 });
   const closeTimerRef = useRef(null);
   const restoreFocusRef = useRef(false);
   const swapTimerRef = useRef(null);
@@ -53,6 +55,25 @@ export default function TopbarRateWidget() {
   const [converterDirection, setConverterDirection] = useState("usd-to-uzs");
   const [swapPhase, setSwapPhase] = useState("idle");
   const [widgetError, setWidgetError] = useState(false);
+  const inProfile = Boolean(rateWidgetRef.current?.closest("#preview-profile-balance"));
+  const renderPopover = content => inProfile ? createPortal(content, document.body) : content;
+  useLayoutEffect(() => {
+    if (!rateOpen) return undefined;
+    const update = () => {
+      const menu = rateWidgetRef.current?.closest(".sidebar-account__menu");
+      if (!menu) return;
+      const rect = menu.getBoundingClientRect();
+      const width = Math.min(400, window.innerWidth - 24);
+      const height = popoverRef.current?.getBoundingClientRect().height || 420;
+      setFlyoutPosition({
+        left: rect.left >= width + 24 ? rect.left - width - 12 : Math.max(12, Math.min(rect.right + 12, window.innerWidth - width - 12)),
+        top: Math.max(12, Math.min(rect.top, window.innerHeight - height - 12)),
+      });
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [rateOpen]);
 
   const convertedAmount = useMemo(() => {
     const amount = parseMoneyInput(usdAmount);
@@ -165,7 +186,7 @@ export default function TopbarRateWidget() {
     if (!rateOpen || rateClosing) return undefined;
 
     function handleClickOutside(event) {
-      if (!rateWidgetRef.current?.contains(event.target)) {
+      if (!rateWidgetRef.current?.contains(event.target) && !popoverRef.current?.contains(event.target)) {
         closeRate(false);
       }
     }
@@ -191,7 +212,7 @@ export default function TopbarRateWidget() {
   }, []);
 
   return (
-    <div className="topbar-info-widgets" aria-label={t("components.topbar.topbarratewidget.informatsionnye_vidzhety")} ref={rateWidgetRef}>
+    <div className="topbar-info-widgets" aria-label="Информационные виджеты" ref={rateWidgetRef}>
       <button
         ref={rateTriggerRef}
         className={`topbar-info-widget topbar-info-widget--rate ${rateOpen && !rateClosing ? "is-open" : ""}`}
@@ -205,18 +226,21 @@ export default function TopbarRateWidget() {
         </span>
         <strong className="topbar-info-widget__body">
           {activeRate ? (
-            <><span className="topbar-info-widget__num">{activeRate.toLocaleString("ru-RU", { maximumFractionDigits: 1 })} </span>UZS/{activeCurrency}</>
+            <>{inProfile && <span className="topbar-rate-label">Курс</span>}<span className="topbar-info-widget__num">{Math.trunc(activeRate).toLocaleString("ru-RU")} </span>UZS/{activeCurrency}</>
           ) : "—"}
         </strong>
         {widgetError && !usdRate
           ? <Icon name="bi-wifi-off" size={15} className="topbar-info-widget__trend" />
           : null}
       </button>
-      {rateOpen ? (
+      {rateOpen ? renderPopover(
         <div
-          className={`usd-rate-popover ${rateClosing ? "is-closing" : "is-opening"}`}
+          ref={popoverRef}
+          data-profile-currency={inProfile ? "true" : undefined}
+          style={inProfile ? flyoutPosition : undefined}
+          className={`usd-rate-popover ${inProfile ? "profile-currency-flyout" : ""} ${rateClosing ? "is-closing" : "is-opening"}`}
           role="dialog"
-          aria-label={t("components.topbar.topbarratewidget.kursy_valyut")}
+          aria-label="Курсы валют"
           aria-hidden={rateClosing || undefined}
           onAnimationEnd={(event) => {
             if (rateClosing && event.target === event.currentTarget) finishRateClose();
@@ -224,20 +248,20 @@ export default function TopbarRateWidget() {
         >
           <div className="usd-rate-popover__head">
             <div>
-              <span>{t("components.topbar.topbarratewidget.ofitsialnyy_kurs_tsb_uzbekistana")}</span>
-              <strong>{t("components.topbar.topbarratewidget.kursy_valyut")}</strong>
+              <span>Официальный курс ЦБ Узбекистана</span>
+              <strong>Курсы валют</strong>
             </div>
-            <button type="button" aria-label={t("components.topbar.topbarratewidget.zakryt")} onClick={() => closeRate(true)}>
+            <button type="button" aria-label="Закрыть" onClick={() => closeRate(true)}>
               <Icon name="bi-x-lg" size={18} />
             </button>
           </div>
 
           <div className="currency-rate-cards">
             {[
-              { code: "USD", flag: CURRENCY_FLAG_BY_CODE.USD, label: t("components.topbar.topbarratewidget.dollar_ssha"),         rate: usdRate, decimals: 0 },
-              { code: "RUB", flag: CURRENCY_FLAG_BY_CODE.RUB, label: t("components.topbar.topbarratewidget.rossiyskiy_rubl"),    rate: rubRate, decimals: 1 },
-              { code: "KZT", flag: CURRENCY_FLAG_BY_CODE.KZT, label: t("components.topbar.topbarratewidget.kazahstanskiy_tenge"), rate: kztRate, decimals: 1 },
-              { code: "KGS", flag: CURRENCY_FLAG_BY_CODE.KGS, label: t("components.topbar.topbarratewidget.kirgizskiy_som"),      rate: kgsRate, decimals: 0 },
+              { code: "USD", flag: CURRENCY_FLAG_BY_CODE.USD, label: "Доллар США",         rate: usdRate, decimals: 0 },
+              { code: "RUB", flag: CURRENCY_FLAG_BY_CODE.RUB, label: "Российский рубль",    rate: rubRate, decimals: 1 },
+              { code: "KZT", flag: CURRENCY_FLAG_BY_CODE.KZT, label: "Казахстанский тенге", rate: kztRate, decimals: 1 },
+              { code: "KGS", flag: CURRENCY_FLAG_BY_CODE.KGS, label: "Киргизский сом",      rate: kgsRate, decimals: 0 },
             ].map(({ code, flag, label, rate, decimals }) => (
               <button
                 key={code}
@@ -257,7 +281,7 @@ export default function TopbarRateWidget() {
                 </span>
                 <strong className="currency-rate-card__rate">
                   {rate
-                    ? rate.toLocaleString("ru-RU", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+                    ? Math.trunc(rate).toLocaleString("ru-RU")
                     : "—"}
                 </strong>
                 <span className="currency-rate-card__unit">UZS</span>
@@ -270,13 +294,13 @@ export default function TopbarRateWidget() {
               className="usd-rate-direction-toggle"
               type="button"
               onClick={toggleConverterDirection}
-              aria-label={t("components.topbar.topbarratewidget.pomenyat_napravlenie")}
+              aria-label="Поменять направление"
               aria-disabled={swapPhase !== "idle"}
             >
               <span>{converterDirectionLabel}</span>
-              <Icon name="bi-arrow-left-right" size={16} />
+              <Icon name="bi-arrow-down-up" size={16} />
             </button>
-            <span>{t("components.topbar.topbarratewidget.istochnik_cbu_uz")}</span>
+            <span>Источник: cbu.uz</span>
           </div>
           <div className="usd-converter">
             <label>

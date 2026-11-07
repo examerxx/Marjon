@@ -18,7 +18,6 @@ import StaffToolbar from "./staff/StaffToolbar";
 import StaffTable from "./staff/StaffTable";
 import StaffFormModal from "./staff/StaffFormModal";
 import Toast from "../components/Toast";
-import { t } from "../i18n/t";
 
 // Оркестратор раздела «Сотрудники» OWNER (FE-07B). Владеет сквозным состоянием
 // (список, фильтры, форма создания/редактирования) и обработчиками; рендер
@@ -58,9 +57,7 @@ function StaffRolePage({ role = "all" }) {
   // любого филиала сети, что для смены поваров неверно.
   const needsBranch = isCashierView || isWaiterView || isManagerView || isWarehouseView || isKitchenView;
   const pageTitle =
-    routeRole === "all"
-      ? t("staff.list_title")
-      : t("staff.list_title_with_role", { role: t(roleMap[routeRole].title) });
+    routeRole === "all" ? "Список сотрудников" : `Список сотрудников: ${roleMap[routeRole].title}`;
 
   const [staff, setStaff] = useState([]);
   const [staffLoading, setStaffLoading] = useState(true);
@@ -88,7 +85,7 @@ function StaffRolePage({ role = "all" }) {
         if (!request.isCurrent() || isAbortError(err)) return;
         console.warn("Не удалось загрузить сотрудников:", err.message);
         setStaff([]);
-        setStaffError(t("staff.error.load_failed"));
+        setStaffError("Не удалось загрузить сотрудников.");
       })
       .finally(() => { setStaffLoading(false); });
   }, [beginRequest]);
@@ -290,11 +287,11 @@ function StaffRolePage({ role = "all" }) {
     const file = event.target.files?.[0];
     if (!file) return;
     if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
-      setSaveError(t("staff.error.photo_type"));
+      setSaveError("Фото: поддерживаются только jpg, png, webp.");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setSaveError(t("staff.error.photo_size"));
+      setSaveError("Фото больше 5 МБ — выберите файл меньше.");
       return;
     }
     setSaveError("");
@@ -316,10 +313,10 @@ function StaffRolePage({ role = "all" }) {
   // backend text as a suffix so contract tests still match by substring.
   const toDuplicatePhoneError = (detail) => {
     if (detail === "Phone already registered") {
-      return t("staff.error.phone_registered");
+      return "Этот номер уже зарегистрирован. Используйте другой номер телефона (Phone already registered).";
     }
     if (detail === "Phone already in use") {
-      return t("staff.error.phone_in_use");
+      return "Этот номер уже используется другим сотрудником (Phone already in use).";
     }
     return null;
   };
@@ -328,7 +325,7 @@ function StaffRolePage({ role = "all" }) {
     if (!data || typeof data !== "object") {
       return typeof err.message === "string" && err.message
         ? err.message
-        : t("staff.error.save");
+        : "Ошибка сохранения";
     }
     if (typeof data.detail === "string" && data.detail) {
       return toDuplicatePhoneError(data.detail) || data.detail;
@@ -347,7 +344,7 @@ function StaffRolePage({ role = "all" }) {
       }
       return data.message;
     }
-    return t("staff.error.save");
+    return "Ошибка сохранения";
   };
 
   const saveStaff = async (event) => {
@@ -370,16 +367,24 @@ function StaffRolePage({ role = "all" }) {
               : isKitchenView
                 ? "kitchen"
                 : "cashier";
-      // Роль в косвенном падеже — из словаря по slug-у, а не литералом:
-      // «Укажите имя и номер телефона официанта» должно переводиться.
-      const productGenitive = t(`staff.role_genitive.${productRoleSlug}`);
+      const productGenitive = isWaiterView
+        ? "официанта"
+        : isMonoblockView
+          ? "моноблока"
+          : isManagerView
+            ? "менеджера"
+            : isWarehouseView
+              ? "завсклада"
+              : isKitchenView
+                ? "повара"
+                : "кассира";
       const productName = form.fullName.trim();
       if (!productName || !phone) {
         // FIX-03: bind to the missing field so the message renders under
         // the relevant input (near the fold), not only below the fold.
         // Copy unchanged.
         setSaveErrorField(!productName ? "name" : "phone");
-        setSaveError(t("staff.error.name_and_phone", { role: productGenitive }));
+        setSaveError(`Укажите имя и номер телефона ${productGenitive}.`);
         mutationLocks.release("staff-save");
         return;
       }
@@ -393,7 +398,7 @@ function StaffRolePage({ role = "all" }) {
       const resolvedBranchId = form.branchId || soleBranchId || null;
       if ((!editingId || form.password) && form.password.length < 4) {
         setSaveErrorField("password");
-        setSaveError(t("staff.error.password_min"));
+        setSaveError("Пароль должен содержать минимум 4 символа.");
         mutationLocks.release("staff-save");
         return;
       }
@@ -401,7 +406,7 @@ function StaffRolePage({ role = "all" }) {
       // кнопкой). Пустое поле — не трогаем: у сотрудника остаётся прежний код.
       if (form.pin && !/^\d{4,8}$/.test(form.pin)) {
         setSaveErrorField("pin");
-        setSaveError(t("staff.error.pin_four"));
+        setSaveError("PIN — ровно 4 цифры.");
         mutationLocks.release("staff-save");
         return;
       }
@@ -410,7 +415,7 @@ function StaffRolePage({ role = "all" }) {
       // сохранялась, и смена обнаруживала проблему уже у плиты.
       if (isKitchenView && !editingId && !/^\d{4,8}$/.test(form.pin)) {
         setSaveErrorField("pin");
-        setSaveError(t("staff.error.pin_required_kitchen"));
+        setSaveError("PIN — 4 цифры: без него повар не войдёт на кухню.");
         mutationLocks.release("staff-save");
         return;
       }
@@ -457,7 +462,7 @@ function StaffRolePage({ role = "all" }) {
             return data;
           } catch (err) {
             console.error("Не удалось загрузить фото:", err?.response?.data?.detail || err?.message);
-            setSaveError(t("staff.error.photo_upload"));
+            setSaveError("Сотрудник сохранён, но фото загрузить не удалось. Попробуйте ещё раз.");
             return user;
           }
         };
@@ -558,13 +563,13 @@ function StaffRolePage({ role = "all" }) {
       // диалоги («предотвратить дополнительные…»), и ошибка остаётся только
       // в консоли. Везде показываем тот же Toast, что и в карточке роли.
       setSaveErrorField("email");
-      setSaveError(t("staff.error.email_and_role"));
+      setSaveError("Укажите email и допустимую роль сотрудника.");
       mutationLocks.release("staff-save");
       return;
     }
     if ((!editingId || form.password) && form.password.length < 4) {
       setSaveErrorField("password");
-      setSaveError(t("staff.error.password_min"));
+      setSaveError("Пароль должен содержать минимум 4 символа.");
       mutationLocks.release("staff-save");
       return;
     }
@@ -645,7 +650,7 @@ function StaffRolePage({ role = "all" }) {
       setPageError(
         typeof detail === "string" && detail
           ? toDuplicatePhoneError(detail) || detail
-          : t("staff.error.archive"),
+          : "Не удалось архивировать сотрудника.",
       );
     } finally {
       setPendingActionId("");
@@ -668,7 +673,7 @@ function StaffRolePage({ role = "all" }) {
       setPageError(
         typeof detail === "string" && detail
           ? toDuplicatePhoneError(detail) || detail
-          : t("staff.error.restore"),
+          : "Не удалось восстановить сотрудника.",
       );
     } finally {
       setPendingActionId("");
@@ -759,7 +764,7 @@ function StaffRolePage({ role = "all" }) {
       {pageError ? (
         <Toast
           kind="error"
-          title={t("pages.staffrolepage.ne_udalos_vypolnit_deystvie")}
+          title="Не удалось выполнить действие"
           message={pageError}
           onClose={() => setPageError("")}
         />

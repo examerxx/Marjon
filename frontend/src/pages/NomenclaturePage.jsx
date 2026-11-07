@@ -17,7 +17,6 @@ import DishesRecipesDialog from "./nomenclature/DishesRecipesDialog";
 import DishesSetDialog from "./nomenclature/DishesSetDialog";
 import RawMaterialsPage from "./nomenclature/RawMaterialsPage";
 import SemiProductsPage from "./nomenclature/SemiProductsPage";
-import { t } from "../i18n/t";
 
 // Ре-экспорт чистых контрактных функций для совместимости с тестами и импортами.
 export { buildNomenclatureProductPayload, mapNomenclatureProduct } from "./nomenclature/nomenclatureData";
@@ -33,10 +32,10 @@ function NomenclaturePage({ type = "dishes" }) {
         <div className="nomenclature-header">
           <div className="report-title-group">
             <span className="report-accent-bar" />
-            <div><h1>{config.title}</h1><p>{t("pages.nomenclaturepage.funktsiya_poka_nedostupna_inventory_core_otlozhen")}</p></div>
+            <div><h1>{config.title}</h1><p>Функция пока недоступна: Inventory Core отложен.</p></div>
           </div>
         </div>
-        <div className="dashboard-empty" role="status">{t("pages.nomenclaturepage.backend_kontrakt_dlya_etogo_razdela_ne_zafiksirovan")}</div>
+        <div className="dashboard-empty" role="status">Backend-контракт для этого раздела не зафиксирован.</div>
       </div>
     </section>
   );
@@ -129,12 +128,12 @@ function DishesCatalogPage() {
           <div className="settings-title-group">
             <span className="settings-accent-bar" aria-hidden="true" />
             <div>
-              <p>{t("pages.nomenclaturepage.menyu")}</p>
-              <h1>{t("pages.nomenclaturepage.blyuda")}</h1>
+              <p>Меню</p>
+              <h1>Блюда</h1>
             </div>
           </div>
           <div className="settings-actions dish-header-actions">
-            <div className="dish-status-tabs" role="tablist" aria-label={t("pages.nomenclaturepage.status_blyud")} ref={tabsRef}>
+            <div className="dish-status-tabs" role="tablist" aria-label="Статус блюд" ref={tabsRef}>
               <span
                 className="dish-status-tabs__indicator"
                 aria-hidden="true"
@@ -151,7 +150,7 @@ function DishesCatalogPage() {
                 className={catalog.showArchived ? "" : "is-active"}
                 onClick={() => catalog.setShowArchived(false)}
               >
-               {t("pages.nomenclaturepage.aktivnye")}
+                Активные
               </button>
               <button
                 type="button"
@@ -161,7 +160,7 @@ function DishesCatalogPage() {
                 className={catalog.showArchived ? "is-active" : ""}
                 onClick={() => catalog.setShowArchived(true)}
               >
-               {t("pages.nomenclaturepage.arhivirovannye")}
+                Архивированные
               </button>
             </div>
             <button
@@ -171,10 +170,10 @@ function DishesCatalogPage() {
               aria-controls="dishes-catalog-filters"
               onClick={() => setFiltersOpen((open) => !open)}
             >
-              <Icon name="bi-sliders" size={17} /> {t("pages.nomenclaturepage.filtrovat")}
+              <Icon name="bi-sliders" size={17} /> Фильтровать
             </button>
             <button type="button" className="dish-add-button" onClick={() => catalog.openDrawer()}>
-              <Icon name="bi-plus" size={18} /> {t("pages.nomenclaturepage.dobavit")}
+              <Icon name="bi-plus" size={18} /> Добавить
             </button>
           </div>
         </header>
@@ -261,33 +260,33 @@ function DishesCatalogPage() {
               <header className="settings-form__header">
                 <span className="settings-accent-bar" />
                 <div>
-                  <p>{pendingAction.mode === "archive" ? t("common.confirm.archive_title") : t("common.confirm.restore_title")}</p>
+                  <p>{pendingAction.mode === "archive" ? "Архивация" : "Восстановление"}</p>
                   <h2 id="dish-confirm-title">
-                    {pendingAction.mode === "archive" ? t("common.confirm.archive_dish") : t("common.confirm.restore_dish")}
+                    {pendingAction.mode === "archive" ? "Архивировать блюдо?" : "Восстановить блюдо?"}
                   </h2>
                 </div>
-                <button type="button" disabled={confirmBusy} onClick={closeConfirm} aria-label={t("pages.nomenclaturepage.zakryt")}>
+                <button type="button" disabled={confirmBusy} onClick={closeConfirm} aria-label="Закрыть">
                   <Icon name="bi-x-lg" size={20} />
                 </button>
               </header>
               <p className="settings-form__context">
                 {pendingAction.mode === "archive" ? (
-                  <>{t("pages.nomenclaturepage.blyudo")} <strong>«{pendingAction.row.name}»</strong> {t("pages.nomenclaturepage.budet_peremescheno_v_arhiv")}</>
+                  <>Блюдо <strong>«{pendingAction.row.name}»</strong> будет перемещено в архив.</>
                 ) : (
-                  <>{t("pages.nomenclaturepage.blyudo")} <strong>«{pendingAction.row.name}»</strong> {t("pages.nomenclaturepage.vernetsya_v_spisok_aktivnyh")}</>
+                  <>Блюдо <strong>«{pendingAction.row.name}»</strong> вернётся в список активных.</>
                 )}
               </p>
               <footer className="settings-form__footer">
                 <button type="button" disabled={confirmBusy} onClick={closeConfirm}>
-                 {t("pages.nomenclaturepage.otmena")}
+                  Отмена
                 </button>
                 {pendingAction.mode === "archive" ? (
                   <button type="submit" className="dishcat-confirm__delete" disabled={confirmBusy}>
-                    {confirmBusy ? t("common.confirm.archive_busy") : t("common.confirm.archive_action")}
+                    {confirmBusy ? "Архивация..." : "Архивировать"}
                   </button>
                 ) : (
                   <button type="submit" className="dish-add-button" disabled={confirmBusy}>
-                    {confirmBusy ? t("common.confirm.restore_busy") : t("common.confirm.restore_action")}
+                    {confirmBusy ? "Восстановление..." : "Восстановить"}
                   </button>
                 )}
               </footer>

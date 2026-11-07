@@ -20,7 +20,6 @@ import {
 } from "../../api/receipt";
 import { isAbortError } from "../../hooks/useAsyncSafety";
 import { orderedBlocks } from "./receiptBlockOrder";
-import { t } from "../../i18n/t";
 import "./receiptSettings.css";
 
 // Editor-only grouping of the constructor rows. Covers every canonical
@@ -204,7 +203,7 @@ export default function ReceiptSettingsPage() {
       return (
         <div className="receipt-block-extra">
           <label className="receipt-field">
-            <span>{t("pages.settings.receiptsettingspage.nazvanie")}</span>
+            <span>Название</span>
             <input
               value={template.restaurantName || ""}
               onChange={(event) => patchTemplate({ restaurantName: event.target.value })}
@@ -218,7 +217,7 @@ export default function ReceiptSettingsPage() {
       return (
         <div className="receipt-block-extra">
           <label className="receipt-field">
-            <span>{t(isAddress ? "receipt.settings.address" : "receipt.settings.phone")}</span>
+            <span>{isAddress ? "Адрес" : "Телефон"}</span>
             <input
               value={isAddress ? template.address || "" : template.phone || ""}
               onChange={(event) => patchTemplate(isAddress
@@ -233,7 +232,7 @@ export default function ReceiptSettingsPage() {
       return (
         <div className="receipt-block-extra">
           <label className="receipt-field">
-            <span>{t("pages.settings.receiptsettingspage.kommentariy_k_cheku")}</span>
+            <span>Комментарий к чеку</span>
             <textarea
               rows={3}
               value={template.thankYouText || ""}
@@ -247,19 +246,19 @@ export default function ReceiptSettingsPage() {
     return (
       <div className="receipt-logo-field">
         {org?.logo ? (
-          <img className="receipt-logo-thumb" src={org.logo} alt={t("pages.settings.receiptsettingspage.logotip_kompanii")} />
+          <img className="receipt-logo-thumb" src={org.logo} alt="Логотип компании" />
         ) : (
-          <span className="receipt-logo-empty">{t("pages.settings.receiptsettingspage.logotip_kompanii_ne_ustanovlen")}</span>
+          <span className="receipt-logo-empty">Логотип компании не установлен</span>
         )}
         {org?.logo ? (
-          <span className="receipt-logo-name">{t("pages.settings.receiptsettingspage.logotip_kompanii")}</span>
+          <span className="receipt-logo-name">Логотип компании</span>
         ) : null}
         <div className="receipt-logo-actions">
           <input
             ref={logoInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"
-            aria-label={t("pages.settings.receiptsettingspage.fayl_logotipa")}
+            aria-label="Файл логотипа"
             disabled={uploadingLogo}
             onChange={handleLogoFile}
             hidden
@@ -270,11 +269,11 @@ export default function ReceiptSettingsPage() {
             disabled={uploadingLogo}
             onClick={() => logoInputRef.current?.click()}
           >
-            {uploadingLogo ? t("common.loading") : org?.logo ? t("receipt.settings.replace_logo") : t("receipt.settings.choose_logo")}
+            {uploadingLogo ? "Загрузка..." : org?.logo ? "Заменить" : "Выбрать логотип"}
           </button>
           {org?.logo ? (
             <button type="button" className="receipt-btn-secondary" disabled={uploadingLogo} onClick={handleLogoDelete}>
-             {t("pages.settings.receiptsettingspage.udalit")}
+              Удалить
             </button>
           ) : null}
         </div>
@@ -290,15 +289,15 @@ export default function ReceiptSettingsPage() {
             <div className="settings-title-group">
               <span className="settings-accent-bar" />
               <div>
-                <p>{t("pages.settings.receiptsettingspage.nastroyki")}</p>
-                <h1>{t("pages.settings.receiptsettingspage.nastroyka_cheka")}</h1>
+                <p>Настройки</p>
+                <h1>Настройка чека</h1>
               </div>
             </div>
             <div className="receipt-editor-actions receipt-editor-actions--end">
               <ReceiptSeparatorSelect value={template.separator} disabled={loading || saving}
                 onChange={(separator) => patchTemplate({ separator })} />
               <button type="button" className="receipt-btn-primary receipt-save" disabled={saving || loading} onClick={handleSave}>
-                {saving ? t("staff.saving") : t("common.save")}
+                {saving ? "Сохранение..." : "Сохранить"}
               </button>
             </div>
           </div>
@@ -327,11 +326,11 @@ export default function ReceiptSettingsPage() {
               onStyleChange={changeBlockStyle}
               renderBlockExtra={renderBlockExtra}
               renderBlockHeader={(block) => block === "bottomOrderNumber" ? (
-                <div className="receipt-segments receipt-number-placement" role="group" aria-label={t("pages.settings.receiptsettingspage.raspolozhenie_nomera_zakaza")}>
-                  {[{ value: "top", label: t("pages.settings.receiptsettingspage.vverhu") }, { value: "bottom", label: t("pages.settings.receiptsettingspage.vnizu") }].map(option => (
+                <div className="receipt-segments receipt-number-placement" role="group" aria-label="Расположение номера заказа">
+                  {[{ value: "top", label: "Вверху" }, { value: "bottom", label: "Внизу" }].map(option => (
                     <button type="button" key={option.value} aria-pressed={(template.blockStyles?.bottomOrderNumber?.placement || "bottom") === option.value}
                       className={(template.blockStyles?.bottomOrderNumber?.placement || "bottom") === option.value ? "is-active" : ""}
-                      onClick={() => changeBlockStyle(block, { placement: option.value })}>{t(option.label)}</button>
+                      onClick={() => changeBlockStyle(block, { placement: option.value })}>{option.label}</button>
                   ))}
                 </div>
               ) : null}
@@ -345,15 +344,15 @@ export default function ReceiptSettingsPage() {
                   aria-expanded={openPanels.additional}
                   onClick={() => togglePanel("additional")}
                 >
-                  <span className="receipt-section-group__title">{t("pages.settings.receiptsettingspage.dopolnitelnye_nastroyki")}</span>
+                  <span className="receipt-section-group__title">Дополнительные настройки</span>
                   <span className="receipt-section-group__chevron" aria-hidden="true" />
                 </button>
                 <div className={`receipt-section-group__body${openPanels.additional ? " is-open" : ""}`}>
                   <div className="receipt-section-group__inner">
                     <div className="receipt-duo">
                       <div className="receipt-duo-col">
-                        <span className="receipt-duo-label">{t("pages.settings.receiptsettingspage.mesto_mezhdu_strokami")}</span>
-                        <div className="receipt-segments receipt-line-spacing" role="group" aria-label={t("pages.settings.receiptsettingspage.mesto_mezhdu_strokami_cheka")}>
+                        <span className="receipt-duo-label">Место между строками</span>
+                        <div className="receipt-segments receipt-line-spacing" role="group" aria-label="Место между строками чека">
                           {LINE_SPACING_OPTIONS.map((option) => (
                             <button
                               key={option.value}
@@ -361,14 +360,14 @@ export default function ReceiptSettingsPage() {
                               className={normalizeLineSpacing(template.lineSpacing) === option.value ? "is-active" : ""}
                               onClick={() => patchTemplate({ lineSpacing: option.value })}
                             >
-                              {t(option.label)}
+                              {option.label}
                             </button>
                           ))}
                         </div>
                       </div>
                       <div className="receipt-duo-col">
-                        <span className="receipt-duo-label">{t("pages.settings.receiptsettingspage.podklyuchenie_printera")}</span>
-                        <div className="receipt-segments receipt-line-spacing" role="group" aria-label={t("pages.settings.receiptsettingspage.podklyuchenie_printera")}>
+                        <span className="receipt-duo-label">Подключение принтера</span>
+                        <div className="receipt-segments receipt-line-spacing" role="group" aria-label="Подключение принтера">
                           {PRINTER_CONNECTION_OPTIONS.map((option) => (
                             <button
                               key={option.value}
@@ -376,7 +375,7 @@ export default function ReceiptSettingsPage() {
                               className={normalizePrinterConnection(template.printerConnection) === option.value ? "is-active" : ""}
                               onClick={() => patchTemplate({ printerConnection: option.value })}
                             >
-                              {t(option.label)}
+                              {option.label}
                             </button>
                           ))}
                         </div>

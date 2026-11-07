@@ -80,12 +80,12 @@ export function buildDashboardPreviewKpis() {
     },
     "premium-kpi--orders": {
       value: formatNumber(data.orders.total),
-      suffix: "",
+      suffix: "ШТ",
       description: `${previewLabel} Среднее время заказа: ${data.orders.averageMinutes} мин. Отменённые: ${data.orders.cancelled}.`,
       table: { rows: data.orders.top, labelColumn: "Блюдо", valueColumn: "Заказы", formatValue: formatNumber },
     },
     "premium-kpi--avg": {
-      value: formatNumber(data.average.total),
+      value: Math.trunc(data.average.total).toLocaleString("ru-RU"),
       suffix: "UZS",
       description: `${previewLabel} Максимальный: ${formatMoney(data.average.max)}. Минимальный: ${formatMoney(data.average.min)}.`,
       table: {
@@ -101,6 +101,7 @@ export function buildDashboardPreviewKpis() {
       table: { rows: data.income.breakdown, labelColumn: "Источник", valueColumn: "Приход" },
     },
     "premium-kpi--expense": {
+      numericValue: data.expense.total,
       value: formatNumber(data.expense.total),
       suffix: "UZS",
       description: `${previewLabel} ${data.expense.breakdown.map((row) => `${row.name}: ${formatMoney(row.amount)} (${row.percent}%)`).join(". ")}.`,

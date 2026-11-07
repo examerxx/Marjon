@@ -9,7 +9,6 @@ import { getCustomerTemplate, LINE_SPACING_SMALL } from "../../api/receipt";
 import { useOrg } from "../../context/OrgContext";
 import { useAnchoredDialogMotion } from "../../hooks/useAnchoredDialogMotion";
 import { paymentMethodLabel } from "./analyticsData";
-import { t } from "../../i18n/t";
 import "./orderReceiptDialog.css";
 
 // Чек заказа из таблицы «Заказов» на дашборде. Показываем его ровно так, как
@@ -154,7 +153,7 @@ export default function OrderReceiptDialog({ orderId, orderNumber, onClose, onOp
       >
         <header className="receipt-dialog__head">
           <div>
-            <span>{t("pages.dashboard.orderreceiptdialog.chek_zakaza")}</span>
+            <span>Чек заказа</span>
             <h2 id="order-receipt-title">{number ? `№ ${number}` : "Заказ"}</h2>
           </div>
           <div className="receipt-dialog__actions">
@@ -162,10 +161,10 @@ export default function OrderReceiptDialog({ orderId, orderNumber, onClose, onOp
                 откуда он осмыслен (страница «Отчёт по заказам»). */}
             {onOpenDetails ? (
               <button type="button" className="receipt-dialog__details" onClick={onOpenDetails}>
-               {t("pages.dashboard.orderreceiptdialog.detali_zakaza")}
+                Детали заказа
               </button>
             ) : null}
-            <button type="button" className="receipt-dialog__close" aria-label={t("pages.dashboard.orderreceiptdialog.zakryt_chek")} onClick={requestClose}>
+            <button type="button" className="receipt-dialog__close" aria-label="Закрыть чек" onClick={requestClose}>
               <Icon name="bi-x-lg" size={18} />
             </button>
           </div>

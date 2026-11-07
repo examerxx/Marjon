@@ -40,40 +40,40 @@ import {
   hasBalanceRows,
 } from "./dashboard/simulation";
 import RevenueChart from "./dashboard/RevenueChart";
+import CountUpValue from "../components/CountUpValue";
 import "./dashboard/dashboardRefinements.css";
 import { KpiInfoDialog, WarehouseReportDialog } from "./dashboard/DashboardDialogs";
 import { EmptyState, TopSalesCard, RecentOrdersCard } from "./dashboard/DashboardCards";
 import { prepareKpiDialogTrigger } from "./dashboard/kpiFocusOrigin";
-import revenueArt from "../assets/dashboard-card-art/revenue.png";
-import ordersArt from "../assets/dashboard-card-art/orders.png";
-import averageCheckArt from "../assets/dashboard-card-art/average_check.png";
-import incomeArt from "../assets/dashboard-card-art/income.png";
-import expenseArt from "../assets/dashboard-card-art/expense.png";
-import incomingGoodsArt from "../assets/dashboard-card-art/incoming_goods_clean.png";
-import outgoingGoodsArt from "../assets/dashboard-card-art/outgoing_goods_clean.png";
-import warehouseStockArt from "../assets/dashboard-card-art/warehouse_stock_clean.png";
+import revenueArt from "../assets/dashboard-card-art/transparent/02-profit.png";
+import ordersArt from "../assets/dashboard-card-art/transparent/03-orders.png";
+import averageCheckArt from "../assets/dashboard-card-art/transparent/04-average-check.png";
+import incomeArt from "../assets/dashboard-card-art/transparent/01-income.png";
+import expenseArt from "../assets/dashboard-card-art/transparent/05-expense.png";
+import incomingGoodsArt from "../assets/dashboard-card-art/transparent/06-incoming-goods.png";
+import outgoingGoodsArt from "../assets/dashboard-card-art/transparent/07-outgoing-goods.png";
+import warehouseStockArt from "../assets/dashboard-card-art/transparent/08-warehouse-stock.png";
 import totalCostsArt from "../assets/dashboard-card-art/total_costs_clean.png";
-import accountsPayableArt from "../assets/dashboard-card-art/accounts_payable_clean.png";
-import accountsReceivableArt from "../assets/dashboard-card-art/accounts_receivable_clean.png";
-import { t } from "../i18n/t";
+import accountsPayableArt from "../assets/dashboard-card-art/transparent/09-accounts-payable.png";
+import accountsReceivableArt from "../assets/dashboard-card-art/transparent/10-accounts-receivable.png";
 
 // DASHBOARD MAXIMAL KPI CARDS V1 — decorative-only PNG mapping. Real KPI values
 // stay as DOM text; PNGs are presentational (alt="" aria-hidden, no pointers).
 const KPI_VISUALS = {
-  "premium-kpi--revenue": { src: revenueArt, variant: "revenue" },
-  "premium-kpi--orders": { src: ordersArt, variant: "orders" },
-  "premium-kpi--avg": { src: averageCheckArt, variant: "average" },
-  "premium-kpi--tables": { src: incomeArt, variant: "income" },
-  "premium-kpi--expense": { src: expenseArt, variant: "expense" },
+  "premium-kpi--revenue": { src: revenueArt, variant: "revenue", viewBox: "inset(4.55% 7.42% 5.01% 2.11%)" },
+  "premium-kpi--orders": { src: ordersArt, variant: "orders", viewBox: "inset(-5.98% 5.14% 9.72% 9.22%)" },
+  "premium-kpi--avg": { src: averageCheckArt, variant: "average", viewBox: "inset(-15.37% 5.10% 10.32% 6.06%)" },
+  "premium-kpi--tables": { src: incomeArt, variant: "income", viewBox: "inset(-16.36% 4.73% 8.48% 1.33%)" },
+  "premium-kpi--expense": { src: expenseArt, variant: "expense", viewBox: "inset(-5.02% 7.53% 12.62% 13.22%)" },
 };
 
 const WAREHOUSE_VISUALS = {
-  income: { src: incomingGoodsArt, variant: "incoming" },
-  expense: { src: outgoingGoodsArt, variant: "outgoing" },
-  stock: { src: warehouseStockArt, variant: "stock" },
+  income: { src: incomingGoodsArt, variant: "incoming", viewBox: "inset(-13.06% 10.34% -5.81% 1.77%)" },
+  expense: { src: outgoingGoodsArt, variant: "outgoing", viewBox: "inset(-17.83% 4.67% -8.73% 0.33%)" },
+  stock: { src: warehouseStockArt, variant: "stock", viewBox: "inset(-13.22% 15.43% 7.31% 9.96%)" },
   costs: { src: totalCostsArt, variant: "costs" },
-  creditor: { src: accountsPayableArt, variant: "payable" },
-  debtor: { src: accountsReceivableArt, variant: "receivable" },
+  creditor: { src: accountsPayableArt, variant: "payable", viewBox: "inset(-19.82% -4.84% -10.56% 4.69%)" },
+  debtor: { src: accountsReceivableArt, variant: "receivable", viewBox: "inset(-15.94% 6.96% 6.33% 12.10%)" },
 };
 
 // Оркестратор OWNER-дашборда (FE-07B). Владеет верхнеуровневым состоянием
@@ -180,6 +180,7 @@ export default function OwnerDashboard() {
   const [products, setProducts] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [recentOrdersStatus, setRecentOrdersStatus] = useState("loading");
   const [placeSettings, setPlaceSettings] = useState([]);
   const [financeTransactions, setFinanceTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -254,14 +255,17 @@ export default function OwnerDashboard() {
       setTopProductsError(topRes.unavailable ? topRes.unavailableReason || "Не удалось загрузить подтверждённые продажи." : "");
       setProducts(apiList(productsRes.data));
       setEmployees(apiList(employeesRes.data));
-      const orderList = apiList(ordersRes.data);
-      setRecentOrders(orderList.slice(0, 5));
+      setRecentOrders(apiList(ordersRes.data));
+      setRecentOrdersStatus(ordersRes.unavailable ? "error" : "ready");
       const placeList = apiList(placesRes.data);
       setPlaceSettings(placeList);
       const financeList = apiList(financeRes.data);
       setFinanceTransactions(financeList);
     }).catch((err) => {
-      if (request.isCurrent() && !isAbortError(err)) setError(err.response?.data?.detail || "Не удалось загрузить dashboard данные.");
+      if (request.isCurrent() && !isAbortError(err)) {
+        setError(err.response?.data?.detail || "Не удалось загрузить dashboard данные.");
+        setRecentOrdersStatus("error");
+      }
     }).finally(() => {
       if (request.isCurrent()) {
         hasLoadedDashboardRef.current = true;
@@ -393,21 +397,20 @@ export default function OwnerDashboard() {
         : item
     ));
   }, [warehouseTotals]);
-  const displayRecentOrders = useMemo(() => recentOrders, [recentOrders]);
   const recentOrdersList = useMemo(() => {
-    if (displayRecentOrders.length > 0) {
-      return displayRecentOrders.map((order) => {
-        const created = order.created_at ? new Date(order.created_at) : new Date();
-        const time = webTime(order.created_at || created);
-        const dateLabel = webFormat(order.created_at || created, { day: "2-digit", month: "2-digit" });
+    if (recentOrders.length > 0) {
+      return recentOrders.map((order) => {
+        const time = webTime(order.created_at);
+        const dateLabel = webFormat(order.created_at, { day: "2-digit", month: "2-digit" });
         const ready = order.status === "completed" || order.status === "ready";
         return {
-          id: `#${order.order_number || order.id?.slice(0, 6)}`,
+          key: order.order_id || order.id,
+          id: `#${order.order_number || order.public_id}`,
           date: `${dateLabel} ${time}`,
           place: order.table_number ? `Стол ${order.table_number}` : ({
             delivery: "Доставка", delivery_app: "Доставка", takeaway: "С собой", pickup: "С собой", dine_in: "На стол",
           }[order.order_type] || "—"),
-          amount: formatMoney(order.total_amount || 0),
+          totalAmount: order.total_amount || 0,
           status: ready ? "Готов" : order.status === "cancelled" ? "Отменён" : "В работе",
           // Канонический код статуса: карточка рисует его общим OrderStatus
           // (как в «Отчёте по заказам»), а не собственной плашкой.
@@ -417,7 +420,7 @@ export default function OwnerDashboard() {
       });
     }
     return [];
-  }, [displayRecentOrders]);
+  }, [recentOrders]);
   const revenueStats = useMemo(() => {
     // Статистика считается по той же серии, что нарисована на графике.
     const revenues = revenueChartSales.map(bucketIncome);
@@ -441,7 +444,7 @@ export default function OwnerDashboard() {
   };
 
   if (previewEnabled ? !previewKpis : loading) return <PageLoader />;
-  if (error && !previewEnabled) return <EmptyState title={t("pages.ownerdashboard.dashboard_nedostupen")} text={error} />;
+  if (error && !previewEnabled) return <EmptyState title="Dashboard недоступен" text={error} />;
 
   return (
     <>
@@ -459,17 +462,22 @@ export default function OwnerDashboard() {
                 setSelectedKpi(kpi);
               }}
               aria-haspopup="dialog"
+              aria-label={`${kpi.label} ${kpi.value} ${kpi.suffix}`.trim()}
             >
               <div className="premium-kpi__top">
                 <div className="premium-kpi__icon"><Icon name={kpi.icon} size={20} /></div>
+                <div className="kpi-label">{kpi.label}</div>
               </div>
-              <div className="kpi-label">{kpi.label}</div>
-              <div className="kpi-value">{kpi.value} {kpi.suffix ? <small>{kpi.suffix}</small> : null}</div>
+              <div className="kpi-value">
+                {kpi.numericValue == null ? kpi.value : <CountUpValue value={kpi.numericValue} />}{" "}
+                {kpi.suffix ? <small>{kpi.suffix}</small> : null}
+              </div>
               <div className="premium-kpi__progress"><i style={{ width: `${kpi.progress}%` }} /></div>
               {visual ? (
                 <img
-                  className="dashboard-kpi-card__art"
+                  className="dashboard-kpi-card__art is-transparent-art"
                   src={visual.src}
+                  style={{ objectViewBox: visual.viewBox }}
                   alt=""
                   aria-hidden="true"
                   draggable={false}
@@ -492,8 +500,8 @@ export default function OwnerDashboard() {
       <section className="owner-main-grid">
         <div className="card card-pad chart-card premium-chart">
           <div className="section-header section-header--stack">
-            <div><span className="eyebrow">{t("eyebrow.money_income")}</span><h2>{t("pages.ownerdashboard.denezhnyy_prihod_za")} {formatDaysLabel(dashboardPeriodDays)}</h2></div>
-            <div className="owner-revenue-switcher" aria-label={t("pages.ownerdashboard.period_denezhnogo_prihoda")}>
+            <div><span className="eyebrow">Money income</span><h2>Денежный приход за {formatDaysLabel(dashboardPeriodDays)}</h2></div>
+            <div className="owner-revenue-switcher" aria-label="Период денежного прихода">
               <ReportDateRangePicker
                 variant="canonical"
                 animateExit
@@ -502,15 +510,15 @@ export default function OwnerDashboard() {
                 open={periodPanelState.active === "period"}
                 onOpenChange={(nextOpen) => requestPeriodPanel(nextOpen ? "period" : "")}
                 onExitComplete={() => completePeriodPanelExit("period")}
-                buttonAriaLabel={t("pages.ownerdashboard.period_denezhnogo_prihoda")}
+                buttonAriaLabel="Период денежного прихода"
                 buttonClassName="owner-dashboard-period__trigger"
               />
             </div>
           </div>
           <div className="revenue-stat-grid">
-            <div><span>{t("pages.ownerdashboard.maksimum")}</span><strong>{chartUnavailable ? t("common.unavailable") : formatMoney(revenueStats.max)}</strong></div>
-            <div><span>{t("pages.ownerdashboard.srednee")}</span><strong>{chartUnavailable ? t("common.unavailable") : formatMoney(revenueStats.avg)}</strong></div>
-            <div><span>{t("pages.ownerdashboard.obsluzhivanie")}</span><strong>{chartUnavailable || displayDashboard.service_fee_total == null ? t("common.unavailable") : formatMoney(displayDashboard.service_fee_total)}</strong></div>
+            <div><span>Максимум</span>{chartUnavailable ? <strong>Недоступно</strong> : <CountUpValue as="strong" value={revenueStats.max} format={formatMoney} />}</div>
+            <div><span>Среднее</span>{chartUnavailable ? <strong>Недоступно</strong> : <CountUpValue as="strong" value={revenueStats.avg} format={formatMoney} />}</div>
+            <div><span>Обслуживание</span>{chartUnavailable || displayDashboard.service_fee_total == null ? <strong>Недоступно</strong> : <CountUpValue as="strong" value={displayDashboard.service_fee_total} format={formatMoney} />}</div>
           </div>
           <div className="chart-wrap">
             {chartUnavailable
@@ -534,12 +542,15 @@ export default function OwnerDashboard() {
                 <span className="warehouse-summary-item__icon"><Icon name={item.icon} size={18} /></span>
                 <div className="warehouse-summary-item__text">
                   <strong>{item.label}</strong>
-                  <span>{item.unavailable && item.tone === "expense" ? t("common.unavailable") : item.unavailable && (item.tone === "creditor" || item.tone === "debtor") ? t("common.soon") : formatMoney(item.unavailable ? 0 : item.value)}</span>
+                  {item.unavailable && item.tone === "expense" ? <span>Недоступно</span>
+                    : item.unavailable && (item.tone === "creditor" || item.tone === "debtor") ? <span>Скоро</span>
+                      : <CountUpValue value={item.unavailable ? 0 : item.value} format={formatMoney} />}
                 </div>
                 {visual ? (
                   <img
-                    className="dashboard-side-metric__art"
+                    className={visual.viewBox ? "dashboard-side-metric__art is-transparent-art" : "dashboard-side-metric__art"}
                     src={visual.src}
+                    style={visual.viewBox ? { objectViewBox: visual.viewBox } : undefined}
                     alt=""
                     aria-hidden="true"
                     draggable={false}
@@ -555,7 +566,7 @@ export default function OwnerDashboard() {
 
       <section className="owner-widgets">
         <TopSalesCard dishes={displayTopDishes} error={topProductsError} />
-        <RecentOrdersCard orders={recentOrdersList} />
+        <RecentOrdersCard orders={recentOrdersList} status={recentOrdersStatus} />
       </section>
     </>
   );

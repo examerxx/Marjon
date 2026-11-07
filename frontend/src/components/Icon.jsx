@@ -1,6 +1,6 @@
 import {
   Activity, AlertTriangle, Archive, ArrowLeft, ArrowLeftRight, ArrowRightLeft,
-  ArrowUp, BarChart, BarChart2, Bell, Box, Boxes, Building2, CalendarCheck,
+  ArrowDownUp, ArrowUp, BarChart, BarChart2, Bell, Box, Boxes, Building2, CalendarCheck,
   Calendar, Camera, Check, CheckCircle, CheckCircle2, ChevronDown, ChevronLeft,
   ChevronRight, ChevronUp, Circle, CircleArrowDown, CircleArrowUp, Clock,
   ClipboardCheck, ClipboardList, Coffee, Coins, Columns2, Combine, Contact2, CornerDownLeft,
@@ -64,6 +64,7 @@ function ExcelExportIcon({ size = 18, strokeWidth = 1.8, className, style }) {
 const ICON_MAP = {
   /* ── Navigation ─────────────────── */
   'bi-arrow-left':             ArrowLeft,
+  'bi-arrow-down-up':          ArrowDownUp,
   'bi-arrow-left-right':       ArrowLeftRight,
   'bi-arrow-return-left':      CornerDownLeft,
   'bi-arrow-up-short':         ArrowUp,

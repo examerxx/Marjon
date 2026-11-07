@@ -2,7 +2,6 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { todayInputValue } from "../utils/date";
 import { webCalendarToday, webTime } from "../utils/webTime";
 import Icon from './Icon';
-import { t } from "../i18n/t";
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const MONTHS = [
@@ -39,7 +38,7 @@ function buildGrid(viewYear, viewMonth) {
   });
 }
 
-export default function DatePicker({ value, max, onChange, onClear, readOnly = false }) {
+export default function DatePicker({ value, max, onChange, onClear, readOnly = false, showTime = true }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState(() => parseValue(value));
   const [showMonthList, setShowMonthList] = useState(false);
@@ -139,15 +138,15 @@ export default function DatePicker({ value, max, onChange, onClear, readOnly = f
         <span className="mj-datepicker__icon"><Icon name="bi-calendar3" size={18} /></span>
         <span className="mj-datepicker__value">{label}</span>
       </span>
-      <span className="mj-datepicker__divider" aria-hidden="true" />
-      <span className="mj-datepicker__time"><Icon name="bi-clock" size={16} />{time}</span>
+      {showTime && <><span className="mj-datepicker__divider" aria-hidden="true" />
+      <span className="mj-datepicker__time"><Icon name="bi-clock" size={16} />{time}</span></>}
     </>
   );
 
   return (
     <div className={`mj-datepicker${open ? " is-open" : ""}${readOnly ? " is-readonly" : ""}`} ref={wrapRef}>
       {readOnly ? (
-        <div className="mj-datepicker__trigger" aria-label={`${label} ${time}`}>
+        <div className="mj-datepicker__trigger" aria-label={showTime ? `${label} ${time}` : label}>
           {triggerContent}
         </div>
       ) : (
@@ -168,7 +167,7 @@ export default function DatePicker({ value, max, onChange, onClear, readOnly = f
           <div
             className={`mj-calendar ${dropUp ? "is-dropup" : ""}`}
             role="dialog"
-            aria-label={t("components.datepicker.vybor_daty")}
+            aria-label="Выбор даты"
             ref={popoverRef}
           >
           <div className="mj-calendar__header">
@@ -183,10 +182,10 @@ export default function DatePicker({ value, max, onChange, onClear, readOnly = f
               <Icon name={showMonthList ? "bi-caret-up-fill" : "bi-caret-down-fill"} size={16} />
             </button>
             <div className="mj-calendar__nav">
-              <button type="button" onClick={() => stepMonth(-1)} aria-label={t("components.datepicker.predyduschiy_mesyats")}>
+              <button type="button" onClick={() => stepMonth(-1)} aria-label="Предыдущий месяц">
                 <Icon name="bi-chevron-left" size={18} />
               </button>
-              <button type="button" onClick={() => stepMonth(1)} aria-label={t("components.datepicker.sleduyuschiy_mesyats")}>
+              <button type="button" onClick={() => stepMonth(1)} aria-label="Следующий месяц">
                 <Icon name="bi-chevron-right" size={18} />
               </button>
             </div>
@@ -195,11 +194,11 @@ export default function DatePicker({ value, max, onChange, onClear, readOnly = f
           {showMonthList ? (
             <div className="mj-calendar__months">
               <div className="mj-calendar__year-switch">
-                <button type="button" onClick={() => setView(new Date(viewYear - 1, viewMonth, 1))} aria-label={t("components.datepicker.proshlyy_god")}>
+                <button type="button" onClick={() => setView(new Date(viewYear - 1, viewMonth, 1))} aria-label="Прошлый год">
                   <Icon name="bi-chevron-left" size={18} />
                 </button>
                 <strong>{viewYear}</strong>
-                <button type="button" onClick={() => setView(new Date(viewYear + 1, viewMonth, 1))} aria-label={t("components.datepicker.sleduyuschiy_god")}>
+                <button type="button" onClick={() => setView(new Date(viewYear + 1, viewMonth, 1))} aria-label="Следующий год">
                   <Icon name="bi-chevron-right" size={18} />
                 </button>
               </div>
@@ -259,11 +258,11 @@ export default function DatePicker({ value, max, onChange, onClear, readOnly = f
           <div className="mj-calendar__footer">
             {onClear ? (
               <button type="button" className="mj-calendar__action mj-calendar__action--ghost" onClick={() => { onClear(); setOpen(false); }}>
-               {t("components.datepicker.udalit")}
+                Удалить
               </button>
             ) : <span />}
             <button type="button" className="mj-calendar__action mj-calendar__action--accent" onClick={goToday}>
-             {t("components.datepicker.segodnya")}
+              Сегодня
             </button>
           </div>
         </div>

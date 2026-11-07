@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { settingsService } from "../../api/settings";
-import { t } from "../../i18n/t";
 
 function digitsOnly(value, maxLength) {
   return String(value ?? "").replace(/\D/g, "").slice(0, maxLength);
@@ -99,7 +98,7 @@ export function useTopbarBalance() {
       })
       .catch((err) => {
         setBalance(null);
-        setBalanceError(err.response?.data?.detail || t("topbar.balance_unavailable"));
+        setBalanceError(err.response?.data?.detail || "Баланс недоступен.");
       })
       .finally(() => setBalanceLoading(false));
   }, []);

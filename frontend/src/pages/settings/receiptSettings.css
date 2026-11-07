@@ -725,7 +725,7 @@
    UI-only (never saved); collapsing hides editor cards without touching
    block values, preview, or template payload. */
 .receipt-settings-page .receipt-section-group {
-  border: 1px solid rgba(15, 35, 60, 0.10);
+  border: 1px solid rgba(15, 35, 60, 0.16);
   border-radius: 12px;
   background: var(--neutral-50, #f6f9fd);
 }

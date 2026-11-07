@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import OwnerDashboard, { buildDashboardPeriodSearch, isDashboardPreviewEnabled } from "../OwnerDashboard";
 import { dashboardService } from "../../api/dashboard";
 import { buildDashboardPreviewKpis, dashboardPreviewData } from "./dashboardPreviewData";
@@ -92,12 +92,14 @@ describe("Dashboard DEV URL-only KPI preview", () => {
     expect(screen.getByTestId("normal-top")).not.toHaveTextContent("/wrong.webp");
   });
   beforeEach(() => {
+    vi.stubGlobal("matchMedia", (query) => ({ matches: query === "(prefers-reduced-motion: reduce)" }));
     vi.unstubAllEnvs();
     vi.stubEnv("DEV", true);
     window.history.replaceState({}, "", "/?previewData=1");
     dashboardService.loadOwnerOverview.mockReset();
     dashboardService.loadOwnerOverview.mockResolvedValue(overview());
   });
+  afterEach(() => vi.unstubAllGlobals());
 
   it("requires both DEV=true and the exact opt-in query value", () => {
     expect(isDashboardPreviewEnabled("?previewData=1", true)).toBe(true);
@@ -168,7 +170,7 @@ describe("Dashboard DEV URL-only KPI preview", () => {
       .map((el) => el.textContent.replace(/\s/g, ""));
     // Ожидание выводится из specifications, чтобы порядок карточек не
     // приходилось дублировать в каждом тесте.
-    const expected = specifications.map(([label, total]) => `${total}${label === "Заказы" ? "" : "UZS"}`);
+    const expected = specifications.map(([label, total]) => `${total}${label === "Заказы" ? "ШТ" : "UZS"}`);
     expect(cardValues()).toEqual(expected);
 
     const zeroOverview = overview();
@@ -253,7 +255,7 @@ describe("Dashboard DEV URL-only KPI preview", () => {
       .map((el) => el.textContent.replace(/\s/g, ""));
     // Ожидание выводится из specifications, чтобы порядок карточек не
     // приходилось дублировать в каждом тесте.
-    const expected = specifications.map(([label, total]) => `${total}${label === "Заказы" ? "" : "UZS"}`);
+    const expected = specifications.map(([label, total]) => `${total}${label === "Заказы" ? "ШТ" : "UZS"}`);
 
     await applyRange("05.10.2026", "05.10.2026");
     expect(window.location.search).toBe("?date_from=2026-10-05&date_to=2026-10-05&previewData=1");

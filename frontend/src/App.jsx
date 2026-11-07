@@ -23,7 +23,10 @@ import TablesReportPage from "./pages/TablesReportPage";
 import DishesReportPage from "./pages/DishesReportPage";
 import CancelledDishesReportPage from "./pages/CancelledDishesReportPage";
 import DebtorsCreditorsReportPage from "./pages/DebtorsCreditorsReportPage";
+import FinanceOperationsOverview from "./pages/finance/FinanceOperationsOverview";
+import FinanceTransactionsPage from "./pages/FinanceTransactionsPage";
 import FinanceStubPage from "./pages/finance/FinanceStubPage";
+import FinanceCategoriesPage from "./pages/finance/FinanceCategoriesPage";
 import ZReportPage from "./pages/ZReportPage";
 import WarehousePage, { WarehouseJournalCreateRoute, WarehouseJournalDetailRoute, WarehouseJournalListRoute, WarehouseStockDetailRoute, WarehouseStockListRoute } from "./pages/WarehousePage";
 import SettingsClientsPage from "./pages/settings/SettingsClientsPage";
@@ -40,7 +43,6 @@ import { OrgProvider } from "./context/OrgContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { useAuth } from "./hooks/useAuth";
 import { canAccessPath, canAccessSection, isOwnerWebUser } from "./utils/permissions";
-import { t } from "./i18n/t";
 
 function ProtectedRoute({ children, sectionKey = "" }) {
   const { user, isAuthenticated, loading } = useAuth();
@@ -138,13 +140,13 @@ export function createAppRouter() {
       { path: "settings/receipt", element: <SettingsReceiptPage /> },
       { path: "settings/kitchen-receipt", element: <SettingsKitchenReceiptPage /> },
       { path: "settings/chef-receipt", element: <SettingsKitchenReceiptPage /> },
-      { path: "settings/support", element: <FinanceStubPage title={t("app.teh_podderzhka")} /> },
+      { path: "settings/support", element: <FinanceStubPage title="Тех. поддержка" /> },
       { path: "finance", element: <Navigate to="/finance/transactions" replace /> },
-      { path: "finance/transactions", element: <FinanceStubPage title={t("app.denezhnye_operatsii")} /> },
-      { path: "finance/operations", element: <FinanceStubPage title={t("app.denezhnye_operatsii")} /> },
-      { path: "finance/income-categories", element: <FinanceStubPage title={t("app.kategoriya_prihodov")} /> },
-      { path: "finance/expense-categories", element: <FinanceStubPage title={t("app.kategoriya_rashodov")} /> },
-      { path: "finance/debtors-creditors", element: <FinanceStubPage title={t("app.debitory_i_kreditory")} /> },
+      { path: "finance/transactions", element: <FinanceOperationsOverview /> },
+      { path: "finance/operations", element: <FinanceTransactionsPage /> },
+      { path: "finance/income-categories", element: <FinanceCategoriesPage key="income" kind="income" /> },
+      { path: "finance/expense-categories", element: <FinanceCategoriesPage key="expense" kind="expense" /> },
+      { path: "finance/debtors-creditors", element: <DebtorsCreditorsReportPage finance /> },
       { path: "nomenclature", element: <Navigate to="/nomenclature/dishes" replace /> },
       { path: "nomenclature/dishes", element: <NomenclaturePage type="dishes" /> },
       { path: "nomenclature/sales", element: <SalesCatalogPage /> },
@@ -157,7 +159,7 @@ export function createAppRouter() {
       { path: "nomenclature/semi-finished-categories", element: <CategoriesPage key="semi" type="semi" /> },
       { path: "nomenclature/sales-categories", element: <CategoriesPage key="sales" type="sales" /> },
       { path: "store", element: <StorePage /> },
-      { path: "reviews", element: <PlaceholderPage eyebrow="Reviews" title={t("app.otzyvy")} text={t("app.razdel_otzyvov")} /> },
+      { path: "reviews", element: <PlaceholderPage eyebrow="Reviews" title="Отзывы" text="Раздел отзывов будет показывать обратную связь клиентов." /> },
       { path: "orders", element: <OrdersPage /> },
       { path: "menu", element: <MenuPage /> },
       { path: "staff", element: <StaffPage /> },

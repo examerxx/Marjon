@@ -15,7 +15,6 @@ import { useDishesCatalog } from "./useDishesCatalog";
 import DishesToolbar from "./DishesToolbar";
 import DishesTable from "./DishesTable";
 import DishesDialogs from "./DishesDialogs";
-import { t } from "../../i18n/t";
 
 export default function SalesCatalogPage() {
   const catalog = useDishesCatalog();
@@ -133,12 +132,12 @@ export default function SalesCatalogPage() {
           <div className="settings-title-group">
             <span className="settings-accent-bar" aria-hidden="true" />
             <div>
-              <p>{t("pages.nomenclature.salescatalogpage.menyu")}</p>
-              <h1>{t("pages.nomenclature.salescatalogpage.tovary")}</h1>
+              <p>Меню</p>
+              <h1>Товары</h1>
             </div>
           </div>
           <div className="settings-actions dish-header-actions">
-            <div className="dish-status-tabs" role="tablist" aria-label={t("pages.nomenclature.salescatalogpage.status_tovarov")} ref={tabsRef}>
+            <div className="dish-status-tabs" role="tablist" aria-label="Статус товаров" ref={tabsRef}>
               <span
                 className="dish-status-tabs__indicator"
                 aria-hidden="true"
@@ -155,7 +154,7 @@ export default function SalesCatalogPage() {
                 className={catalog.showArchived ? "" : "is-active"}
                 onClick={() => catalog.setShowArchived(false)}
               >
-               {t("pages.nomenclature.salescatalogpage.aktivnye")}
+                Активные
               </button>
               <button
                 type="button"
@@ -165,7 +164,7 @@ export default function SalesCatalogPage() {
                 className={catalog.showArchived ? "is-active" : ""}
                 onClick={() => catalog.setShowArchived(true)}
               >
-               {t("pages.nomenclature.salescatalogpage.arhivirovannye")}
+                Архивированные
               </button>
             </div>
             <button
@@ -175,10 +174,10 @@ export default function SalesCatalogPage() {
               aria-controls="sales-catalog-filters"
               onClick={() => setFiltersOpen((open) => !open)}
             >
-              <Icon name="bi-sliders" size={17} /> {t("pages.nomenclature.salescatalogpage.filtrovat")}
+              <Icon name="bi-sliders" size={17} /> Фильтровать
             </button>
             <button type="button" className="dish-add-button" onClick={() => openSalesDrawer()}>
-              <Icon name="bi-plus" size={18} /> {t("pages.nomenclature.salescatalogpage.dobavit")}
+              <Icon name="bi-plus" size={18} /> Добавить
             </button>
           </div>
         </header>
@@ -214,9 +213,9 @@ export default function SalesCatalogPage() {
           photoUploadingId={catalog.photoUploadingId}
           saving={catalog.saving}
           pendingDeleteId={catalog.pendingDeleteId}
-          tableAriaLabel={t("nav.goods")}
-          scrollAriaLabel={t("pages.nomenclature.sales_table_scroll")}
-          emptyTitle={t("pages.nomenclature.goods_not_found")}
+          tableAriaLabel="Товары"
+          scrollAriaLabel="Таблица товаров с прокруткой"
+          emptyTitle="Товары не найдены"
         />
       </section>
 
@@ -237,33 +236,33 @@ export default function SalesCatalogPage() {
               <header className="settings-form__header">
                 <span className="settings-accent-bar" />
                 <div>
-                  <p>{pendingAction.mode === "archive" ? t("common.confirm.archive_title") : t("common.confirm.restore_title")}</p>
+                  <p>{pendingAction.mode === "archive" ? "Архивация" : "Восстановление"}</p>
                   <h2 id="sale-confirm-title">
-                    {pendingAction.mode === "archive" ? t("common.confirm.archive_goods") : t("common.confirm.restore_goods")}
+                    {pendingAction.mode === "archive" ? "Архивировать товар?" : "Восстановить товар?"}
                   </h2>
                 </div>
-                <button type="button" disabled={confirmBusy} onClick={closeConfirm} aria-label={t("pages.nomenclature.salescatalogpage.zakryt")}>
+                <button type="button" disabled={confirmBusy} onClick={closeConfirm} aria-label="Закрыть">
                   <Icon name="bi-x-lg" size={20} />
                 </button>
               </header>
               <p className="settings-form__context">
                 {pendingAction.mode === "archive" ? (
-                  <>{t("pages.nomenclature.salescatalogpage.tovar")} <strong>«{pendingAction.row.name}»</strong> {t("pages.nomenclature.salescatalogpage.budet_peremeschen_v_arhiv")}</>
+                  <>Товар <strong>«{pendingAction.row.name}»</strong> будет перемещён в архив.</>
                 ) : (
-                  <>{t("pages.nomenclature.salescatalogpage.tovar")} <strong>«{pendingAction.row.name}»</strong> {t("pages.nomenclature.salescatalogpage.vernetsya_v_spisok_aktivnyh")}</>
+                  <>Товар <strong>«{pendingAction.row.name}»</strong> вернётся в список активных.</>
                 )}
               </p>
               <footer className="settings-form__footer">
                 <button type="button" disabled={confirmBusy} onClick={closeConfirm}>
-                 {t("pages.nomenclature.salescatalogpage.otmena")}
+                  Отмена
                 </button>
                 {pendingAction.mode === "archive" ? (
                   <button type="submit" className="dishcat-confirm__delete" disabled={confirmBusy}>
-                    {confirmBusy ? t("common.confirm.archive_busy") : t("common.confirm.archive_action")}
+                    {confirmBusy ? "Архивация..." : "Архивировать"}
                   </button>
                 ) : (
                   <button type="submit" className="dish-add-button" disabled={confirmBusy}>
-                    {confirmBusy ? t("common.confirm.restore_busy") : t("common.confirm.restore_action")}
+                    {confirmBusy ? "Восстановление..." : "Восстановить"}
                   </button>
                 )}
               </footer>

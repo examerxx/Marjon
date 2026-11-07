@@ -13,7 +13,6 @@ import { ordersService } from "../../api/orders";
 import { warehouseService } from "../../api/warehouse";
 import { profileSections } from "./profile/profileSections";
 import { useCompanyProfileForm } from "./profile/useCompanyProfileForm";
-import { t } from "../../i18n/t";
 import "./settingsProfileViewport.css";
 
 const ORDER_TYPE_ROWS = [
@@ -147,13 +146,13 @@ export default function SettingsProfilePage() {
 
   const confirmClearContent = confirmTarget === "purchases"
     ? {
-        title: t("pages.settings.settingsprofilepage.ochistit_istoriyu_produktov"),
-        body: t("pages.settings.settingsprofilepage.budet_udalena_vsya_istoriya_dobavleniya_produktov"),
+        title: "Очистить историю продуктов?",
+        body: "Будет удалена вся история добавления продуктов. Остатки на складах не изменятся. Это действие необратимо.",
         run: runClearPurchases,
       }
     : {
-        title: t("pages.settings.settingsprofilepage.ochistit_vse_otchety"),
-        body: t("pages.settings.settingsprofilepage.budut_udaleny_vse_zakazy_platezhi_cheki_i_dostavki"),
+        title: "Очистить все отчеты?",
+        body: "Будут удалены ВСЕ заказы, платежи, чеки и доставки. Все отчёты в категории «Отчёты» станут пустыми. Склад не чистится: списания по проданным блюдам останутся в «Складе → Расход», но потеряют привязку к заказам. Это действие необратимо.",
         run: runClearReports,
       };
 
@@ -161,7 +160,7 @@ export default function SettingsProfilePage() {
     return (
       <section className="company-profile-page">
         <div className="company-profile-shell">
-          <p className="company-profile-loading">{t("pages.settings.settingsprofilepage.zagruzka")}</p>
+          <p className="company-profile-loading">Загрузка...</p>
         </div>
       </section>
     );
@@ -170,7 +169,7 @@ export default function SettingsProfilePage() {
   return (
     <section className="company-profile-page">
       <div className="company-profile-shell">
-        <aside className="company-profile-nav" aria-label={t("pages.settings.settingsprofilepage.razdely_nastroek")}>
+        <aside className="company-profile-nav" aria-label="Разделы настроек">
           {profileSections.map((section) => (
             <button
               key={section.key}
@@ -179,7 +178,7 @@ export default function SettingsProfilePage() {
               onClick={() => setActiveSection(section.key)}
             >
               <Icon name={section.icon} size={18} />
-              <span>{t(section.label)}</span>
+              <span>{section.label}</span>
             </button>
           ))}
         </aside>
@@ -189,8 +188,8 @@ export default function SettingsProfilePage() {
             <div className="settings-title-group">
               <span className="settings-accent-bar" />
               <div>
-                <p>{t("pages.settings.settingsprofilepage.nastroyki")}</p>
-                <h1>{t(activeMeta.label)}</h1>
+                <p>Настройки</p>
+                <h1>{activeMeta.label}</h1>
               </div>
             </div>
             {showHeaderActions ? (
@@ -200,7 +199,7 @@ export default function SettingsProfilePage() {
                   className="company-profile-cancel"
                   onClick={activeSection === "main" ? resetMain : activeSection === "other" ? resetOrderTypes : resetForm}
                 >
-                 {t("pages.settings.settingsprofilepage.otmenit")}
+                  Отменить
                 </button>
                 {activeSection === "other" ? (
                   <button
@@ -209,7 +208,7 @@ export default function SettingsProfilePage() {
                     disabled={orderTypesSaving}
                     onClick={saveOrderTypes}
                   >
-                    {orderTypesSaving ? t("staff.saving") : t("common.save")}
+                    {orderTypesSaving ? "Сохранение..." : "Сохранить"}
                   </button>
                 ) : (
                   <button
@@ -218,7 +217,7 @@ export default function SettingsProfilePage() {
                     disabled={activeSection === "main" ? mainSaving : saving}
                     onClick={activeSection === "main" ? saveMain : handleSave}
                   >
-                    {activeSection === "main" && mainSaving ? t("staff.saving") : activeSection === "basic" && saving ? t("staff.saving") : t("common.save")}
+                    {activeSection === "main" && mainSaving ? "Сохранение..." : activeSection === "basic" && saving ? "Сохранение..." : "Сохранить"}
                   </button>
                 )}
               </div>
@@ -232,23 +231,23 @@ export default function SettingsProfilePage() {
             <div className="company-profile-main">
               <section className="company-profile-logo-panel company-profile-identity">
                 <div className="company-profile-identity-main">
-                  <strong className="company-profile-identity-title">{t("pages.settings.settingsprofilepage.logo_profilya")}</strong>
+                  <strong className="company-profile-identity-title">Лого профиля</strong>
                   <div className="company-profile-identity-row">
                     <div className="company-profile-logo-actions">
                       <label className="company-profile-upload">
                         <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => handleImageChange("profileLogo", event)} />
                         <span>
-                          <img src={profilePreview} alt={t("pages.settings.settingsprofilepage.logo_profilya")} />
+                          <img src={profilePreview} alt="Лого профиля" />
                         </span>
-                        <b>{t("pages.settings.settingsprofilepage.zamenit")}</b>
+                        <b>Заменить</b>
                       </label>
                     </div>
                     <label className="company-profile-identity-name">
-                      <b>{t("pages.settings.settingsprofilepage.imya_profilya")}</b>
+                      <b>Имя профиля</b>
                       <input
                         value={profileName}
                         onChange={(event) => setProfileName(event.target.value)}
-                        placeholder={t("pages.settings.settingsprofilepage.vvedite_imya_profilya")}
+                        placeholder="Введите имя профиля"
                       />
                     </label>
                   </div>
@@ -263,7 +262,7 @@ export default function SettingsProfilePage() {
                   onClick={() => openClearConfirm("reports")}
                 >
                   <Icon name="bi-exclamation-octagon" size={18} />
-                  {clearing === "reports" ? t("common.deleting") : t("pages.settings.profile.clear_all_reports")}
+                  {clearing === "reports" ? "Удаление…" : "Очистить все отчеты"}
                 </button>
                 <button
                   type="button"
@@ -272,7 +271,7 @@ export default function SettingsProfilePage() {
                   onClick={() => openClearConfirm("purchases")}
                 >
                   <Icon name="bi-exclamation-octagon" size={18} />
-                  {clearing === "purchases" ? t("common.deleting") : t("pages.settings.profile.clear_product_history")}
+                  {clearing === "purchases" ? "Удаление…" : "Очистить историю продуктов"}
                 </button>
               </div>
               {confirmTarget ? createPortal((
@@ -289,10 +288,10 @@ export default function SettingsProfilePage() {
                       <header className="settings-form__header">
                         <span className="settings-accent-bar" />
                         <div>
-                          <p>{t("pages.settings.settingsprofilepage.udalenie")}</p>
+                          <p>Удаление</p>
                           <h2 id="company-clear-title">{confirmClearContent.title}</h2>
                         </div>
-                        <button type="button" aria-label={t("pages.settings.settingsprofilepage.zakryt")} disabled={clearing !== null} onClick={closeClearConfirm}>
+                        <button type="button" aria-label="Закрыть" disabled={clearing !== null} onClick={closeClearConfirm}>
                           <Icon name="bi-x-lg" size={18} />
                         </button>
                       </header>
@@ -303,7 +302,7 @@ export default function SettingsProfilePage() {
                         {clearError ? <p className="settings-form__error" role="alert">{clearError}</p> : null}
                       </div>
                       <footer className="settings-form__footer">
-                        <button type="button" autoFocus disabled={clearing !== null} onClick={closeClearConfirm}>{t("pages.settings.settingsprofilepage.otmena")}</button>
+                        <button type="button" autoFocus disabled={clearing !== null} onClick={closeClearConfirm}>Отмена</button>
                         <button
                           type="button"
                           className="settings-confirm__delete"
@@ -326,7 +325,7 @@ export default function SettingsProfilePage() {
               <div className="company-profile-field-list">
                 <label>
                   <span>
-                    <b>{t("pages.settings.settingsprofilepage.nachalo_dnya")}</b>
+                    <b>Начало дня</b>
                   </span>
                   <select value={dayStartHour} onChange={(event) => setDayStartHour(event.target.value)}>
                     {Array.from({ length: 24 }, (_, hour) => (
@@ -339,22 +338,22 @@ export default function SettingsProfilePage() {
 
                 <label>
                   <span>
-                    <b>{t("pages.settings.settingsprofilepage.parol_dlya_udaleniya_blyud")}</b>
+                    <b>Пароль для удаления блюд</b>
                   </span>
                   <input
                     type="password"
                     autoComplete="new-password"
                     value={dishDeletePassword}
                     onChange={(event) => setDishDeletePassword(event.target.value)}
-                    placeholder={t("pages.settings.settingsprofilepage.vvedite_parol")}
+                    placeholder="Введите пароль"
                   />
                 </label>
 
                 <div className="company-profile-order-row">
                   <span>
-                    <b>{t("pages.settings.settingsprofilepage.pokazyvat_knopku_podderzhki")}</b>
+                    <b>Показывать кнопку поддержки</b>
                   </span>
-                  <label className="company-profile-toggle company-profile-toggle--support" aria-label={t("pages.settings.settingsprofilepage.pokazyvat_knopku_podderzhki")}>
+                  <label className="company-profile-toggle company-profile-toggle--support" aria-label="Показывать кнопку поддержки">
                     <input
                       type="checkbox"
                       checked={showSupportButton}
@@ -376,7 +375,7 @@ export default function SettingsProfilePage() {
                 {ORDER_TYPE_ROWS.map((row) => (
                   <div className="company-profile-order-row" key={row.key}>
                     <span>
-                      <b>{t("pages.settings.settingsprofilepage.tip_zakaza")}</b>
+                      <b>Тип заказа</b>
                       <em>{row.label}</em>
                     </span>
                     <label className="company-profile-toggle" aria-label={row.label}>
@@ -392,7 +391,7 @@ export default function SettingsProfilePage() {
                   </div>
                 ))}
               </div>
-              <p className="company-profile-field-hint">{t("pages.settings.settingsprofilepage.vyklyuchennye_tipy_propadayut_iz_kassy_prilozheniya")}</p>
+              <p className="company-profile-field-hint">Выключенные типы пропадают из кассы, приложения официанта и курьерской панели.</p>
             </div>
           ) : null}
 
@@ -402,11 +401,11 @@ export default function SettingsProfilePage() {
                 value={user?.email || user?.phone || ""} />
               <div className="company-profile-field-list">
                 <label>
-                  <span><b>{t("pages.settings.settingsprofilepage.tekuschiy_parol")}</b></span>
+                  <span><b>Текущий пароль</b></span>
                   <span className="company-profile-password-wrap">
                     <input name="current_password" type={showCurrentPassword ? "text" : "password"} autoComplete="current-password"
                       value={currentPassword} disabled={passSaving}
-                      onChange={(event) => setCurrentPassword(event.target.value)} placeholder={t("pages.settings.settingsprofilepage.vvedite_tekuschiy_parol")} />
+                      onChange={(event) => setCurrentPassword(event.target.value)} placeholder="Введите текущий пароль" />
                     <button type="button" disabled={passSaving} className="company-profile-eye"
                       onClick={() => setShowCurrentPassword((value) => !value)}
                       aria-label={showCurrentPassword ? "Скрыть текущий пароль" : "Показать текущий пароль"} aria-pressed={showCurrentPassword}>
@@ -416,7 +415,7 @@ export default function SettingsProfilePage() {
                 </label>
                 <label>
                   <span>
-                    <b>{t("pages.settings.settingsprofilepage.novyy_parol")}</b>
+                    <b>Новый пароль</b>
                   </span>
                   <span className="company-profile-password-wrap">
                     <input
@@ -426,7 +425,7 @@ export default function SettingsProfilePage() {
                       name="new_password"
                       disabled={passSaving}
                       onChange={(event) => setNewPassword(event.target.value)}
-                      placeholder={t("pages.settings.settingsprofilepage.vvedite_novyy_parol")}
+                      placeholder="Введите новый пароль"
                     />
                     <button
                       type="button"
@@ -442,7 +441,7 @@ export default function SettingsProfilePage() {
 
                 <label>
                   <span>
-                    <b>{t("pages.settings.settingsprofilepage.povtorite_novyy_parol")}</b>
+                    <b>Повторите новый пароль</b>
                   </span>
                   <span className="company-profile-password-wrap">
                     <input
@@ -452,7 +451,7 @@ export default function SettingsProfilePage() {
                       name="confirm_password"
                       disabled={passSaving}
                       onChange={(event) => setConfirmPassword(event.target.value)}
-                      placeholder={t("pages.settings.settingsprofilepage.povtorite_novyy_parol")}
+                      placeholder="Повторите новый пароль"
                     />
                     <button
                       type="button"

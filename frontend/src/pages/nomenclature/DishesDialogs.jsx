@@ -19,7 +19,6 @@ import { catalogService } from "../../api/catalog";
 import { fieldLabels } from "./nomenclatureConfig";
 import DishSingleSelect from "./DishSingleSelect";
 import DishPhotoViewer from "../../components/DishPhotoViewer";
-import { t } from "../../i18n/t";
 
 // Browser “Copy image” supplies a file, often alongside HTML/text. Never use
 // those strings as URLs: the normal photo pipeline only accepts image files.
@@ -112,7 +111,7 @@ function DishMoneyInput({ value, onChange, label }) {
       autoComplete="off"
       spellCheck={false}
       aria-label={label}
-      placeholder={t("pages.nomenclature.dishesdialogs.0_sum")}
+      placeholder="0 сум"
       value={groupMoneyInput(value)}
       onScroll={positionSuffix}
       // Живая валидация до вставки: одиночный недопустимый символ (набор с
@@ -150,7 +149,7 @@ function DishMoneyInput({ value, onChange, label }) {
     <span className="dish-money-measure-clip" aria-hidden="true">
       <span ref={measureRef} className="dish-money-measure">{groupMoneyInput(value)}</span>
     </span>
-    {String(value ?? "").trim() && <span ref={suffixRef} className="dish-money-suffix" aria-hidden="true">{t("pages.nomenclature.dishesdialogs.sum")}</span>}
+    {String(value ?? "").trim() && <span ref={suffixRef} className="dish-money-suffix" aria-hidden="true">сум</span>}
     </span>
   );
 }
@@ -356,10 +355,10 @@ export default function DishesDialogs({
   // Общие поля обеих раскладок (один источник — без дублей в ветках).
   const unitField = (
     <div className="dish-form-field">
-      <span className="dish-form-field__label" aria-hidden="true">{t("pages.nomenclature.dishesdialogs.ed_izm")}</span>
+      <span className="dish-form-field__label" aria-hidden="true">Ед. изм</span>
       <DishSingleSelect
-        label={t("pages.nomenclature.dishesdialogs.ed_izm")}
-        placeholder={t("pages.nomenclature.dishesdialogs.ed_izm")}
+        label="Ед. изм"
+        placeholder="Ед. изм"
         options={selectableUnits.map((item) => ({
           value: item.id,
           label: item.active ? item.label : `${item.label} (не активна)`,
@@ -374,16 +373,16 @@ export default function DishesDialogs({
   );
   const categoryField = (
     <div className="dish-form-field">
-      <span className="dish-form-field__label" aria-hidden="true">{t("pages.nomenclature.dishesdialogs.kategoriya")}</span>
+      <span className="dish-form-field__label" aria-hidden="true">Категория</span>
       <DishSingleSelect
-        label={t("pages.nomenclature.dishesdialogs.kategoriya")}
-        placeholder={t("pages.nomenclature.dishesdialogs.kategoriya")}
+        label="Категория"
+        placeholder="Категория"
         options={selectableCategories.map((item) => ({ value: item.id, label: item.name }))}
         value={selectedCategoryId}
         onChange={pickCategory}
         disabled={categoriesUnavailable}
         loading={categoriesLoading}
-        disabledLabel={t("common.categories_unavailable")}
+        disabledLabel="Категории недоступны"
         onCreateNew={onCreateCategory ? handleCreateCategory : null}
         createLabel="+ Новая категория"
         searchable
@@ -393,19 +392,19 @@ export default function DishesDialogs({
   );
   const printerField = (wide) => (
     <div className={`dish-form-field${wide ? " dish-form__wide" : ""}`}>
-      <span className="dish-form-field__label" aria-hidden="true">{t("pages.nomenclature.dishesdialogs.printer")}</span>
+      <span className="dish-form-field__label" aria-hidden="true">Принтер</span>
       <DishSingleSelect
-        label={t("pages.nomenclature.dishesdialogs.printer")}
-        placeholder={t("pages.nomenclature.dishesdialogs.printer")}
+        label="Принтер"
+        placeholder="Принтер"
         options={printerOptions.map((item) => ({
           value: item.id,
-          label: item.active ? item.name : t("staff.printer_inactive", { name: item.name }),
+          label: item.active ? item.name : `${item.name} (не активен)`,
         }))}
         value={selectedPrinterId}
         onChange={pickPrinter}
         disabled={printersUnavailable}
         loading={printersLoading}
-        disabledLabel={t("common.printers_unavailable")}
+        disabledLabel="Принтеры недоступны"
       />
     </div>
   );
@@ -417,8 +416,8 @@ export default function DishesDialogs({
           role="dialog"
           aria-modal="true"
           aria-label={editing
-            ? (isSetMode ? t("pages.nomenclature.dishesdialogs.redaktirovat_set") : t("pages.nomenclature.dishesdialogs.redaktirovat_blyudo"))
-            : (isSetMode ? t("pages.nomenclature.dishesdialogs.dobavit_set") : t("pages.nomenclature.dishesdialogs.dobavit_blyudo"))}
+            ? (isSetMode ? "Редактировать сет" : "Редактировать блюдо")
+            : (isSetMode ? "Добавить сет" : "Добавить блюдо")}
           onAnimationEnd={drawerClosing && finishCloseDrawer ? () => finishCloseDrawer() : undefined}
         >
           <div className="staff-modal__backdrop" onClick={saving ? undefined : closeDrawer} />
@@ -428,15 +427,15 @@ export default function DishesDialogs({
           >
             <div className="staff-form__header">
               <div>
-                <p>{editing ? t("staff.editing") : isSetMode ? t("pages.nomenclature.dishesdialogs.novyy_set") : t("pages.nomenclature.dishesdialogs.novoe_blyudo")}</p>
+                <p>{editing ? "Редактирование" : isSetMode ? "Новый сет" : "Новое блюдо"}</p>
                 <h2>
                   {editing
-                    ? (isSetMode ? t("pages.nomenclature.dishesdialogs.redaktirovat_set") : t("pages.nomenclature.dishesdialogs.redaktirovat_blyudo"))
-                    : (isSetMode ? t("pages.nomenclature.dishesdialogs.dobavit_set") : t("pages.nomenclature.dishesdialogs.dobavit_blyudo"))}
+                    ? (isSetMode ? "Редактировать сет" : "Редактировать блюдо")
+                    : (isSetMode ? "Добавить сет" : "Добавить блюдо")}
                 </h2>
               </div>
               {!editing && !hideKindSwitch ? (
-              <div className={`dish-kind-switch${kindSettled ? " is-settled" : ""}`} role="tablist" aria-label={t("pages.nomenclature.dishesdialogs.tip_pozitsii")} ref={kindTabsRef}>
+              <div className={`dish-kind-switch${kindSettled ? " is-settled" : ""}`} role="tablist" aria-label="Тип позиции" ref={kindTabsRef}>
                 <span
                   className="dish-kind-switch__indicator"
                   aria-hidden="true"
@@ -451,7 +450,7 @@ export default function DishesDialogs({
                   disabled={saving}
                   onClick={() => pickKind(false)}
                 >
-                 {t("pages.nomenclature.dishesdialogs.blyudo")}
+                  Блюдо
                 </button>
                 <button
                   type="button"
@@ -462,11 +461,11 @@ export default function DishesDialogs({
                   disabled={saving}
                   onClick={() => pickKind(true)}
                 >
-                 {t("pages.nomenclature.dishesdialogs.set")}
+                  Сет
                 </button>
               </div>
               ) : null}
-              <button type="button" disabled={saving} onClick={closeDrawer} aria-label={t("pages.nomenclature.dishesdialogs.zakryt")}>
+              <button type="button" disabled={saving} onClick={closeDrawer} aria-label="Закрыть">
                 <Icon name="bi-x-lg" size={20} />
               </button>
             </div>
@@ -509,7 +508,7 @@ export default function DishesDialogs({
                     aria-label={`Открыть фото ${form.name || "блюда"}`}
                     aria-haspopup="dialog"
                   >
-                    <img src={displayedPhoto} alt={editing ? t("pages.nomenclature.dishesdialogs.foto_blyuda") : t("pages.nomenclature.dishesdialogs.novoe_foto_blyuda")} />
+                    <img src={displayedPhoto} alt={editing ? "Фото блюда" : "Новое фото блюда"} />
                   </button>
                 ) : (
                   <div className="staff-avatar staff-avatar--large">
@@ -517,17 +516,17 @@ export default function DishesDialogs({
                   </div>
                 )}
                 <div className="cashier-photo__body">
-                  <span>{t("pages.nomenclature.dishesdialogs.foto")}</span>
+                  <span>Фото</span>
                   <div className="dish-photo-actions">
                   <label className="cashier-photo__upload">
                     <Icon name="bi-camera" size={16} />
-                    {photoPreview || form.photo ? t("pages.nomenclature.dishesdialogs.zamenit_foto") : t("pages.nomenclature.dishesdialogs.zagruzit_foto")}
+                    {photoPreview || form.photo ? "Заменить фото" : "Загрузить фото"}
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
                       disabled={saving}
                       onChange={handlePhotoChange}
-                      aria-label={t("pages.nomenclature.dishesdialogs.zagruzit_foto_blyuda")}
+                      aria-label="Загрузить фото блюда"
                     />
                   </label>
                   {canDeletePhoto ? (
@@ -536,26 +535,26 @@ export default function DishesDialogs({
                       className="cashier-photo__upload dish-photo-delete-action"
                       onClick={() => setPhotoConfirm(true)}
                       disabled={saving || photoRemoving}
-                      aria-label={t("pages.nomenclature.dishesdialogs.udalit_foto_blyuda")}
+                      aria-label="Удалить фото блюда"
                     >
                       <Icon name="bi-trash3" size={16} />
-                     {t("pages.nomenclature.dishesdialogs.udalit_foto")}
+                      Удалить фото
                     </button>
                   ) : null}
                   </div>
                 </div>
               </div>
               {photoConfirm ? (
-                <div className="dish-photo-confirm" role="dialog" aria-label={t("pages.nomenclature.dishesdialogs.udalit_foto_blyuda")}>
-                  <strong>{t("pages.nomenclature.dishesdialogs.udalit_foto_2")}</strong>
-                  <span>{t("pages.nomenclature.dishesdialogs.foto_blyuda_budet_udaleno_bez_vozmozhnosti")}</span>
+                <div className="dish-photo-confirm" role="dialog" aria-label="Удалить фото блюда">
+                  <strong>Удалить фото?</strong>
+                  <span>Фото блюда будет удалено без возможности восстановления.</span>
                   {photoError ? <Toast kind="error" message={photoError} onClose={() => setPhotoError("")} /> : null}
                   <div className="dish-photo-confirm__actions">
                     <button type="button" disabled={photoRemoving} onClick={() => setPhotoConfirm(false)}>
-                     {t("pages.nomenclature.dishesdialogs.otmena")}
+                      Отмена
                     </button>
                     <button type="button" className="danger" disabled={photoRemoving} onClick={confirmPhotoRemove}>
-                      {photoRemoving ? t("common.deleting") : t("common.delete")}
+                      {photoRemoving ? "Удаление…" : "Удалить"}
                     </button>
                   </div>
                 </div>
@@ -563,14 +562,14 @@ export default function DishesDialogs({
               <div className="staff-form__grid">
                 <div className="dish-first-row">
                   <label className="dish-sort-field">
-                    <span>{t(fieldLabels.sort)}</span>
+                    <span>{fieldLabels.sort}</span>
                     <input
                       value={form.sort || ""}
                       onChange={(event) => setForm((prev) => ({ ...prev, sort: event.target.value }))}
                     />
                   </label>
                   <label className="dish-name-field">
-                    <span>{t(fieldLabels.name)}</span>
+                    <span>{fieldLabels.name}</span>
                     <input
                       value={form.name || ""}
                       onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
@@ -580,9 +579,9 @@ export default function DishesDialogs({
                 {isSetMode ? (
                   <>
                     <label>
-                      <span>{t(fieldLabels.price)}</span>
+                      <span>{fieldLabels.price}</span>
                       <DishMoneyInput
-                        label={t(fieldLabels.price)}
+                        label={fieldLabels.price}
                         value={form.price || ""}
                         onChange={(value) => setForm((prev) => ({ ...prev, price: value }))}
                       />
@@ -591,12 +590,12 @@ export default function DishesDialogs({
                     {unitField}
                     {printerField(false)}
                     <div className="dish-form-field">
-                      <span className="dish-form-field__label" aria-hidden="true">{t("pages.nomenclature.dishesdialogs.shag_portsii")}</span>
+                      <span className="dish-form-field__label" aria-hidden="true">Шаг порции</span>
                       <DishSingleSelect
-                        label={t("pages.nomenclature.dishesdialogs.shag_portsii")}
-                        placeholder={t("pages.nomenclature.dishesdialogs.tselye")}
+                        label="Шаг порции"
+                        placeholder="Целые"
                         options={[
-                          { value: "", label: t("pages.nomenclature.dishesdialogs.tselye_1") },
+                          { value: "", label: "Целые (1)" },
                           { value: "0.1", label: "0.1" },
                           { value: "0.25", label: "0.25" },
                           { value: "0.5", label: "0.5" },
@@ -611,9 +610,9 @@ export default function DishesDialogs({
                   <>
                     {["cost", "price"].map((field) => (
                       <label key={field}>
-                        <span>{t(fieldLabels[field])}</span>
+                        <span>{fieldLabels[field]}</span>
                         <DishMoneyInput
-                          label={t(fieldLabels[field])}
+                          label={fieldLabels[field]}
                           value={form[field] || ""}
                           onChange={(value) => setForm((prev) => ({ ...prev, [field]: value }))}
                         />
@@ -623,12 +622,12 @@ export default function DishesDialogs({
                     {unitField}
                     {printerField(false)}
                     <div className="dish-form-field">
-                      <span className="dish-form-field__label" aria-hidden="true">{t("pages.nomenclature.dishesdialogs.shag_portsii")}</span>
+                      <span className="dish-form-field__label" aria-hidden="true">Шаг порции</span>
                       <DishSingleSelect
-                        label={t("pages.nomenclature.dishesdialogs.shag_portsii")}
-                        placeholder={t("pages.nomenclature.dishesdialogs.tselye")}
+                        label="Шаг порции"
+                        placeholder="Целые"
                         options={[
-                          { value: "", label: t("pages.nomenclature.dishesdialogs.tselye_1") },
+                          { value: "", label: "Целые (1)" },
                           { value: "0.1", label: "0.1" },
                           { value: "0.25", label: "0.25" },
                           { value: "0.5", label: "0.5" },
@@ -644,7 +643,7 @@ export default function DishesDialogs({
 
               <div className="dish-form-switches">
                 {[
-                  { field: "active", label: t("pages.nomenclature.dishesdialogs.status"), value: form.active !== false },
+                  { field: "active", label: "Статус", value: form.active !== false },
                 ].map(({ field, label, value }) => (
                   <div className="dish-form-switch-row" key={field}>
                     <span className="dish-form-switch-label">{label}</span>
@@ -662,7 +661,7 @@ export default function DishesDialogs({
                       </button>
                       {field === "active" && (
                         <span className={`dish-form-status${value ? " is-active" : ""}`}>
-                          {value ? t("staff.active") : t("staff.inactive")}
+                          {value ? "Активен" : "Неактивен"}
                         </span>
                       )}
                     </div>
@@ -674,8 +673,8 @@ export default function DishesDialogs({
             </div>
 
             <div className="staff-form__footer">
-              <button type="button" disabled={saving} onClick={closeDrawer}>{t("pages.nomenclature.dishesdialogs.otmenit")}</button>
-              <button type="submit" disabled={saving}>{saving ? t("staff.saving") : editing ? t("common.save") : t("common.add")}</button>
+              <button type="button" disabled={saving} onClick={closeDrawer}>Отменить</button>
+              <button type="submit" disabled={saving}>{saving ? "Сохранение…" : editing ? "Сохранить" : "Добавить"}</button>
             </div>
           </form>
         </div>,

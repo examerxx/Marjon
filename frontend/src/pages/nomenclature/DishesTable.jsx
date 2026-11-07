@@ -12,7 +12,6 @@ import useInstantWheel, { isInstantWheelRequested } from "../../hooks/useInstant
 import recipeBookPng from "../../assets/recipes-cook-book.png";
 import setComboPng from "../../assets/set-combo.png";
 import { SUPPORTED_DISH_PHOTO_TYPES } from "./useDishesCatalog";
-import { t } from "../../i18n/t";
 import "../../styles/shared/catalog-scrollbar-arrows.css";
 
 // Себестоимость/цена приходят с суффиксом «UZS»; в таблице показываем «сум».
@@ -83,13 +82,13 @@ function RecipeBadge({ count, onClick }) {
   if (amount > 0) {
     return (
       <button type="button" className="dish-recipe-link is-filled" onClick={onClick} aria-haspopup="dialog">
-        <RecipePngIcon />{t("pages.nomenclature.dishestable.retsepty")}{amount} {t("pages.nomenclature.dishestable.sht")}
+        <RecipePngIcon />Рецепты ({amount} шт)
       </button>
     );
   }
   return (
     <button type="button" className="dish-recipe-link is-empty" onClick={onClick} aria-haspopup="dialog">
-      <RecipePngIcon />{t("pages.nomenclature.dishestable.retsepty_2")}
+      <RecipePngIcon />Рецепты
     </button>
   );
 }
@@ -100,7 +99,8 @@ function RecipeBadge({ count, onClick }) {
 // пикер остаётся только для пустых ячеек.
 function DishPhotoCell({ row, uploading, onPick, onPreview }) {
   const inputRef = useRef(null);
-  const hasPhoto = Boolean(row.photo);
+  const [failedPhoto, setFailedPhoto] = useState(null);
+  const hasPhoto = Boolean(row.photo && row.photo !== failedPhoto);
   return (
     <td className="dish-col-photo">
       <button
@@ -112,10 +112,10 @@ function DishPhotoCell({ row, uploading, onPick, onPreview }) {
           if (hasPhoto) onPreview?.(row);
           else inputRef.current?.click();
         }}
-        aria-label={hasPhoto ? t("pages.menupage.open_photo", { name: row.name }) : t("pages.nomenclature.dishestable.choose_photo", { name: row.name })}
+        aria-label={hasPhoto ? `Открыть фото ${row.name}` : `Выбрать фото для ${row.name}`}
         {...(hasPhoto ? { "aria-haspopup": "dialog" } : null)}
       >
-        {row.photo ? (
+        {hasPhoto ? (
           // loading=lazy + размеры: без них браузер декодировал все фото
           // каталога сразу, и при прокрутке к концу списка кадры проваливались
           // (декодирование картинок шло в том же кадре, что и скролл).
@@ -127,6 +127,8 @@ function DishPhotoCell({ row, uploading, onPick, onPreview }) {
             height={42}
             loading="lazy"
             decoding="async"
+            onLoad={() => setFailedPhoto(null)}
+            onError={() => setFailedPhoto(row.photo)}
           />
         ) : (
           <span className="dish-photo-placeholder"><Icon name="bi-image" /></span>
@@ -139,9 +141,12 @@ function DishPhotoCell({ row, uploading, onPick, onPreview }) {
         hidden
         aria-hidden="true"
         tabIndex={-1}
-        onChange={(event) => {
-          onPick(row.id, event.target.files?.[0]);
+        onChange={async (event) => {
+          const file = event.target.files?.[0];
           event.target.value = "";
+          if (!file) return;
+          const saved = await onPick(row.id, file);
+          if (saved) setFailedPhoto(null);
         }}
       />
     </td>
@@ -221,20 +226,20 @@ export default function DishesTable({
 
   return (
     <div className={`settings-table-wrapper dish-grid-wrap${isEmpty ? " is-empty" : ""}`}>
-      <div ref={scrollRef} className="dish-grid-scroll" role="region" aria-label={t(scrollAriaLabel)} tabIndex={0}>
-        <table className="settings-table dish-grid-table" aria-label={t(tableAriaLabel)} style={{ "--dish-grid-min-width": `${tableMinWidth}px` }}>
+      <div ref={scrollRef} className="dish-grid-scroll" role="region" aria-label={scrollAriaLabel} tabIndex={0}>
+        <table className="settings-table dish-grid-table" aria-label={tableAriaLabel} style={{ "--dish-grid-min-width": `${tableMinWidth}px` }}>
         <thead>
           <tr>
-            {isColumnVisible("sort") ? <th className="dish-col-sort">{t("pages.nomenclature.dishestable.sort")}</th> : null}
-            {isColumnVisible("photo") ? <th className="dish-col-photo">{t("pages.nomenclature.dishestable.foto")}</th> : null}
-            {isColumnVisible("name") ? <th className="dish-col-name">{t("pages.nomenclature.dishestable.nazvanie")}</th> : null}
-            {isColumnVisible("unit") ? <th className="dish-col-unit">{t("pages.nomenclature.dishestable.ed_izm")}</th> : null}
-            {isColumnVisible("category") ? <th className="dish-col-category">{t("pages.nomenclature.dishestable.kategoriya")}</th> : null}
-            {isColumnVisible("cost") ? <th className="dish-col-cost">{t("pages.nomenclature.dishestable.sebestoimost")}</th> : null}
-            {isColumnVisible("price") ? <th className="dish-col-price">{t("pages.nomenclature.dishestable.tsena")}</th> : null}
-            {isColumnVisible("printer") ? <th className="dish-col-printer">{t("pages.nomenclature.dishestable.printer")}</th> : null}
-            {isColumnVisible("recipe") ? <th className="dish-col-recipe">{t("pages.nomenclature.dishestable.retsepty_2")}</th> : null}
-            {isColumnVisible("actions") ? <th className="dish-col-actions">{t("pages.nomenclature.dishestable.deystviya")}</th> : null}
+            {isColumnVisible("sort") ? <th className="dish-col-sort">Сорт</th> : null}
+            {isColumnVisible("photo") ? <th className="dish-col-photo">Фото</th> : null}
+            {isColumnVisible("name") ? <th className="dish-col-name">Название</th> : null}
+            {isColumnVisible("unit") ? <th className="dish-col-unit">Ед. изм</th> : null}
+            {isColumnVisible("category") ? <th className="dish-col-category">Категория</th> : null}
+            {isColumnVisible("cost") ? <th className="dish-col-cost">Себестоимость</th> : null}
+            {isColumnVisible("price") ? <th className="dish-col-price">Цена</th> : null}
+            {isColumnVisible("printer") ? <th className="dish-col-printer">Принтер</th> : null}
+            {isColumnVisible("recipe") ? <th className="dish-col-recipe">Рецепты</th> : null}
+            {isColumnVisible("actions") ? <th className="dish-col-actions">Действия</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -270,12 +275,12 @@ export default function DishesTable({
                       className={`dish-recipe-link ${Number(row.setItemsCount) > 0 ? "is-filled" : "is-empty"}`}
                       onClick={(event) => onOpenSet(row, event.currentTarget)}
                       aria-haspopup="dialog"
-                      aria-label={t("pages.nomenclature.dishestable.open_set", { name: row.name })}
+                      aria-label={`Открыть сет ${row.name}`}
                     >
                       <SetPngIcon />{Number(row.setItemsCount) > 0 ? `Сет (${row.setItemsCount} шт)` : "Сет"}
                     </button>
                   ) : (
-                    <span className="dish-set-text"><SetPngIcon />{t("pages.nomenclature.dishestable.set")}</span>
+                    <span className="dish-set-text"><SetPngIcon />Сет</span>
                   )
                 ) : (
                   <RecipeBadge count={row.ingredientsCount} onClick={(event) => openRecipes?.(row, event.currentTarget)} />
@@ -285,7 +290,7 @@ export default function DishesTable({
               {isColumnVisible("actions") ? (
               <td className="dish-col-actions">
                 <div className="dish-row-actions">
-                  <button type="button" disabled={saving || pendingDeleteId === row.id} onClick={() => openDrawer(row)} aria-label={t("pages.nomenclature.dishestable.redaktirovat")}>
+                  <button type="button" disabled={saving || pendingDeleteId === row.id} onClick={() => openDrawer(row)} aria-label="Редактировать">
                     <Icon name="bi-pencil" size={15} />
                   </button>
                   {showArchived ? (
@@ -294,13 +299,13 @@ export default function DishesTable({
                       className="dish-restore-action"
                       disabled={restoringId === row.id}
                       onClick={() => (onRestoreRequest ? onRestoreRequest(row) : restoreDish?.(row.id))}
-                      aria-label={t("pages.nomenclature.dishestable.vosstanovit")}
-                      title={t("pages.nomenclature.dishestable.vosstanovit")}
+                      aria-label="Восстановить"
+                      title="Восстановить"
                     >
                       <Icon name="bi-arrow-counterclockwise" size={15} />
                     </button>
                   ) : (
-                    <button type="button" className="danger" disabled={pendingDeleteId === row.id} onClick={() => (onArchiveRequest ? onArchiveRequest(row) : archiveDish(row.id))} aria-label={t("pages.nomenclature.dishestable.udalit")}>
+                    <button type="button" className="danger" disabled={pendingDeleteId === row.id} onClick={() => (onArchiveRequest ? onArchiveRequest(row) : archiveDish(row.id))} aria-label="Удалить">
                       <Icon name="bi-trash3" size={15} />
                     </button>
                   )}
@@ -312,10 +317,10 @@ export default function DishesTable({
         </tbody>
         </table>
       </div>
-      <ExternalTableScrollbar targetRef={scrollRef} label={t("pages.nomenclature.dishestable.scroll_label", { label: t(scrollAriaLabel) })} />
+      <ExternalTableScrollbar targetRef={scrollRef} label={`Прокрутка: ${scrollAriaLabel}`} />
       {isEmpty ? (
         <div className="dish-empty-overlay">
-          <ReportEmptyState title={t(emptyTitle)} />
+          <ReportEmptyState title={emptyTitle} />
         </div>
       ) : null}
       {preview ? createPortal(
@@ -329,13 +334,13 @@ export default function DishesTable({
             className="dish-photo-viewer"
             role="dialog"
             aria-modal="true"
-            aria-label={t("pages.nomenclature.dishestable.dish_photo", { name: preview.name })}
+            aria-label={`Фото блюда ${preview.name}`}
           >
             <button
               type="button"
               className="dish-photo-viewer__close"
               onClick={closePreview}
-              aria-label={t("pages.nomenclature.dishestable.zakryt_foto")}
+              aria-label="Закрыть фото"
             >
               <Icon name="bi-x-lg" size={18} />
             </button>

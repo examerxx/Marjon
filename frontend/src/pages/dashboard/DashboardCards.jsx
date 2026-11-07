@@ -6,7 +6,9 @@ import "./recentOrders.css";
 import { formatMoney, formatNumber } from "../../api/client";
 import Icon from "../../components/Icon";
 import OrderStatus from "../reports/OrderStatus";
-import { t } from "../../i18n/t";
+import CountUpValue from "../../components/CountUpValue";
+
+const formatDishQuantity = value => `${formatNumber(value)} шт`;
 
 // Презентационные секции OWNER-дашборда: пустое состояние, сводка смены,
 // быстрые действия, последние заказы, топ продаж. Вынесено из OwnerDashboard.jsx
@@ -68,43 +70,43 @@ export function ShiftSummaryCard({ summary }) {
     <aside className="card card-pad shift-summary-card shift-summary-card--window">
       <div className="shift-summary-card__header">
         <div>
-          <span className="eyebrow">{t("eyebrow.live_operations")}</span>
-          <h2>{t("pages.dashboard.dashboardcards.svodka_smeny")}</h2>
+          <span className="eyebrow">Live operations</span>
+          <h2>Сводка смены</h2>
         </div>
-        <div className="shift-summary-card__status" aria-label={t("pages.dashboard.dashboardcards.smena_otkryta")}>
+        <div className="shift-summary-card__status" aria-label="Смена открыта">
           <span />
-         {t("pages.dashboard.dashboardcards.smena_otkryta")}
+          Смена открыта
         </div>
       </div>
 
       <div className="shift-summary-card__open-time">
         <Icon name="bi-clock-history" size={20} />
-        <span>{t("pages.dashboard.dashboardcards.vremya_otkrytiya")}</span>
+        <span>Время открытия</span>
         <strong>09:00</strong>
       </div>
 
       <div className="shift-summary-card__stats">
         <div>
-          <span>{t("pages.dashboard.dashboardcards.kassa")}</span>
+          <span>Касса</span>
           <strong>{formatMoney(summary.revenue)}</strong>
         </div>
         <div>
-          <span>{t("pages.dashboard.dashboardcards.zakazy")}</span>
+          <span>Заказы</span>
           <strong>{summary.orders}</strong>
         </div>
         <div>
-          <span>{t("pages.dashboard.dashboardcards.zal")}</span>
+          <span>Зал</span>
           <strong>{summary.occupancy}%</strong>
         </div>
         <div>
-          <span>{t("pages.dashboard.dashboardcards.srednee_vremya")}</span>
-          <strong>{summary.avgTime} {t("pages.dashboard.dashboardcards.min")}</strong>
+          <span>Среднее время</span>
+          <strong>{summary.avgTime} мин</strong>
         </div>
       </div>
 
       <div className="shift-summary-card__load">
         <div>
-          <span>{t("pages.dashboard.dashboardcards.zagruzhennost_zala")}</span>
+          <span>Загруженность зала</span>
           <strong>{summary.occupancy}%</strong>
         </div>
         <div className="shift-summary-card__progress" aria-hidden="true">
@@ -114,13 +116,13 @@ export function ShiftSummaryCard({ summary }) {
 
       <div className="shift-summary-card__alert">
         <div className="shift-summary-card__alert-icon"><Icon name="bi-exclamation-triangle" size={20} /></div>
-        <p>{t("pages.dashboard.dashboardcards.kurinoe_file_zakanchivaetsya_ostalos_2_kg")}</p>
-        <span>{t("pages.dashboard.dashboardcards.vazhno")}</span>
+        <p>Куриное филе заканчивается — осталось 2 кг</p>
+        <span>Важно</span>
       </div>
 
       <div className="shift-summary-card__actions">
-        <Link className="shift-summary-card__primary" to="/orders">{t("pages.dashboard.dashboardcards.upravlenie_smenoy")}</Link>
-        <Link className="shift-summary-card__link" to="/reports/z-report">{t("pages.dashboard.dashboardcards.posmotret_otchet")}</Link>
+        <Link className="shift-summary-card__primary" to="/orders">Управление сменой</Link>
+        <Link className="shift-summary-card__link" to="/reports/z-report">Посмотреть отчёт</Link>
       </div>
     </aside>
   );
@@ -131,65 +133,67 @@ export function QuickActionsCard({ activeOrders, occupancy, avgTime }) {
     <section className="card card-pad quick-actions quick-actions--command">
       <div className="section-header">
         <div>
-          <span className="eyebrow">{t("eyebrow.command_center")}</span>
-          <h2>{t("pages.dashboard.dashboardcards.bystrye_deystviya")}</h2>
-          <p className="quick-actions__subtitle">{t("pages.dashboard.dashboardcards.samye_chastye_operatsii_vladeltsa_v_odnom_meste")}</p>
+          <span className="eyebrow">Command center</span>
+          <h2>Быстрые действия</h2>
+          <p className="quick-actions__subtitle">Самые частые операции владельца в одном месте</p>
         </div>
         <span className="quick-actions__live"><Icon name="bi-lightning-charge-fill" size={20} /> Live</span>
       </div>
 
       <div className="quick-actions__grid">
-        <Link to="/orders"><Icon name="bi-plus-circle" size={20} /><span>{t("pages.dashboard.dashboardcards.novyy_zakaz")}</span><small>{t("pages.dashboard.dashboardcards.sozdat_prodazhu")}</small></Link>
-        <Link to="/menu"><Icon name="bi-journal-plus" size={20} /><span>{t("pages.dashboard.dashboardcards.dobavit_blyudo")}</span><small>{products.length} {t("pages.dashboard.dashboardcards.blyud_v_menyu")}</small></Link>
-        <Link to="/staff"><Icon name="bi-person-plus" size={20} /><span>{t("pages.dashboard.dashboardcards.sotrudnik")}</span><small>{employees.length} {t("pages.dashboard.dashboardcards.v_komande")}</small></Link>
-        <Link to="/finance"><Icon name="bi-file-earmark-spreadsheet" size={20} /><span>{t("pages.dashboard.dashboardcards.finansy")}</span><small>{t("pages.dashboard.dashboardcards.otchety_i_kassa")}</small></Link>
+        <Link to="/orders"><Icon name="bi-plus-circle" size={20} /><span>Новый заказ</span><small>Создать продажу</small></Link>
+        <Link to="/menu"><Icon name="bi-journal-plus" size={20} /><span>Добавить блюдо</span><small>{products.length} блюд в меню</small></Link>
+        <Link to="/staff"><Icon name="bi-person-plus" size={20} /><span>Сотрудник</span><small>{employees.length} в команде</small></Link>
+        <Link to="/finance"><Icon name="bi-file-earmark-spreadsheet" size={20} /><span>Финансы</span><small>Отчеты и касса</small></Link>
       </div>
 
       <div className="quick-actions__insights">
         <div className="quick-actions__metric">
-          <span>{t("pages.dashboard.dashboardcards.aktivnye_zakazy")}</span>
+          <span>Активные заказы</span>
           <strong>{activeOrders}</strong>
         </div>
         <div className="quick-actions__metric">
-          <span>{t("pages.dashboard.dashboardcards.menyu")}</span>
+          <span>Меню</span>
           <strong>{products.length}</strong>
         </div>
         <div className="quick-actions__metric">
-          <span>{t("pages.dashboard.dashboardcards.komanda")}</span>
+          <span>Команда</span>
           <strong>{employees.length}</strong>
         </div>
         <div className="quick-actions__metric">
-          <span>{t("pages.dashboard.dashboardcards.stoly_zanyaty")}</span>
+          <span>Столы заняты</span>
           <strong>{occupancy}%</strong>
         </div>
         <div className="quick-actions__metric">
-          <span>{t("pages.dashboard.dashboardcards.srednee_vremya")}</span>
-          <strong>{avgTime} {t("pages.dashboard.dashboardcards.min")}</strong>
+          <span>Среднее время</span>
+          <strong>{avgTime} мин</strong>
         </div>
       </div>
     </section>
   );
 }
 
-export function RecentOrdersCard({ orders }) {
+export function RecentOrdersCard({ orders, status = "ready" }) {
   const hasOrders = orders.length > 0;
 
   return (
     <section className="card card-pad recent-orders-card">
       <div className="section-header">
         <div>
-          <span className="eyebrow">{t("pages.dashboard.dashboardcards.poslednie_zakazy")}</span>
-          <h2>{t("pages.dashboard.dashboardcards.poslednie_zakazy")}</h2>
+          <span className="eyebrow">Последние заказы</span>
+          <h2>Последние заказы</h2>
         </div>
-        <Link className="btn btn-ghost" to="/reports/orders">{t("pages.dashboard.dashboardcards.vse_zakazy")}</Link>
+        <Link className="btn btn-ghost" to="/reports/orders">Все заказы</Link>
       </div>
       <div className="recent-orders-list">
-        {hasOrders ? orders.map((order) => (
-          <div className="recent-order" key={order.id}>
+        {status === "loading" ? null : status === "error" ? (
+          <SectionEmpty icon="bi-exclamation-circle" title="Не удалось загрузить заказы" />
+        ) : hasOrders ? orders.map((order) => (
+          <div className="recent-order" key={order.key || order.id}>
             <strong>{order.id}</strong>
             <span>{order.date}</span>
             <span>{order.place}</span>
-            <em>{order.amount}</em>
+            {order.totalAmount == null ? <em>{order.amount}</em> : <CountUpValue as="em" value={order.totalAmount} format={formatMoney} />}
             {/* Статус — тот же компонент, что в «Отчёте по заказам»: цветная
                 точка + подпись, без плашки. Один источник правды для статусов. */}
             <OrderStatus value={order.statusCode} />
@@ -197,8 +201,7 @@ export function RecentOrdersCard({ orders }) {
         )) : (
           <SectionEmpty
             icon="bi-receipt"
-            title={t("pages.dashboard.dashboardcards.zakazov_poka_net")}
-            text={t("pages.dashboard.dashboardcards.novye_zakazy_budut_otobrazhatsya_zdes")}
+            title="За выбранный период заказов нет"
           />
         )}
       </div>
@@ -209,39 +212,44 @@ export function RecentOrdersCard({ orders }) {
 export function TopSalesCard({ dishes, error = "" }) {
   const hasDishes = dishes.length > 0;
   const [preview, setPreview] = useState(null);
+  const [failedPhotos, setFailedPhotos] = useState(() => new Set());
   const closePreview = useCallback(() => setPreview(null), []);
 
   return (
     <section className="card card-pad top-dishes-card owner-top-sales-card">
       <div className="section-header">
         <div>
-          <span className="eyebrow">{t("pages.dashboard.dashboardcards.luchshie_prodazhi")}</span>
-          <h2>{t("pages.dashboard.dashboardcards.top_5_prodazh")}</h2>
+          <span className="eyebrow">Лучшие продажи</span>
+          <h2>Топ-5 продаж</h2>
         </div>
-        <Link className="btn btn-ghost" to="/menu">{t("pages.dashboard.dashboardcards.vse_blyuda")}</Link>
+        <Link className="btn btn-ghost" to="/menu">Все блюда</Link>
       </div>
       <div className="top-dishes-list">
-        {error ? <div role="status"><SectionEmpty icon="bi-exclamation-circle" title={t("pages.dashboard.dashboardcards.top_5_vremenno_nedostupen")} text={error} /></div> : hasDishes ? dishes.map((item, index) => (
+        {error ? <div role="status"><SectionEmpty icon="bi-exclamation-circle" title="Топ-5 временно недоступен" text={error} /></div> : hasDishes ? dishes.map((item, index) => (
           <div className="top-dish top-dish--compact" key={item.product_id || item.name}>
             <div className="top-dish__rank">{index + 1}</div>
-            {item.photo ? (
+            {item.photo && !failedPhotos.has(item.photo) ? (
               <button type="button" className="dashboard-top-sales__photo" aria-label={`Открыть фото ${item.name}`} aria-haspopup="dialog" onClick={() => setPreview(item)}>
-                <img src={item.photo} alt={item.name} />
+                <img
+                  src={item.photo}
+                  alt={item.name}
+                  onError={() => setFailedPhotos((photos) => new Set(photos).add(item.photo))}
+                />
               </button>
-            ) : <span className="dashboard-top-sales__photo" aria-label={t("pages.dashboard.dashboardcards.net_foto")}><Icon name="bi-image" /></span>}
+            ) : <span className="dashboard-top-sales__photo" aria-label="Нет фото"><Icon name="bi-image" /></span>}
             <div className="top-dish__body">
               <div className="top-dish__line">
                 <strong>{dishDisplayName(item.name)}</strong>
               </div>
             </div>
-            <div className="top-dish__qty">{formatNumber(item.quantity)} {t("pages.dashboard.dashboardcards.sht")}</div>
-            <div className="top-dish__price">{formatMoney(item.revenue)}</div>
+            <CountUpValue as="div" className="top-dish__qty" value={item.quantity} format={formatDishQuantity} />
+            <CountUpValue as="div" className="top-dish__price" value={item.revenue} format={formatMoney} />
           </div>
         )) : (
           <SectionEmpty
             icon="bi-basket"
-            title={t("pages.dashboard.dashboardcards.prodazh_poka_net")}
-            text={t("pages.dashboard.dashboardcards.posle_pervyh_zakazov_zdes_poyavyatsya_samye_prodavaemye_pozitsii")}
+            title="Продаж пока нет"
+            text="После первых заказов здесь появятся самые продаваемые позиции."
           />
         )}
       </div>

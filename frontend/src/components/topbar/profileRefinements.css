@@ -1,0 +1,143 @@
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-custom-back svg { width: 18px; height: 18px; }
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-back-slot .topbar-custom-back {
+  width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 16px;
+  color: var(--color-brand-dark);
+  background: var(--neutral-50);
+  border-color: rgba(28, 62, 96, .16);
+  box-shadow: none;
+  filter: none;
+  opacity: 1;
+  -webkit-tap-highlight-color: transparent;
+  transition: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-back-slot .topbar-custom-back:is(:hover, :active, :focus, :focus-visible) {
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(28, 62, 96, .16);
+  background: var(--neutral-50);
+  color: var(--color-brand-dark);
+  filter: none;
+  opacity: 1;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-back-slot .topbar-custom-back::before,
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-back-slot .topbar-custom-back::after { content: none; }
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-back-slot .topbar-custom-back:active svg {
+  transform: translateX(-1px);
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-notification {
+  width: 44px; min-width: 44px; height: 44px; min-height: 44px; flex: 0 0 44px;
+  padding: 0; border-radius: 50%; background: var(--color-card); box-shadow: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-notification > svg {
+  width: 24px; height: 24px;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-notification > svg path:first-child {
+  fill: white;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar :is(.topbar-info-widget--rate, .topbar-notification, #preview-topbar-profile .sidebar-user) {
+  border-radius: 26px;
+  background: rgba(248, 250, 253, .92);
+  border: 1px solid rgba(28, 62, 96, .16);
+  box-shadow: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar :is(.topbar-info-widget--rate, .topbar-notification, #preview-topbar-profile .sidebar-user):hover {
+  background: #eaf0f7;
+  border-color: rgba(28, 62, 96, .16);
+}
+#preview-topbar-profile .sidebar-user { padding: 2px 14px 2px 2px; gap: 10px; }
+#preview-topbar-profile .sidebar-user__meta .sidebar-user__name { font-weight: 550; }
+#preview-topbar-profile .sidebar-user__avatar {
+  flex: 0 0 42px; width: 42px; height: 42px; padding: 0;
+  border: 1px solid rgba(28, 62, 96, .16); box-sizing: border-box; outline: 0; box-shadow: none; background: transparent; overflow: hidden; border-radius: 26px;
+}
+#preview-topbar-profile .sidebar-user__avatar img {
+  display: block; width: 100%; height: 100%; max-width: none; padding: 0; margin: 0;
+  border: 0; outline: 0; box-shadow: none; object-fit: cover; transform: none; border-radius: 0;
+}
+#preview-topbar-profile .sidebar-user__avatar--photo img { transform: none; }
+#preview-topbar-profile .sidebar-account__menu {
+  width: 248px; max-width: calc(100vw - 24px); padding: 8px; gap: 2px;
+  animation: profile-panel-in 200ms cubic-bezier(.2,.8,.2,1) both;
+  transform-origin: top right;
+}
+#preview-topbar-profile .sidebar-account__menu.is-closing {
+  pointer-events: none; animation: profile-panel-out 170ms ease-in both;
+}
+#preview-topbar-profile .sidebar-account__head {
+  margin-bottom: 2px; padding: 0 4px 6px; min-height: 34px;
+  border-bottom: 1px solid var(--blue-100);
+}
+#preview-profile-balance { display: grid; gap: 6px; padding: 4px 0 6px; margin-bottom: 3px; }
+#preview-profile-balance .topbar-balance-pill {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); align-items: stretch; gap: 0;
+  padding: 0; background: var(--neutral-50); border: 1px solid var(--blue-100); box-shadow: none;
+  box-sizing: border-box; border-radius: 10px; height: 34px; min-height: 34px; overflow: hidden;
+}
+#preview-profile-balance .topbar-balance-amount {
+  flex: 1; min-width: 0; padding: 0 8px; text-align: center; font-size: 14px; font-weight: 450;
+  display: flex; align-items: center; justify-content: center; align-self: stretch;
+  width: auto; height: 100%; min-height: 0; margin: 0; border-radius: 0; box-sizing: border-box; white-space: nowrap;
+  border: 0; background: transparent; box-shadow: none;
+}
+#preview-profile-balance .topbar-pay-button {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  width: 100%; min-width: 0; height: 100%; min-height: 0; margin: 0; padding: 0 10px;
+  box-sizing: border-box; border: 0; border-radius: 9px; font-size: 13px; white-space: nowrap;
+  transform: none; box-shadow: none;
+}
+#preview-profile-balance .topbar-pay-button:is(:hover, :focus-visible, :active) { transform: none; }
+#preview-profile-balance .topbar-pay-button svg { flex-shrink: 0; width: 15px; height: 15px; }
+#preview-topbar-profile .sidebar-account__head .sidebar-user__avatar { flex-basis: 32px; width: 32px; height: 32px; }
+#preview-profile-balance .topbar-info-widgets { display: block; width: 100%; min-width: 0; }
+#preview-profile-balance .topbar-info-widget--rate {
+  display: flex; width: 100%; min-height: 40px; padding: 8px 12px;
+  border-radius: 10px; background: #F4F7FC; border: 1px solid var(--blue-100);
+}
+#preview-profile-balance .topbar-info-widget--rate:is(:hover, :focus-visible, .is-open) { background: #F4F7FC; }
+#preview-profile-balance .topbar-info-widget__body { display: flex; align-items: center; gap: 4px; flex: 1; font-size: 12px; white-space: nowrap; }
+#preview-profile-balance .topbar-rate-label { margin-right: auto; font-size: 13px; }
+#preview-profile-balance .topbar-info-widget__num { font-size: 17px; font-weight: 550; }
+body.dashboard-body .usd-rate-popover.profile-currency-flyout {
+  position: fixed; inset: auto; z-index: 12000; width: min(400px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px); overflow-y: auto; box-sizing: border-box;
+  padding: 20px; border: 1px solid var(--blue-100); border-radius: 20px;
+  background: var(--color-card); color: var(--neutral-900);
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--neutral-950) 24%, transparent), 0 4px 16px color-mix(in srgb, var(--neutral-950) 12%, transparent);
+}
+body.dashboard-body .usd-rate-popover.profile-currency-flyout:is(:hover, :focus-within) {
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--neutral-950) 24%, transparent), 0 4px 16px color-mix(in srgb, var(--neutral-950) 12%, transparent);
+}
+body.dashboard-body #preview-topbar-profile .sidebar-account__menu {
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--neutral-950) 18%, transparent), 0 3px 10px color-mix(in srgb, var(--neutral-950) 8%, transparent);
+}
+.profile-currency-flyout .currency-rate-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.profile-currency-flyout .currency-rate-card { padding: 9px 7px; }
+.profile-currency-flyout .currency-rate-card__rate { font-size: 17px; }
+.profile-currency-flyout.is-opening { animation: profile-panel-in 180ms ease-out both; }
+.profile-currency-flyout.is-closing { animation: profile-panel-out 170ms ease-in both; }
+#preview-profile-balance .usd-rate-popover {
+  position: relative; inset: auto; width: 100%; min-width: 0; max-width: 100%;
+  margin-top: 8px; padding: 12px; box-sizing: border-box;
+  background: var(--color-card); color: var(--neutral-900); box-shadow: none;
+}
+#preview-profile-balance .currency-rate-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#preview-profile-balance .usd-converter { grid-template-columns: minmax(0, 1fr); }
+@keyframes profile-panel-in { from { opacity: 0; transform: translateY(-7px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes profile-panel-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-5px) scale(.98); } }
+@media(prefers-reduced-motion: reduce) {
+  #preview-topbar-profile .sidebar-account__menu,
+  #preview-topbar-profile .sidebar-account__menu.is-closing { animation-duration: 1ms; }
+}
+/* The dashboard flat-surface rule also reaches body portals. Match its route
+   scope and override it only for these two floating panels and rate cards. */
+body.dashboard-body:has(.dashboard-shell .dashboard-main .dashboard-content > .owner-kpi-band) .usd-rate-popover.profile-currency-flyout:not(:hover):not(:focus-visible),
+body.dashboard-body:has(.dashboard-shell .dashboard-main .dashboard-content > .owner-kpi-band) .usd-rate-popover.profile-currency-flyout {
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--neutral-950) 24%, transparent), 0 4px 16px color-mix(in srgb, var(--neutral-950) 12%, transparent);
+}
+body.dashboard-body:has(.dashboard-shell .dashboard-main .dashboard-content > .owner-kpi-band) #preview-topbar-profile .sidebar-account__menu {
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--neutral-950) 18%, transparent), 0 3px 10px color-mix(in srgb, var(--neutral-950) 8%, transparent);
+}
+body.dashboard-body:has(.dashboard-shell .dashboard-main .dashboard-content > .owner-kpi-band) .profile-currency-flyout .currency-rate-card {
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--neutral-950) 8%, transparent);
+}
+@media(max-width: 480px) { .profile-currency-flyout .currency-rate-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

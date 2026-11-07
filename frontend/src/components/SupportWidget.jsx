@@ -3,7 +3,6 @@ import { settingsService } from "../api/settings";
 import Icon from "./Icon";
 import Toast from "./Toast";
 import { useMutationLocks } from "../hooks/useAsyncSafety";
-import { t } from "../i18n/t";
 
 const text = {
   title: "Связь с поддержкой",
@@ -191,15 +190,15 @@ export default function SupportWidget() {
   return (
     <div className={`support-widget${open ? " is-open" : ""}${hiding ? " is-hiding" : ""}${entering ? " is-entering" : ""}`} aria-hidden={hiding || entering || undefined}>
       {open ? (
-        <section className="support-widget__panel" aria-label={t(text.title)}>
+        <section className="support-widget__panel" aria-label={text.title}>
           <header className="support-widget__header">
             <span className="support-widget__header-icon" aria-hidden="true">
               <Icon name="bi-headset" size={18} />
             </span>
             <div>
-              <strong>{t(text.title)}</strong>
+              <strong>{text.title}</strong>
             </div>
-            <button className="support-widget__close" type="button" aria-label={t(text.close)} onClick={closeWidget} disabled={sending}>
+            <button className="support-widget__close" type="button" aria-label={text.close} onClick={closeWidget} disabled={sending}>
               <Icon name="bi-x-lg" size={18} />
             </button>
           </header>
@@ -209,16 +208,16 @@ export default function SupportWidget() {
               <span className="support-widget__success-icon" aria-hidden="true">
                 <Icon name="bi-check2" size={32} />
               </span>
-              <strong>{t(text.successTitle)}</strong>
-              <p>{t(text.successText)}</p>
+              <strong>{text.successTitle}</strong>
+              <p>{text.successText}</p>
               <button type="button" onClick={() => { setLocalPhone(""); setMessage(""); setSent(false); }}>
-                {t(text.again)}
+                {text.again}
               </button>
             </div>
           ) : (
             <form className="support-widget__form" onSubmit={handleSubmit}>
               <label className="support-widget__field">
-                <span>{t(text.phone)}</span>
+                <span>{text.phone}</span>
                 <div className="support-widget__phone">
                   <button
                     type="button"
@@ -229,7 +228,7 @@ export default function SupportWidget() {
                     onClick={openMenu}
                     disabled={sending}
                   >
-                    <img src={flagUrl(country.code)} alt={t(country.name)} />
+                    <img src={flagUrl(country.code)} alt={country.name} />
                   </button>
 
                   {menuOpen && menuPos && (
@@ -249,7 +248,7 @@ export default function SupportWidget() {
                           onClick={() => selectCountry(c)}
                         >
                           <img src={flagUrl(c.code)} alt="" />
-                          <span>{t(c.name)}</span>
+                          <span>{c.name}</span>
                           <b>+{c.dial}</b>
                         </button>
                       ))}
@@ -262,18 +261,18 @@ export default function SupportWidget() {
                     onChange={handlePhoneChange}
                     placeholder={phonePlaceholder}
                     inputMode="tel"
-                    aria-label={t(text.phone)}
+                    aria-label={text.phone}
                     disabled={sending}
                   />
                 </div>
               </label>
 
               <label className="support-widget__field">
-                <span>{t(text.message)}</span>
+                <span>{text.message}</span>
                 <textarea
                   value={message}
                   onChange={(e) => { setMessage(e.target.value); setSendError(""); }}
-                  placeholder={t(text.placeholder)}
+                  placeholder={text.placeholder}
                   rows={4}
                   disabled={sending}
                 />
@@ -283,7 +282,7 @@ export default function SupportWidget() {
 
               <button className="support-widget__submit" type="submit" disabled={!message.trim() || sending}>
                 <Icon name={sending ? "bi-arrow-repeat" : "bi-send"} size={16} />
-                <span>{sending ? t("components.supportwidget.otpravka") : t(text.send)}</span>
+                <span>{sending ? "Отправка..." : text.send}</span>
               </button>
             </form>
           )}
@@ -293,7 +292,7 @@ export default function SupportWidget() {
       <button
         className="support-widget__toggle"
         type="button"
-        aria-label={open ? t(text.close) : t(text.open)}
+        aria-label={open ? text.close : text.open}
         aria-expanded={open}
         onClick={() => { if (!sending) setOpen((v) => !v); }}
         disabled={(open && sending) || hiding || entering}

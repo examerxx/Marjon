@@ -1,6 +1,6 @@
+import { useTranslation } from "react-i18next";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { useTranslation } from "react-i18next";
 import App from "./App.jsx";
 import "./i18n/index.js";
 import "./styles/global/marjon-tokens.css";
@@ -33,6 +33,9 @@ import "./styles/preview/dark-shell.css";
 // VIEWPORT-FIT-01: последний слой — подчиняет высоту секций высоте окна.
 // Импортируется последним осознанно: перекрывает фиксированные min-height.
 import "./styles/owner/viewport-fit.css";
+import "./styles/preview/floating-shell.css";
+import "./components/topbar/profileRefinements.css";
+import "./styles/preview/sidebar-liquid-glass.css";
 
 /**
  * Перерисовка всего приложения при смене языка.
@@ -51,10 +54,10 @@ function LanguageBoundary({ children }) {
   return <React.Fragment key={i18n.language}>{children}</React.Fragment>;
 }
 
+import "./styles/global/theme.css";
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <LanguageBoundary>
-      <App />
-    </LanguageBoundary>
+    <LanguageBoundary><App /></LanguageBoundary>
   </React.StrictMode>,
 );

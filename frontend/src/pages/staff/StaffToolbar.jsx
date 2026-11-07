@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import Icon from "../../components/Icon";
 import { roleOptions } from "./staffConstants";
-import { t } from "../../i18n/t";
 
 // Шапка, вкладки статуса и панель фильтров списка сотрудников OWNER.
 // Вынесено из StaffRolePage.jsx (FE-07B). Разметка, классы и текст сохранены 1:1;
@@ -65,7 +64,7 @@ export default function StaffToolbar({
         <div className="staff-header__title">
           <span className="staff-header__accent" aria-hidden="true" />
           <div>
-            <p className="staff-header__eyebrow">{t("pages.staff.stafftoolbar.polzovateli")}</p>
+            <p className="staff-header__eyebrow">Пользователи</p>
             <h1>{pageTitle}</h1>
           </div>
         </div>
@@ -73,7 +72,7 @@ export default function StaffToolbar({
           <div
             className="staff-tabs staff-tabs--slider"
             role="tablist"
-            aria-label={t("pages.staff.stafftoolbar.status_sotrudnikov")}
+            aria-label="Статус сотрудников"
             data-active={activeTab}
             ref={tabsRef}
           >
@@ -92,7 +91,7 @@ export default function StaffToolbar({
               onClick={() => setActiveTab("active")}
             >
               <Icon name="bi-check2-circle" size={17} />
-             {t("pages.staff.stafftoolbar.aktivnye")}
+              Активные
             </button>
             <button
               className={activeTab === "archived" ? "is-active" : ""}
@@ -101,12 +100,12 @@ export default function StaffToolbar({
               onClick={() => setActiveTab("archived")}
             >
               <Icon name="bi-archive" size={17} />
-             {t("pages.staff.stafftoolbar.arhivirovannye")}
+              Архивированные
             </button>
           </div>
           <button className="staff-add-button staff-add-button--cashier" type="button" onClick={openAddModal}>
             <Icon name="bi-plus" size={18} />
-           {t("pages.staff.stafftoolbar.dobavit")}
+            Добавить +
           </button>
         </div>
       </header>
@@ -118,24 +117,24 @@ export default function StaffToolbar({
         <div className="staff-header__title">
           <span className="staff-header__accent" aria-hidden="true" />
           <div>
-            <p className="staff-header__eyebrow">{t("pages.staff.stafftoolbar.polzovateli")}</p>
+            <p className="staff-header__eyebrow">Пользователи</p>
             <h1>{pageTitle}</h1>
           </div>
         </div>
         <button className="staff-add-button" type="button" onClick={openAddModal}>
           <Icon name="bi-plus" size={18} />
-         {t("pages.staff.stafftoolbar.dobavit")}
+          Добавить +
         </button>
       </header>
 
-      <div className="staff-tabs" role="tablist" aria-label={t("pages.staff.stafftoolbar.status_sotrudnikov")}>
+      <div className="staff-tabs" role="tablist" aria-label="Статус сотрудников">
         <button
           className={activeTab === "active" ? "is-active" : ""}
           type="button"
           onClick={() => setActiveTab("active")}
         >
           <Icon name="bi-check2-circle" size={17} />
-         {t("pages.staff.stafftoolbar.aktivnye")}
+          Активные
         </button>
         <button
           className={activeTab === "archived" ? "is-active" : ""}
@@ -143,7 +142,7 @@ export default function StaffToolbar({
           onClick={() => setActiveTab("archived")}
         >
           <Icon name="bi-archive" size={17} />
-         {t("pages.staff.stafftoolbar.arhivirovannye")}
+          Архивированные
         </button>
       </div>
 
@@ -152,7 +151,7 @@ export default function StaffToolbar({
       {!hideFilters && (
       <div className="staff-filters">
         <label>
-          <span>{t("pages.staff.stafftoolbar.poisk")}</span>
+          <span>Поиск</span>
           <div className="staff-filter-control">
             <Icon name="bi-search" size={17} />
             <input
@@ -161,12 +160,12 @@ export default function StaffToolbar({
               onChange={(event) =>
                 setDraftFilters((current) => ({ ...current, query: event.target.value }))
               }
-              placeholder={t("pages.staff.stafftoolbar.fio_ili_telefon")}
+              placeholder="ФИО или телефон"
             />
           </div>
         </label>
         <label>
-          <span>{t("pages.staff.stafftoolbar.rol")}</span>
+          <span>Роль</span>
           <select
             value={draftFilters.roleKey}
             onChange={(event) =>
@@ -174,35 +173,35 @@ export default function StaffToolbar({
             }
             disabled={routeRole !== "all"}
           >
-            <option value="">{t("pages.staff.stafftoolbar.vse_roli")}</option>
+            <option value="">Все роли</option>
             {roleOptions.map((item) => (
               <option key={item.key} value={item.key}>
-                {t(item.label)}
+                {item.label}
               </option>
             ))}
           </select>
         </label>
         <label>
-          <span>{t("pages.staff.stafftoolbar.status")}</span>
+          <span>Статус</span>
           <select
             value={draftFilters.status}
             onChange={(event) =>
               setDraftFilters((current) => ({ ...current, status: event.target.value }))
             }
           >
-            <option value="">{t("pages.staff.stafftoolbar.vse_statusy")}</option>
-            <option value="active">{t("pages.staff.stafftoolbar.aktivnye")}</option>
-            <option value="archived">{t("pages.staff.stafftoolbar.arhivirovannye")}</option>
+            <option value="">Все статусы</option>
+            <option value="active">Активные</option>
+            <option value="archived">Архивированные</option>
           </select>
         </label>
         <div className="staff-filter-buttons">
           <button type="button" onClick={applyFilters}>
             <Icon name="bi-funnel" size={16} />
-           {t("pages.staff.stafftoolbar.filtrovat")}
+            Фильтровать
           </button>
           <button type="button" className="staff-clear-button" onClick={clearFilters}>
             <Icon name="bi-arrow-counterclockwise" size={16} />
-           {t("pages.staff.stafftoolbar.ochistit")}
+            Очистить
           </button>
         </div>
       </div>

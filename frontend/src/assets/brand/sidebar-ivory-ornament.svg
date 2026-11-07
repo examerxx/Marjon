@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="380" viewBox="0 0 280 380">
+ <defs>
+  <filter id="relief"><feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#b6a68f" flood-opacity=".28"/></filter>
+  <g id="petal"><path d="M0 0 C-27-24-24-66 0-85 C24-66 27-24 0 0Z"/><path d="M0-9 C-12-30-12-52 0-68 C12-52 12-30 0-9Z"/></g>
+  <g id="flower" fill="#faf9f6" stroke="#ded4c4" stroke-width=".8" filter="url(#relief)">
+   <use href="#petal"/><use href="#petal" transform="rotate(45)"/><use href="#petal" transform="rotate(90)"/><use href="#petal" transform="rotate(135)"/><use href="#petal" transform="rotate(180)"/><use href="#petal" transform="rotate(225)"/><use href="#petal" transform="rotate(270)"/><use href="#petal" transform="rotate(315)"/><circle r="15"/><circle r="8"/>
+  </g>
+ </defs>
+ <path d="M-25 12 Q20 95 140 145 T305 310 L305 400 H-25Z" fill="#f7f5f0" opacity=".7"/>
+ <path d="M-25 12 Q20 95 140 145 T305 310 M-25 21 Q20 104 140 154 T305 319" fill="none" stroke="#d9c9ad" stroke-width="1"/>
+ <use href="#flower" transform="translate(105 270) scale(1.15)"/>
+ <use href="#flower" transform="translate(-8 155) scale(.65)"/>
+ <use href="#flower" transform="translate(268 360) scale(.85)"/>
+ <use href="#flower" transform="translate(245 195) scale(.5)"/>
+ <path d="M12 375 Q-5 295 47 298 M180 310 Q230 280 248 238 M5 215 Q25 192 44 213" fill="none" stroke="#ded4c4" stroke-width="2"/>
+</svg>

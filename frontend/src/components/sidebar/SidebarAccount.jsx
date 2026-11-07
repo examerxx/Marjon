@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Icon from "../Icon";
@@ -11,7 +12,7 @@ export default function SidebarAccount({
   accountRef,
   accountOpen,
   setAccountOpen,
-  collapsed,
+  collapsed: railCollapsed,
   displayName,
   user,
   profilePhoto,
@@ -30,6 +31,9 @@ export default function SidebarAccount({
   closeCollapsedAccount,
 }) {
   const { t } = useTranslation();
+  const [profileHost, setProfileHost] = useState(null);
+  useLayoutEffect(() => { setProfileHost(document.getElementById("preview-topbar-profile")); }, []);
+  const collapsed = profileHost ? false : railCollapsed;
   // Presence model so the panel animates OUT before unmounting (smooth close),
   // not just a hard conditional unmount. `render` keeps the node mounted while
   // closing; `closing` drives the exit animation; animationend clears it.
@@ -39,7 +43,11 @@ export default function SidebarAccount({
   const [langClosing, setLangClosing] = useState(false);
   useEffect(() => {
     if (accountOpen) { setRender(true); setClosing(false); }
-    else if (render) { setClosing(true); }
+    else if (render) {
+      setClosing(true);
+      const timer = setTimeout(() => { setClosing(false); setRender(false); }, 190);
+      return () => clearTimeout(timer);
+    }
   }, [accountOpen]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (langPanelOpen) { setLangRender(true); setLangClosing(false); }
@@ -60,7 +68,7 @@ export default function SidebarAccount({
   // Selected-language binding: the compact trigger reflects the actual `lang`.
   const activeLang = sidebarLanguages.find((l) => l.code === lang) || sidebarLanguages[1];
 
-  return (
+  const account = (
     <div
       className={`sidebar-account ${accountOpen ? "is-open" : ""}`}
       ref={accountRef}
@@ -71,18 +79,21 @@ export default function SidebarAccount({
         <div
           className={`sidebar-account__menu ${closing ? "is-closing" : ""}`}
           role="menu"
+          inert={closing ? "" : undefined}
+          aria-hidden={closing || undefined}
           onAnimationEnd={handleMenuAnimEnd}
           onMouseEnter={openCollapsedAccount}
           onMouseLeave={closeCollapsedAccount}
         >
-          <div className="sidebar-account__head">
+          {!profileHost && <div className="sidebar-account__head">
             <div className={`sidebar-user__avatar ${storedProfile.photo ? "sidebar-user__avatar--photo" : ""}`}>
               <img src={profilePhoto} alt={displayName} className="sidebar-user-logo" decoding="async" />
             </div>
             <div className="sidebar-account__head-meta">
               <strong>{displayName}</strong>
             </div>
-          </div>
+          </div>}
+          <div id="preview-profile-balance" />
           {canOpenProfile ? (
             <Link className="sidebar-account__item" to="/settings/profile" role="menuitem" onClick={() => closeAccountAndSelectMenu("settings")}>
               <Icon name="bi-person-gear" size={16} />
@@ -161,7 +172,6 @@ export default function SidebarAccount({
         <div
           className="sidebar-account__hover-bridge"
           aria-hidden="true"
-          onMouseEnter={openCollapsedAccount}
           onMouseLeave={closeCollapsedAccount}
         />
       ) : null}
@@ -184,4 +194,5 @@ export default function SidebarAccount({
       </button>
     </div>
   );
+  return profileHost ? createPortal(account, profileHost) : null;
 }

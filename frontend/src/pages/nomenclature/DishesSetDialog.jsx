@@ -6,7 +6,6 @@ import ReportEmptyState from "../../components/ReportEmptyState";
 import { useAnchoredDialogMotion } from "../../hooks/useAnchoredDialogMotion";
 import { catalogService } from "../../api/catalog";
 import DishSingleSelect from "./DishSingleSelect";
-import { t } from "../../i18n/t";
 
 const money = (value) => value ? String(value).replace(/\s*UZS$/i, " сум") : "—";
 
@@ -462,15 +461,15 @@ export default function DishesSetDialog({ dish, rows = [], onClose, returnFocusR
         aria-modal="true" aria-labelledby="dish-set-title" aria-describedby="dish-set-dish"
         onMouseDown={(event) => event.stopPropagation()} onKeyDown={trapFocus}>
         <header className="kpi-info-window__head dish-recipes-head">
-          <div><h2 id="dish-set-title">{t("pages.nomenclature.dishessetdialog.set")}</h2><p id="dish-set-dish">{dish.name || "—"}</p></div>
+          <div><h2 id="dish-set-title">Сет</h2><p id="dish-set-dish">{dish.name || "—"}</p></div>
           <dl className="dish-recipes-metric dish-set-metric--sale">
-            <dt>{t("pages.nomenclature.dishessetdialog.tsena_prodazhi")}</dt><dd>{money(dish.price)}</dd>
+            <dt>Цена продажи</dt><dd>{money(dish.price)}</dd>
           </dl>
           <dl className="dish-recipes-metric dish-set-metric--cost">
-            <dt>{t("pages.nomenclature.dishessetdialog.sebestoimost")}</dt><dd>{headerCost}</dd>
+            <dt>Себестоимость</dt><dd>{headerCost}</dd>
           </dl>
           <dl className="dish-recipes-metric dish-set-metric--total">
-            <dt>{t("pages.nomenclature.dishessetdialog.summa_nabora")}</dt><dd>{setTotal ? `${groupSum(setTotal)} сум` : "—"}</dd>
+            <dt>Сумма набора</dt><dd>{setTotal ? `${groupSum(setTotal)} сум` : "—"}</dd>
           </dl>
           <button
             type="button"
@@ -480,20 +479,20 @@ export default function DishesSetDialog({ dish, rows = [], onClose, returnFocusR
           >
             {dish.photo ? <img src={dish.photo} alt="" /> : <Icon name="bi-image" size={22} />}
           </button>
-          <button type="button" className="kpi-info-window__close" aria-label={t("pages.nomenclature.dishessetdialog.zakryt_set")} onClick={requestClose}>
+          <button type="button" className="kpi-info-window__close" aria-label="Закрыть сет" onClick={requestClose}>
             <Icon name="bi-x-lg" size={20} />
           </button>
         </header>
-        <div className="dish-recipes-body" tabIndex={0} role="region" aria-label={t("pages.nomenclature.dishessetdialog.sostav_seta")}>
+        <div className="dish-recipes-body" tabIndex={0} role="region" aria-label="Состав сета">
           <form className="dish-recipes-add-row dish-set-add-row" onSubmit={handleAdd}>
             <div className="dish-recipes-field">
-              <span className="dish-recipes-field-label">{t("pages.nomenclature.dishessetdialog.tip")}</span>
+              <span className="dish-recipes-field-label">Тип</span>
               <DishSingleSelect
-                label={t("pages.nomenclature.dishessetdialog.tip")}
-                placeholder={t("pages.nomenclature.dishessetdialog.vyberite_tip")}
+                label="Тип"
+                placeholder="Выберите тип"
                 options={[
-                  { value: "dish", label: t("pages.nomenclature.dishessetdialog.blyudo") },
-                  { value: "sale", label: t("pages.nomenclature.dishessetdialog.tovar") },
+                  { value: "dish", label: "Блюдо" },
+                  { value: "sale", label: "Товар" },
                 ]}
                 value={selectedKind}
                 onChange={(next) => { setSelectedKind(next || "dish"); setSelectedCategory(""); setSelectedId(""); }}
@@ -501,10 +500,10 @@ export default function DishesSetDialog({ dish, rows = [], onClose, returnFocusR
               />
             </div>
             <div className="dish-recipes-field">
-              <span className="dish-recipes-field-label">{t("pages.nomenclature.dishessetdialog.kategoriya")}</span>
+              <span className="dish-recipes-field-label">Категория</span>
               <DishSingleSelect
-                label={t("pages.nomenclature.dishessetdialog.kategoriya")}
-                placeholder={t("pages.nomenclature.dishessetdialog.vyberite_kategoriyu")}
+                label="Категория"
+                placeholder="Выберите категорию"
                 emptyLabel="Нет категорий"
                 options={categoryOptions}
                 value={selectedCategory}
@@ -529,12 +528,12 @@ export default function DishesSetDialog({ dish, rows = [], onClose, returnFocusR
               />
             </div>
             <label className="dish-recipes-field">
-              <span className="dish-recipes-field-label">{t("pages.nomenclature.dishessetdialog.kol_vo")}</span>
+              <span className="dish-recipes-field-label">Кол-во</span>
               <span className="dish-recipes-qty-wrap">
                 <input
                   inputMode="decimal"
                   placeholder="0"
-                  aria-label={t("pages.nomenclature.dishessetdialog.kolichestvo")}
+                  aria-label="Количество"
                   value={qty}
                   disabled={saving}
                   onChange={(event) => handleQtyChange(event.target.value)}
@@ -543,39 +542,39 @@ export default function DishesSetDialog({ dish, rows = [], onClose, returnFocusR
               </span>
             </label>
             <label className="dish-recipes-field">
-              <span className="dish-recipes-field-label">{t("pages.nomenclature.dishessetdialog.tsena")}</span>
+              <span className="dish-recipes-field-label">Цена</span>
               <span className="dish-recipes-qty-wrap">
                 <input
                   inputMode="decimal"
                   placeholder="0"
-                  aria-label={t("pages.nomenclature.dishessetdialog.tsena_v_sete")}
+                  aria-label="Цена в сете"
                   value={price}
                   disabled={saving}
                   onChange={(event) => handlePriceChange(event.target.value)}
                 />
-                <span className="dish-recipes-qty-unit">{t("pages.nomenclature.dishessetdialog.sum")}</span>
+                <span className="dish-recipes-qty-unit">сум</span>
               </span>
             </label>
             <label className="dish-recipes-field">
-              <span className="dish-recipes-field-label">{t("pages.nomenclature.dishessetdialog.summa")}</span>
+              <span className="dish-recipes-field-label">Сумма</span>
               <span className="dish-recipes-qty-wrap">
                 <input
                   className="dish-set-sum"
                   inputMode="decimal"
                   placeholder="0"
-                  aria-label={t("pages.nomenclature.dishessetdialog.summa_v_sete")}
+                  aria-label="Сумма в сете"
                   value={sumText !== "" ? sumText : (autoSum !== null ? groupSum(autoSum) : "")}
                   disabled={saving}
                   onChange={(event) => handleSumChange(event.target.value)}
                 />
-                <span className="dish-recipes-qty-unit">{t("pages.nomenclature.dishessetdialog.sum")}</span>
+                <span className="dish-recipes-qty-unit">сум</span>
               </span>
             </label>
             <button type="submit" className="dish-add-button dish-recipes-add" disabled={!canAdd}>
               {saving ? "Сохранение…" : "Добавить"}
             </button>
             <button type="button" className="dish-recipes-clear" onClick={clearForm} disabled={saving}>
-             {t("pages.nomenclature.dishessetdialog.ochistit")}
+              Очистить
             </button>
           </form>
           {optionsError ? <Toast kind="error" message={optionsError} onClose={() => setOptionsError("")} /> : null}
@@ -583,7 +582,7 @@ export default function DishesSetDialog({ dish, rows = [], onClose, returnFocusR
           {error ? <Toast kind="error" message={error} onClose={() => setError("")} /> : null}
           <div className={`settings-table-wrapper dish-recipes-table-wrap${linesLoading ? " is-loading" : ""}`}>
             <div className="dish-recipes-table-scroll">
-              <table className="settings-table dish-recipes-table" aria-label={t("pages.nomenclature.dishessetdialog.sostav_seta")}>
+              <table className="settings-table dish-recipes-table" aria-label="Состав сета">
                 <colgroup>{[8, 32, 14, 16, 16, 14].map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}</colgroup>
                 <thead><tr>{["№", selectedKind === "sale" ? "ТОВАР" : "БЛЮДО", "Кол-во", "Цена", "Сумма", "Действия"].map((title) => <th key={title}>{title}</th>)}</tr></thead>
                 <tbody aria-busy={linesLoading || undefined}>
@@ -613,15 +612,15 @@ export default function DishesSetDialog({ dish, rows = [], onClose, returnFocusR
                       <td>{index + 1}</td>
                       <td>{nameOf(line.product_id)}</td>
                       <td>{formatAmount(line.quantity)}{unitOf(line.product_id) ? ` ${unitOf(line.product_id)}` : ""}</td>
-                      <td>{formatAmount(line.price)} {t("pages.nomenclature.dishessetdialog.sum")}</td>
-                      <td>{groupSum((Number(line.quantity) || 0) * (Number(line.price) || 0))} {t("pages.nomenclature.dishessetdialog.sum")}</td>
+                      <td>{formatAmount(line.price)} сум</td>
+                      <td>{groupSum((Number(line.quantity) || 0) * (Number(line.price) || 0))} сум</td>
                       <td><div className="dish-row-actions">
-                        <button type="button" disabled={saving} onClick={() => openEdit(index)} aria-label={t("pages.nomenclature.dishessetdialog.izmenit_pozitsiyu")}><Icon name="bi-pencil" size={15} /></button>
-                        <button type="button" className="danger" disabled={saving || removingIndex === index} onClick={() => handleRemove(index)} aria-label={t("pages.nomenclature.dishessetdialog.udalit_pozitsiyu")}><Icon name="bi-trash3" size={15} /></button>
+                        <button type="button" disabled={saving} onClick={() => openEdit(index)} aria-label="Изменить позицию"><Icon name="bi-pencil" size={15} /></button>
+                        <button type="button" className="danger" disabled={saving || removingIndex === index} onClick={() => handleRemove(index)} aria-label="Удалить позицию"><Icon name="bi-trash3" size={15} /></button>
                       </div></td>
                     </tr>
                   )) : <tr><td colSpan={6} className="dish-recipes-empty-cell">
-                    <ReportEmptyState title={t("pages.nomenclature.dishessetdialog.sostav_seta_poka_pust")} />
+                    <ReportEmptyState title="Состав сета пока пуст" />
                   </td></tr>}
                 </tbody>
               </table>
@@ -634,7 +633,7 @@ export default function DishesSetDialog({ dish, rows = [], onClose, returnFocusR
                 className="dish-edit-card"
                 role="dialog"
                 aria-modal="true"
-                aria-label={t("pages.nomenclature.dishessetdialog.izmenit_pozitsiyu")}
+                aria-label="Изменить позицию"
                 onMouseDown={(event) => event.stopPropagation()}
                 // Enter в полях количества/суммы = «Сохранить» (панель не форма).
                 onKeyDown={(event) => {
@@ -643,15 +642,15 @@ export default function DishesSetDialog({ dish, rows = [], onClose, returnFocusR
                   saveEdit();
                 }}
               >
-                <h3>{t("pages.nomenclature.dishessetdialog.izmenit_pozitsiyu")}</h3>
+                <h3>Изменить позицию</h3>
                 <p>{nameOf(editLine.product_id)}</p>
                 <label className="dish-recipes-field">
-                  <span className="dish-recipes-field-label">{t("pages.nomenclature.dishessetdialog.kol_vo")}</span>
+                  <span className="dish-recipes-field-label">Кол-во</span>
                   <span className="dish-recipes-qty-wrap">
                     <input
                       inputMode="decimal"
                       placeholder="0"
-                      aria-label={t("pages.nomenclature.dishessetdialog.kolichestvo_pozitsii")}
+                      aria-label="Количество позиции"
                       value={editQty}
                       disabled={saving}
                       onChange={(event) => handleEditQty(event.target.value)}
@@ -660,18 +659,18 @@ export default function DishesSetDialog({ dish, rows = [], onClose, returnFocusR
                   </span>
                 </label>
                 <label className="dish-recipes-field">
-                  <span className="dish-recipes-field-label">{t("pages.nomenclature.dishessetdialog.summa")}</span>
+                  <span className="dish-recipes-field-label">Сумма</span>
                   <span className="dish-recipes-qty-wrap">
                     <input
                       className="dish-set-sum"
                       inputMode="decimal"
                       placeholder="0"
-                      aria-label={t("pages.nomenclature.dishessetdialog.summa_pozitsii")}
+                      aria-label="Сумма позиции"
                       value={editSum}
                       disabled={saving}
                       onChange={(event) => handleEditSum(event.target.value)}
                     />
-                    <span className="dish-recipes-qty-unit">{t("pages.nomenclature.dishessetdialog.sum")}</span>
+                    <span className="dish-recipes-qty-unit">сум</span>
                   </span>
                 </label>
                 <div className="dish-edit-actions">
@@ -679,7 +678,7 @@ export default function DishesSetDialog({ dish, rows = [], onClose, returnFocusR
                     {saving ? "Сохранение…" : "Сохранить"}
                   </button>
                   <button type="button" className="dish-recipes-clear" disabled={saving} onClick={cancelEdit}>
-                   {t("pages.nomenclature.dishessetdialog.otmena")}
+                    Отмена
                   </button>
                 </div>
               </section>
@@ -702,7 +701,7 @@ export default function DishesSetDialog({ dish, rows = [], onClose, returnFocusR
                   type="button"
                   className="dish-photo-viewer__close"
                   onClick={closeZoom}
-                  aria-label={t("pages.nomenclature.dishessetdialog.zakryt_foto")}
+                  aria-label="Закрыть фото"
                 >
                   <Icon name="bi-x-lg" size={18} />
                 </button>

@@ -12,7 +12,6 @@ import { useMutationLocks } from "../hooks/useAsyncSafety";
 import { AdminDashboardContainer, DetailModal } from "./AdminDashboard";
 
 import { CategoryPage } from "./AdminSectionRouter";
-import { t } from "../i18n/t";
 
 const navItems = [
   { key: "dashboard", label: "Дашборд", icon: "bi-grid-1x2-fill" },
@@ -147,10 +146,10 @@ export function LoginView({ onLogin }) {
           <img src={logo} alt="MARJON" />
           <span>MARJON ADMIN</span>
         </div>
-        <h1>{t("admin.adminlayout.dobro_pozhalovat")}</h1>
-        <p className="admin-login__subtitle">{t("admin.adminlayout.voydite_v_rabochee_mesto_superadminki")}</p>
+        <h1>Добро пожаловать</h1>
+        <p className="admin-login__subtitle">Войдите в рабочее место суперадминки.</p>
         <label className="admin-login__field admin-login__field--phone">
-          <span>{t("admin.adminlayout.nomer_telefona")}</span>
+          <span>НОМЕР ТЕЛЕФОНА</span>
           <div className="admin-login__input">
             <Icon name="bi-telephone" size={18} />
             <strong>+998</strong>
@@ -158,7 +157,7 @@ export function LoginView({ onLogin }) {
           </div>
         </label>
         <label className="admin-login__field admin-login__field--password">
-          <span>{t("admin.adminlayout.parol")}</span>
+          <span>ПАРОЛЬ</span>
           <div className="admin-login__input">
             <Icon name="bi-lock" size={18} />
             <input value={password} onChange={(e) => setPassword(e.target.value)} type={showPassword ? "text" : "password"} autoComplete="current-password" required />
@@ -170,9 +169,9 @@ export function LoginView({ onLogin }) {
         <div className="admin-login__options">
           <label>
             <input type="checkbox" defaultChecked />
-            <span>{t("admin.adminlayout.zapomnit_menya")}</span>
+            <span>Запомнить меня</span>
           </label>
-          <button type="button">{t("admin.adminlayout.zabyli_parol")}</button>
+          <button type="button">Забыли пароль?</button>
         </div>
         {error ? <div className="admin-login__error">{error}</div> : null}
         <button className="admin-login__submit" type="submit" disabled={loading}>{loading ? "Входим..." : "Войти"}</button>
@@ -259,7 +258,7 @@ function Sidebar({ active, onSelect, collapsed, onToggle, user, onProfile }) {
                 onClick={() => selectNavItem(item.key)}
               >
                 <Icon name={item.icon} size={18} />
-                <span>{t(item.label)}</span>
+                <span>{item.label}</span>
                 {item.badge ? <em>{item.badge}</em> : null}
               </button>
             );
@@ -281,7 +280,7 @@ function Sidebar({ active, onSelect, collapsed, onToggle, user, onProfile }) {
                 aria-expanded={open}
               >
                 <Icon name={item.icon} size={18} />
-                <span>{t(item.label)}</span>
+                <span>{item.label}</span>
                 <Icon name="bi-chevron-right" size={15} className="admin-nav-group__chevron" />
               </button>
               <div className="admin-nav-sub" role="group">
@@ -293,7 +292,7 @@ function Sidebar({ active, onSelect, collapsed, onToggle, user, onProfile }) {
                     onClick={() => selectNavItem(child.key)}
                   >
                     <Icon name={child.icon || "bi-circle"} size={17} className="admin-nav-sub__icon" />
-                    <span>{t(child.label)}</span>
+                    <span>{child.label}</span>
                   </button>
                 ))}
               </div>
@@ -313,7 +312,7 @@ function Sidebar({ active, onSelect, collapsed, onToggle, user, onProfile }) {
                       <span className="admin-nav-flyout__icon">
                         <Icon name={child.icon || "bi-circle"} size={16} />
                       </span>
-                      <span>{t(child.label)}</span>
+                      <span>{child.label}</span>
                     </button>
                   ))}
                 </div>
@@ -396,12 +395,12 @@ function Header({ user, onBack, notifications = [], onNotificationRefresh, onNot
   return (
     <header className="admin-header">
       <div className="admin-header__title">
-        <button className="admin-back-button" type="button" onClick={goBack} aria-label={t("admin.adminlayout.nazad")}>
+        <button className="admin-back-button" type="button" onClick={goBack} aria-label="Назад">
           <Icon name="bi-chevron-left" size={24} />
         </button>
       </div>
       <div className="admin-header__actions">
-        <div className="admin-date-time" aria-label={t("admin.adminlayout.tekuschaya_data_i_vremya")}>
+        <div className="admin-date-time" aria-label="Текущая дата и время">
           <span className="admin-date-time__item">
             <Icon name="bi-calendar3" size={15} />
             <strong>{formatAdminHeaderDate(now)}</strong>
@@ -429,10 +428,10 @@ function Header({ user, onBack, notifications = [], onNotificationRefresh, onNot
             ) : null}
           </button>
           {notificationsOpen ? (
-            <div className="admin-notification-popover" role="dialog" aria-label={t("admin.adminlayout.uvedomleniya")}>
+            <div className="admin-notification-popover" role="dialog" aria-label="Уведомления">
               <div className="admin-notification-popover__head">
                 <div>
-                  <span>{t("admin.adminlayout.uvedomleniya")}</span>
+                  <span>Уведомления</span>
                   <strong>{notificationTitle}</strong>
                 </div>
                 <button
@@ -440,14 +439,14 @@ function Header({ user, onBack, notifications = [], onNotificationRefresh, onNot
                   type="button"
                   onClick={refreshNotifications}
                   disabled={notificationsLoading}
-                  aria-label={t("admin.adminlayout.obnovit")}
+                  aria-label="Обновить"
                 >
                   <Icon name="bi-arrow-clockwise" size={16} />
                 </button>
               </div>
               <div className="admin-notification-popover__body">
                 {notificationsLoading ? (
-                  <div className="admin-notification-popover__empty">{t("admin.adminlayout.zagruzka")}</div>
+                  <div className="admin-notification-popover__empty">Загрузка...</div>
                 ) : null}
                 {!notificationsLoading && notifications.length ? notifications.map((item) => (
                   <button type="button" className="admin-notification-item" key={item.id} onClick={() => openNotification(item)}>
@@ -455,19 +454,19 @@ function Header({ user, onBack, notifications = [], onNotificationRefresh, onNot
                       <Icon name={item.icon || "bi-exclamation-triangle"} size={16} />
                     </span>
                     <span className="admin-notification-item__body">
-                      <strong>{t(item.title)}</strong>
-                      <span>{t(item.text)}</span>
+                      <strong>{item.title}</strong>
+                      <span>{item.text}</span>
                     </span>
                   </button>
                 )) : null}
                 {!notificationsLoading && !notifications.length ? (
-                  <p className="admin-notification-popover__empty">{t("admin.adminlayout.novyh_soobscheniy_net")}</p>
+                  <p className="admin-notification-popover__empty">Новых сообщений нет</p>
                 ) : null}
               </div>
             </div>
           ) : null}
         </div>
-        <button className="admin-profile" type="button" onClick={onProfile} aria-label={t("admin.adminlayout.profil_administratora")}>
+        <button className="admin-profile" type="button" onClick={onProfile} aria-label="Профиль администратора">
           <div className="admin-profile__avatar">{profileInitial}</div>
           <div className="admin-profile__meta">
             <strong>{profileName}</strong>
@@ -531,16 +530,16 @@ export function AdminShell({ onLogout, user }) {
       title: item[0],
       subtitle: item[1],
       fields: [
-        { label: t("admin.adminlayout.tip_zayavki"), value: item[1] },
-        { label: t("admin.adminlayout.polucheno"), value: item[2] },
-        { label: t("admin.adminlayout.rekomenduemoe_deystvie"), value: item[3] },
+        { label: "Тип заявки", value: item[1] },
+        { label: "Получено", value: item[2] },
+        { label: "Рекомендуемое действие", value: item[3] },
       ],
       actions: [
         { label: item[3], variant: "primary", onClick: () => {
           setMessage("Обработка заявки недоступна: backend mutation contract не подключён.");
           closeDetail();
         } },
-        { label: t("admin.adminlayout.zakryt"), variant: "ghost", onClick: closeDetail },
+        { label: "Закрыть", variant: "ghost", onClick: closeDetail },
       ],
     });
   }
@@ -565,16 +564,16 @@ export function AdminShell({ onLogout, user }) {
   function openProfileDetail() {
     setDetail({
       title: user?.name || "Не указано",
-      subtitle: t("admin.adminlayout.profil_administratora"),
+      subtitle: "Профиль администратора",
       status: "Активна",
       fields: [
-        { label: t("admin.adminlayout.rol"), value: user?.is_superadmin ? "Суперадмин" : "Администратор" },
-        { label: t("admin.adminlayout.telefon"), value: user?.phone || "—" },
-        { label: t("admin.adminlayout.dostup"), value: "Полный доступ" },
+        { label: "Роль", value: user?.is_superadmin ? "Суперадмин" : "Администратор" },
+        { label: "Телефон", value: user?.phone || "—" },
+        { label: "Доступ", value: "Полный доступ" },
       ],
       actions: [
-        { label: t("admin.adminlayout.vyyti"), variant: "primary", onClick: () => { closeDetail(); logout(); } },
-        { label: t("admin.adminlayout.zakryt"), variant: "ghost", onClick: closeDetail },
+        { label: "Выйти", variant: "primary", onClick: () => { closeDetail(); logout(); } },
+        { label: "Закрыть", variant: "ghost", onClick: closeDetail },
       ],
     });
   }
