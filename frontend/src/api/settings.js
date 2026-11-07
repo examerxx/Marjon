@@ -91,6 +91,11 @@ export const settingsService = Object.freeze({
   updatePlaceTable(hallId, tableId, payload) {
     return api.patch(`/halls/${hallId}/tables/${tableId}`, payload);
   },
+  // Схема зала: одна атомарная ручка на все перемещения.
+  // payload = { tables: [{ id, x, y }] }, канва 1000×620.
+  savePlaceTableLayout(hallId, tables) {
+    return api.patch(`/halls/${hallId}/tables/layout`, { tables });
+  },
   deactivatePlaceTable(hallId, tableId) {
     return api.delete(`/halls/${hallId}/tables/${tableId}`);
   },

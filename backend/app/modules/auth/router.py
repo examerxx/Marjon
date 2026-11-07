@@ -1,9 +1,7 @@
 # SlowAPI registers a wrapper whose global namespace is ``slowapi.extension``.
 # Keep endpoint annotations runtime-evaluated in this module so FastAPI sees
 # concrete request models after ``@limiter.limit`` wraps the function.
-from datetime import datetime, timezone
 from uuid import UUID, uuid4
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, status, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -47,6 +45,7 @@ from app.modules.auth.schemas import (
 from app.modules.auth.security import TERMINAL_EMAIL_LIKE, is_terminal_email
 from app.modules.auth.service import AuthService, device_label
 from app.modules.companies.models import Branch, Company
+from app.modules.pos.models import CashierShift
 from app.modules.rbac.models import Role, UserRole
 from app.modules.rbac.constants import KITCHEN_ROLE_SLUGS, OWNER_ASSIGNABLE_ROLE_SLUGS
 from app.shared.rate_limit import limiter
@@ -486,10 +485,13 @@ async def pin_login(
       user_id optionally narrows the check to the employee picked on screen."""
     svc = AuthService(db)
     if data.employee_id is not None:
-        _, access_token, refresh_token = await svc.pin_login(data.employee_id, data.pin)
+        _, access_token, refresh_token = await svc.pin_login(
+            data.employee_id, data.pin, issue_refresh=not data.verify_only
+        )
     elif current_user is not None and current_user.company_id is not None:
         _, access_token, refresh_token = await svc.login_by_pin(
-            current_user.company_id, data.pin, data.user_id
+            current_user.company_id, data.pin, data.user_id,
+            issue_refresh=not data.verify_only,
         )
     else:
         raise HTTPException(status_code=422, detail="employee_id or a terminal session is required")
@@ -636,33 +638,19 @@ async def active_staff(
     current_user: User = Depends(require_staff_lister),
     db: AsyncSession = Depends(get_db),
 ):
-    """IDs of staff active today: a live session (unrevoked, unexpired refresh
-    token) issued since local midnight. Opening a shift requires a PIN login,
-    so the person who opened today's shift is included by construction.
+    """IDs of staff currently in shift — сотрудники с открытой сменой.
 
-    Shift rows themselves are per-branch (cashier_shifts has a single open
-    shift per branch), so they cannot tell which waiter is working — the
-    per-employee session is the signal the POS sidebar needs."""
-    tz_name = (
-        await db.execute(select(Company.timezone).where(Company.id == current_user.company_id))
-    ).scalar_one_or_none() or "Asia/Tashkent"
-    try:
-        tz = ZoneInfo(tz_name)
-    except (ZoneInfoNotFoundError, KeyError):
-        tz = ZoneInfo("Asia/Tashkent")
-
-    now = datetime.now(timezone.utc)
-    day_start = now.astimezone(tz).replace(hour=0, minute=0, second=0, microsecond=0)
+    Раньше сигналом была живая сессия (refresh-токен): закрытая смена не
+    убирала имя из рейла «Персонал», пока сессия не истечёт. Смены теперь
+    персональные, поэтому рейл смотрит именно на открытую смену."""
     rows = await db.execute(
-        select(RefreshToken.user_id)
-        .join(User, User.id == RefreshToken.user_id)
+        select(CashierShift.cashier_id)
+        .join(User, User.id == CashierShift.cashier_id)
         .where(
-            User.company_id == current_user.company_id,
+            CashierShift.company_id == current_user.company_id,
+            CashierShift.status == "open",
             User.is_active.is_(True),
             or_(User.email.is_(None), ~User.email.like(TERMINAL_EMAIL_LIKE)),
-            RefreshToken.revoked_at.is_(None),
-            RefreshToken.expires_at > now,
-            RefreshToken.created_at >= day_start,
         )
         .distinct()
     )

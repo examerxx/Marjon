@@ -9,7 +9,7 @@ from app.modules.companies.models import Branch
 from app.modules.finance.models import PaymentType
 from app.modules.finance.ownership import FinanceScope, require_finance_reference
 from app.modules.halls.models import Hall, Table
-from app.modules.halls.schemas import HallCreate, HallUpdate, TableCreate, TableUpdate
+from app.modules.halls.schemas import HallCreate, HallUpdate, TableCreate, TableLayoutItem, TableUpdate
 from app.shared.exceptions import ConflictError, NotFoundError
 from app.shared.tenant_scope import require_company_resource
 
@@ -395,7 +395,10 @@ class HallService:
         if not hall.is_active:
             raise ConflictError(self._INACTIVE_HALL_DETAIL)
         await self._assert_table_number_free(hall_id, data.number)
-        table = Table(hall_id=hall_id, number=data.number, capacity=data.capacity)
+        table = Table(
+            hall_id=hall_id, number=data.number, capacity=data.capacity,
+            x=data.x, y=data.y,
+        )
         self.db.add(table)
         return await self._commit_table(table)
 
@@ -425,6 +428,28 @@ class HallService:
         for field, value in payload.items():
             setattr(table, field, value)
         return await self._commit_table(table)
+
+    async def save_layout(
+        self, company_id: UUID, hall_id: UUID, items: list[TableLayoutItem]
+    ) -> list[Table]:
+        """Атомарно сохраняет расстановку столов зала. Каждый id должен
+        принадлежать этому залу — чужой/повторяющийся id отклоняет весь
+        запрос, поэтому схема не остаётся наполовину обновлённой."""
+        await self.get(company_id, hall_id)
+        ids = [item.id for item in items]
+        if len(ids) != len(set(ids)):
+            raise ConflictError("Столы в схеме повторяются")
+        result = await self.db.execute(
+            select(Table).where(Table.hall_id == hall_id, Table.id.in_(ids))
+        )
+        by_id = {table.id: table for table in result.scalars().all()}
+        if set(by_id) != set(ids):
+            raise ConflictError("Стол не относится к этому месту")
+        for item in items:
+            by_id[item.id].x = item.x
+            by_id[item.id].y = item.y
+        await self.db.commit()
+        return await self.list_tables(company_id, hall_id)
 
     async def delete_table(self, company_id: UUID, hall_id: UUID, table_id: UUID) -> None:
         await self.get(company_id, hall_id)

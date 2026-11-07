@@ -135,6 +135,9 @@ class PinLoginRequest(BaseSchema):
     employee_id: UUID | None = None
     user_id: UUID | None = None
     pin: str = Field(..., min_length=4, max_length=8)
+    # Подтверждение действия («введите PIN владельца заказа») не должно
+    # открывать смену: без refresh-токена сотрудник не попадает в «Персонал».
+    verify_only: bool = False
 
 
 class BranchLoginRequest(BaseSchema):

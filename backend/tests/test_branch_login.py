@@ -35,6 +35,16 @@ async def _cashier_with_pin(client, owner_headers, pin="1234"):
     return staff
 
 
+async def _open_shift(client, staff_headers, branch_id):
+    resp = await client.post(
+        "/pos/shifts/open",
+        headers=staff_headers,
+        json={"branch_id": branch_id, "opening_cash": 0},
+    )
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
 async def test_branch_login_normalizes_phone_and_hides_password(client):
     _, branch = await _company_with_branch_login(client)
     assert branch["login"] == LOGIN
@@ -78,8 +88,13 @@ async def test_terminal_lists_staff_and_pin_login_with_user_id(client):
     bad = await client.post("/auth/pin-login", headers=term_headers, json={"pin": "0000", "user_id": staff["id"]})
     assert bad.status_code == 401
 
+    # «В смене» — только открытая смена: вход по PIN без смены в рейл не попадает.
     active = await client.get("/auth/active-staff", headers=term_headers)
     assert active.status_code == 200
+    assert staff["id"] not in active.json()
+
+    await _open_shift(client, staff_headers, branch["id"])
+    active = await client.get("/auth/active-staff", headers=term_headers)
     assert staff["id"] in active.json()
 
 
@@ -113,7 +128,7 @@ async def test_shared_pin_prefers_working_staff_over_owner(client, db_engine):
 
 
 async def test_active_staff_excludes_deactivated_employee(client):
-    owner_headers, _ = await _company_with_branch_login(client, slug="activeoff")
+    owner_headers, branch = await _company_with_branch_login(client, slug="activeoff")
     staff = await _cashier_with_pin(client, owner_headers)
 
     terminal = (await client.post(
@@ -124,6 +139,8 @@ async def test_active_staff_excludes_deactivated_employee(client):
         "/auth/pin-login", headers=term_headers, json={"pin": "1234", "user_id": staff["id"]}
     )
     assert login.status_code == 200
+    staff_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    await _open_shift(client, staff_headers, branch["id"])
     assert staff["id"] in (await client.get("/auth/active-staff", headers=term_headers)).json()
 
     off = await client.patch(

@@ -1,4 +1,5 @@
 from __future__ import annotations
+import asyncio
 import math
 import re
 import secrets
@@ -942,7 +943,13 @@ class AuthService:
         await self.db.commit()
 
     async def pin_login(
-        self, employee_id: UUID, pin: str, *, auth_scope: str = "app", branch_id: UUID | None = None
+        self,
+        employee_id: UUID,
+        pin: str,
+        *,
+        auth_scope: str = "app",
+        branch_id: UUID | None = None,
+        issue_refresh: bool = True,
     ) -> tuple[User, str, str]:
         """BE-08: PIN identifies the SESSION (via employee_id), the PIN
         value only proves it — this is what makes "нельзя найти сотрудника
@@ -987,7 +994,10 @@ class AuthService:
             branch_id=branch_id,
         )
         refresh_token = create_refresh_token(auth_scope=auth_scope)
-        await self._save_refresh_token(user.id, refresh_token)
+        if issue_refresh:
+            await self._save_refresh_token(user.id, refresh_token)
+        else:
+            refresh_token = ""  # подтверждение PIN: сессии нет, обновлять нечего
 
         return user, access_token, refresh_token
 
@@ -1000,6 +1010,7 @@ class AuthService:
         branch_id: UUID | None = None,
         allowed_role_slugs: frozenset[str] | None = None,
         auth_scope: str = "app",
+        issue_refresh: bool = True,
     ) -> tuple[User, str, str]:
         """Branch-terminal PIN sign-in, scoped to the terminal's company.
         With user_id (employee picked on screen) the PIN is checked only against
@@ -1016,7 +1027,8 @@ class AuthService:
             if not await self._pin_candidate_allowed(target, branch_id, allowed_role_slugs):
                 raise UnauthorizedError("Invalid PIN")
             return await self.pin_login(
-                user_id, pin, auth_scope=auth_scope, branch_id=branch_id or target.branch_id
+                user_id, pin, auth_scope=auth_scope, branch_id=branch_id or target.branch_id,
+                issue_refresh=issue_refresh,
             )
 
         stmt = select(User).where(
@@ -1038,25 +1050,36 @@ class AuthService:
         # (владелец создан раньше), и смена стартовала не с того профиля.
         # Код владельца продолжает работать, когда он один такой.
         privileged_fallback: User | None = None
-        for candidate in result.scalars().all():
-            if not await self._pin_candidate_allowed(candidate, branch_id, allowed_role_slugs):
+        candidates = [
+            candidate for candidate in result.scalars().all()
+            if await self._pin_candidate_allowed(candidate, branch_id, allowed_role_slugs)
+        ]
+        # bcrypt проверяем пачкой: последовательный перебор всех сотрудников
+        # компании занимал у кассы несколько секунд, и неверный код «подвисал».
+        # Порядок результата сохраняем — он задаёт, кто войдёт при одинаковых PIN.
+        matches = await asyncio.gather(
+            *(verify_password(pin, candidate.pin_hash) for candidate in candidates)
+        )
+        for candidate, matched in zip(candidates, matches):
+            if not matched:
                 continue
-            if await verify_password(pin, candidate.pin_hash):
-                if await self._has_privileged_role(candidate.id):
-                    privileged_fallback = privileged_fallback or candidate
-                    continue
-                return await self.pin_login(
-                    candidate.id,
-                    pin,
-                    auth_scope=auth_scope,
-                    branch_id=branch_id or candidate.branch_id,
-                )
+            if await self._has_privileged_role(candidate.id):
+                privileged_fallback = privileged_fallback or candidate
+                continue
+            return await self.pin_login(
+                candidate.id,
+                pin,
+                auth_scope=auth_scope,
+                branch_id=branch_id or candidate.branch_id,
+                issue_refresh=issue_refresh,
+            )
         if privileged_fallback is not None:
             return await self.pin_login(
                 privileged_fallback.id,
                 pin,
                 auth_scope=auth_scope,
                 branch_id=branch_id or privileged_fallback.branch_id,
+                issue_refresh=issue_refresh,
             )
         raise UnauthorizedError("Invalid PIN")
 

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import pytest
+from botocore.exceptions import EndpointConnectionError
+
 from app.shared import storage as storage_module
 
 
@@ -32,3 +35,32 @@ async def test_storage_upload_private_by_default(monkeypatch):
     url, calls = await _upload(monkeypatch)
     assert "ACL" not in calls
     assert url.endswith("/categories/x.png")
+
+
+def _down_client(monkeypatch):
+    class DownClient:
+        def put_object(self, **kw):
+            raise EndpointConnectionError(endpoint_url="http://localhost:9000")
+
+    monkeypatch.setattr("boto3.client", lambda *args, **kw: DownClient())
+
+
+async def test_storage_upload_falls_back_to_local_media_in_debug(monkeypatch, tmp_path):
+    """DEV-MEDIA: без запущенного MinIO фото не теряется — файл пишется в
+    локальный media-каталог, а URL указывает на backend /media."""
+    _down_client(monkeypatch)
+    monkeypatch.setattr(storage_module.settings, "debug", True)
+    monkeypatch.setattr(
+        storage_module.StorageService, "local_root", property(lambda self: tmp_path)
+    )
+    url = await storage_module.StorageService().upload(b"bytes", "products/x.png", "image/png", public=True)
+    assert url == "/media/marjon-media/products/x.png"
+    assert (tmp_path / "marjon-media" / "products" / "x.png").read_bytes() == b"bytes"
+
+
+async def test_storage_upload_still_fails_in_production(monkeypatch):
+    """PROD: недоступное хранилище остаётся ошибкой, локальная подмена запрещена."""
+    _down_client(monkeypatch)
+    monkeypatch.setattr(storage_module.settings, "debug", False)
+    with pytest.raises(EndpointConnectionError):
+        await storage_module.StorageService().upload(b"bytes", "products/x.png", "image/png")

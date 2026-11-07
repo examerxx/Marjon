@@ -68,26 +68,6 @@ def _is_printer_cooling_down(printer_id: UUID) -> bool:
     return True
 
 
-def _is_private_ip(ip: str | None) -> bool:
-    """RFC 1918: принтер в локальной сети — сервер в облаке не достучится."""
-    if not ip:
-        return False
-    try:
-        parts = ip.split(".")
-        if len(parts) != 4:
-            return False
-        a, b, c, d = (int(p) for p in parts)
-        if a == 10:
-            return True
-        if a == 172 and 16 <= b <= 31:
-            return True
-        if a == 192 and b == 168:
-            return True
-        return False
-    except Exception:
-        return False
-
-
 class PrinterService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -373,13 +353,38 @@ class PrinterService:
 
         Раньше у терминала был только «done»: при ошибке печати задание
         навсегда оставалось pending и всплывало при каждом опросе очереди.
+
+        Если терминал — обычный браузер (нет Electron), печатать он не умеет
+        вовсе. Тогда сервер допечатывает задание сам, иначе чек не выйдет
+        нигде: иначе открытая вкладка «десктопа» молча съедает все задания.
         """
         job = await self.job_repo.get_by_id(job_id, company_id)
         if not job:
             raise NotFoundError("Print job not found")
+        was_pending = job.status == "pending"
         job.status = "failed"
         job.error = (error or "print failed")[:500]
-        return await self.job_repo.save(job)
+        job = await self.job_repo.save(job)
+        if was_pending and error and "electron print unavailable" in error:
+            job = await self._print_on_server(job)
+        return job
+
+    async def _print_on_server(self, job: PrintJob) -> PrintJob:
+        """Fallback для браузерного терминала: печатаем сохранённый payload."""
+        try:
+            printer = await self.get(job.company_id, job.printer_id)
+            if printer.connection_type != "network" or not printer.ip_address:
+                return job
+            raw = base64.b64decode(job.payload)
+            for _ in range(job.copies or 1):
+                await print_raw(printer, raw, timeout=SERVER_PRINT_TIMEOUT)
+            job.status = "done"
+            job.error = None
+            return await self.job_repo.save(job)
+        except (PrinterError, NotFoundError, ValueError):
+            # Принтер реально недоступен — оставляем задание failed с исходной
+            # причиной терминала, чтобы оно не приходило снова и снова.
+            return job
 
     # ── Internal ─────────────────────────────────────────────────────────────
 
@@ -417,8 +422,15 @@ class PrinterService:
         # первый чек после «кулдауна» всё равно ждал SERVER_PRINT_TIMEOUT, а
         # кулдаун живёт в памяти воркера, и при --workers 3 каждый воркер
         # прогревался заново (то быстро, то две секунды — «ведёт себя по-разному»).
+        #
+        # Раньше сервер ещё и не пытался печатать на приватные адреса
+        # (192.168.*), предполагая, что он в облаке. Но в зале бэкенд часто
+        # стоит рядом с принтером, а терминал бывает открыт в браузере, где
+        # window.electron нет — чек не выходил нигде. Поэтому решает только
+        # флаг клиента: не умеет печатать сам (браузер) — печатает сервер,
+        # недоступен принтер — задание уходит на терминал, как и раньше.
         printed = False
-        if skip_server_print or _is_private_ip(printer.ip_address):
+        if skip_server_print:
             job.error = "Печать на терминале клиента"
         elif printer.connection_type == "network" and printer.ip_address:
             if _is_printer_cooling_down(printer.id):

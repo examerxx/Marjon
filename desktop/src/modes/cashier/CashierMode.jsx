@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Search, Plus, Minus, Utensils, Pencil, Coffee, CupSoda, Coins,
+  Search, Plus, Minus, Utensils, Pencil, Coffee, CupSoda,
   LayoutGrid, Armchair, DoorClosed, Sun, Wine, CalendarClock, ArrowLeft, Users, User, Clock, Wallet, BarChart3, ShoppingBag, Bike, Boxes, Printer, Receipt,
-  Bell, ClipboardList, Lock, Settings, RefreshCw, List, MoreHorizontal,
+  Bell, ClipboardList, Settings, RefreshCw, List, MoreHorizontal, Eye, X,
 } from 'lucide-react'
 import { orders, payments, menu, halls as hallsApi, printers as printersApi, customers as customersApi, auth as authApi, finance as financeApi, companies as companiesApi } from '../../shared/api'
 import { onPrintJob } from '../../shared/ws'
@@ -11,7 +11,7 @@ import { onPrintJob } from '../../shared/ws'
 // printers.js — выбор принтера (сотрудник → филиал) из прод-линии.
 import { printJob, startPrintPoller } from '../../shared/printJobs'
 import { pickReceiptPrinter } from '../../shared/printers'
-import { fmtTime, parseApiDate } from '../../shared/time'
+import { fmtTime } from '../../shared/time'
 import DishModal from '../../components/DishModal'
 import FinancePanel from '../../components/FinancePanel'
 import HistoryPanel from '../../components/HistoryPanel'
@@ -23,6 +23,7 @@ import WarehouseWritePanel from '../../components/WarehouseWritePanel'
 import BatchPrintPanel from '../../components/BatchPrintPanel'
 import PaymentModal from '../../components/PaymentModal'
 import InputPromptModal from '../../components/InputPromptModal'
+import PinPad from '../../pages/PinPad'
 import HeaderMenu from '../../components/HeaderMenu'
 import { t } from '../../shared/i18n'
 import { can, must } from '../../shared/permissions'
@@ -48,13 +49,6 @@ function itemIcon(name = '') {
   if (/компот|сок|лимонад|кола|морс/.test(n)) return CupSoda
   if (/чай|кофе|капучино|латте|эспрессо/.test(n)) return Coffee
   return Utensils
-}
-// Сколько минут заказ в работе — подпись «(38 мин)» на карточке стола.
-function minutesSince(iso) {
-  const date = parseApiDate(iso)
-  if (!date) return 0
-  const diff = Date.now() - date.getTime()
-  return diff > 0 ? Math.floor(diff / 60000) : 0
 }
 // Роль-слаг сотрудника: по ней решаем, можно ли оформлять долг.
 function roleSlugOf(user = {}) {
@@ -85,7 +79,7 @@ function orderToLines(order) {
     }))
 }
 
-export default function CashierMode({ user = {}, onBack, onLock, onSettings, courier = false }) {
+export default function CashierMode({ user = {}, onBack, onSettings, courier = false }) {
   const [zones, setZones] = useState([])
   const [orderList, setOrderList] = useState([])
   const [activeZone, setActiveZone] = useState(courier ? 'delivery' : 'all')
@@ -125,9 +119,11 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
   const [printOpen, setPrintOpen] = useState(false)   // Пакетная печать (меню «…», всем)
   const [payExisting, setPayExisting] = useState(null)   // существующий заказ на оплату/закрытие
   const [promptCfg, setPromptCfg] = useState(null)        // модалка ввода (пароль отмены / новый стол)
-  // Официанты, чужой заказ которых уже открыт по PIN в этой сессии. Повторно
-  // пароль не спрашиваем, пока сотрудник не сменился (компонент перемонтируется).
-  const unlockedWaiters = useRef(new Set())
+  // Чужой заказ официант открывает после PIN его владельца; без кода — только
+  // просмотр (кнопка «Назад» на пин-паде).
+  const [orderReadOnly, setOrderReadOnly] = useState(false)
+  const [pinGate, setPinGate] = useState(null)            // { ownerId, employee, title, onSuccess, onCancel }
+  const [tablePick, setTablePick] = useState(null)         // { actingFor, zoneId } — «где сидит гость?»
   const [creating, setCreating] = useState(false)         // создание заказа (лоадер кнопки)
   const [staff, setStaff] = useState([])                 // сотрудники (для смены официанта)
   // Кто сегодня вошёл по PIN / открыл смену. Сайдбар «По официантам» показывает
@@ -138,6 +134,40 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
   const [existingOrder, setExistingOrder] = useState(null) // снимок заказа, который редактируем
   const [paidBefore, setPaidBefore] = useState(0)         // сколько оплачено до возврата в закрытый заказ
   const [paymentMethods, setPaymentMethods] = useState([]) // способы оплаты из веб-админки (Uzum, Yandex…)
+  // Ячейки «Добавить заказ» на доске «По официантам»: заказ, созданный с
+  // нажатой ячейки, остаётся на ней и сразу показывает блюда. Привязка живёт
+  // в localStorage — после перезагрузки терминала карточка остаётся на месте.
+  const slotStorageKey = `marjon_hall_slots:${user.branch_id || localStorage.getItem('marjon_staff_branch') || 'default'}`
+  const [slotBindings, setSlotBindings] = useState(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(slotStorageKey) || '{}')
+      return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
+    } catch { return {} }
+  })
+  // Снимок только что созданного заказа: карточка видна ещё до ответа loadFloor.
+  const [slotOrderCache, setSlotOrderCache] = useState({})
+  const slotIntentRef = useRef(null)        // ячейка, с которой открыли заказ
+  const slotReturnFilterRef = useRef(null)  // фильтр официантов для возврата
+  const slotWaiterRef = useRef(null)        // на кого создаём (чужой PIN подтверждён)
+  const slotBoundAt = useRef({})            // id → время привязки (защита от гонки с polling)
+  // Перенос карточки заказа на соседнюю ячейку профиля: тянем влево/вправо.
+  const [dragSlot, setDragSlot] = useState(null)   // { orderId, from, over }
+  const dragStartRef = useRef(null)                // { x, y, from, orderId }
+  const suppressClickRef = useRef(false)           // после переноса клик не открывает заказ
+  useEffect(() => {
+    try { localStorage.setItem(slotStorageKey, JSON.stringify(slotBindings)) } catch { /* quota */ }
+  }, [slotStorageKey, slotBindings])
+  // Снятая привязка (заказ закрыт/отменён) убирает и снимок из кэша.
+  useEffect(() => {
+    const ids = new Set(Object.values(slotBindings).map(String))
+    setSlotOrderCache((prev) => {
+      const keys = Object.keys(prev)
+      if (keys.every((k) => ids.has(k))) return prev
+      const next = {}
+      for (const k of keys) if (ids.has(k)) next[k] = prev[k]
+      return next
+    })
+  }, [slotBindings])
   // Типы заказа из профиля компании («Другие настройки» веба). null = ещё не
   // загружено или ошибка — считаем всё включённым (как раньше).
   const [orderTypes, setOrderTypes] = useState(null)
@@ -199,7 +229,24 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
       .then((d) => { const l = Array.isArray(d) ? d : d?.items || []; setZones(l); setHallsError('') })
       .catch((error) => setHallsError(errorMessage(error, t('load_halls_error'))))
     orders.list({ branch_id: user.branch_id })
-      .then((d) => { const all = Array.isArray(d) ? d : d?.items || []; setOrderList(all.filter((o) => ACTIVE.has(o.status))) })
+      .then((d) => {
+        const all = Array.isArray(d) ? d : d?.items || []
+        const active = all.filter((o) => ACTIVE.has(o.status))
+        setOrderList(active)
+        // Закрытый/отменённый заказ освобождает ячейку. Свежую привязку не
+        // срезаем: ответ polling мог уйти на сервер раньше создания заказа.
+        setSlotBindings((prev) => {
+          const ids = new Set(active.map((o) => String(o.id)))
+          const now = Date.now()
+          let changed = false
+          const next = {}
+          for (const [slot, id] of Object.entries(prev)) {
+            if (ids.has(String(id)) || now - (slotBoundAt.current[String(id)] || 0) < 15000) next[slot] = id
+            else { changed = true; delete slotBoundAt.current[String(id)] }
+          }
+          return changed ? next : prev
+        })
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [user.branch_id])
@@ -222,9 +269,8 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     }
   }, [loadFloor])
 
-  // «Активные сегодня»: кто вошёл по PIN с начала локальных суток (открытие
-  // смены тоже требует PIN-входа). Обновляем раз в минуту — официанты
-  // подходят к терминалу в течение дня.
+  // «В смене»: у кого сейчас открыта смена. Раз в 15 с — чтобы закрытая
+  // смена сразу убирала имя из рейла, а не висела до конца дня.
   const refreshActiveStaff = useCallback(() => {
     authApi.activeStaff()
       .then((ids) => setActiveStaffIds((Array.isArray(ids) ? ids : []).map(String)))
@@ -233,7 +279,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
 
   useEffect(() => {
     refreshActiveStaff()
-    const id = setInterval(refreshActiveStaff, 60000)
+    const id = setInterval(refreshActiveStaff, 15000)
     return () => clearInterval(id)
   }, [refreshActiveStaff])
 
@@ -352,11 +398,54 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     setDeliveryPhone(''); setDeliveryAddress(''); setCustId(null); setCustMatches([])
     setEditLine(null)
   }
+  // Ячейка «Добавить заказ» → созданный заказ остаётся на этой ячейке.
+  // Ключ привязки — «сотрудник:ячейка»: у каждого профиля своя раскладка,
+  // иначе заказ одного официанта переносил карточку в чужом профиле.
+  function bindSlot(index, order, ownerId) {
+    if (index == null || !order?.id) return
+    const id = String(order.id)
+    const owner = String(ownerId || order.waiter_id || user.id)
+    slotBoundAt.current[id] = Date.now()
+    setSlotOrderCache((prev) => ({ ...prev, [id]: order }))
+    setSlotBindings((prev) => ({ ...prev, [`${owner}:${index}`]: id }))
+  }
+  function clearSlotIntent() {
+    slotIntentRef.current = null
+    slotReturnFilterRef.current = null
+    slotWaiterRef.current = null
+  }
+  // «Добавить заказ» (+) сначала спрашивает, где сидит гость: зал и стол из
+  // конструктора зала. Заказ без стола больше не открывается — иначе на доске
+  // появлялась карточка, которую некуда посадить в зале.
+  function openTablePicker(actingFor) {
+    const current = zones.find((z) => z.id === activeZone)
+    const firstFreeZone = zones.find((z) => freeCount(z.tables || []) > 0)
+    setTablePick({
+      actingFor: actingFor || null,
+      zoneId: current?.id || firstFreeZone?.id || zones[0]?.id || null,
+    })
+  }
+  function chooseTable(tb) {
+    const actingFor = tablePick?.actingFor || null
+    setTablePick(null)
+    // Ячейку «+», с которой открыли заказ, не забываем: карточка вернётся
+    // на неё же, а не отдельной группой сверху (иначе все плюсы съезжают).
+    slotWaiterRef.current = actingFor
+    openOrder('dine_in', { id: tb.id, number: tb.number })
+  }
+  // Отмена выбора стола: ячейка «+» больше не цель — заказ с неё не начинали.
+  function closeTablePicker() {
+    setTablePick(null)
+    clearSlotIntent()
+  }
   function openOrder(type, table) {
+    // Быстрый чек/доставка сбрасывают намерение ячейки — заказ не её.
+    if (type !== 'dine_in') clearSlotIntent()
     resetOrderDraft()
     setOrderType(type); setSelectedTable(table || null)
     setAddToOrderId(null)   // новый заказ
     setExistingOrder(null); setOrderLines([]); setPaidBefore(0)
+    setOrderReadOnly(false)
     setView('order')
   }
   // Владелец заказа: waiter_id, иначе ищем сотрудника по имени (старые заказы).
@@ -366,43 +455,14 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     const match = [...hallWaiters, ...staff].find((w) => w.name && w.name === order.waiter_name)
     return match ? String(match.id) : null
   }
-  // Чужой заказ официант открывает только по PIN его владельца. Кассир,
-  // менеджер и владелец работают без подтверждения.
-  function askOrderPin(order, paid) {
-    const ownerId = orderOwnerId(order)
-    const owner = hallWaiters.find((w) => String(w.id) === ownerId)
-      || staff.find((w) => String(w.id) === ownerId)
-    const ownerName = owner?.name || order.waiter_name || t('waiters')
-    setPromptCfg({
-      title: t('other_waiter_order'),
-      hint: `${ownerName} · ${t('other_waiter_pin_hint')}`,
-      placeholder: 'PIN',
-      type: 'password',
-      submitLabel: t('pin_confirm'),
-      onSubmit: async (pin) => {
-        // Неверный PIN бэкенд отдаёт 4xx, поэтому локальную ошибку показываем
-        // сами — иначе в модалке всплывало английское «Invalid PIN».
-        const who = await authApi.verifyPin(pin, ownerId).catch(() => null)
-        if (!who || String(who.id) !== ownerId) throw new Error(t('lp_bad_pin'))
-        unlockedWaiters.current.add(ownerId)
-        setPromptCfg(null)
-        openExistingOrder(order, paid)
-      },
-    })
-  }
-  // Снимок заказа → экран. Это ТОТ ЖЕ экран, что и при заказе блюда в пустом
-  // столе: слева меню, справа уже заказанные блюда и новые.
+  // Чужой заказ официант открывает только для просмотра: PIN владельца
+  // спрашиваем позже — по кнопке «Добавить заказ» (см. unlockForeignOrder).
   async function openExistingOrder(order, paid = 0) {
     if (!order?.id) return
     const ownerId = orderOwnerId(order)
-    if (
-      roleSlugOf(user) === 'waiter'
-      && ownerId && ownerId !== String(user.id)
-      && !unlockedWaiters.current.has(ownerId)
-    ) {
-      askOrderPin(order, paid)
-      return
-    }
+    const foreign = roleSlugOf(user) === 'waiter' && Boolean(ownerId) && ownerId !== String(user.id)
+    clearSlotIntent()   // открыли готовый заказ — ячейка больше не создаётся
+    setOrderReadOnly(foreign)
     const fresh = await orders.get(order.id).catch(() => order)
     resetOrderDraft()
     setOrderType(fresh?.order_type === 'delivery' || fresh?.order_type === 'takeaway' ? fresh.order_type : 'dine_in')
@@ -414,11 +474,25 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     setPayExisting(null)
     setView('order')
   }
+  // «Добавить заказ» в чужом заказе: PIN владельца подтверждает дозаказ,
+  // сессия остаётся своей. Отмена на пин-паде оставляет режим просмотра.
+  function unlockForeignOrder() {
+    const ownerId = orderOwnerId(existingOrder)
+    const owner = [...boardWaiters, ...staff].find((w) => String(w.id) === ownerId)
+      || { id: ownerId, name: existingOrder?.waiter_name || '' }
+    setPinGate({
+      ownerId,
+      employee: owner,
+      onSuccess: () => setOrderReadOnly(false),
+    })
+  }
   // Выход из меню назад: возвращаемся к столам. Черновик сбрасываем, иначе
   // выбранные блюда «переехали» бы в следующий заказ.
   function backFromOrder() {
+    clearSlotIntent()
     setCart([]); setOrderNote(''); setEditLine(null); setAddToOrderId(null)
     setExistingOrder(null); setOrderLines([]); setPaidBefore(0)
+    setOrderReadOnly(false)
     setView('floor')
   }
   // «Назад» в TopBar (App.jsx): сначала закрываем верхний слой
@@ -428,6 +502,13 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
   useEffect(() => {
     function onNavBack(e) {
       const mark = () => { e.detail.handled = true }
+      if (pinGate) {
+        const cancel = pinGate.onCancel
+        setPinGate(null)
+        cancel?.()
+        mark()
+        return
+      }
       if (promptCfg) { setPromptCfg(null); mark(); return }
       if (editLine) { setEditLine(null); mark(); return }
       if (payExisting) { setPayExisting(null); mark(); return }
@@ -444,7 +525,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     window.addEventListener('marjon:back', onNavBack)
     return () => window.removeEventListener('marjon:back', onNavBack)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [promptCfg, editLine, payExisting, finOpen, histOpen, repOpen, stopOpen, attOpen, staffOpen, whOpen, printOpen, view])
+  }, [pinGate, promptCfg, editLine, payExisting, finOpen, histOpen, repOpen, stopOpen, attOpen, staffOpen, whOpen, printOpen, view])
   // Автокомплит постоянных клиентов по номеру
   function onDeliveryPhone(raw) {
     const digits = extractPhoneDigits(raw); setDeliveryPhone(digits); setCustId(null)
@@ -480,6 +561,10 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
   // Официант только добавляет блюда и печатает чек: счёт закрывает кассир.
   // Это правило роли, а не тумблера, — иначе легаси-права «разрешают всё».
   const isWaiter = roleSlug === 'waiter'
+  // Заводить заказ на другого сотрудника, править и печатать его чек может
+  // только касса/администрация. Официант работает строго под своим именем,
+  // а чужие заказы открывает для просмотра.
+  const canActForOthers = ['owner', 'manager', 'admin', 'cashier'].includes(roleSlug)
   const canCloseBill = can(user, 'can_close_bill') && !isWaiter
   const canDebt = canCloseBill && roleSlug !== 'courier'
 
@@ -728,8 +813,11 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
         await pushCartToOrder()
         toast(t('order_created'))
       } else {
-        await orders.create({
+        const created = await orders.create({
           branch_id: user.branch_id,
+          // Ячейка на доске выбранного официанта: заказ оформляем на него
+          // (PIN уже подтверждён), иначе — на текущего пользователя.
+          waiter_id: slotWaiterRef.current || undefined,
           order_type: orderType,
           table_id: orderType === 'dine_in' ? (selectedTable?.id || undefined) : undefined,
           table_number: orderType === 'dine_in' && selectedTable?.number != null ? String(selectedTable.number) : undefined,
@@ -739,6 +827,14 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
           customer_address: orderType === 'delivery' ? (deliveryAddress || undefined) : undefined,
           items: cart.map((i) => ({ product_id: i.product.id, quantity: i.qty, note: i.note || null, takeaway: courier ? true : !!i.takeaway, modifiers: i.modifiers || [] })),
         })
+        // Заказ, начатый с ячейки «Добавить заказ», возвращается на неё же:
+        // кассир/официант сразу видит блюда на нажатой карточке.
+        if (created?.id && slotIntentRef.current != null && orderType === 'dine_in') {
+          bindSlot(slotIntentRef.current, created, slotReturnFilterRef.current || created.waiter_id)
+          setHallMode('waiters')
+          setWaiterFilter(slotReturnFilterRef.current)
+        }
+        clearSlotIntent()
         if (courier) setActiveZone('delivery')
         else if (orderType === 'delivery' || orderType === 'takeaway') setActiveZone(orderType)
         setView('floor'); loadFloor()
@@ -813,51 +909,162 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     />
   ) : null
 
+  // Пин-пад общий для доски зала и экрана заказа: подтверждает действие
+  // на чужом заказе, не меняя текущую сессию терминала. Заголовок не нужен,
+  // а имя сотрудника в карточке показывает, чей код вводят.
+  const pinGateOverlay = pinGate ? (
+    <div className="pin-gate">
+      <PinPad
+        employee={pinGate.employee}
+        onSubmit={async (pin) => {
+          await authApi.verifyPin(pin, pinGate.ownerId)
+          const run = pinGate.onSuccess
+          setPinGate(null)
+          run?.()
+        }}
+        onBack={() => {
+          const cancel = pinGate.onCancel
+          setPinGate(null)
+          cancel?.()
+        }}
+      />
+    </div>
+  ) : null
+
+  // «Добавить заказ» (+) сначала спрашивает зал и стол: стол выбирается из
+  // конструктора зала. Занятые столы видны, но выбрать их нельзя — заказ
+  // откроется только за свободным столом.
+  const tablePickerZone = tablePick
+    ? (zones.find((z) => z.id === tablePick.zoneId) || zones[0] || null)
+    : null
+  const tablePickOverlay = tablePick ? (
+    <div
+      className="table-pick"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('pick_table_title')}
+      onClick={closeTablePicker}
+    >
+      <div className="table-pick__panel" onClick={(e) => e.stopPropagation()}>
+        <header className="table-pick__head">
+          <p className="table-pick__hint">{t('pick_table_hint')}</p>
+          <button
+            type="button"
+            className="table-pick__close"
+            onClick={closeTablePicker}
+            aria-label={t('close')}
+          >
+            <X size={22} />
+          </button>
+        </header>
+        {zones.length === 0 ? (
+          <p className="table-pick__empty">{t('no_halls')}</p>
+        ) : (
+          <>
+            <div className="table-pick__zones" role="group" aria-label={t('hall')}>
+              {zones.map((z) => (
+                <button
+                  key={z.id}
+                  type="button"
+                  aria-pressed={z.id === tablePickerZone?.id}
+                  className={`table-pick__zone ${z.id === tablePickerZone?.id ? 'is-active' : ''}`}
+                  onClick={() => setTablePick((prev) => ({ ...prev, zoneId: z.id }))}
+                >
+                  {z.name}
+                  <span className="table-pick__zone-count">{freeCount(z.tables || [])}</span>
+                </button>
+              ))}
+            </div>
+            <div className="table-pick__grid">
+              {(tablePickerZone?.tables || []).length === 0 ? (
+                <p className="table-pick__empty">{t('pick_table_no_tables')}</p>
+              ) : tablePickerZone.tables.map((tb) => {
+                const status = tableStatus(tb)
+                return (
+                  <button
+                    key={tb.id ?? tb.number}
+                    type="button"
+                    className={`table-pick__table ${status === 'free' ? 'table-pick__table--free' : 'table-pick__table--busy'}`}
+                    disabled={status !== 'free'}
+                    onClick={() => chooseTable(tb)}
+                  >
+                    <span className="table-pick__table-cap">{t('table')}</span>
+                    <span className="table-pick__table-no">{tb.number}</span>
+                    <span className="table-pick__table-status">
+                      <span className={`table-pick__dot ${status === 'free' ? 'table-pick__dot--free' : status === 'ready' ? 'table-pick__dot--ready' : status === 'await' ? 'table-pick__dot--await' : 'table-pick__dot--busy'}`} />
+                      {t(status)}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  ) : null
+
   // ── По официантам: сотрудники и их заказы ──
-  // В сайдбаре — именно официанты; если в филиале их нет, показываем весь персонал,
-  // чтобы список не оставался пустым. Уволенные/отключённые карточки не показываем
-  // вовсе: /auth/staff-users отдаёт их для раздела «Сотрудники», а не для кассы.
+  // Рейл показывает официантов и кассиров, которые сегодня вошли по PIN /
+  // открыли смену. Уволенные/отключённые не показываются вовсе:
+  // /auth/staff-users отдаёт их для раздела «Сотрудники», а не для кассы.
   const activeStaffList = staff.filter((u) => u.is_active !== false)
-  const onlyWaiters = activeStaffList.filter((u) => roleSlugOf(u) === 'waiter')
-  const waitersAll = onlyWaiters.length > 0 ? onlyWaiters : activeStaffList
+  const hallRoles = activeStaffList.filter((u) => ['waiter', 'cashier'].includes(roleSlugOf(u)))
+  const waitersAll = hallRoles.length > 0 ? hallRoles : activeStaffList
   const belongsToWaiter = (o, w) => {
     if (!o || !w) return false
     if (o.waiter_id && String(o.waiter_id) === String(w.id)) return true
     return Boolean(o.waiter_name && w.name && o.waiter_name === w.name)
   }
   const ordersOfWaiter = (w) => orderList.filter((o) => o.order_type === 'dine_in' && belongsToWaiter(o, w))
-  // Сайдбар показывает только активных сегодня: вошёл по PIN / открыл смену
-  // (activeStaffIds) либо уже имеет заказ. Сотрудник за этим терминалом
-  // остаётся всегда; если список активных пуст или недоступен — весь штат.
+  // Сайдбар показывает только тех, у кого открыта смена (activeStaffIds).
+  // Смена закрыта — имени в рейле нет. Сотрудник за этим терминалом остаётся
+  // всегда.
   const activeSet = new Set(activeStaffIds)
-  const worksToday = (w) => activeSet.size === 0
-    || activeSet.has(String(w.id))
-    || String(w.id) === String(user.id)
-    || orderList.some((o) => o.order_type === 'dine_in' && belongsToWaiter(o, w))
+  const worksToday = (w) => activeSet.has(String(w.id)) || String(w.id) === String(user.id)
   const waitersToday = waitersAll.filter(worksToday)
-  // Сотрудник, который ввёл свой PIN, стоит первым: его заказы открываются
-  // по умолчанию, остальные официанты остаются в списке следом.
+  // Сотрудник, который ввёл свой PIN, стоит первым: его заказы видны сразу,
+  // остальные пользователи остаются в списке следом.
   const selfIndex = waitersToday.findIndex((w) => String(w.id) === String(user.id))
   const hallWaiters = selfIndex > 0
     ? [waitersToday[selfIndex], ...waitersToday.filter((_, i) => i !== selfIndex)]
     : waitersToday
-  const meWaiter = hallWaiters.find((w) => String(w.id) === String(user.id)) || null
-  // По умолчанию выбран тот, кто вошёл по PIN (иначе — первый активный официант).
-  // Если выбранный выпал из списка (смена закончилась) — выбираем заново.
-  const waiterPicked = useRef(false)
+  // Доска не теряет заказы сотрудника, который уже закрыл смену: его имя
+  // уходит из рейла, но открытые столы должны оставаться видимыми.
+  const boardWaiters = (() => {
+    const list = [...hallWaiters]
+    const known = new Set(list.map((w) => String(w.id)))
+    for (const o of orderList) {
+      if (o.order_type !== 'dine_in' || (!o.waiter_id && !o.waiter_name)) continue
+      const owner = o.waiter_id
+        ? staff.find((w) => String(w.id) === String(o.waiter_id))
+        : staff.find((w) => w.name && w.name === o.waiter_name)
+      if (owner && !known.has(String(owner.id))) { known.add(String(owner.id)); list.push(owner) }
+    }
+    return list
+  })()
+  // Без фильтра доска показывает все группы: иначе при одном выбранном
+  // сотруднике правая часть доски оставалась пустой. Фильтр включается
+  // кликом по имени и снимается пунктом «Все».
   useEffect(() => {
-    if (hallWaiters.length === 0) return
-    const stillThere = waiterFilter && hallWaiters.some((w) => String(w.id) === String(waiterFilter))
-    if (waiterPicked.current && stillThere) return
-    waiterPicked.current = true
-    setWaiterFilter((meWaiter || hallWaiters[0]).id)
+    if (!waiterFilter) return
+    // Свой профиль существует всегда: не сбрасываем его, пока штат грузится.
+    if (String(waiterFilter) === String(user.id)) return
+    if (hallWaiters.some((w) => String(w.id) === String(waiterFilter))) return
+    if (staff.length === 0) return
+    setWaiterFilter(null)
   }, [staff, activeStaffIds])
+
+  // Официант входит на доску «Персонал» сразу в своём профиле: в окне только
+  // его столы. «Все» остаётся доступным, чтобы посмотреть чужие.
+  useEffect(() => {
+    if (isWaiter) setWaiterFilter(String(user.id))
+  }, [isWaiter, user.id])
 
   // Карточка занятого стола/заказа: зелёная шапка, состав заказа, итог.
   const orderCard = (o, { icon: HeadIcon = Utensils } = {}) => {
     const items = (o.items || []).filter((it) => it.status !== 'cancelled')
     const shown = items.slice(0, 4)
-    const mins = minutesSince(o.created_at)
     const label = o.table_number != null
       ? `${t('table')} ${o.table_number}`
       : `#${o.order_number ?? ''}`
@@ -867,12 +1074,15 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
         key={o.id}
         type="button"
         className={`hcard hcard--${variant}`}
-        onClick={() => { if (!courier) openExistingOrder(o) }}
+        onClick={() => {
+          if (suppressClickRef.current) return   // карточку только что перетащили
+          if (!courier) openExistingOrder(o)
+        }}
       >
         <span className="hcard__head">
           <span className="hcard__title"><HeadIcon size={18} /> {label}</span>
           <span className="hcard__time">
-            <Clock size={13} /> {fmtTime(o.created_at)}{mins > 0 ? ` (${mins} ${t('min_short')})` : ''}
+            <Clock size={13} /> {fmtTime(o.created_at)}
           </span>
         </span>
         <span className="hcard__body">
@@ -893,21 +1103,26 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
             {items.length === 0 && <span className="hcard__item hcard__item--muted">{t.status(o.status)}</span>}
           </span>
         </span>
-        <span className="hcard__foot"><Coins size={19} /> {fmt(o.total_amount)} {t('currency')}</span>
+        <span className="hcard__foot">{fmt(o.total_amount)} {t('currency')}</span>
       </button>
     )
   }
 
-  // Свободный стол — крупный «+» как на схеме зала.
-  const freeTableCard = (tb) => (
+  // Свободный стол — крупный «+» как на схеме зала. В «Все столы» подпись —
+  // номер стола (у каждой ячейки свой), в «По официантам» — «Добавить заказ»:
+  // оттуда клик ведёт на доску столов, где официант выбирает конкретный стол
+  // и уже после выбора попадает в меню.
+  const freeTableCard = (tb, { showNumber = false, pickTable = false } = {}) => (
     <button
       key={tb.id ?? tb.number}
       type="button"
       className="hcard hcard--free"
-      onClick={() => tapTable(tb)}
+      onClick={() => (pickTable ? goHall('tables') : tapTable(tb))}
     >
       <span className="hcard__plus"><Plus size={26} /></span>
-      <span className="hcard__free-title">{t('add_order')}</span>
+      <span className="hcard__free-title">
+        {showNumber && tb.number != null ? `${t('table')} ${tb.number}` : t('add_order')}
+      </span>
     </button>
   )
 
@@ -948,10 +1163,12 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
   )
 
   const goHall = (mode) => {
+    clearSlotIntent()
     setView('floor')
     setHallMode(mode)
     setActiveZone('all')
-    setWaiterFilter(mode === 'waiters' ? (meWaiter || hallWaiters[0])?.id ?? null : null)
+    // Доска «Персонал» открывается в профиле официанта. Касса видит «Все».
+    setWaiterFilter(mode === 'waiters' && isWaiter ? String(user.id) : null)
   }
 
   // Верхние разделы живут в доке «Ещё»: шапка оставляет только бренд,
@@ -961,7 +1178,6 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     { id: 'events', label: t('nav_events'), Icon: Bell, onClick: () => setAttOpen(true) },
     { id: 'orders', label: t('orders'), Icon: ClipboardList, onClick: () => setHistOpen(true) },
     { id: 'stop', label: t('menu_more'), Icon: LayoutGrid, onClick: () => setStopOpen(true) },
-    { id: 'lock', label: t('nav_lock'), Icon: Lock, onClick: onLock },
     ...(must(user, 'can_view_finance') ? [{ id: 'fin', label: t('finance'), Icon: Wallet, onClick: () => setFinOpen(true) }] : []),
     { id: 'rep', label: t('reports'), Icon: BarChart3, onClick: () => setRepOpen(true) },
     ...(must(user, 'can_manage_staff') ? [{ id: 'staff', label: t('dev_staff'), Icon: Users, onClick: () => setStaffOpen(true) }] : []),
@@ -983,7 +1199,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
             <List size={26} /><span>{t('all_tables')}</span>
           </button>
           <button className={`dock__item dock__item--sep ${view === 'floor' && hallMode === 'waiters' ? 'is-active' : ''}`} onClick={() => goHall('waiters')}>
-            <Users size={26} /><span>{t('by_waiters')}</span>
+            <Users size={26} /><span>{t('users')}</span>
           </button>
         </>
       )}
@@ -1006,19 +1222,273 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     const visibleZones = shownZones
       .map((zone) => ({ zone, tables: zone.tables || [] }))
       .filter(({ tables }) => tables.length > 0)
-    const waiterSections = hallWaiters
-      .map((waiter) => ({ waiter, orders: ordersOfWaiter(waiter) }))
-      .filter(({ orders }) => orders.length > 0)
-    // Выбранный в рейле официант фильтрует доску: у Эльёра — только его заказы,
-    // у Азиза — только его. Без фильтра (старт/таблицы) видны все секции.
-    const visibleSections = waiterFilter
-      ? waiterSections.filter(({ waiter }) => String(waiter.id) === String(waiterFilter))
-      : waiterSections
-    const unassignedOrders = orderList.filter((o) => o.order_type === 'dine_in' && !o.waiter_id && !o.waiter_name)
-    const showUnassigned = !waiterFilter && unassignedOrders.length > 0
-    // Свободные столы показываем и в «По официантам»: без заказов доска
-    // не пустует, а предлагает те же ячейки «Добавить заказ».
-    const freeTables = shownTables.filter((tb) => !orderFor(tb))
+    // Заказы, привязанные к ячейкам «Добавить заказ», не дублируем в группах.
+    const boundSlotIds = new Set(Object.values(slotBindings).map(String))
+    // «Все» — общий зал: столы всех официантов вместе, без групп по людям
+    // и только занятые. Свободные столы остаются на доске «Все столы».
+    // В «Все» показываем все занятые столы, включая заказы с ячеек профилей:
+    // иначе такой заказ пропадал бы из общего зала.
+    const staffZones = visibleZones
+      .map(({ zone, tables }) => ({
+        zone,
+        tables: tables.filter((tb) => Boolean(orderFor(tb))),
+      }))
+      .filter(({ tables }) => tables.length > 0)
+    // В «По официантам» под группами всегда ровно 12 ячеек «Добавить заказ»:
+    // одинаковый набор у каждого сотрудника, каждая ведёт на выбор стола.
+    const ADD_SLOTS = 12
+
+    // Профиль сотрудника из рейла «Персонал»: в окне только его столы по
+    // схеме зала. Чужие и свободные столы не показываем — иначе профиль
+    // Анвара снова превращался бы в общий зал. Заказы, привязанные к ячейкам,
+    // остаются на своих ячейках и здесь не дублируются.
+    const filterId = waiterFilter ? String(waiterFilter) : null
+    const profileTables = filterId
+      ? allTables.filter((tb) => {
+          const o = orderFor(tb)
+          return Boolean(o) && !boundSlotIds.has(String(o.id)) && orderOwnerId(o) === filterId
+        })
+      : []
+    const profileIds = new Set(profileTables.map((tb) => String(tb.id)))
+    const profileZones = filterId
+      ? zones
+          .map((zone) => ({
+            zone,
+            tables: (zone.tables || []).filter((tb) => profileIds.has(String(tb.id))),
+          }))
+          .filter(({ tables }) => tables.length > 0)
+      : []
+    // Заказ без стола (открыт с «+») не привязан ни к одной ячейке зала —
+    // без этой группы счётчик в рейле показывал заказ, а профиль пустовал.
+    const isNoTable = (o) => o.order_type === 'dine_in'
+      && !o.table_id && o.table_number == null
+    const profileNoTable = filterId
+      ? orderList.filter((o) => isNoTable(o) && orderOwnerId(o) === filterId && !boundSlotIds.has(String(o.id)))
+      : []
+    const staffNoTable = orderList.filter(isNoTable)
+    // Заказы профиля (без привязанных к ячейкам) — идут в общую сетку.
+    const profileOrders = filterId
+      ? [
+          ...profileZones.flatMap(({ tables }) => tables.map((tb) => orderFor(tb)).filter(Boolean)),
+          ...profileNoTable,
+        ]
+      : []
+    // Счётчик «Все» = ровно столько карточек, сколько на общей доске:
+    // это сумма заказов всех сотрудников, а не число людей в рейле.
+    const allOrdersCount = (() => {
+      const ids = new Set()
+      for (const { tables } of staffZones) {
+        for (const tb of tables) {
+          const o = orderFor(tb)
+          if (o) ids.add(String(o.id))
+        }
+      }
+      for (const o of staffNoTable) ids.add(String(o.id))
+      return ids.size
+    })()
+    // «Все» — доска по сотрудникам, а не по залам: касса сразу видит,
+    // кто ведёт какие столы, сколько их и на какую сумму. Порядок групп
+    // повторяет рейл (свой профиль первым).
+    const staffGroups = (() => {
+      const groups = []
+      const groupFor = (ownerId, name) => {
+        let group = groups.find((g) => (ownerId ? g.ownerId === ownerId : g.name === name))
+        if (!group) {
+          const person = ownerId
+            ? boardWaiters.find((w) => String(w.id) === ownerId)
+            : boardWaiters.find((w) => w.name && w.name === name)
+          group = {
+            key: ownerId || `name:${name || 'none'}`,
+            ownerId,
+            name: person?.name || name || t('no_waiter'),
+            orders: [],
+          }
+          groups.push(group)
+        }
+        return group
+      }
+      for (const { tables } of staffZones) {
+        for (const tb of tables) {
+          const o = orderFor(tb)
+          if (!o) continue
+          groupFor(orderOwnerId(o), o.waiter_name).orders.push(o)
+        }
+      }
+      for (const o of staffNoTable) groupFor(orderOwnerId(o), o.waiter_name).orders.push(o)
+      const railIndex = (group) => {
+        const i = group.ownerId
+          ? boardWaiters.findIndex((w) => String(w.id) === group.ownerId)
+          : -1
+        return i === -1 ? boardWaiters.length : i
+      }
+      return groups.sort((a, b) => railIndex(a) - railIndex(b))
+    })()
+
+    // «+» есть и в чужом профиле: официант заводит заказ на коллегу только
+    // после его PIN; касса/администрация — сразу.
+    const addSlotButton = (i) => (
+      <button
+        key={`add-slot-${i}`}
+        type="button"
+        className="hcard hcard--free"
+        onClick={() => {
+          // Запоминаем, на кого оформляем (чужой профиль — после PIN коллеги),
+          // и спрашиваем зал/стол из конструктора.
+          const target = waiterFilter
+            ? (hallWaiters.find((w) => String(w.id) === String(waiterFilter))
+              || staff.find((w) => String(w.id) === String(waiterFilter)))
+            : null
+          const actingFor = target && String(target.id) !== String(user.id)
+            ? String(target.id)
+            : null
+          const begin = () => {
+            // Запоминаем ячейку: созданный заказ вернётся на неё,
+            // остальные «+» останутся на своих местах.
+            slotIntentRef.current = i
+            slotReturnFilterRef.current = waiterFilter
+            openTablePicker(actingFor)
+          }
+          // Официант на чужое имя — только после PIN коллеги.
+          if (actingFor && isWaiter && !canActForOthers) {
+            setPinGate({ ownerId: actingFor, employee: target, onSuccess: begin })
+          } else {
+            begin()
+          }
+        }}
+      >
+        <span className="hcard__plus"><Plus size={26} /></span>
+        <span className="hcard__free-title">{t('add_order')}</span>
+      </button>
+    )
+
+    // Профиль сотрудника — одна сетка карточек: сначала его заказы, затем
+    // «+». Заказ, созданный с ячейки, остаётся ровно на ней (slotBindings),
+    // поэтому плюсы не съезжают вниз отдельной секцией. Карточку можно
+    // перетащить на соседнюю ячейку — раскладка запоминается.
+    const slotOrder = (id) => (id
+      ? (orderList.find((o) => String(o.id) === String(id)) || slotOrderCache[String(id)] || null)
+      : null)
+    // Привязка ячейки: новый формат «сотрудник:ячейка»; старые записи
+    // «ячейка» без владельца учитываем только для своего профиля.
+    const boundOrderAt = (i) => {
+      const keyed = slotOrder(slotBindings[`${filterId}:${i}`])
+      if (keyed) return keyed
+      const legacy = slotOrder(slotBindings[String(i)])
+      return legacy && orderOwnerId(legacy) === filterId ? legacy : null
+    }
+    // Текущая раскладка профиля: что стоит в каждой ячейке.
+    const profileCellOrders = () => {
+      const queue = [...profileOrders]
+      const list = []
+      for (let i = 0; i < ADD_SLOTS; i += 1) {
+        list.push(boundOrderAt(i) || (queue.length > 0 ? queue.shift() : null))
+      }
+      list.push(...queue)
+      return list
+    }
+    // Поменять местами ячейки from/to и запомнить раскладку целиком:
+    // остальные карточки остаются на своих местах.
+    function moveProfileOrder(from, to) {
+      if (!filterId || from === to || from < 0 || to < 0) return
+      const list = profileCellOrders()
+      if (from >= list.length || to >= list.length) return
+      const next = [...list]
+      const tmp = next[from]
+      next[from] = next[to]
+      next[to] = tmp
+      const now = Date.now()
+      setSlotBindings((prev) => {
+        const out = { ...prev }
+        for (const key of Object.keys(out)) {
+          if (key.startsWith(`${filterId}:`)) delete out[key]
+          else if (/^\d+$/.test(key) && next.some((o) => String(o?.id) === String(out[key]))) delete out[key]
+        }
+        next.forEach((o, i) => {
+          if (!o?.id) return
+          slotBoundAt.current[String(o.id)] = now
+          if (i < ADD_SLOTS) out[`${filterId}:${i}`] = String(o.id)
+        })
+        return out
+      })
+    }
+    // Тянем карточку по горизонтали: мышь и палец, вертикальный скролл доски
+    // продолжает работать.
+    function startCellDrag(e, from, order) {
+      if (!order || (e.button != null && e.button > 0)) return
+      dragStartRef.current = { x: e.clientX, y: e.clientY, from, orderId: String(order.id) }
+    }
+    function moveCellDrag(e) {
+      const start = dragStartRef.current
+      if (!start) return
+      if (!dragSlot) {
+        const dx = e.clientX - start.x
+        const dy = e.clientY - start.y
+        if (Math.abs(dx) < 18 || Math.abs(dx) < Math.abs(dy)) return
+        try { e.currentTarget.setPointerCapture?.(e.pointerId) } catch { /* указатель уже отпущен */ }
+        setDragSlot({ orderId: start.orderId, from: start.from, over: start.from })
+        return
+      }
+      const el = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('[data-slot]')
+      const raw = el ? Number(el.getAttribute('data-slot')) : null
+      const over = Number.isFinite(raw) && raw >= 0 && raw < ADD_SLOTS ? raw : dragSlot.over
+      if (over !== dragSlot.over) setDragSlot((prev) => (prev ? { ...prev, over } : prev))
+    }
+    function endCellDrag() {
+      const drag = dragSlot
+      dragStartRef.current = null
+      setDragSlot(null)
+      if (!drag) return
+      // Перенос — не клик: заказ не должен открываться после броска.
+      suppressClickRef.current = true
+      setTimeout(() => { suppressClickRef.current = false }, 0)
+      if (drag.over != null && drag.over !== drag.from) moveProfileOrder(drag.from, drag.over)
+    }
+    const dragCellClass = (i) => [
+      dragSlot?.from === i ? 'hcell--drag' : '',
+      dragSlot && dragSlot.from !== i && dragSlot.over === i ? 'hcell--over' : '',
+    ].filter(Boolean).join(' ')
+    const cellWrap = (i, order) => (
+      <div
+        key={order?.id || `cell-${i}`}
+        className={`hcell ${dragCellClass(i)}`}
+        data-slot={i}
+        onPointerDown={(e) => startCellDrag(e, i, order)}
+        onPointerMove={moveCellDrag}
+        onPointerUp={endCellDrag}
+        onPointerCancel={endCellDrag}
+      >
+        {order ? orderCard(order) : addSlotButton(i)}
+      </div>
+    )
+    const profileCells = (() => {
+      if (!filterId) return []
+      const cells = []
+      const list = profileCellOrders()
+      for (let i = 0; i < ADD_SLOTS; i += 1) {
+        const order = list[i] || null
+        if (order) cells.push(cellWrap(i, order))
+        else if (shownTables.length > 0) cells.push(cellWrap(i, null))
+      }
+      // Заказов больше, чем ячеек: остальные показываем следом.
+      for (let i = ADD_SLOTS; i < list.length; i += 1) {
+        const order = list[i]
+        if (!order) continue
+        cells.push(
+          <div
+            key={order.id}
+            className="hcell"
+            data-slot={i}
+            onPointerDown={(e) => startCellDrag(e, i, order)}
+            onPointerMove={moveCellDrag}
+            onPointerUp={endCellDrag}
+            onPointerCancel={endCellDrag}
+          >
+            {orderCard(order)}
+          </div>,
+        )
+      }
+      return cells
+    })()
 
     return (
       <div className="floor">
@@ -1053,16 +1523,22 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
           ) : (
             <>
               <div className="hall-side__head">
-                <Users size={20} /><span>{t('waiters')}</span>
+                <Users size={20} /><span>{t('users')}</span>
               </div>
               <nav className="hall-side__nav">
-                {hallWaiters.map((w, i) => (
+                <button
+                  className={`hall-item hall-item--plain ${!waiterFilter ? 'hall-item--active' : ''}`}
+                  onClick={() => setWaiterFilter(null)}
+                >
+                  <span className="hall-item__name">{t('all')}</span>
+                  <span className="hall-item__count"><User size={14} /> {allOrdersCount}</span>
+                </button>
+                {hallWaiters.map((w) => (
                   <button
                     key={w.id}
-                    className={`hall-item ${String(waiterFilter) === String(w.id) ? 'hall-item--active' : ''}`}
+                    className={`hall-item hall-item--plain ${String(waiterFilter) === String(w.id) ? 'hall-item--active' : ''}`}
                     onClick={() => setWaiterFilter(w.id)}
                   >
-                    <span className="hall-item__badge">{i + 1}</span>
                     <span className="hall-item__name">{w.name}</span>
                     <span className="hall-item__count"><User size={14} /> {ordersOfWaiter(w).length}</span>
                   </button>
@@ -1097,36 +1573,22 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
                 <button className="btn btn--primary btn--sm" onClick={loadFloor}>{t('retry')}</button>
               </div>
             ) : hallMode === 'waiters' ? (
-              visibleSections.length === 0 && !showUnassigned && freeTables.length === 0
+              waiterFilter ? (
+                profileCells.length === 0
+                  ? <p className="empty-text empty-text--board">{t('no_orders')}</p>
+                  : (
+                    <section className="hgroup">
+                      <div className="hgrid">{profileCells}</div>
+                    </section>
+                  )
+              ) : staffGroups.length === 0
                 ? <p className="empty-text empty-text--board">{t('no_orders')}</p>
-                : (
-                  <>
-                    {visibleSections.map(({ waiter: w, orders }) => (
-                      <section className="hgroup" key={w.id}>
-                        <div className="hgroup__title">
-                          {w.name} <span>{orders.length} {t.count(orders.length, 'orders')}</span>
-                        </div>
-                        <div className="hgrid">{orders.map((o) => orderCard(o))}</div>
-                      </section>
-                    ))}
-                    {showUnassigned && (
-                      <section className="hgroup">
-                        <div className="hgroup__title">
-                          {t('waiter_not_set')} <span>{unassignedOrders.length} {t.count(unassignedOrders.length, 'orders')}</span>
-                        </div>
-                        <div className="hgrid">{unassignedOrders.map((o) => orderCard(o))}</div>
-                      </section>
-                    )}
-                    {freeTables.length > 0 && (
-                      <section className="hgroup">
-                        <div className="hgroup__title">
-                          {t('free_tables')} <span>{freeTables.length} {t.count(freeTables.length, 'tables')}</span>
-                        </div>
-                        <div className="hgrid hgrid--free">{freeTables.map((tb) => freeTableCard(tb))}</div>
-                      </section>
-                    )}
-                  </>
-                )
+                : staffGroups.map((group) => (
+                  <section className="hgroup" key={group.key}>
+                    <div className="hgroup__title">{group.name}</div>
+                    <div className="hgrid">{group.orders.map((o) => orderCard(o))}</div>
+                  </section>
+                ))
             ) : visibleZones.length === 0 ? (
               <p className="empty-text empty-text--board">{t('no_orders')}</p>
             ) : visibleZones.map(({ zone, tables }) => (
@@ -1137,7 +1599,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
                 <div className="hgrid">
                   {tables.map((tb) => {
                     const o = orderFor(tb)
-                    return o ? orderCard(o) : freeTableCard(tb)
+                    return o ? orderCard(o) : freeTableCard(tb, { showNumber: true })
                   })}
                 </div>
               </section>
@@ -1154,6 +1616,8 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
         {printOpen && <BatchPrintPanel branch={{ id: user.branch_id }} printerId={user.printer_id} onClose={() => setPrintOpen(false)} />}
         {paymentOverlay}
         {promptCfg && <InputPromptModal {...promptCfg} onClose={() => setPromptCfg(null)} />}
+        {pinGateOverlay}
+        {tablePickOverlay}
         {typeTabs}
         {dock}
       </div>
@@ -1170,22 +1634,34 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
     : (orderType === 'dine_in' ? tableLabel : t(orderType))
   return (
     <div className="floor">
-      <aside className="ws-side">
-        <div className="ws-side__label">{t('categories')}</div>
-        <nav className="ws-side__nav">
-          <button className={`zone ${!activeCat ? 'zone--active' : ''}`} onClick={() => setActiveCat(null)}>
-            <LayoutGrid size={20} /><span className="zone__name">{t('all')}</span>
-          </button>
-          {categories.map((c) => (
-            <button key={c.id} className={`zone ${activeCat === c.id ? 'zone--active' : ''}`} onClick={() => setActiveCat(c.id)}>
-              <span className="zone__name">{c.name}</span>
+      {!orderReadOnly && (
+        <aside className="ws-side">
+          <div className="ws-side__label">{t('categories')}</div>
+          <nav className="ws-side__nav">
+            <button className={`zone ${!activeCat ? 'zone--active' : ''}`} onClick={() => setActiveCat(null)}>
+              <LayoutGrid size={20} /><span className="zone__name">{t('all')}</span>
             </button>
-          ))}
-        </nav>
-      </aside>
+            {categories.map((c) => (
+              <button key={c.id} className={`zone ${activeCat === c.id ? 'zone--active' : ''}`} onClick={() => setActiveCat(c.id)}>
+                <span className="zone__name">{c.name}</span>
+              </button>
+            ))}
+          </nav>
+        </aside>
+      )}
 
       <main className="ws__main">
-        <div className="cashier-work">
+        <div className={`cashier-work ${orderReadOnly ? 'cashier-work--readonly' : ''}`}>
+          {orderReadOnly ? (
+            <div className="cashier-products cashier-readonly">
+              <Eye size={34} />
+              <p className="cashier-readonly__title">{t('read_only_order')}</p>
+              <p className="cashier-readonly__hint">
+                {existingOrder?.waiter_name ? `${existingOrder.waiter_name} · ` : ''}
+                {t('read_only_order_hint')}
+              </p>
+            </div>
+          ) : (
           <div className="cashier-products">
             <div className="cashier-products__grid">
               {filtered.length === 0 ? <p className="empty-text">{t('no_dishes')}</p> : filtered.map((p) => {
@@ -1203,6 +1679,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
               })}
             </div>
           </div>
+          )}
 
           <aside className="cashier-cart">
             <div className="cashier-cart__header">
@@ -1220,9 +1697,12 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
                       уже на кухне, поэтому считает сервер), карандаш открывает
                       карточку позиции — там видно, кто добавил, можно сменить
                       официанта и отменить блюдо. */}
-                  {orderLines.map((item) => (
-                    <div key={item.lineId} className="cart-item cart-item--saved">
-                      <button type="button" className="cart-item__info" onClick={() => setEditLine(item)} title={t('edit')}>
+                  {orderLines.map((item) => {
+                    const linePrice = (
+                      <span className="cart-item__price">{fmt(item.total ?? item.price * item.qty)} {t('currency')}</span>
+                    )
+                    const lineBody = (
+                      <>
                         <span className="cart-item__name">{item.name}</span>
                         {(item.addedByName || item.createdAt) && (
                           <span className="cart-item__meta">
@@ -1231,17 +1711,35 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
                           </span>
                         )}
                         {item.note && <span className="cart-row__note">{item.note}</span>}
-                        <span className="cart-item__price">{fmt(item.total ?? item.price * item.qty)} {t('currency')}</span>
-                      </button>
-                      <div className="cart-item__controls">
-                        {/* Официант не правит уже отправленные блюда — только добавляет новые. */}
-                        {!isWaiter && <button className="qty-btn" onClick={() => changeSavedQty(item, -1)} title={t('qty_less')}><Minus size={16} /></button>}
-                        <span className="qty-value">{formatQty(item.qty)}</span>
-                        {!isWaiter && <button className="qty-btn" onClick={() => changeSavedQty(item, 1)} title={t('qty_more')}><Plus size={16} /></button>}
-                        <button className="qty-btn qty-btn--edit" onClick={() => setEditLine(item)} title={t('qty_edit')}><Pencil size={15} /></button>
+                      </>
+                    )
+                    // Чужой заказ только смотрят: количество стоит отдельным
+                    // чипом слева, сумма — справа, поэтому строка сразу читается.
+                    if (orderReadOnly) {
+                      return (
+                        <div key={item.lineId} className="cart-item cart-item--saved cart-item--view">
+                          <span className="cart-item__qty-badge">{formatQty(item.qty)}</span>
+                          <div className="cart-item__info">{lineBody}</div>
+                          {linePrice}
+                        </div>
+                      )
+                    }
+                    return (
+                      <div key={item.lineId} className="cart-item cart-item--saved">
+                        <button type="button" className="cart-item__info" onClick={() => setEditLine(item)} title={t('edit')}>
+                          {lineBody}
+                          {linePrice}
+                        </button>
+                        <div className="cart-item__controls">
+                          {/* Официант не правит уже отправленные блюда — только добавляет новые. */}
+                          {!isWaiter && <button className="qty-btn" onClick={() => changeSavedQty(item, -1)} title={t('qty_less')}><Minus size={16} /></button>}
+                          <span className="qty-value">{formatQty(item.qty)}</span>
+                          {!isWaiter && <button className="qty-btn" onClick={() => changeSavedQty(item, 1)} title={t('qty_more')}><Plus size={16} /></button>}
+                          <button className="qty-btn qty-btn--edit" onClick={() => setEditLine(item)} title={t('qty_edit')}><Pencil size={15} /></button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                   {/* Новые блюда — ещё не ушли на кухню, показываем их отдельной группой */}
                   {cart.map((item) => (
                     <div key={item.lineId} className="cart-item cart-item--new">
@@ -1288,7 +1786,11 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
               {/* Существующий заказ. Кассир закрывает счёт кнопкой «К оплате»
                   (новые строки досылаются внутри openPayment). Официант счёт
                   не закрывает: он только досылает блюда и печатает чек. */}
-              {editingExisting ? (
+              {orderReadOnly ? (
+                <button className="cart-btn cart-btn--pay" onClick={unlockForeignOrder}>
+                  <Plus size={20} /> {t('add_order')}
+                </button>
+              ) : editingExisting ? (
                 isWaiter ? (
                   <>
                     <button className="cart-btn cart-btn--outline" disabled={!existingOrder} onClick={() => printOrderReceipt(existingOrder)}>
@@ -1356,6 +1858,7 @@ export default function CashierMode({ user = {}, onBack, onLock, onSettings, cou
       )}
       {paymentOverlay}
       {promptCfg && <InputPromptModal {...promptCfg} onClose={() => setPromptCfg(null)} />}
+      {pinGateOverlay}
       {typeTabs}
       {dock}
     </div>

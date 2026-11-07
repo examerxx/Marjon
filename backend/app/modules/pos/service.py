@@ -171,6 +171,12 @@ class OrderService:
 
     async def create(self, company_id: UUID, waiter_id: UUID, data: OrderCreate) -> Order:
         await self._get_branch(company_id, data.branch_id)
+        # Заказ на другого официанта (кто-то ввёл его PIN на терминале).
+        # Проверяем, что он из этой же компании; автор запроса остаётся в аудите.
+        assignee_id = waiter_id
+        if data.waiter_id and data.waiter_id != waiter_id:
+            await self._assert_company_waiter(company_id, data.waiter_id)
+            assignee_id = data.waiter_id
         # Гейт типов заказа: явно выключенный в «Другие настройки» тип
         # отклоняется (422). NULL/отсутствие ключа = включён (как раньше).
         company_order_types = (
@@ -204,7 +210,7 @@ class OrderService:
 
         order = Order(
             company_id=company_id,
-            waiter_id=waiter_id,
+            waiter_id=assignee_id,
             public_id=public_id,
             order_number=order_number,
             order_local_date=order_local_date,
@@ -271,7 +277,7 @@ class OrderService:
                 course=item_data.course,
                 # «С собой» не облагается обслугой; added_by — автор позиции (9.4).
                 takeaway=item_data.takeaway,
-                added_by=waiter_id,
+                added_by=assignee_id,
             )
             self.db.add(item)
 
@@ -1614,7 +1620,9 @@ class ShiftService:
         await require_company_resource(
             self.db, Branch, data.branch_id, company_id, detail="Branch not found"
         )
-        existing = await self._get_open_shift(company_id, data.branch_id)
+        # Смена личная: у каждого сотрудника филиала своя. Открытая смена
+        # коллеги не даёт войти без собственной смены (PIN → «Открыть смену»).
+        existing = await self._get_open_shift(company_id, data.branch_id, cashier_id)
         if existing:
             raise ValidationError("Смена уже открыта. Закройте текущую смену перед открытием новой.")
 
@@ -1632,20 +1640,40 @@ class ShiftService:
         return shift
 
     async def close_shift(self, company_id: UUID, cashier_id: UUID, data: ShiftClose) -> CashierShift:
-        # Смена у нас открывается на филиал: её мог открыть кассир, а закрыть
-        # должен и официант с того же терминала. Поэтому при наличии branch_id
-        # ищем открытую смену филиала, иначе — смену самого сотрудника.
+        # Закрываем только свою смену: смены у сотрудников персональные,
+        # смена коллеги в том же филиале остаётся открытой.
         query = select(CashierShift).where(
             CashierShift.company_id == company_id,
             CashierShift.status == "open",
+            CashierShift.cashier_id == cashier_id,
         )
         if data.branch_id is not None:
             query = query.where(CashierShift.branch_id == data.branch_id)
-        else:
-            query = query.where(CashierShift.cashier_id == cashier_id)
         shift = (await self.db.execute(query)).scalars().first()
         if not shift:
             raise NotFoundError("Нет открытой смены для закрытия")
+
+        # Сотрудник не может уйти из смены, оставив гостей с открытыми счетами:
+        # иначе заказы «повисают» без владельца. Проверяем заказы закрывающего.
+        open_tables = (
+            await self.db.execute(
+                select(Order.table_number)
+                .where(
+                    Order.company_id == company_id,
+                    Order.waiter_id == cashier_id,
+                    Order.status.notin_(("completed", "cancelled")),
+                )
+                .order_by(Order.created_at)
+            )
+        ).scalars().all()
+        if open_tables:
+            numbers = sorted({n for n in open_tables if n})
+            detail = "Нельзя закрыть смену: у вас остались открытые столы"
+            if numbers:
+                detail += " " + ", ".join(f"№{n}" for n in numbers)
+            else:
+                detail += f" — открытых заказов: {len(open_tables)}"
+            raise ValidationError(detail + ". Закройте счета и попробуйте снова.")
 
         shift.closed_at = datetime.now(timezone.utc)
         shift.closing_cash = data.closing_cash
@@ -1655,8 +1683,10 @@ class ShiftService:
         await self.db.refresh(shift)
         return shift
 
-    async def get_current(self, company_id: UUID, branch_id: UUID) -> CashierShift | None:
-        return await self._get_open_shift(company_id, branch_id)
+    async def get_current(
+        self, company_id: UUID, branch_id: UUID, user_id: UUID | None = None
+    ) -> CashierShift | None:
+        return await self._get_open_shift(company_id, branch_id, user_id)
 
     async def my_summary(
         self, company_id: UUID, user_id: UUID, branch_id: UUID | None = None
@@ -1679,7 +1709,7 @@ class ShiftService:
         ).astimezone(timezone.utc)
 
         if branch_id is not None:
-            shift = await self.get_current(company_id, branch_id)
+            shift = await self.get_current(company_id, branch_id, user_id)
         else:
             shift = (
                 await self.db.execute(
@@ -1755,14 +1785,21 @@ class ShiftService:
                 CashierShift.opened_at <= day_end,
             ).order_by(CashierShift.opened_at.desc())
         )
-        return result.scalar_one_or_none()
+        # Смен за день теперь несколько (по одной на сотрудника).
+        return result.scalars().first()
 
-    async def _get_open_shift(self, company_id: UUID, branch_id: UUID) -> CashierShift | None:
-        result = await self.db.execute(
-            select(CashierShift).where(
-                CashierShift.company_id == company_id,
-                CashierShift.branch_id == branch_id,
-                CashierShift.status == "open",
-            )
+    async def _get_open_shift(
+        self, company_id: UUID, branch_id: UUID, user_id: UUID | None = None
+    ) -> CashierShift | None:
+        # first(), не scalar_one_or_none(): в филиале может быть несколько
+        # открытых смен — по одной на сотрудника.
+        query = select(CashierShift).where(
+            CashierShift.company_id == company_id,
+            CashierShift.branch_id == branch_id,
+            CashierShift.status == "open",
         )
-        return result.scalar_one_or_none()
+        if user_id is not None:
+            query = query.where(CashierShift.cashier_id == user_id)
+        query = query.order_by(CashierShift.opened_at.desc())
+        result = await self.db.execute(query)
+        return result.scalars().first()

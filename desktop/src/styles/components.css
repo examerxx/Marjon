@@ -3379,6 +3379,15 @@ body.vkb-open .login-card {
     var(--org-bg-image, url('../assets/login-bg.jpg')) center / cover no-repeat;
 }
 
+/* Пин-пад поверх кассы: подтверждение PIN владельца чужого заказа. */
+.pin-gate {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+}
+/* Подтверждение действия: имя и должность остаются, аватар-кружок не нужен. */
+.pin-gate .pinpad__avatar { display: none; }
+
 /* ── Экран организации ── */
 .org-screen__overlay {
   position: absolute; inset: 0;
@@ -4051,6 +4060,33 @@ body.vkb-open .login-card {
   max-width: 100%; font-size: 11px; line-height: 1.2; color: var(--color-text-secondary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* Чужой заказ только смотрят: количество — отдельным чипом слева, сумма —
+   справа. Без кнопок строка читается сразу: сколько порций и на сколько. */
+.cashier-cart__items .cart-item.cart-item--view {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 12px;
+}
+.cart-item--view .cart-item__info { cursor: default; gap: 3px; }
+.cart-item--view .cart-item__name { font-size: 14px; }
+.cart-item--view .cart-item__price { font-size: 14.5px; font-weight: 700; }
+.cashier-cart__items .cart-item__qty-badge {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: var(--hall-foot);
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
 /* Две группы строк: уже на кухне (saved) и ещё не отправленные (new).
    Новые помечены только левой полосой — фон у всех строк одинаковый. */
 .cashier-cart .cart-item--saved { border-left: 3px solid transparent; }
@@ -4712,7 +4748,7 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
   background: #fff;
   font-family: Inter, Arial, "Segoe UI", sans-serif;
   font-size: 16px;
-  line-height: 1.35;
+  line-height: 1.45;
   clip-path: polygon(
     0 10px,
     1.8% 0,
@@ -4829,23 +4865,26 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
   );
   filter: drop-shadow(0 12px 22px rgba(16, 24, 40, 0.16));
 }
-.pay-receipt__info { display: flex; flex-direction: column; gap: 1px; font-weight: 700; }
+.pay-receipt__info { display: flex; flex-direction: column; gap: 2px; font-weight: 500; }
 .pay-receipt__info > div { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
 .pay-receipt__info span { min-width: 0; }
-.pay-receipt__info b { text-align: right; overflow-wrap: anywhere; }
-.pay-receipt__table { margin-top: 10px; border-top: 2px dashed #98a2b3; }
+.pay-receipt__info b { font-weight: 500; text-align: right; overflow-wrap: anywhere; }
+.pay-receipt__table { margin-top: 10px; border-top: 1px dashed #475467; }
 .pay-receipt__row {
   display: grid; grid-template-columns: minmax(0, 1fr) 64px 110px;
   align-items: baseline; gap: 10px;
   padding: 3px 0;
-  font-weight: 600;
+  font-weight: 500;
 }
-.pay-receipt__row > :nth-child(2) { text-align: center; }
+.pay-receipt__row > :nth-child(2) { text-align: right; }
 .pay-receipt__row > :last-child { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.pay-receipt__row--head { border-bottom: 2px dashed #98a2b3; font-weight: 800; }
-.pay-receipt__row--sum { border-top: 2px dashed #d0d5dd; }
-.pay-receipt__row--total { border-top: 2px dashed #98a2b3; font-size: 20px; font-weight: 800; }
-.pay-receipt__empty { padding: 10px 0; color: #667085; font-weight: 600; }
+.pay-receipt__row--head { border-bottom: 1px dashed #475467; font-weight: 700; }
+.pay-receipt__row--sum { border-top: 1px dashed #475467; }
+.pay-receipt__row--sum > :last-child,
+.pay-receipt__row--amount > :last-child { font-weight: 700; }
+.pay-receipt__row--total { border-top: 1px dashed #475467; font-size: 20px; font-weight: 800; }
+.pay-receipt__row--total > :last-child { font-weight: 500; }
+.pay-receipt__empty { padding: 10px 0; color: #667085; font-weight: 500; }
 
 /* Сумма к оплате — белый фон, без рамок и подложки. Клик по ней по-прежнему
    подставляет всю сумму в активный способ, поэтому остаётся кнопкой. */

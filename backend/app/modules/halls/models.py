@@ -99,5 +99,10 @@ class Table(TimeStampedModel):
     number: Mapped[int] = mapped_column(Integer, nullable=False)
     capacity: Mapped[int] = mapped_column(Integer, default=4)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Схема зала: позиция левого верхнего угла стола на канве 1000×620
+    # (единицы схемы, не пиксели экрана). NULL — стол ещё не расставлен в
+    # конструкторе; касса тогда показывает его обычной сеткой.
+    x: Mapped[int | None] = mapped_column(Integer)
+    y: Mapped[int | None] = mapped_column(Integer)
 
     hall: Mapped[Hall] = relationship(back_populates="tables")

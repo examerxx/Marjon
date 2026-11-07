@@ -81,12 +81,16 @@ class HallUpdate(BaseSchema):
 class TableCreate(BaseSchema):
     number: int
     capacity: int = 4
+    x: int | None = Field(None, ge=0, le=1000)
+    y: int | None = Field(None, ge=0, le=620)
 
 
 class TableUpdate(BaseSchema):
     number: int | None = None
     capacity: int | None = None
     is_active: bool | None = None
+    x: int | None = Field(None, ge=0, le=1000)
+    y: int | None = Field(None, ge=0, le=620)
 
 
 class TableResponse(BaseResponseSchema):
@@ -94,6 +98,20 @@ class TableResponse(BaseResponseSchema):
     number: int
     capacity: int
     is_active: bool
+    x: int | None = None
+    y: int | None = None
+
+
+# Схема зала: массовая расстановка столов на канве 1000×620. Один атомарный
+# PATCH — конструктор сохраняет все перемещения сразу.
+class TableLayoutItem(BaseSchema):
+    id: UUID
+    x: int = Field(..., ge=0, le=1000)
+    y: int = Field(..., ge=0, le=620)
+
+
+class TableLayoutRequest(BaseSchema):
+    tables: list[TableLayoutItem] = Field(..., min_length=1)
 
 
 class HallResponse(BaseResponseSchema):

@@ -3,6 +3,7 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -13,6 +14,7 @@ from app.middleware.tenant_middleware import TenantMiddleware
 from app.infrastructure.database.session import AsyncSessionLocal
 from app.shared.error_handlers import register_error_handlers
 from app.shared.rate_limit import limiter
+from app.shared.storage import storage as media_storage
 
 # ── Register all models with SQLAlchemy metadata ────────────────────────────
 import app.modules.companies.models       # noqa: F401
@@ -178,6 +180,11 @@ app.include_router(payment_webhooks_router, prefix=API)
 
 # WebSocket для кухни
 app.add_api_websocket_route("/ws/kitchen", kitchen_ws_endpoint)
+
+# DEV-MEDIA: без MinIO фото сохраняются в backend/media (см. shared/storage.py)
+# и отдаются этим же бэкендом. В production (DEBUG=false) маршрут не нужен.
+if settings.debug:
+    app.mount("/media", StaticFiles(directory=str(media_storage.ensure_local_root())), name="media")
 
 @app.get("/health", tags=["system"])
 async def health():

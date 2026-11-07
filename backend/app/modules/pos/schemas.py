@@ -34,6 +34,9 @@ class OrderCreate(BaseSchema):
     # Доставка/самовывоз: контакты клиента (decision A).
     customer_phone: str | None = None
     customer_address: str | None = None
+    # Ответственный официант, отличный от автора запроса: касса/терминал
+    # создаёт заказ на выбранного сотрудника после подтверждения его PIN.
+    waiter_id: UUID | None = None
     discount_amount: Decimal | None = None
     service_fee_rate: float | None = None
     items: list[OrderItemCreate] = Field(default_factory=list)

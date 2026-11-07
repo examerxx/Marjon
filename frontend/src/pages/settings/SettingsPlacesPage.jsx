@@ -21,6 +21,7 @@ import { normalizeApiError } from "../../api/errors";
 import { settingsService } from "../../api/settings";
 import Icon from "../../components/Icon";
 import ReportEmptyState from "../../components/ReportEmptyState";
+import HallLayoutEditor from "./HallLayoutEditor";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../../hooks/useAsyncSafety";
 import { t as tr } from "../../i18n/t";
 
@@ -783,6 +784,11 @@ export default function SettingsPlacesPage() {
     }
     finally { setSaving(false); locks.release("table-save"); }
   }
+  async function saveHallLayout(items) {
+    if (!selectedHall) return;
+    await settingsService.savePlaceTableLayout(selectedHall.id, items);
+    load();
+  }
   async function deactivateTable(table) {
     if (!selectedHall || !locks.acquire(`table-del:${table.id}`)) return;
     try { await settingsService.deactivatePlaceTable(selectedHall.id, table.id); load(); }
@@ -889,6 +895,9 @@ export default function SettingsPlacesPage() {
           </div>
         </header>
         {error && cachedPlaces !== null ? <p className="settings-form__error" role="alert">{error}</p> : null}
+        {hallIsActive && activeTables(selectedHall).length > 0 ? (
+          <HallLayoutEditor tables={activeTables(selectedHall)} onSave={saveHallLayout} />
+        ) : null}
         {tables.length ? (
           <div className="settings-tbl">
             <div className="settings-tbl__row settings-tbl__head" aria-hidden="true">

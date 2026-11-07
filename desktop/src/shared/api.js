@@ -12,6 +12,12 @@ function baseURL() {
 
 export const api = axios.create()
 
+// Печатать на терминале умеет только Electron (preload → IPC → TCP).
+// В обычном браузере window.electron нет — тогда печать делает сервер.
+function canPrintLocally() {
+  return Boolean(typeof window !== 'undefined' && window.electron?.print)
+}
+
 api.interceptors.request.use((config) => {
   config.baseURL = baseURL()
   // До входа сотрудника marjon_token отсутствует — используем org-токен терминала как запасной
@@ -170,18 +176,46 @@ async function refreshOrgToken() {
   }
 }
 
+// 401 «Invalid PIN» / «PIN temporarily locked» — это ответ на сам код, а не
+// протухший токен. Раньше здесь обновлялся org-токен и PIN отправлялся заново:
+// неверный код проверялся дважды, и экран «задумывался» на лишний круг.
+function isTokenExpiredError(e) {
+  const detail = e?.response?.data?.detail
+  const text = typeof detail === 'string' ? detail : JSON.stringify(detail || '')
+  return /credential|token/i.test(text)
+}
+
 // Выполнить запрос с org-токеном; при 401 обновить токен и повторить один раз.
 async function withOrgRefresh(callFn) {
   const tok = localStorage.getItem('marjon_org_token')
   try {
     return await callFn(tok)
   } catch (e) {
-    if (e?.response?.status === 401) {
+    if (e?.response?.status === 401 && isTokenExpiredError(e)) {
       const nt = await refreshOrgToken()
       return await callFn(nt)
     }
     throw e
   }
+}
+
+// Закрыть серверную сессию сотрудника. Без этого «выход» только чистил
+// localStorage, а живой refresh-токен продолжал держать человека в «Персонале»
+// до конца суток. Мимо интерсепторов: при выходе silent-refresh не нужен.
+export function revokeSession(accessToken, refreshToken) {
+  if (!accessToken || !refreshToken) return Promise.resolve()
+  return axios
+    .post(`${baseURL()}/auth/logout`, { refresh_token: refreshToken }, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    .catch(() => { /* офлайн — токен истечёт сам */ })
+}
+
+export function revokeStaffSession() {
+  return revokeSession(
+    localStorage.getItem('marjon_token'),
+    localStorage.getItem('marjon_staff_refresh'),
+  )
 }
 
 export const auth = {
@@ -233,7 +267,7 @@ export const auth = {
   // сотрудников /me возвращал чужого — проверка ложно падала.
   verifyPin: (pin, userId) =>
     withOrgRefresh((tok) =>
-      api.post('/auth/pin-login', { pin, ...(userId ? { user_id: userId } : {}) }, {
+      api.post('/auth/pin-login', { pin, ...(userId ? { user_id: userId } : {}), verify_only: true }, {
         headers: tok ? { Authorization: `Bearer ${tok}` } : {},
       }).then((r) => r.data)
     ).then(({ access_token }) =>
@@ -293,13 +327,13 @@ export const printers = {
   // опрашивает очередь и печатает то, что сервер не смог отправить напрямую.
   pendingJobs: (printerId) =>
     api.get(`/printers/${printerId}/jobs/pending`).then((r) => r.data),
-  // local_print: десктоп печатает сам (принтер в его сети), поэтому сервер не
-  // должен тратить 2 с на попытку дозвониться до 192.168.x.x — задание сразу
-  // уходит на терминал по WS (PRINT-LAT-02).
-  printReceipt: (data) => api.post('/printers/print/receipt', { local_print: true, ...data }).then((r) => r.data),
-  printKitchen: (data) => api.post('/printers/print/kitchen', { local_print: true, ...data }).then((r) => r.data),
+  // local_print: печатать сам терминал может только в Electron (IPC → TCP до
+  // принтера). В браузере (демо/LAN-доступ к 5189) печатает сервер — иначе
+  // задание падает с «electron print unavailable» и чек не выходит нигде.
+  printReceipt: (data) => api.post('/printers/print/receipt', { local_print: canPrintLocally(), ...data }).then((r) => r.data),
+  printKitchen: (data) => api.post('/printers/print/kitchen', { local_print: canPrintLocally(), ...data }).then((r) => r.data),
   // Общий чек-сводка (История/Отчёты)
-  printSummary: (data) => api.post('/printers/print/summary', { local_print: true, ...data }).then((r) => r.data),
+  printSummary: (data) => api.post('/printers/print/summary', { local_print: canPrintLocally(), ...data }).then((r) => r.data),
 }
 
 export const orders = {

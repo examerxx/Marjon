@@ -63,3 +63,6 @@ owner.zip
 
 # WorkBuddy AI — локальная память проекта
 .workbuddy-ai/
+
+# Local dev media (uploaded without MinIO)
+backend/media/

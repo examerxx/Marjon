@@ -8,7 +8,7 @@ from app.modules.auth.dependencies import require_company_admin, require_company
 from app.modules.auth.models import User
 from app.modules.halls.schemas import (
     HallCreate, HallReorderRequest, HallResponse, HallUpdate,
-    TableCreate, TableResponse, TableUpdate,
+    TableCreate, TableLayoutRequest, TableResponse, TableUpdate,
 )
 from app.modules.halls.service import HallService
 from app.modules.finance.ownership import FinanceScope
@@ -125,6 +125,17 @@ async def create_table(
     db: AsyncSession = Depends(get_db),
 ):
     return await HallService(db).create_table(user.company_id, hall_id, data)
+
+
+@router.patch("/{hall_id}/tables/layout", response_model=list[TableResponse])
+async def save_tables_layout(
+    hall_id: UUID,
+    data: TableLayoutRequest,
+    user: User = Depends(require_company_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Схема зала: массово сохраняет координаты столов (канва 1000×620)."""
+    return await HallService(db).save_layout(user.company_id, hall_id, data.tables)
 
 
 @router.patch("/{hall_id}/tables/{table_id}", response_model=TableResponse)

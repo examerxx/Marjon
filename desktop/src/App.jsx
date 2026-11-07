@@ -8,7 +8,7 @@ import BottomBar from './components/BottomBar'
 import SettingsModal from './components/SettingsModal'
 import StaffProfileModal from './components/StaffProfileModal'
 import CashierMode from './modes/cashier/CashierMode'
-import { auth, branding, flushQueue, halls, queueSize, shifts } from './shared/api'
+import { auth, branding, flushQueue, halls, queueSize, revokeSession, revokeStaffSession, shifts } from './shared/api'
 import { DEFAULT_SERVER_URL } from './shared/config'
 import { t } from './shared/i18n'
 import { errorMessage } from './shared/errorMessage.mjs'
@@ -264,6 +264,10 @@ export default function App() {
         const current = await shifts.currentWithToken(data.access_token, branchId)
         if (!openShiftOf(current)) {
           // PIN верный, смена закрыта → на месте цифр показываем «Открыть смену».
+          // Сессию этого входа сразу закрываем: смена не открыта — человек не
+          // должен появиться в рейле «Персонал». Кнопка «Открыть смену» выдаст
+          // новую сессию по сохранённому PIN.
+          revokeSession(data.access_token, data.refresh_token)
           setShiftGate({ ...pending, branchId })
           setShiftError('')
           return 'shift_gate'
@@ -296,7 +300,14 @@ export default function App() {
           throw e
         }
       }
-      finalizeStaffLogin(pending)
+      // Сессия, выданная до гейта, закрыта (смена была закрыта) — после
+      // открытия смены входим заново тем же PIN и фиксируем свежие токены.
+      const fresh = await auth.loginByPin(pending.pin)
+      finalizeStaffLogin({
+        ...pending,
+        token: fresh.access_token,
+        refresh: fresh.refresh_token,
+      })
     } catch (e) {
       setShiftError(errorMessage(e, t('shift_open_err')))
     } finally {
@@ -314,6 +325,9 @@ export default function App() {
   // keepShiftGate=true используется разблокировкой: чужой код набран, смена
   // закрыта — прежняя сессия уходит, а «Открыть смену» на экране кода остаётся.
   const handleStaffLogout = useCallback((toPersonalCode = false, keepShiftGate = false) => {
+    // Сессия закрывается и на сервере: иначе сотрудник со «закрытой сменой»
+    // остаётся в рейле «Персонал» до конца суток (active-staff видит токен).
+    revokeStaffSession()
     localStorage.removeItem('marjon_token')
     localStorage.removeItem('marjon_staff_refresh')
     localStorage.removeItem('marjon_user')
@@ -346,6 +360,7 @@ export default function App() {
 
   // Полный сброс терминала (отвязка от организации)
   const handleFullReset = useCallback(() => {
+    revokeStaffSession()
     ['marjon_org_token', 'marjon_org_refresh', 'marjon_org_user', 'marjon_branch', 'marjon_token', 'marjon_staff_refresh', 'marjon_user', 'marjon_mode', 'marjon_staff_branch']
       .forEach((k) => localStorage.removeItem(k))
     setOrgToken(null); setOrgUser(null); setBranch(null)
@@ -489,6 +504,7 @@ export default function App() {
         userName={staffUser?.name}
         userRole={modeLabel}
         onAccount={handleAccount}
+        onLock={handleLock}
       />
 
       <main className="app-shell__content">
@@ -498,7 +514,6 @@ export default function App() {
           courier={activeMode === 'courier'}
           onLogout={handleStaffLogout}
           onBack={handleNavBack}
-          onLock={handleLock}
           onSettings={() => setShowSettings(true)}
           onSwitchMode={(m) => { if (MODES[m]) { localStorage.setItem('marjon_mode', m); setMode(m) } }}
         />

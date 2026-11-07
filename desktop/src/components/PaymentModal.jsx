@@ -278,17 +278,17 @@ export default function PaymentScreen({
                   <span>{t('receipt_items_total')}</span><span /><span>{fmt(subtotal)}</span>
                 </div>
                 {Number(order?.service_fee) > 0 && (
-                  <div className="pay-receipt__row">
+                  <div className="pay-receipt__row pay-receipt__row--amount">
                     <span>{t('receipt_service')} {servicePct}%</span><span /><span>{fmt(order.service_fee)}</span>
                   </div>
                 )}
                 {Number(order?.discount_amount) > 0 && (
-                  <div className="pay-receipt__row">
+                  <div className="pay-receipt__row pay-receipt__row--amount">
                     <span>{t('discount_word')}</span><span /><span>−{fmt(order.discount_amount)}</span>
                   </div>
                 )}
                 {Number(order?.tax_amount) > 0 && (
-                  <div className="pay-receipt__row">
+                  <div className="pay-receipt__row pay-receipt__row--amount">
                     <span>{t('z_tax')}</span><span /><span>{fmt(order.tax_amount)}</span>
                   </div>
                 )}
@@ -296,12 +296,12 @@ export default function PaymentScreen({
                   <span>{t('total')}:</span><span /><span>{fmt(total)}</span>
                 </div>
                 {reopening && (
-                  <div className="pay-receipt__row">
+                  <div className="pay-receipt__row pay-receipt__row--amount">
                     <span>{t('receipt_paid_earlier')}</span><span /><span>{fmt(paidBefore)}</span>
                   </div>
                 )}
                 {change > 0 && (
-                  <div className="pay-receipt__row">
+                  <div className="pay-receipt__row pay-receipt__row--amount">
                     <span>{t('change')}</span><span /><span>{fmt(change)}</span>
                   </div>
                 )}

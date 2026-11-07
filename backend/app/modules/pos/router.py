@@ -160,7 +160,7 @@ async def close_shift(data: ShiftClose, user: User = Depends(require_company_app
 
 @router.get("/shifts/current")
 async def current_shift(branch_id: UUID = Query(...), user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
-    shift = await ShiftService(db).get_current(user.company_id, branch_id)
+    shift = await ShiftService(db).get_current(user.company_id, branch_id, user.id)
     if not shift:
         return {"shift": None}
     return ShiftResponse.model_validate(shift)

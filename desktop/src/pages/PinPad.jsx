@@ -2,21 +2,19 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { ArrowLeft, Delete, Play } from 'lucide-react'
 import { t } from '../shared/i18n'
 
-// PIN задаётся в карточке сотрудника: от 4 до 8 цифр. Кнопки подтверждения
-// нет — код проверяется сам, как только набрано 4 цифры. Если 4 цифры не
-// подошли, ввод не стирается сразу: 5–8-я цифры продолжают проверку, так что
-// длинный PIN из веб-админки тоже набирается.
+// PIN — ровно 4 цифры. Кнопки подтверждения нет: код проверяется сам, как
+// только набрано 4 цифры. Пятая цифра не принимается — ввод не растёт.
 const PIN_MIN = 4
-const PIN_MAX = 8
-// После неудачных 4 цифр ждём паузу: если цифр больше нет, код неверный —
-// тряхнём точки и очистим ввод, чтобы повторить без четырёх нажатий ⌫.
-const RETRY_RESET_MS = 800
+const PIN_MAX = 4
+// Неверный код: точки коротко дрожат и гаснут. Пауза только на анимацию —
+// раньше ввод «висел» 800 мс, и казалось, что касса задумалась.
+const ERROR_SHAKE_MS = 450
 
 function initials(name = '') {
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || '?'
 }
 
-/** PinPad — ввод PIN выбранного сотрудника. onSubmit(pin) → Promise. 4–8 цифр,
+/** PinPad — ввод PIN выбранного сотрудника. onSubmit(pin) → Promise. 4 цифры,
  *  проверка автоматическая, без кнопки «✓».
  *  title — необязательный заголовок (напр. «Экран заблокирован»).
  *  onBack — если не передан, кнопка «Назад» скрыта (режим блокировки).
@@ -43,48 +41,33 @@ export default function PinPad({
   // обновляется асинхронно, ref — сразу). lockRef — синхронный замок отправки.
   const pinRef = useRef('')
   const lockRef = useRef(false)
-  const submitRef = useRef(null)
-  const resetTimer = useRef(null)
+  const errorTimer = useRef(null)
 
   const submit = useCallback(async (value) => {
     if (lockRef.current || value.length < PIN_MIN) return
     lockRef.current = true // замок сразу — повторная отправка игнорируется
-    clearTimeout(resetTimer.current)
+    clearTimeout(errorTimer.current)
     setError(false)
-    let failed = false
     try {
       await onSubmit(value)
     } catch {
-      failed = true
-      if (value.length === PIN_MIN) {
-        // Код может быть длиннее четырёх цифр, поэтому не ругаемся сразу:
-        // даём паузу на 5–8-ю цифру. Молчание в ответ — и это неверный код.
-        resetTimer.current = setTimeout(() => {
-          if (pinRef.current !== value) return
-          setError(true)
-          setTimeout(() => setError(false), 600)
-          pinRef.current = ''
-          setPin('')
-        }, RETRY_RESET_MS)
-      } else {
-        setError(true)
-        setTimeout(() => setError(false), 600)
-        pinRef.current = ''
+      // Ошибка сразу: ввод сбрасывается, точки 450 мс дрожат и гаснут.
+      pinRef.current = ''
+      setError(true)
+      errorTimer.current = setTimeout(() => {
         setPin('')
-      }
+        setError(false)
+      }, ERROR_SHAKE_MS)
     } finally {
       lockRef.current = false
     }
-    // Пока шла проверка, могли набрать ещё цифры — проверяем уже их.
-    if (failed && pinRef.current.length > value.length) submitRef.current(pinRef.current)
   }, [onSubmit])
-  submitRef.current = submit
 
   const press = useCallback((d) => {
-    // Во время проверки ввод не блокируем: длинный PIN набирают, не дожидаясь
-    // ответа сервера, иначе цифры после четвёртой терялись бы.
     if (pinRef.current.length >= PIN_MAX) return
-    clearTimeout(resetTimer.current)
+    // Новая цифра после ошибки — гасим дрожание, ввод начинается заново.
+    clearTimeout(errorTimer.current)
+    setError(false)
     const next = pinRef.current + d
     pinRef.current = next
     setPin(next)
@@ -92,12 +75,13 @@ export default function PinPad({
   }, [submit])
 
   const back = useCallback(() => {
-    clearTimeout(resetTimer.current)
+    clearTimeout(errorTimer.current)
+    setError(false)
     pinRef.current = pinRef.current.slice(0, -1)
     setPin(pinRef.current)
   }, [])
 
-  useEffect(() => () => clearTimeout(resetTimer.current), [])
+  useEffect(() => () => clearTimeout(errorTimer.current), [])
 
   useEffect(() => {
     // На экране «смена закрыта» клавиатура не должна вводить PIN в никуда.
@@ -156,8 +140,8 @@ export default function PinPad({
         ) : (
           <>
             <div className={`pinpad__dots ${error ? 'pinpad__dots--error' : ''}`}>
-              {/* 4 точки по умолчанию; при вводе 5–8-й цифры дорожка растёт */}
-              {Array.from({ length: Math.max(PIN_MIN, pin.length) }, (_, i) => (
+              {/* Ровно 4 точки: код длиннее четырёх цифр не принимается */}
+              {Array.from({ length: PIN_MIN }, (_, i) => (
                 <span key={i} className={`pinpad__dot ${i < pin.length ? 'pinpad__dot--filled' : ''}`} />
               ))}
             </div>

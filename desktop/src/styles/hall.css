@@ -16,9 +16,9 @@
   --hall-soft: #eef4fb;
   --hall-teal-a: #12b2b2;
   --hall-teal-b: #0a8e9b;
-  --hall-green-a: #2b8c4c;
-  --hall-green-b: #196b36;
-  --hall-lime: #d9efc4;
+  --hall-green-a: #4cae77;
+  --hall-green-b: #378f60;
+  --hall-foot: #d0e9fc;
   --hall-free-a: #2c4659;
   --hall-free-b: #1f3447;
   --hall-radius: 18px;
@@ -41,7 +41,7 @@
 
 /* ── Верхняя плавающая панель ──────────────────────────────────── */
 .topbar {
-  height: 64px;
+  height: 60px;
   padding: 0 14px 0 18px;
   gap: 12px;
   border: none;
@@ -111,6 +111,21 @@
   margin-right: 4px;
   background: rgba(22, 40, 63, 0.13);
 }
+/* Блокировка — слева от карточки времени, как в прежней шапке. */
+.topbar__lock {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: #24384d;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.topbar__lock:hover { background: #eef3f9; }
+.topbar__lock:active { transform: scale(0.97); }
 .topbar__account-btn {
   display: inline-flex;
   align-items: center;
@@ -189,7 +204,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  height: 72px;
+  height: 66px;
   padding: 6px 12px;
   border: none;
   border-radius: var(--hall-radius);
@@ -276,6 +291,16 @@
   top: auto;
   bottom: calc(100% + 10px);
 }
+/* «Ещё» в доке: панель порталом над кнопкой. Док скроллится по горизонтали,
+   и обычный absolute-дропдаун срезался его overflow. */
+.hmenu__dropdown--fixed {
+  position: fixed;
+  top: auto;
+  right: 12px;
+  bottom: 84px;
+  max-height: min(72vh, 560px);
+  overflow-y: auto;
+}
 
 /* ── Рабочая область: белый сайдбар + тёмная доска ─────────────── */
 .floor {
@@ -287,7 +312,7 @@
   overflow: hidden;
 }
 .floor > .ws-side {
-  width: clamp(260px, 21.5vw, 410px);
+  width: clamp(200px, 15vw, 300px);
   flex-shrink: 0;
   padding: 16px 12px;
   border-radius: var(--hall-radius);
@@ -303,19 +328,6 @@
 
 /* Сайдбар официантов */
 .hall-side { position: relative; }
-.hall-side::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 62%;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 200' preserveAspectRatio='none'%3E%3Cpath d='M0 120 C 55 92 118 152 178 130 C 232 110 268 78 300 88 L300 200 L0 200 Z' fill='%23bfeef2' fill-opacity='0.65'/%3E%3Cpath d='M0 146 C 66 122 132 172 204 150 C 250 136 280 122 300 128 L300 200 L0 200 Z' fill='%23a2e5ec' fill-opacity='0.75'/%3E%3Cpath d='M0 170 C 78 150 152 190 232 168 C 266 159 288 154 300 156 L300 200 L0 200 Z' fill='%237bd6e0' fill-opacity='0.6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: bottom center;
-  background-size: 100% 100%;
-}
 .hall-side__head {
   position: relative;
   z-index: 1;
@@ -405,6 +417,9 @@
 }
 .hall-item--active .hall-item__count { color: rgba(255, 255, 255, 0.92); }
 .hall-item--active:hover { background: linear-gradient(135deg, #12b0b3, #0a97a3); }
+/* Строка официанта без номерного бейджа: имя крупнее, счётчик справа. */
+.hall-item--plain { grid-template-columns: minmax(0, 1fr) auto; }
+.hall-item--plain .hall-item__name { font-size: 17px; font-weight: 700; }
 
 /* ── Тёмная доска зала ─────────────────────────────────────────── */
 .floor > main.ws__main--board {
@@ -512,20 +527,18 @@
   font-weight: 500;
   color: rgba(255, 255, 255, 0.52);
 }
+/* Карточки держат ширину ~230–280px: колонки добавляются/убираются по ширине
+   доски (масштаб/размер окна), а сами карточки не растягиваются на всю
+   строку. auto-fill (не auto-fit) оставляет пустые треки, поэтому малое
+   число заказов не превращает карточки в широкие полосы. */
 .hgrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 10px 16px;
 }
-/* Свободные столы («+»): ровно два ряда, число колонок подстраивается под
-   ширину доски — на широком экране все столы видны без прокрутки, на узком
-   карточки сужаются. auto-fit схлопывает пустые колонки, поэтому два-три
-   свободных стола не растягиваются на всю ширину сетки. */
-.hgrid--free {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-  grid-auto-flow: column;
-}
+/* Свободные столы идут теми же рядами, что и заказы: карточки заполняют
+   строку слева направо, поэтому на широкой доске используется столько
+   колонок, сколько помещается (до шести), а не одна вертикальная полоса. */
 
 /* Карточка занятого стола: зелёная шапка, белое тело, лаймовый итог */
 .hcard {
@@ -535,7 +548,7 @@
   min-height: 220px;
   padding: 0;
   border: none;
-  border-radius: 14px;
+  border-radius: 22px;
   overflow: hidden;
   background: #fff;
   color: var(--hall-ink);
@@ -560,7 +573,7 @@
   color: #fff;
 }
 .hcard--pay .hcard__head {
-  background: linear-gradient(135deg, #d09342, #a4671f);
+  background: linear-gradient(135deg, #f2ab45, #d48216);
 }
 .hcard--check .hcard__head {
   background: linear-gradient(135deg, var(--hall-teal-a), var(--hall-teal-b));
@@ -628,26 +641,48 @@
   font-size: 11.5px;
   font-weight: 700;
 }
+/* Итог заказа: сумма по центру светлой голубой полосы, без иконки. */
 .hcard__foot {
   display: flex;
   align-items: center;
-  gap: 7px;
+  justify-content: center;
   flex-shrink: 0;
   padding: 12px 14px;
-  background: var(--hall-lime);
+  background: var(--hall-foot);
   border-top: none;
   color: #16220f;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 600;
 }
-.hcard__foot > svg { color: #2e7d3a; }
+
+/* Ячейка доски: карточку можно перетащить влево/вправо на соседнее место */
+.hcell {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+.hcell > .hcard {
+  flex: 1 1 auto;
+  width: 100%;
+  touch-action: pan-y;
+  cursor: grab;
+}
+.hcell--drag > .hcard {
+  cursor: grabbing;
+  opacity: 0.55;
+  transform: scale(0.98);
+}
+.hcell--over > .hcard {
+  outline: 2px dashed var(--hall-foot);
+  outline-offset: 3px;
+}
 
 /* Свободный стол — тёмная ячейка с крупным «+» и подписью «Добавить стол» */
 .hcard--free {
   align-items: center;
   justify-content: center;
   gap: 14px;
-  min-height: 156px;
+  min-height: 220px;
   padding: 20px;
   background: linear-gradient(160deg, var(--hall-free-a) 0%, var(--hall-free-b) 100%);
   border: 1px solid rgba(255, 255, 255, 0.38);
@@ -662,12 +697,20 @@
 .hcard__plus {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: #3a566b;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  color: #fff;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.08) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+    0 10px 18px -12px rgba(0, 0, 0, 0.6);
+  color: #f3f9ff;
+}
+.hcard__plus > svg {
+  stroke-width: 2.6;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 .hcard__free-title {
   color: #f3f7fb;
@@ -679,6 +722,200 @@
   font-size: 12px;
   font-weight: 600;
 }
+/* ── «Добавить заказ»: выбор зала и стола ──
+   Оверлей поверх доски: зал выбирается чипами, столы берутся из конструктора
+   зала. Занятые столы видны, но заблокированы. */
+.table-pick {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(7, 20, 40, 0.62);
+  backdrop-filter: blur(4px);
+}
+.table-pick__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(880px, 100%);
+  max-height: calc(100vh - 48px);
+  padding: 22px 24px 24px;
+  overflow-y: auto;
+  border-radius: 20px;
+  background: #fff;
+  color: var(--hall-ink);
+  box-shadow: 0 30px 60px -24px rgba(0, 0, 0, 0.55);
+}
+.table-pick__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.table-pick__hint {
+  margin: 0;
+  color: var(--hall-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.table-pick__close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #dbe4ec;
+  border-radius: 12px;
+  background: #f5f8fb;
+  color: #45596c;
+  cursor: pointer;
+}
+.table-pick__close:hover { background: #eaf0f6; }
+.table-pick__zones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.table-pick__zone {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid #dbe4ec;
+  border-radius: 12px;
+  background: #f7fafc;
+  color: var(--hall-ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.table-pick__zone:hover { background: #eef4f9; }
+.table-pick__zone.is-active {
+  border-color: transparent;
+  background: var(--color-brand);
+  color: #fff;
+}
+.table-pick__zone-count {
+  min-width: 22px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(22, 40, 63, 0.08);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+.table-pick__zone.is-active .table-pick__zone-count { background: rgba(255, 255, 255, 0.24); }
+.table-pick__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 10px;
+}
+/* Свободный стол — насыщенная зелёная карточка, занятый — бледная серая:
+   разница видна сразу, без чтения подписей. */
+.table-pick__table {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 112px;
+  padding: 14px 12px 13px;
+  border: 1.5px solid transparent;
+  border-radius: 18px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.table-pick__table--free {
+  background:
+    radial-gradient(120% 90% at 82% -10%, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 56%),
+    linear-gradient(150deg, #19b184 0%, #0a7a5c 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 14px 24px -18px rgba(10, 122, 92, 0.9);
+}
+.table-pick__table--free:hover {
+  transform: translateY(-3px);
+  filter: brightness(1.04);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 22px 34px -18px rgba(10, 122, 92, 0.95);
+}
+.table-pick__table--busy {
+  border-style: dashed;
+  border-color: #b6c1cd;
+  background: #e6eaef;
+  color: #8a97a5;
+  cursor: not-allowed;
+}
+.table-pick__table-cap {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.5;
+}
+.table-pick__table--free .table-pick__table-cap {
+  color: rgba(255, 255, 255, 0.78);
+  opacity: 1;
+}
+.table-pick__table-no {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.05;
+}
+.table-pick__table--free .table-pick__table-no {
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+.table-pick__table-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+.table-pick__table--free .table-pick__table-status {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  opacity: 1;
+}
+.table-pick__table--busy .table-pick__table-status {
+  background: rgba(22, 40, 63, 0.06);
+  opacity: 1;
+}
+.table-pick__dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.table-pick__dot--free {
+  background: #d8ffb2;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.22);
+}
+.table-pick__dot--ready { background: #4caf50; }
+.table-pick__dot--await { background: #cf9a3c; }
+.table-pick__dot--busy { background: #cf6a5a; }
+.table-pick__table--busy .table-pick__dot { opacity: 0.8; }
+.table-pick__empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 28px 12px;
+  color: var(--hall-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
 .empty-text--board {
   padding: 48px 24px;
   color: rgba(255, 255, 255, 0.62);
@@ -689,17 +926,60 @@
 /* ── Экран заказа: та же геометрия карточек ────────────────────── */
 .floor > main.ws__main > .cashier-work { min-height: 0; }
 
+/* Экран заказа: меню и сбор заказа — две отдельные карточки. Раньше они
+   лежали на общей белой подложке main, поэтому зазор был не виден и панель
+   казалась приклеенной к меню. Убираем подложку — просвет между карточками
+   показывает фон приложения, как у левого сайдбара зала. */
+.floor > main.ws__main:not(.ws__main--board) {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.floor > main.ws__main > .cashier-work {
+  gap: 12px;
+  padding: 0;
+}
+/* Меню — не белая подложка на весь центр: блюда лежат прямо на фоне
+   приложения, как карточки зала. Иначе между плитками и категориями
+   оставалось большое пустое белое поле. */
+.floor > main.ws__main .cashier-products {
+  border-right: none;
+  border-radius: var(--hall-radius);
+  background: transparent;
+  box-shadow: none;
+}
+/* Чужой заказ в режиме просмотра: слева снова белая панель-сайдбар,
+   иначе пояснение «Только просмотр» висело прямо на тёмном фоне. */
+.floor > main.ws__main .cashier-products.cashier-readonly {
+  background: var(--hall-card);
+  box-shadow: var(--hall-shadow);
+}
+.floor > main.ws__main .cashier-products .product-card {
+  box-shadow: var(--hall-shadow);
+}
+.floor > main.ws__main .cashier-cart {
+  border: none;
+  border-radius: var(--hall-radius);
+  box-shadow: var(--hall-shadow);
+}
+/* Зоны панели (стол, позиции, итог, кнопка) разделены заметнее: список
+   лежит на подложке, шапка и подвал — на белом. */
+.floor > main.ws__main .cashier-cart__items { background: var(--color-bg); }
+.floor > main.ws__main .cashier-cart__header,
+.floor > main.ws__main .cashier-cart__total,
+.floor > main.ws__main .cashier-cart__actions { border-color: var(--color-border); }
+
+
 /* ── Адаптив ───────────────────────────────────────────────────── */
 @media (max-width: 1500px) {
   .topbar { gap: 12px; }
-  .floor > .ws-side { width: 270px; }
 }
 @media (max-width: 1280px) {
   .topbar__brand-name { font-size: 21px; }
   .topbar__logo-mark, .topbar__logo { width: 52px; }
   .topbar__account-name { max-width: 120px; }
   .topbar__clock-card { min-width: 92px; }
-  .floor > .ws-side { width: 248px; }
   .dock__item { font-size: 13.5px; }
   .hgrid { gap: 12px; }
 }
@@ -707,8 +987,6 @@
   .topbar { gap: 10px; padding: 0 10px 0 14px; }
   .topbar__rule { display: none; }
   .topbar__clock-card { display: none; }
-  .floor > .ws-side { width: 226px; }
-  .hgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .dock__item { min-width: 72px; padding: 0 8px; font-size: 12.5px; }
   .dock__item > svg { width: 22px; height: 22px; }
 }
@@ -716,7 +994,5 @@
   .topbar__brand-text { display: none; }
   .topbar__account-text { display: none; }
   .topbar__account-btn { padding: 0 4px; }
-  .floor > .ws-side { width: 200px; }
   .hall-board__summary { display: none; }
-  .hgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
