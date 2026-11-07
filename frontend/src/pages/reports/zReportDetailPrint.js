@@ -155,7 +155,7 @@ function hallTable(figures) {
   const body = HALL_ROWS.map(([label, key, cell]) => row(label, cell(figures?.[key]))).join("");
   // Итого is the backend's own net_sales, never a frontend re-derivation.
   return `<table class="zrd-table"><tbody>${body}</tbody>`
-    + `<tfoot><tr class="zrd-strong"><td>{t("Итого")}</td>`
+    + `<tfoot><tr class="zrd-strong"><td>${t("Итого")}</td>`
     + `<td>${escapeHtml(moneyCell(figures?.net_sales))}</td></tr></tfoot></table>`;
 }
 
@@ -182,7 +182,7 @@ function cashierTable(figures) {
     ? null
     : amounts.reduce((accumulator, value) => accumulator + value, 0n);
   return `<table class="zrd-table"><tbody>${body}</tbody>`
-    + `<tfoot><tr class="zrd-strong"><td>{t("Итого")}</td>`
+    + `<tfoot><tr class="zrd-strong"><td>${t("Итого")}</td>`
     + `<td>${escapeHtml(unitsCell(total))}</td></tr></tfoot></table>`;
 }
 
@@ -249,14 +249,14 @@ function waiterSummaryTable(entities, totals, percentState) {
     ? null
     : amounts.reduce((accumulator, value) => accumulator + value, 0n);
   const foot = entities.length > 1
-    ? `<tfoot><tr class="zrd-strong"><td>{t("Итого")}</td>`
+    ? `<tfoot><tr class="zrd-strong"><td>${t("Итого")}</td>`
       + `<td>${escapeHtml(moneyCell(totals?.net_sales))}</td>`
       + `<td>${escapeHtml(moneyCell(totals?.service_fee_total))}</td>`
       + `<td>${escapeHtml(unitsCell(total))}</td></tr></tfoot>`
     : "";
   return `${subhead(`Обслуга по официантам (процент: ${percentState.label})`)}`
     + `<table class="zrd-table zrd-table--waiter">`
-    + `<thead><tr><th>{t("Имя")}</th><th>{t("Сумма заказов")}</th><th>{t("Сумма услуги")}</th><th>{t("Обслуга официанта")}</th></tr></thead>`
+    + `<thead><tr><th>${t("Имя")}</th><th>${t("Сумма заказов")}</th><th>${t("Сумма услуги")}</th><th>${t("Обслуга официанта")}</th></tr></thead>`
     + `<tbody>${body}</tbody>`
     + foot
     + `</table>`;

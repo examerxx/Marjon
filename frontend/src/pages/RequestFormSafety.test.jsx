@@ -275,9 +275,10 @@ describe("FE-06 request and form safety", () => {
     // SettingsPlacesPage.test.jsx — see TEST-SAFETY-01.
     expect(mapPaymentPayload({ name: "Cash", sort: "x", type: "cash", active: true })).toBeNull();
     expect(mapPaymentPayload({ name: "Cash", sort: "10abc", type: "cash", active: true })).toBeNull();
-    // Printers V2 simplified contract: the form collects exactly
-    // { name, ip, active }; technical fields fall back to canonical backend
-    // defaults and is_active travels on EDIT only (Create has no such field).
+    // Printers V2 simplified contract: the form collects { name, ip, type,
+    // active }; connection/port fall back to canonical backend defaults, and
+    // printer_type is a real routing role (kitchen ticket vs cashier receipt),
+    // so it travels on EDIT too. is_active travels on EDIT only.
     expect(mapPrinterPayload({ name: "   ", ip: "10.0.0.2" }, { editing: false })).toBeNull();
     expect(mapPrinterPayload({ name: "Kitchen", ip: "   " }, { editing: false })).toBeNull();
     expect(mapPrinterPayload({ name: "Kitchen", ip: "10.0.0.2" }, { editing: false })).toEqual({
@@ -290,6 +291,7 @@ describe("FE-06 request and form safety", () => {
     expect(mapPrinterPayload({ name: "Kitchen", ip: "10.0.0.2", active: false }, { editing: true })).toEqual({
       name: "Kitchen",
       ip_address: "10.0.0.2",
+      printer_type: "receipt",
       is_active: false,
     });
     expect(mapPrinterRow({ id: "p", name: "Printer", ip_address: "10.0.0.2", is_active: false })).toMatchObject({
