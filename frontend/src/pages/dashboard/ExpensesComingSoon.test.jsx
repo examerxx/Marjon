@@ -18,7 +18,7 @@ describe("OWNER money expenses coming soon", () => {
     const kpi = buildRealKpis({}, [], "2026-10-18")[4];
     render(<KpiInfoDialog kpi={kpi} onClose={vi.fn()} />);
     const dialog = screen.getByRole("dialog", { name: "Денежные расходы" });
-    expect(dialog).toHaveClass("kpi-info-window--revenue-products", "kpi-info-window--coming-soon");
+    expect(dialog).toHaveClass("kpi-info-window--detail", "kpi-info-window--coming-soon");
     expect(within(dialog).getByRole("status")).toHaveTextContent("Скоро, эта категория в разработке");
     expect(within(dialog).queryByRole("table")).toBeNull();
     expect(dialog.querySelector(".kpi-info-window__value")).toBeNull();

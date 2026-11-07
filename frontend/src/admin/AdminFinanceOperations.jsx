@@ -16,7 +16,6 @@ import { parseWebInstant, webFormat, webTime, webCalendarToday } from "../utils/
 import { isAbortError, useLatestRequest, useMutationLocks } from "../hooks/useAsyncSafety";
 
 import { ADMIN_DASHBOARD_DATE_PRESET_LABELS, adminDateToInputValue, adminInputDateToReportDate, adminReportDateToInputDate, adminTodayInputValue, buildAdminDashboardDateRange, formatAdminDashboardDateRangeButton, formatCurrency, formatSignedFinanceAmount, getAdminFinanceLoadMessage, isUuidLike, normalizeAdminReportRange } from "./AdminShared";
-import { t } from "../i18n/t";
 
 const ADMIN_FINANCE_COUNTERPARTY_TYPES = [
   { value: "provider", label: "Поставщики" },
@@ -258,7 +257,7 @@ function AdminFinanceSearchableSelect({
 function AdminFinanceCurrencyInput({ value, onChange, error, controlRef, disabled }) {
   return (
     <label className={`admin-income-field admin-transaction-field ${error ? "is-invalid" : ""}`}>
-      <span>{t("admin.adminfinanceoperations.summa")} <b>*</b></span>
+      <span>Сумма <b>*</b></span>
       <div className="admin-transaction-amount-input admin-finance-operation-amount">
         <input
           ref={controlRef}
@@ -280,8 +279,8 @@ function AdminFinanceCurrencyInput({ value, onChange, error, controlRef, disable
 function AdminFinanceCounterpartyTypeSelector({ value, onChange }) {
   return (
     <div className="admin-income-field admin-transaction-field admin-finance-counterparty-field">
-      <span>{t("admin.adminfinanceoperations.tip_kontragenta")}</span>
-      <div className="admin-finance-counterparty-types" role="radiogroup" aria-label={t("admin.adminfinanceoperations.tip_kontragenta")}>
+      <span>Тип контрагента</span>
+      <div className="admin-finance-counterparty-types" role="radiogroup" aria-label="Тип контрагента">
         {ADMIN_FINANCE_COUNTERPARTY_TYPES.map((item) => (
           <button
             type="button"
@@ -392,7 +391,7 @@ function AdminFinanceDateInput({ value, onChange, error, controlRef, disabled })
       <div
         className="admin-finance-calendar"
         role="dialog"
-        aria-label={t("admin.adminfinanceoperations.vybor_daty")}
+        aria-label="Выбор даты"
         style={{
           left: `${calendarPosition.left}px`,
           top: `${calendarPosition.top}px`,
@@ -401,16 +400,16 @@ function AdminFinanceDateInput({ value, onChange, error, controlRef, disabled })
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="admin-finance-calendar__toolbar">
-          <button type="button" onClick={() => shiftMonth(-1)} aria-label={t("admin.adminfinanceoperations.predyduschiy_mesyats")}>
+          <button type="button" onClick={() => shiftMonth(-1)} aria-label="Предыдущий месяц">
             <Icon name="bi-chevron-left" size={16} />
           </button>
-          <select value={viewDate.getFullYear()} onChange={(event) => setViewDate(new Date(Number(event.target.value), viewDate.getMonth(), 1))} aria-label={t("admin.adminfinanceoperations.god")}>
+          <select value={viewDate.getFullYear()} onChange={(event) => setViewDate(new Date(Number(event.target.value), viewDate.getMonth(), 1))} aria-label="Год">
             {ADMIN_FINANCE_CALENDAR_YEARS.map((year) => <option key={year} value={year}>{year}</option>)}
           </select>
-          <select value={viewDate.getMonth()} onChange={(event) => setViewDate(new Date(viewDate.getFullYear(), Number(event.target.value), 1))} aria-label={t("admin.adminfinanceoperations.mesyats")}>
+          <select value={viewDate.getMonth()} onChange={(event) => setViewDate(new Date(viewDate.getFullYear(), Number(event.target.value), 1))} aria-label="Месяц">
             {ADMIN_FINANCE_CALENDAR_MONTHS.map((month, index) => <option key={month} value={index}>{month}</option>)}
           </select>
-          <button type="button" onClick={() => shiftMonth(1)} aria-label={t("admin.adminfinanceoperations.sleduyuschiy_mesyats")}>
+          <button type="button" onClick={() => shiftMonth(1)} aria-label="Следующий месяц">
             <Icon name="bi-chevron-right" size={16} />
           </button>
         </div>
@@ -436,7 +435,7 @@ function AdminFinanceDateInput({ value, onChange, error, controlRef, disabled })
         <div className="admin-finance-calendar__footer">
           <button type="button" className="admin-finance-calendar__today" onClick={selectToday}>
             <Icon name="bi-calendar3" size={15} />
-            <span>{t("admin.adminfinanceoperations.segodnya")}</span>
+            <span>Сегодня</span>
           </button>
           <button type="button" className="admin-finance-calendar__ok" onClick={applyDate}>OK</button>
         </div>
@@ -447,7 +446,7 @@ function AdminFinanceDateInput({ value, onChange, error, controlRef, disabled })
 
   return (
     <div className={`admin-income-field admin-transaction-field admin-finance-date-field ${error ? "is-invalid" : ""}`} ref={rootRef}>
-      <span>{t("admin.adminfinanceoperations.data")} <b>*</b></span>
+      <span>Дата <b>*</b></span>
       <button
         type="button"
         className="admin-finance-operation-date"
@@ -517,7 +516,7 @@ function AdminFinanceTransactionModal({
               <h3>{title}</h3>
             </div>
           </div>
-          <button type="button" className="admin-income-dialog__close" onClick={onCloseRequest} aria-label={t("admin.adminfinanceoperations.zakryt")}>
+          <button type="button" className="admin-income-dialog__close" onClick={onCloseRequest} aria-label="Закрыть">
             <Icon name="bi-x-lg" size={16} />
           </button>
         </div>
@@ -531,7 +530,7 @@ function AdminFinanceTransactionModal({
             onChange={(value) => onChange("amount", value)}
           />
           <AdminFinanceSearchableSelect
-            label={t("admin.adminfinanceoperations.sposob_oplaty")}
+            label="Способ оплаты"
             required
             value={draft.paymentTypeId}
             options={paymentTypes}
@@ -539,11 +538,11 @@ function AdminFinanceTransactionModal({
             disabled={submitting}
             error={errors.paymentTypeId}
             controlRef={fieldRef("paymentTypeId")}
-            placeholder={t("admin.adminfinanceoperations.vyberite_sposob_oplaty")}
+            placeholder="Выберите способ оплаты"
             onChange={(value) => onChange("paymentTypeId", value)}
           />
           <AdminFinanceSearchableSelect
-            label={t("admin.adminfinanceoperations.organizatsiya_ili_filial")}
+            label="Организация или филиал"
             required
             value={draft.organizationId}
             options={organizations}
@@ -551,7 +550,7 @@ function AdminFinanceTransactionModal({
             disabled={submitting}
             error={errors.organizationId}
             controlRef={fieldRef("organizationId")}
-            placeholder={t("admin.adminfinanceoperations.vyberite_filial")}
+            placeholder="Выберите филиал"
             searchPlaceholder="Поиск филиала"
             onChange={(value) => onChange("organizationId", value)}
           />
@@ -560,15 +559,15 @@ function AdminFinanceTransactionModal({
             onChange={(value) => onChange("counterpartyType", value)}
           />
           <AdminFinanceSearchableSelect
-            label={t("admin.adminfinanceoperations.kontragent")}
+            label="Контрагент"
             value={draft.counterpartyId}
             options={counterpartyOptions}
             disabled={submitting}
             error={errors.counterpartyId}
             controlRef={fieldRef("counterpartyId")}
-            placeholder={t("admin.adminfinanceoperations.ne_vybran")}
+            placeholder="Не выбран"
             searchPlaceholder="Поиск контрагента"
-            emptyText={t("admin.adminfinanceoperations.kontragenty_ne_naydeny")}
+            emptyText="Контрагенты не найдены"
             onChange={(value) => onChange("counterpartyId", value)}
           />
           <AdminFinanceDateInput
@@ -579,7 +578,7 @@ function AdminFinanceTransactionModal({
             onChange={(value) => onChange("date", value)}
           />
           <AdminFinanceSearchableSelect
-            label={t("admin.adminfinanceoperations.kategoriya")}
+            label="Категория"
             required
             value={draft.categoryId}
             options={categories}
@@ -587,18 +586,18 @@ function AdminFinanceTransactionModal({
             disabled={submitting}
             error={errors.categoryId}
             controlRef={fieldRef("categoryId")}
-            placeholder={t("admin.adminfinanceoperations.vyberite_kategoriyu")}
+            placeholder="Выберите категорию"
             searchPlaceholder="Поиск категории"
             onChange={(value) => onChange("categoryId", value)}
           />
           <label className="admin-income-field admin-transaction-field admin-transaction-field--wide admin-finance-comment-field">
-            <span>{t("admin.adminfinanceoperations.kommentariy")}</span>
+            <span>Комментарий</span>
             <textarea
               value={draft.comment}
               disabled={submitting}
               maxLength={ADMIN_FINANCE_COMMENT_LIMIT}
               onChange={(event) => onChange("comment", event.target.value)}
-              placeholder={t("admin.adminfinanceoperations.kommentariy_k_operatsii")}
+              placeholder="Комментарий к операции"
               rows={3}
             />
             <small>{draft.comment.length}/{ADMIN_FINANCE_COMMENT_LIMIT}</small>
@@ -650,34 +649,34 @@ function AdminFinanceFilterDrawer({
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="admin-finance-filter-drawer" role="dialog" aria-modal="true" aria-label={t("admin.adminfinanceoperations.filtr")} onMouseDown={onClose}>
+    <div className="admin-finance-filter-drawer" role="dialog" aria-modal="true" aria-label="Фильтр" onMouseDown={onClose}>
       <form className="admin-finance-filter-panel" onSubmit={onApply} onMouseDown={(event) => event.stopPropagation()}>
-        <h3>{t("admin.adminfinanceoperations.filtr")}</h3>
+        <h3>Фильтр</h3>
         <label className="admin-finance-filter-field">
-          <span>{t("admin.adminfinanceoperations.tip_operatsii")}</span>
-          <select value={draft.type} aria-label={t("admin.adminfinanceoperations.tip_operatsii")} onChange={(event) => onDraftChange("type", event.target.value)}>
-            <option value="all">{t("admin.adminfinanceoperations.vyberite_tip")}</option>
-            <option value="income">{t("admin.adminfinanceoperations.prihod")}</option>
-            <option value="expense">{t("admin.adminfinanceoperations.rashod")}</option>
+          <span>Тип операции</span>
+          <select value={draft.type} aria-label="Тип операции" onChange={(event) => onDraftChange("type", event.target.value)}>
+            <option value="all">Выберите тип</option>
+            <option value="income">Приход</option>
+            <option value="expense">Расход</option>
           </select>
         </label>
         <label className="admin-finance-filter-field">
-          <span>{t("admin.adminfinanceoperations.kontragent")}</span>
-          <select value={draft.counterparty} aria-label={t("admin.adminfinanceoperations.kontragent")} onChange={(event) => onDraftChange("counterparty", event.target.value)}>
-            <option value="all">{t("admin.adminfinanceoperations.filtr_po_kontragentam")}</option>
+          <span>Контрагент</span>
+          <select value={draft.counterparty} aria-label="Контрагент" onChange={(event) => onDraftChange("counterparty", event.target.value)}>
+            <option value="all">Фильтр по контрагентам</option>
             {counterpartyOptions.map((item) => <option value={item} key={item}>{item}</option>)}
           </select>
         </label>
         <label className="admin-finance-filter-field">
-          <span>{t("admin.adminfinanceoperations.kategoriya")}</span>
-          <select value={draft.category} aria-label={t("admin.adminfinanceoperations.kategoriya")} onChange={(event) => onDraftChange("category", event.target.value)}>
-            <option value="all">{t("admin.adminfinanceoperations.filtr_po_kategorii")}</option>
+          <span>Категория</span>
+          <select value={draft.category} aria-label="Категория" onChange={(event) => onDraftChange("category", event.target.value)}>
+            <option value="all">Фильтр по категории</option>
             {categoryOptions.map((item) => <option value={item} key={item}>{item}</option>)}
           </select>
         </label>
         <div className="admin-finance-filter-actions">
-          <button type="submit" className="is-apply">{t("admin.adminfinanceoperations.filtrovat")}</button>
-          <button type="button" className="is-clear" onClick={onClear}>{t("admin.adminfinanceoperations.ochistit")}</button>
+          <button type="submit" className="is-apply">Фильтровать</button>
+          <button type="button" className="is-clear" onClick={onClear}>Очистить</button>
         </div>
       </form>
     </div>,
@@ -1101,7 +1100,7 @@ export function AdminFinanceOperationsPage({ search, onNotify }) {
 
   return (
     <section className="admin-finance-page">
-      <h2 className="sr-only">{t("admin.adminfinanceoperations.denezhnye_operatsii")}</h2>
+      <h2 className="sr-only">Денежные операции</h2>
 
       <div className="admin-finance-toolbar">
         <div className="admin-finance-date">
@@ -1120,29 +1119,29 @@ export function AdminFinanceOperationsPage({ search, onNotify }) {
           />
         </div>
         <div className="admin-finance-summary is-income">
-          <span>{t("admin.adminfinanceoperations.prihod")}</span>
+          <span>Приход</span>
           <strong>{operationsLoadState === "loading" ? "Загрузка..." : operationsLoadState === "error" ? "Недоступно" : formatCurrency(financeTotals.income)}</strong>
         </div>
         <div className="admin-finance-summary is-expense">
-          <span>{t("admin.adminfinanceoperations.rashod")}</span>
+          <span>Расход</span>
           <strong>{operationsLoadState === "loading" ? "Загрузка..." : operationsLoadState === "error" ? "Недоступно" : formatCurrency(financeTotals.expense)}</strong>
         </div>
         <div className="admin-finance-actions">
           <button type="button" className="admin-finance-action is-income" onClick={() => openFinanceModal("income")}>
             <Icon name="bi-plus-lg" size={16} />
-            <span>{t("admin.adminfinanceoperations.prihod_2")}</span>
+            <span>ПРИХОД</span>
           </button>
           <button type="button" className="admin-finance-action is-expense" onClick={() => openFinanceModal("expense")}>
             <Icon name="bi-dash-lg" size={16} />
-            <span>{t("admin.adminfinanceoperations.rashod_2")}</span>
+            <span>РАСХОД</span>
           </button>
           <button type="button" className="admin-finance-action is-export" onClick={() => onNotify?.("Денежные операции подготовлены для Excel.")}>
             <Icon name="bi-file-earmark-excel" size={16} />
-            <span>{t("admin.adminfinanceoperations.skachat_na_excel")}</span>
+            <span>Скачать на EXCEL</span>
           </button>
           <button type="button" className={`admin-finance-action is-filter ${filtersOpen || financeFiltersActive ? "is-active" : ""}`} onClick={toggleFinanceFilters}>
             <Icon name="bi-sliders" size={16} />
-            <span>{t("admin.adminfinanceoperations.filtrovat")}</span>
+            <span>Фильтровать</span>
           </button>
         </div>
       </div>
@@ -1162,15 +1161,15 @@ export function AdminFinanceOperationsPage({ search, onNotify }) {
           </colgroup>
           <thead>
             <tr>
-              <th>{t("admin.adminfinanceoperations.data")}</th>
-              <th>{t("admin.adminfinanceoperations.summa")}</th>
-              <th>{t("admin.adminfinanceoperations.tip")}</th>
-              <th>{t("admin.adminfinanceoperations.tip_oplaty")}</th>
-              <th>{t("admin.adminfinanceoperations.kontragent")}</th>
-              <th>{t("admin.adminfinanceoperations.kategoriya")}</th>
-              <th>{t("admin.adminfinanceoperations.organizatsiya")}</th>
-              <th>{t("admin.adminfinanceoperations.kommentarii")}</th>
-              <th aria-label={t("admin.adminfinanceoperations.deystviya")} />
+              <th>Дата</th>
+              <th>Сумма</th>
+              <th>Тип</th>
+              <th>Тип оплаты</th>
+              <th>Контрагент</th>
+              <th>Категория</th>
+              <th>Организация</th>
+              <th>Комментарии</th>
+              <th aria-label="Действия" />
             </tr>
           </thead>
           <tbody>
@@ -1192,19 +1191,19 @@ export function AdminFinanceOperationsPage({ search, onNotify }) {
                 <td>{row.organization}</td>
                 <td className="admin-finance-comment"><span>{row.comment}</span></td>
                 <td>
-                  <button type="button" className="admin-finance-delete" onClick={() => deleteOperation(row)} aria-label={t("admin.adminfinanceoperations.udalit_operatsiyu")}>
+                  <button type="button" className="admin-finance-delete" onClick={() => deleteOperation(row)} aria-label="Удалить операцию">
                     <Icon name="bi-trash3" size={16} />
                   </button>
                 </td>
               </tr>
             )) : null}
             {operationsLoadState === "loading" ? (
-              <tr><td colSpan="9" className="admin-finance-empty" role="status">{t("admin.adminfinanceoperations.zagruzka_denezhnyh_operatsiy")}</td></tr>
+              <tr><td colSpan="9" className="admin-finance-empty" role="status">Загрузка денежных операций...</td></tr>
             ) : operationsLoadState === "error" ? (
-              <tr><td colSpan="9" className="admin-finance-empty" role="alert">{t("admin.adminfinanceoperations.ne_udalos_zagruzit_denezhnye_operatsii")}</td></tr>
+              <tr><td colSpan="9" className="admin-finance-empty" role="alert">Не удалось загрузить денежные операции.</td></tr>
             ) : !filteredOperations.length ? (
               <tr>
-                <td colSpan="9" className="admin-finance-empty">{t("admin.adminfinanceoperations.operatsii_ne_naydeny")}</td>
+                <td colSpan="9" className="admin-finance-empty">Операции не найдены.</td>
               </tr>
             ) : null}
           </tbody>

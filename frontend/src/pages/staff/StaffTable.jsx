@@ -3,7 +3,6 @@ import ReportEmptyState from "../../components/ReportEmptyState";
 import staffDefaultAvatar from "../../assets/staff/staff-default-avatar.png";
 import { getPermissionSummary, roleMap, shortStaffId } from "./staffConstants";
 import { formatPhone, inferPhoneCountry } from "./staffPhone";
-import { t } from "../../i18n/t";
 
 // Индикаторы загрузки/ошибки и таблица сотрудников OWNER.
 // Вынесено из StaffRolePage.jsx (FE-07B). Разметка, классы и текст сохранены 1:1;
@@ -57,18 +56,18 @@ export default function StaffTable({
           из-за чего role="alert" срабатывал дважды и скринридер читал
           сообщение повторно. */}
       <div className="staff-table-wrapper staff-table-wrapper--roles">
-        <div className="staff-role-table-scroll" role="region" aria-label={t("pages.staff.stafftable.tablitsa_sotrudnikov_s_prokrutkoy")} tabIndex={0}>
+        <div className="staff-role-table-scroll" role="region" aria-label="Таблица сотрудников с прокруткой" tabIndex={0}>
         <table className={`staff-table${showAccess ? "" : " staff-table--no-access"}`}>
           <thead>
             <tr>
               <th>ID</th>
-              <th>{t("pages.staff.stafftable.foto")}</th>
-              <th>{t("pages.staff.stafftable.fio")}</th>
-              <th>{t("pages.staff.stafftable.login")}</th>
-              <th>{t("pages.staff.stafftable.rol")}</th>
-              {showAccess ? <th>{t("pages.staff.stafftable.prava_dostupa")}</th> : null}
-              <th>{t("pages.staff.stafftable.status")}</th>
-              <th>{t("pages.staff.stafftable.deystviya")}</th>
+              <th>Фото</th>
+              <th>ФИО</th>
+              <th>Логин</th>
+              <th>Роль</th>
+              {showAccess ? <th>Права доступа</th> : null}
+              <th>Статус</th>
+              <th>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -93,10 +92,10 @@ export default function StaffTable({
                   <td>
                     <span className="staff-role-cell">
                       <span className="staff-role-badge">
-                        {t(roleMap[employee.roleKey]?.label) || employee.roleKey}
+                        {roleMap[employee.roleKey]?.label || employee.roleKey}
                       </span>
                       {printerName ? (
-                        <small className="staff-printer-name" title={t("staff.printer_title", { name: printerName })}>
+                        <small className="staff-printer-name" title={`Принтер: ${printerName}`}>
                           {printerName}
                         </small>
                       ) : null}
@@ -112,7 +111,7 @@ export default function StaffTable({
                       // fabricated "Базовый доступ", never green.
                       <span className="staff-permission">
                         <span className="staff-permission-dot is-off" aria-hidden="true" />
-                       {t("pages.staff.stafftable.udalenie_blyud")}
+                        Удаление блюд
                       </span>
                     ) : isCashier ? (
                       // CASHIER access column: delete-dishes truth via the
@@ -124,7 +123,7 @@ export default function StaffTable({
                           className={`staff-permission-dot${employee.canDeleteDishes ? "" : " is-off"}`}
                           aria-hidden="true"
                         />
-                       {t("pages.staff.stafftable.udalenie_blyud")}
+                        Удаление блюд
                       </span>
                     ) : isMonoblock ? (
                       // MONOBLOCK access cell ("Показать кассиров" concept).
@@ -139,7 +138,7 @@ export default function StaffTable({
                             className={`staff-permission-dot${employee.canSeeCashiers ? "" : " is-off"}`}
                             aria-hidden="true"
                           />
-                         {t("pages.staff.stafftable.pokazat_kassirov")}
+                          Показать кассиров
                         </span>
                       </span>
                     ) : isKitchen ? (
@@ -153,7 +152,7 @@ export default function StaffTable({
                             className={`staff-permission-dot${employee.canCookPrinter ? "" : " is-off"}`}
                             aria-hidden="true"
                           />
-                         {t("pages.staff.stafftable.printer_povara")}
+                          Принтер повара
                         </span>
                       </span>
                     ) : (
@@ -172,7 +171,7 @@ export default function StaffTable({
                         }`}
                       >
                         <span className="staff-status-badge__dot" aria-hidden="true" />
-                        {employee.status === "archived" ? t("staff.inactive") : t("staff.active")}
+                        {employee.status === "archived" ? "Неактивен" : "Активен"}
                       </span>
                     ) : (
                       <span
@@ -180,7 +179,7 @@ export default function StaffTable({
                           employee.status === "archived" ? "is-archived" : ""
                         }`}
                       >
-                        {employee.status === "archived" ? t("staff.badge_archived") : t("staff.badge_active")}
+                        {employee.status === "archived" ? "#архив" : "#активно"}
                       </span>
                     )}
                   </td>
@@ -227,7 +226,7 @@ export default function StaffTable({
               <tr className="staff-empty-row">
                 <td colSpan={showAccess ? 8 : 7} className="staff-empty-cell">
                   {/* Reports parity: same PNG illustration + centered message. */}
-                  <ReportEmptyState title={t("pages.staff.stafftable.sotrudniki_ne_naydeny")} />
+                  <ReportEmptyState title="Сотрудники не найдены" />
                 </td>
               </tr>
             )}
@@ -238,7 +237,7 @@ export default function StaffTable({
       {/* Индикатор загрузки — ПОД таблицей (а не над ней), как и статусы/пустое
           состояние, чтобы шапка таблицы была видна сразу, а «Загрузка…» не
           выталкивала её вниз. */}
-      {staffLoading ? <div className="staff-empty-cell" role="status">{t("pages.staff.stafftable.zagruzka_sotrudnikov")}</div> : null}
+      {staffLoading ? <div className="staff-empty-cell" role="status">Загрузка сотрудников...</div> : null}
       {/* Ошибка загрузки — иначе при сбое /auth/users экран оставался
           полностью пустым (ни таблицы, ни пустого состояния, ни текста):
           «висит Загрузка → ничего». Теперь показываем причину и даём

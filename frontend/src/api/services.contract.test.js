@@ -523,7 +523,9 @@ describe("Web domain service contracts", () => {
       expect(api.get.mock.calls.filter(([path]) => path === "/analytics/owner-financials")).toHaveLength(1);
       expect(api.get.mock.calls.some(([path]) => path === "/analytics/sales" || path === "/analytics/dashboard")).toBe(false);
       expect(api.get).toHaveBeenCalledWith("/analytics/products/paid-top", { params: { date_from: "2026-08-01", date_to: "2026-08-13", limit: 5, web_timezone: "Asia/Tashkent" } });
-      expect(api.get).toHaveBeenCalledWith("/pos/orders", { params: { date: "2026-08-13" } });
+      expect(api.get).toHaveBeenCalledWith("/reports/orders", expect.objectContaining({
+        params: expect.objectContaining({ date_from: "2026-08-01", date_to: "2026-08-13", web_timezone: "Asia/Tashkent" }),
+      }));
       expect(api.get).toHaveBeenCalledWith("/settings/places");
       expect(api.get).toHaveBeenCalledWith("/finance/transactions", { params: { date_from: "2026-08-01", date_to: "2026-08-13", web_timezone: "Asia/Tashkent" } });
     });
@@ -535,6 +537,22 @@ describe("Web domain service contracts", () => {
           date_from: "2026-10-25", date_to: "2026-10-25", time_from: "21:00", time_to: "23:59", web_timezone: "Asia/Tashkent",
         }) }));
       }
+    });
+
+    it("keeps the five latest orders within the selected Tashkent date and time bounds", async () => {
+      const rows = [
+        { order_id: "after", created_at: "2026-08-13T09:01:00Z" },
+        ...Array.from({ length: 6 }, (_, index) => ({
+          order_id: String(index),
+          created_at: `2026-08-12T09:0${5 - index}:00Z`,
+        })),
+        { order_id: "before", created_at: "2026-08-11T04:59:00Z" },
+      ];
+      api.get.mockImplementation((path) => Promise.resolve({ data: path === "/reports/orders" ? rows : [] }));
+      const result = await dashboardService.loadOwnerOverview({
+        dateFrom: "2026-08-11", dateTo: "2026-08-13", timeFrom: "10:00", timeTo: "14:00",
+      });
+      expect(result[5].data.map((row) => row.order_id)).toEqual(["0", "1", "2", "3", "4"]);
     });
 
     it("rejects when an authoritative dashboard source fails", async () => {

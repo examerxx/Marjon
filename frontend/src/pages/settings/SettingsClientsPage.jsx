@@ -1,7 +1,6 @@
 import SettingsResourcePage from "./SettingsResourcePage";
 import { CounterpartyStatementView } from "./clients/CounterpartyHistory";
 import { formatPhoneDisplay, formatTablePhone, normalizePhoneForPayload, parsePhoneInput } from "./clients/phone";
-import { t } from "../../i18n/t";
 
 const tabs = [
   { key: "clients", label: "Клиенты" },
@@ -49,7 +48,7 @@ const titleFor = (form) => {
 function SettingsClientsPage() {
   return (
     <SettingsResourcePage
-      title={t("pages.settings.settingsclientspage.klienty")}
+      title="Клиенты"
       eyebrow="Настройки"
       addTitle={(form) => `Добавить ${titleFor(form)}`}
       editTitle={(form) => `Редактировать ${titleFor(form)}`}
@@ -67,28 +66,28 @@ function SettingsClientsPage() {
       requireDeleteConfirm
       deleteConfirmText="Удалить контрагента?"
       searchPlaceholder="Поиск"
-      emptyText={t("pages.settings.settingsclientspage.spisok_pust")}
+      emptyText="Список пуст"
       formatPhoneDisplay={formatPhoneDisplay}
       parsePhoneInput={parsePhoneInput}
       pageClassName="clients-directory-page"
       actionsLabel="Действия"
       columns={[
-        { key: "name", label: t("pages.settings.settingsclientspage.fio") },
+        { key: "name", label: "ФИО" },
         // Display-only UZ mask (+998 (XX) XXX-XX-XX); raw canonical value
         // stays untouched for search, edit, and payloads.
-        { key: "phone", label: t("pages.settings.settingsclientspage.nomer_telefona"), format: (value) => formatTablePhone(value) },
-        { key: "status", label: t("pages.settings.settingsclientspage.status") },
-        { key: "history", label: t("pages.settings.settingsclientspage.istoriya_tranzaktsiy") },
+        { key: "phone", label: "Номер телефона", format: (value) => formatTablePhone(value) },
+        { key: "status", label: "Статус" },
+        { key: "history", label: "История транзакций" },
       ]}
       formFields={[
-        { key: "type", label: t("pages.settings.settingsclientspage.tip_kontragenta"), type: "select", options: tabs.map((tab) => ({ value: tab.key, label: tab.label })) },
-        { key: "name", label: t("pages.settings.settingsclientspage.fio_nazvanie") },
-        { key: "phone", label: t("pages.settings.settingsclientspage.nomer_telefona"), type: "phone" },
+        { key: "type", label: "Тип контрагента", type: "select", options: tabs.map((tab) => ({ value: tab.key, label: tab.label })) },
+        { key: "name", label: "ФИО / название" },
+        { key: "phone", label: "Номер телефона", type: "phone" },
         // Local-only visual parity (backend has no status field): order in
         // the modal is name → phone → status → footer. The `status` key is
         // the future canonical name; the mapper deliberately excludes it
         // until the backend supports it. Never persisted.
-        { key: "status", label: t("pages.settings.settingsclientspage.status"), type: "status", defaultValue: "active" },
+        { key: "status", label: "Статус", type: "status", defaultValue: "active" },
       ]}
     />
   );

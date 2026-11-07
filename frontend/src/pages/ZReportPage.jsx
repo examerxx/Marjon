@@ -10,7 +10,6 @@ import ReportDateRangePicker, {
   validateCanonicalReportPeriod,
 } from "../components/ReportDateRangePicker";
 import { formatDateLabel, todayInputValue } from "../utils/date";
-import { t } from "../i18n/t";
 import {
   isEmptyExplicitRange,
   zReportPeriodParams,
@@ -141,13 +140,13 @@ function EmployeeMultiSelect({ label, emptyLabel, options, selected, onToggle, s
   let summary;
   let selectedNames = "";
   if (disabled) summary = emptyLabel;
-  else if (selectedList.length === 0) summary = t("pages.zreportpage.ne_vybrano");
+  else if (selectedList.length === 0) summary = "Не выбрано";
   else {
     selectedNames = selectedList
       .map((value) => { const one = options.find((item) => optionValue(item) === value); return one ? optionLabel(one) : null; })
       .filter(Boolean)
       .join(", ");
-    summary = selectedNames || t("pages.zreportpage.ne_vybrano");
+    summary = selectedNames || "Не выбрано";
   }
 
   function choose(value) {
@@ -286,7 +285,7 @@ export default function ZReportPage() {
     // picker's OK, so it should never be page state — if it somehow is, no
     // analytics request goes out and the operator is told why.
     if (isEmptyExplicitRange(selectedPeriod)) {
-      setDetailError(`${t(row.title)}: ${t("pages.zreportpage.nachalo_perioda_dolzhno_byt_ranshe_ego_okonchaniya")}`);
+      setDetailError(`${row.title}: начало периода должно быть раньше его окончания.`);
       return;
     }
     setPrintingRow(row.key);
@@ -317,8 +316,8 @@ export default function ZReportPage() {
       if (!isAbortError(err)) {
         const detail = err.response?.data?.detail;
         setDetailError(err.response?.status === 403
-          ? `${t(row.title)}: ${t("pages.zreportpage.dostup_zapreschen")}`
-          : `${t(row.title)}: ${typeof detail === "string" && detail.trim() ? detail : t("pages.zreportpage.ne_udalos_poluchit_dannye_dlya_pechati")}`);
+          ? `${row.title}: доступ запрещён.`
+          : `${row.title}: ${typeof detail === "string" && detail.trim() ? detail : "не удалось получить данные для печати."}`);
       }
     } finally {
       setPrintingRow("");
@@ -328,7 +327,7 @@ export default function ZReportPage() {
   return (
     <section className="owner-reports-page owner-reports-page--generator">
       <header className="owner-reports__head">
-        <h1 className="owner-reports__title">{t("pages.zreportpage.z_otchet")}</h1>
+        <h1 className="owner-reports__title">Z-отчёт</h1>
         <div className="owner-reports__head-actions">
           <ReportDateRangePicker
             variant="canonical"
@@ -336,28 +335,28 @@ export default function ZReportPage() {
             value={selectedPeriod}
             onChange={setSelectedPeriod}
             validateRange={validateZReportPeriod}
-            buttonAriaLabel={t("report_period.z_report")}
+            buttonAriaLabel="Период Z-отчёта"
           />
         </div>
       </header>
 
       {detailError ? (
-        <div className="owner-reports__note owner-reports__note--error" role="alert">{t("pages.zreportpage.pechat_ne_vypolnena")} {detailError}</div>
+        <div className="owner-reports__note owner-reports__note--error" role="alert">Печать не выполнена — {detailError}</div>
       ) : null}
 
       <section className="owner-reports__panel">
-        <h2 className="owner-reports__panel-title">{t("pages.zreportpage.detalizirovannye_otchety")}</h2>
+        <h2 className="owner-reports__panel-title">Детализированные отчёты</h2>
         <div className="owner-reports__rows">
         {REPORT_ROWS.map((row) => {
           const options = optionsByKey[row.key] || [];
           return (
             <div className="owner-report-row" key={row.key}>
-              <div className="owner-report-row__title">{t(row.title)}</div>
+              <div className="owner-report-row__title">{row.title}</div>
               <div className="owner-report-row__controls">
                 {row.multi ? (
                   <EmployeeMultiSelect
-                    label={t(row.title)}
-                    emptyLabel={t(row.empty)}
+                    label={row.title}
+                    emptyLabel={row.empty}
                     options={options}
                     selected={selection[row.key]}
                     onToggle={(value) => toggleMulti(row.key, value)}
@@ -365,8 +364,8 @@ export default function ZReportPage() {
                 ) : (
                   <EmployeeMultiSelect
                     single
-                    label={t(row.title)}
-                    emptyLabel={t(row.empty)}
+                    label={row.title}
+                    emptyLabel={row.empty}
                     options={options}
                     selected={selection[row.key]}
                     onToggle={(value) => setSelection((prev) => ({ ...prev, [row.key]: value }))}
@@ -382,7 +381,7 @@ export default function ZReportPage() {
                       min="1"
                       max="100"
                       placeholder=""
-                      aria-label={t("pages.zreportpage.protsent_ofitsianta")}
+                      aria-label="Процент официанта"
                       value={selection.waiterPercent}
                       disabled={selection.waiter.length === 0}
                       onChange={(event) => setSelection((prev) => ({ ...prev, waiterPercent: event.target.value }))}
@@ -408,10 +407,10 @@ export default function ZReportPage() {
                     disabled={selection[row.key].length === 0 || Boolean(printingRow)}
                     aria-disabled={selection[row.key].length === 0 || Boolean(printingRow) ? "true" : undefined}
                     aria-busy={printingRow === row.key ? "true" : undefined}
-                    aria-label={`${t("common.print")}: ${t(row.title)}`}
-                    title={selection[row.key].length === 0 ? t("pages.zreportpage.vyberite_hotya_by_odnu_pozitsiyu") : undefined}
+                    aria-label={`Печать: ${row.title}`}
+                    title={selection[row.key].length === 0 ? "Выберите хотя бы одну позицию" : undefined}
                   >
-                    <Icon name="bi-printer" size={16} /> {t("pages.zreportpage.pechat")}
+                    <Icon name="bi-printer" size={16} /> Печать
                   </button>
                 ) : (
                   <button
@@ -419,10 +418,10 @@ export default function ZReportPage() {
                     type="button"
                     disabled
                     aria-disabled="true"
-                    aria-label={t("pages.zreportpage.pechat_nedostupna_otchet_esche_ne_podklyuchen")}
-                    title={t("pages.zreportpage.otchet_esche_ne_podklyuchen")}
+                    aria-label="Печать недоступна: отчёт ещё не подключён"
+                    title="Отчёт ещё не подключён"
                   >
-                    <Icon name="bi-printer" size={16} /> {t("pages.zreportpage.pechat")}
+                    <Icon name="bi-printer" size={16} /> Печать
                   </button>
                 )}
               </div>

@@ -1,5 +1,4 @@
 import { formatMoney } from "./reportMoney";
-import { t } from "../../i18n/t";
 
 // Per-entity Z-report print document (ZR-PRINT-01C), deliberately SEPARATE from
 // the frozen whole-shift builder in ZReportPage.jsx. That one knows nothing
@@ -103,12 +102,12 @@ export function waiterServiceUnits(netSales, percent) {
 // some other percentage.
 export function normalizeWaiterPercent(raw) {
   const text = String(raw ?? "").trim();
-  if (!text) return { percent: null, label: t("pages.reports.zreportdetailprint.ne_zadan") };
+  if (!text) return { percent: null, label: "не задан" };
   const parsed = parseDecimal(text);
-  if (parsed === null) return { percent: null, label: t("pages.reports.zreportdetailprint.nedopustimoe_znachenie") };
+  if (parsed === null) return { percent: null, label: "недопустимое значение" };
   const value = Number(text);
   if (!Number.isFinite(value) || value < 0 || value > 100) {
-    return { percent: null, label: t("pages.reports.zreportdetailprint.nedopustimoe_znachenie") };
+    return { percent: null, label: "недопустимое значение" };
   }
   return { percent: text, label: `${text}%` };
 }

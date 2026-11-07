@@ -9,7 +9,6 @@ import { formatMoney } from "../../api/client";
 import { todayInputValue } from "../../utils/date";
 import { isAbortError, useLatestRequest } from "../../hooks/useAsyncSafety";
 import { isCancellationAcknowledged, useCancellationAcknowledgements } from "../../hooks/useCancellationAcknowledgements";
-import { t } from "../../i18n/t";
 
 // OWNER notification center. Whole-order cancellations come from today's
 // GET /reports/orders with an explicit order_status=cancelled filter (the
@@ -239,7 +238,7 @@ export default function TopbarNotifications() {
     };
   }, []);
 
-  const label = count ? `${t("topbar.notifications")}: ${count}` : t("topbar.notifications_none");
+  const label = count ? `Уведомления: ${count}` : "Уведомлений нет";
 
   return (
     <div className="topbar-notification-wrap" ref={ref}>
@@ -261,16 +260,16 @@ export default function TopbarNotifications() {
       <div
         className={`stock-alert-popover owner-notif ${open ? "is-open" : ""}`}
         role="dialog"
-        aria-label={t("components.topbar.topbarnotifications.uvedomleniya")}
+        aria-label="Уведомления"
         aria-hidden={!open}
         inert={!open}
       >
         <div className="stock-alert-popover__head">
           <div>
-            <span>{t("components.topbar.topbarnotifications.uvedomleniya")}</span>
-            <strong>{count ? formatEventCount(count) : t("topbar.events_none")}</strong>
+            <span>Уведомления</span>
+            <strong>{count ? formatEventCount(count) : "Событий пока нет"}</strong>
           </div>
-          <button className={loading ? "is-loading" : ""} type="button" onClick={load} disabled={loading} aria-label={t("components.topbar.topbarnotifications.obnovit")}>
+          <button className={loading ? "is-loading" : ""} type="button" onClick={load} disabled={loading} aria-label="Обновить">
             <Icon name="bi-arrow-clockwise" size={16} />
           </button>
         </div>
@@ -279,7 +278,7 @@ export default function TopbarNotifications() {
           {!loading && error ? (
             <div className="owner-notif__error" role="alert">
               <span>{error}</span>
-              <button type="button" onClick={load}>{t("components.topbar.topbarnotifications.povtorit")}</button>
+              <button type="button" onClick={load}>Повторить</button>
             </div>
           ) : null}
           {!loading && !error ? cancelled.map((item) => (
@@ -295,7 +294,7 @@ export default function TopbarNotifications() {
                 <Icon name="bi-x-octagon" size={18} />
               </div>
               <div>
-                <strong>{t("components.topbar.topbarnotifications.zakaz")}{item.number} {t("components.topbar.topbarnotifications.otmenen")}</strong>
+                <strong>Заказ №{item.number} отменён</strong>
                 <span>
                   {[item.table ? `Стол ${item.table}` : null, item.time || null]
                     .filter(Boolean).join(" · ")}
@@ -319,7 +318,7 @@ export default function TopbarNotifications() {
                 <Icon name="bi-x-octagon" size={18} />
               </div>
               <div>
-                <strong>{item.name} ×{item.quantity} {t("components.topbar.topbarnotifications.otmena")}</strong>
+                <strong>{item.name} ×{item.quantity} — отмена</strong>
                 <span>
                   {[item.table ? `Стол ${item.table}` : null, item.time || null, item.author || null]
                     .filter(Boolean).join(" · ")}
@@ -353,8 +352,8 @@ export default function TopbarNotifications() {
                 <Icon name="bi-exclamation-triangle" size={18} />
               </div>
               <div>
-                <strong>{item.name}{t("components.topbar.topbarnotifications.defitsit")}</strong>
-                <span>{t("components.topbar.topbarnotifications.ostatok")} {item.quantity} {item.unit} {t("components.topbar.topbarnotifications.iz_min")} {item.min}</span>
+                <strong>{item.name}: дефицит</strong>
+                <span>Остаток {item.quantity} {item.unit} из мин. {item.min}</span>
               </div>
             </button>
           )) : null}
@@ -363,7 +362,7 @@ export default function TopbarNotifications() {
               <span className="owner-notif__empty-icon" aria-hidden="true">
                 <Icon name="bi-bell" size={19} />
               </span>
-              <p className="owner-notif__empty-text">{t("components.topbar.topbarnotifications.zdes_poyavyatsya_vazhnye_sobytiya_po_zakazam")}</p>
+              <p className="owner-notif__empty-text">Здесь появятся важные события по заказам.</p>
             </div>
           ) : null}
         </div>

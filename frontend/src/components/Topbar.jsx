@@ -1,6 +1,8 @@
 import BackButton from "./BackButton";
-import DatePicker from "./DatePicker";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import TopbarRateWidget from "./topbar/TopbarRateWidget";
+import TopbarThemeToggle from "./topbar/TopbarThemeToggle";
 import TopbarNotifications from "./topbar/TopbarNotifications";
 import TopbarBalancePill from "./topbar/TopbarBalancePill";
 import TopbarPaymentModal from "./topbar/TopbarPaymentModal";
@@ -11,9 +13,20 @@ import DarkShellWaves from "./preview/DarkShellWaves";
 // даты; справа — независимые виджеты (курсы, уведомления, баланс). Загрузка
 // данных идёт через сервисный слой (FE-05), безопасность запросов сохранена (FE-06).
 export default function Topbar({
+  title,
   selectedDate,
+  floatingShell,
+  onToggleMenu,
 }) {
   const balance = useTopbarBalance();
+  const [balanceHost, setBalanceHost] = useState(null);
+  useEffect(() => {
+    const sync = () => setBalanceHost(document.getElementById("preview-profile-balance"));
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <>
@@ -21,24 +34,20 @@ export default function Topbar({
         <DarkShellWaves variant="topbar" />
         <div className="topbar-left">
           <span className="topbar-back-slot">
-            <BackButton className="dashboard-back-button--topbar-3d" iconName="bi-chevron-left" />
-          </span>
-          <span className="topbar-date-slot">
-            <DatePicker
-              value={selectedDate}
-              readOnly
-            />
+            <BackButton className="topbar-custom-back" iconName="bi-chevron-left" />
           </span>
         </div>
         <div className="topbar-actions">
           <TopbarRateWidget />
+          <TopbarThemeToggle />
           <TopbarNotifications />
-          <TopbarBalancePill
+          <div id="preview-topbar-profile" />
+          {balanceHost && createPortal(<TopbarBalancePill
             balance={balance.balance}
             balanceLoading={balance.balanceLoading}
             balanceError={balance.balanceError}
-            onOpenPayment={balance.openPayment}
-          />
+            onOpenPayment={() => balance.openPayment(document.querySelector("#preview-topbar-profile .sidebar-user"))}
+          />, balanceHost)}
         </div>
       </header>
       <TopbarPaymentModal

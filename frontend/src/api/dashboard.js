@@ -1,7 +1,7 @@
-import { analyticsService } from "./reports";
+import { analyticsService, reportsService } from "./reports";
 import { catalogService } from "./catalog";
 import { financeService } from "./finance";
-import { ordersService } from "./orders";
+import { webDayKey, webTime } from "../utils/webTime";
 import { settingsService } from "./settings";
 import { staffService } from "./staff";
 
@@ -30,7 +30,21 @@ export const dashboardService = Object.freeze({
         }),
       catalogService.listProducts(config),
       staffService.listEmployees(config),
-      ordersService.list({ date: dateTo }, config),
+      reportsService.listOrders(dateFrom, dateTo, {
+        ...config,
+        filters: { orderStatus: ["new", "accepted", "cooking", "ready", "completed", "cancelled"] },
+      }).then(({ data }) => {
+        const rows = Array.isArray(data) ? data : data.items;
+        const start = `${dateFrom}T${timeFrom || "00:00"}`;
+        const end = `${dateTo}T${timeTo || "23:59"}`;
+        return { data: rows.filter((order) => {
+          const timestamp = `${webDayKey(order.created_at)}T${webTime(order.created_at)}`;
+          return timestamp >= start && timestamp <= end;
+        }).slice(0, 5) };
+      }).catch((error) => {
+        if (signal?.aborted || error?.code === "ERR_CANCELED" || error?.name === "AbortError") throw error;
+        return { data: [], unavailable: true };
+      }),
       settingsService.listDashboardPlaces(config),
       financeService.listTransactions({ dateFrom, dateTo, signal }),
     ]);

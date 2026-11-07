@@ -59,11 +59,11 @@ describe("OWNER dashboard empty content", () => {
     expect(screen.queryByText("0 UZS")).not.toBeInTheDocument();
   });
 
-  it("keeps real Top-5 rows when sales exist (FULL preserved)", () => {
+  it("keeps real Top-5 rows when sales exist (FULL preserved)", async () => {
     render(<TopSalesCard dishes={[{ product_id: "p1", name: "Backend dish", quantity: 3, revenue: 180000 }]} />);
 
     expect(screen.getByText("Backend dish")).toBeInTheDocument();
-    expect(screen.getByText("3 шт")).toBeInTheDocument();
+    expect(await screen.findByText("3 шт")).toBeInTheDocument();
     expect(screen.queryByText("Продаж пока нет")).not.toBeInTheDocument();
   });
 

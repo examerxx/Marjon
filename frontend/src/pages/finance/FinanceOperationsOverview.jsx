@@ -46,11 +46,11 @@ function ExpenseRing({ rows, active, setActive, totalLabel }) {
       amount.style.fontSize = low + "px";
     };
     fit();
-    const observer = new ResizeObserver(fit);
-    observer.observe(center);
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(fit) : null;
+    observer?.observe(center);
     document.fonts?.addEventListener("loadingdone", fit);
     return () => {
-      observer.disconnect();
+      observer?.disconnect();
       document.fonts?.removeEventListener("loadingdone", fit);
     };
   }, [amountLabel]);
@@ -90,7 +90,7 @@ function MovementChart({ days, text }) {
     if (!element || typeof ResizeObserver === "undefined") return undefined;
     const observer = new ResizeObserver(([entry]) => setWidth(Math.round(entry.contentRect.width)));
     observer.observe(element);
-    return () => observer.disconnect();
+    return () => observer?.disconnect();
   }, []);
   // Chart units are CSS pixels: axis text keeps its size on every viewport width.
   const w = Math.max(320, width || 680);

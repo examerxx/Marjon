@@ -1,54 +1,55 @@
-// Контекст темы (light/dark). Сохраняет выбор в localStorage,
-// проставляет data-theme на <html>.
-
-import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
 
 const ThemeContext = createContext(null);
-
 const STORAGE_KEY = "marjon_theme";
+const isTheme = value => value === "light" || value === "dark";
 
-function detectInitialTheme() {
+function readTheme() {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "light" || stored === "dark") return stored;
+    if (isTheme(stored)) return stored;
   } catch {
-    // ignore
-  }
-  if (typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches) {
-    return "dark";
+    // The switch still works when browser storage is unavailable.
   }
   return "light";
 }
 
 export function ThemeProvider({ children }) {
-  const [theme, setThemeState] = useState(detectInitialTheme);
+  const [theme, setThemeState] = useState(readTheme);
 
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      document.documentElement.setAttribute("data-theme", theme);
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem(STORAGE_KEY, theme);
+    } catch {
+      // Keep the in-memory preference for this session.
     }
   }, [theme]);
 
-  const setTheme = useCallback((next) => {
-    setThemeState(next);
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      // ignore
+  useEffect(() => {
+    function syncTheme(event) {
+      if (event.storageArea !== localStorage) return;
+      if (event.key === null || event.key === STORAGE_KEY) {
+        setThemeState(isTheme(event.newValue) ? event.newValue : "light");
+      }
     }
+    window.addEventListener("storage", syncTheme);
+    return () => window.removeEventListener("storage", syncTheme);
   }, []);
 
+  const setTheme = useCallback(next => {
+    if (isTheme(next)) setThemeState(next);
+  }, []);
   const toggle = useCallback(() => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  }, [theme, setTheme]);
-
+    setThemeState(current => current === "dark" ? "light" : "dark");
+  }, []);
   const value = useMemo(() => ({ theme, setTheme, toggle }), [theme, setTheme, toggle]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {
-  const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error("useTheme must be used inside <ThemeProvider>");
-  return ctx;
+  const context = useContext(ThemeContext);
+  if (!context) throw new Error("useTheme must be used inside <ThemeProvider>");
+  return context;
 }

@@ -5,7 +5,6 @@
 import { useState } from "react";
 import Icon from "../../components/Icon";
 import ReportMultiSelect, { formatSelectedLabels } from "../../components/ReportMultiSelect";
-import { t } from "../../i18n/t";
 
 const EMPTY_FILTERS = { search: "", category: [] };
 
@@ -71,11 +70,11 @@ export default function DishesToolbar({
   return (
     <div className={`orders-filter-collapse dish-filter-collapse${filtersOpen ? " is-open" : ""}`}>
       <div className="orders-filter-collapse__inner" inert={!filtersOpen ? true : undefined}>
-        <div className="report-filters-grid dish-filter-panel" id="dishes-catalog-filters" aria-label={t("pages.nomenclature.dishestoolbar.filtry_kataloga_blyud")}>
+        <div className="report-filters-grid dish-filter-panel" id="dishes-catalog-filters" aria-label="Фильтры каталога блюд">
           <label className="report-filter-input">
             <Icon name="bi-search" size={17} />
             <input
-              aria-label={t("pages.nomenclature.dishestoolbar.poisk_blyud")}
+              aria-label="Поиск блюд"
               value={draftFilters.search}
               onChange={(event) => {
                 const next = event.target.value;
@@ -85,13 +84,13 @@ export default function DishesToolbar({
                   category: Array.isArray(filters?.category) ? filters.category : [],
                 });
               }}
-              placeholder={t("pages.nomenclature.dishestoolbar.poisk")}
+              placeholder="Поиск"
             />
           </label>
           <ReportMultiSelect
             filterKey="dish-category"
-            label={t("pages.nomenclature.dishestoolbar.kategoriya")}
-            placeholder={categoriesUnavailable ? t("pages.nomenclature.dishestoolbar.kategorii_nedostupny") : t("pages.nomenclature.dishestoolbar.kategoriya")}
+            label="Категория"
+            placeholder={categoriesUnavailable ? "Категории недоступны" : "Категория"}
             options={categorySelectOptions}
             selected={draftCategory}
             onToggle={toggleCategory}
@@ -104,7 +103,7 @@ export default function DishesToolbar({
           />
           <div className="report-filter-buttons dish-filter-actions">
             <button type="button" className="report-filter-clear" onClick={clearFilters}>
-              <Icon name="bi-x-circle" size={17} /> {t("pages.nomenclature.dishestoolbar.ochistit")}
+              <Icon name="bi-x-circle" size={17} /> Очистить
             </button>
           </div>
         </div>

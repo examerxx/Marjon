@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import Icon from "../../components/Icon";
 import Toast from "../../components/Toast";
 import { webDayKey } from "../../utils/webTime";
-import { t } from "../../i18n/t";
 
 function today() {
   return webDayKey();
@@ -58,62 +57,62 @@ function WasteDrawer({ warehouses, ingredients, saving, error, onClose, onSubmit
   };
 
   return (
-    <div className="warehouse-drawer" role="dialog" aria-modal="true" aria-label={t("pages.warehouse.wastedrawer.dobavit_othod")}>
+    <div className="warehouse-drawer" role="dialog" aria-modal="true" aria-label="Добавить отход">
       <div className="warehouse-drawer__backdrop" onClick={saving ? undefined : onClose} />
       <div className="warehouse-form">
         <div className="warehouse-form__header">
           <div>
-            <p>{t("pages.warehouse.wastedrawer.sklad")}</p>
-            <h2>{t("pages.warehouse.wastedrawer.dobavit_othod")}</h2>
+            <p>Склад</p>
+            <h2>Добавить отход</h2>
           </div>
-          <button type="button" onClick={onClose} aria-label={t("pages.warehouse.wastedrawer.zakryt")}><Icon name="bi-x-lg" size={18} /></button>
+          <button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="bi-x-lg" size={18} /></button>
         </div>
 
         {error ? <Toast kind="error" message={error} onClose={onClearError || undefined} /> : null}
 
         <div className="warehouse-form__grid">
           <label>
-            <span>{t("pages.warehouse.wastedrawer.kategoriya")}</span>
-            <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder={t("pages.warehouse.wastedrawer.napr_porcha")} />
+            <span>Категория</span>
+            <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Напр. Порча" />
           </label>
           <label>
-            <span>{t("pages.warehouse.wastedrawer.sklad_2")}</span>
+            <span>Склад *</span>
             <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}>
-              <option value="">{t("pages.warehouse.wastedrawer.vyberite_sklad")}</option>
+              <option value="">Выберите склад</option>
               {(warehouses || []).map((wh) => <option key={wh.id} value={wh.id}>{wh.name}</option>)}
             </select>
           </label>
           <label>
-            <span>{t("pages.warehouse.wastedrawer.data")}</span>
+            <span>Дата</span>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </label>
           <label>
-            <span>{t("pages.warehouse.wastedrawer.tovar")}</span>
+            <span>Товар *</span>
             <select value={ingredientId} onChange={(e) => pickIngredient(e.target.value)}>
-              <option value="">{t("pages.warehouse.wastedrawer.vyberite_tovar")}</option>
+              <option value="">Выберите товар</option>
               {(ingredients || []).map((ing) => <option key={ing.id} value={ing.id}>{ing.name}</option>)}
             </select>
           </label>
           <label>
-            <span>{t("pages.warehouse.wastedrawer.kolichestvo")}</span>
+            <span>Количество *</span>
             <input type="number" min="0" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="0" />
           </label>
           <label>
-            <span>{t("pages.warehouse.wastedrawer.ed_izm")}</span>
-            <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder={t("pages.warehouse.wastedrawer.kg")} />
+            <span>Ед. изм</span>
+            <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="кг" />
           </label>
-          <p className="warehouse-form__hint">{t("pages.warehouse.wastedrawer.tsena_poschitaetsya_avtomaticheski_po_fifo")}</p>
+          <p className="warehouse-form__hint">Цена посчитается автоматически по FIFO.</p>
         </div>
 
         <label className="warehouse-form__comment">
-          <span>{t("pages.warehouse.wastedrawer.prichina")}</span>
-          <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("pages.warehouse.wastedrawer.neobyazatelno")} />
+          <span>Причина</span>
+          <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Необязательно" />
         </label>
 
         <div className="warehouse-form__footer">
-          <strong>{t("pages.warehouse.wastedrawer.tsena_fifo_avto")}</strong>
+          <strong>Цена: FIFO авто</strong>
           <div style={{ display: "flex", gap: 10 }}>
-            <button type="button" onClick={onClose} disabled={saving}>{t("pages.warehouse.wastedrawer.otmena")}</button>
+            <button type="button" onClick={onClose} disabled={saving}>Отмена</button>
             <button type="button" className="warehouse-commit-action" onClick={submit} disabled={!canSubmit}>
               {saving ? "Сохранение..." : "Сохранить черновик"}
             </button>

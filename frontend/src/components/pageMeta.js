@@ -3,7 +3,7 @@
 // Набор путей и подписей сохранён без изменений.
 
 export const pageMeta = {
-  "/": ["Owner Dashboard", "Ключевые показатели ресторана"],
+  "/": ["Дашборд", "Ключевые показатели ресторана"],
   "/warehouse": ["Склад", "Остатки и движение товаров"],
   "/warehouse/stock-in": ["Приход товаров", "Оформление поступлений"],
   "/warehouse/stock-out": ["Расход товаров", "Списание и выдача товаров"],
@@ -43,6 +43,8 @@ export const pageMeta = {
   "/settings/support": ["Тех. поддержка", "Диагностика и обращения"],
   "/finance": ["Финансы", "Выручка и финансовые показатели"],
   "/finance/operations": ["Денежные операции", "Приходы, расходы и движения"],
+  "/finance/transactions": ["Денежные операции", "Обзор приходов и расходов"],
+  "/finance/debtors-creditors": ["Дебиторы и кредиторы", "Задолженности и платежи"],
   "/finance/income-categories": ["Категория приходов", "Справочник входящих средств"],
   "/finance/expense-categories": ["Категория расходов", "Справочник затрат"],
   "/nomenclature": ["Номенклатура", "Блюда и доступность"],
@@ -58,4 +60,23 @@ export const pageMeta = {
   "/nomenclature/sales-categories": ["Категория товаров", "Группы товаров"],
   "/store": ["Marjon store", "Приложение для кассы и моноблока"],
   "/reviews": ["Отзывы", "Отзывы клиентов"],
+  "/orders": ["Заказы", "Заказы ресторана"],
+  "/menu": ["Продажа", "Продажи блюд"],
+  "/staff": ["Сотрудники", "Команда ресторана"],
+  "/analytics": ["Отчеты", "Продажи и динамика"],
+  "/users/warehouse": ["Кладовщик", "Складская команда"],
+  "/settings/branches": ["Филиалы", "Филиалы ресторана"],
+  "/settings/kitchen-receipt": ["Настройка чека повара", "Кухонный чек"],
+  "/warehouse/incoming": ["Приход товаров", "Поступления товаров"],
+  "/warehouse/outgoing": ["Расход товаров", "Списание и выдача"],
+  "/warehouse/stock": ["Остаток склада", "Текущие остатки"],
+  "/warehouse/incoming-journal": ["Журнал приходов", "История поступлений"],
+  "/warehouse/incoming-journal/create": ["Добавить приход", "Новое поступление"],
 };
+
+export function resolvePageMeta(pathname) {
+  const path = pathname.replace(/^\/stock-report(?=\/|$)/, "/warehouse").replace(/\/$/, "") || "/";
+  if (pageMeta[path]) return pageMeta[path];
+  const parent = Object.keys(pageMeta).filter(key => key !== "/" && path.startsWith(`${key}/`)).sort((a, b) => b.length - a.length)[0];
+  return pageMeta[parent] || ["Marjon", ""];
+}

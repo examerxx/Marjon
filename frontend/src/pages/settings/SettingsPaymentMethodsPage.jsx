@@ -5,7 +5,6 @@ import Icon from "../../components/Icon";
 import ReportEmptyState from "../../components/ReportEmptyState";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../../hooks/useAsyncSafety";
 import MarjonSelect from "./MarjonSelect";
-import { t } from "../../i18n/t";
 import "./SettingsPaymentMethodsPage.css";
 
 const RESOURCE = "paymentMethods";
@@ -252,21 +251,21 @@ function SettingsPaymentMethodsPage() {
           <div className="settings-title-group">
             <span className="settings-accent-bar" />
             <div>
-              <p>{t("pages.settings.settingspaymentmethodspage.nastroyki")}</p>
-              <h1>{t("pages.settings.settingspaymentmethodspage.sposob_oplaty")}</h1>
+              <p>Настройки</p>
+              <h1>Способ оплаты</h1>
             </div>
           </div>
           <div className="settings-actions">
-            <button type="button" onClick={openAdd}>{t("pages.settings.settingspaymentmethodspage.dobavit_sposob_oplaty")}</button>
+            <button type="button" onClick={openAdd}>Добавить способ оплаты</button>
           </div>
         </header>
 
         {loading ? (
-          <div className="settings-empty-state" role="status">{t("pages.settings.settingspaymentmethodspage.zagruzka")}</div>
+          <div className="settings-empty-state" role="status">Загрузка...</div>
         ) : error && rows.length === 0 ? (
           <div className="settings-empty-state" role="alert">
             {error}
-            <button type="button" className="settings-places-retry" onClick={load}>{t("pages.settings.settingspaymentmethodspage.povtorit")}</button>
+            <button type="button" className="settings-places-retry" onClick={load}>Повторить</button>
           </div>
         ) : (
           <>
@@ -277,11 +276,11 @@ function SettingsPaymentMethodsPage() {
               <table className="settings-table">
                 <thead>
                   <tr>
-                    <th>{t("pages.settings.settingspaymentmethodspage.sort")}</th>
-                    <th>{t("pages.settings.settingspaymentmethodspage.nazvanie")}</th>
-                    <th>{t("pages.settings.settingspaymentmethodspage.tip")}</th>
-                    <th>{t("pages.settings.settingspaymentmethodspage.status")}</th>
-                    <th>{t("pages.settings.settingspaymentmethodspage.deystviya")}</th>
+                    <th>Сорт</th>
+                    <th>Название</th>
+                    <th>Тип</th>
+                    <th>Статус</th>
+                    <th>Действия</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -298,10 +297,10 @@ function SettingsPaymentMethodsPage() {
                       </td>
                       <td>
                         <div className="settings-row-actions">
-                          <button type="button" className="settings-action-edit" aria-label={t("pages.settings.settingspaymentmethodspage.redaktirovat", { name: row.name })} onClick={() => openEdit(row)}>
+                          <button type="button" className="settings-action-edit" aria-label={`Редактировать «${row.name}»`} onClick={() => openEdit(row)}>
                             <Icon name="bi-pencil" size={15} />
                           </button>
-                          <button type="button" className="settings-action-delete" aria-label={t("pages.settings.settingspaymentmethodspage.udalit", { name: row.name })} disabled={deleting} onClick={() => setDeleteTarget(row)}>
+                          <button type="button" className="settings-action-delete" aria-label={`Удалить «${row.name}»`} disabled={deleting} onClick={() => setDeleteTarget(row)}>
                             <Icon name="bi-trash3" size={15} />
                           </button>
                         </div>
@@ -311,7 +310,7 @@ function SettingsPaymentMethodsPage() {
                   {!error && rows.length === 0 ? (
                     <tr className="pm-empty-row">
                       <td colSpan={5} className="pm-empty-cell">
-                        <ReportEmptyState title={t("pages.settings.settingspaymentmethodspage.sposobov_oplaty_poka_net")} />
+                        <ReportEmptyState title="Способов оплаты пока нет" />
                       </td>
                     </tr>
                   ) : null}
@@ -332,14 +331,14 @@ function SettingsPaymentMethodsPage() {
                   <p>{editingId ? "Редактирование" : "Новая запись"}</p>
                   <h2 id="payment-drawer-title">{editingId ? "Редактировать способ оплаты" : "Добавить способ оплаты"}</h2>
                 </div>
-                <button type="button" aria-label={t("pages.settings.settingspaymentmethodspage.zakryt")} disabled={saving} onClick={closeDrawer}>
+                <button type="button" aria-label="Закрыть" disabled={saving} onClick={closeDrawer}>
                   <Icon name="bi-x-lg" size={20} />
                 </button>
               </header>
               <div className="settings-form__body">
                 <div className="pm-form-row">
                   <label>
-                    <span>{t("pages.settings.settingspaymentmethodspage.sort")}</span>
+                    <span>Сорт</span>
                     <input
                       inputMode="numeric"
                       value={form.sort}
@@ -347,7 +346,7 @@ function SettingsPaymentMethodsPage() {
                     />
                   </label>
                   <label>
-                    <span>{t("pages.settings.settingspaymentmethodspage.nazvanie")}</span>
+                    <span>Название</span>
                     <input
                       autoFocus
                       maxLength={30}
@@ -357,26 +356,27 @@ function SettingsPaymentMethodsPage() {
                   </label>
                 </div>
                 <div className="settings-form__wide settings-field">
-                  <label className="settings-field__label" htmlFor="pm-type">{t("pages.settings.settingspaymentmethodspage.tip")}</label>
+                  <label className="settings-field__label" htmlFor="pm-type">Тип</label>
                   <MarjonSelect
                     id="pm-type"
-                    label={t("pages.settings.settingspaymentmethodspage.tip")}
-                    placeholder={t("pages.settings.settingspaymentmethodspage.vyberite_tip")}
+                    label="Тип"
+                    placeholder="Выберите тип"
                     value={legacyType ? "" : form.type}
                     options={PAYMENT_TYPE_OPTIONS}
                     onChange={(next) => setForm((cur) => ({ ...cur, type: next }))}
                   />
                   {legacyType ? (
-                    <p className="pm-legacy-note">{t("pages.settings.settingspaymentmethodspage.tekuschiy_tip")} {paymentTypeLabel(legacyType)}</p>
+                    <p className="pm-legacy-note">Текущий тип: {paymentTypeLabel(legacyType)}</p>
                   ) : null}
                   {form.type === "other" ? (
                     <p className="pm-legacy-note">
-                     {t("pages.settings.settingspaymentmethodspage.sposob_poyavitsya_otdelnoy_knopkoy_na_kasse")}
+                      Способ появится отдельной кнопкой на кассе. Название — до 30 символов
+                      (его увидит кассир и оно попадёт в отчёты по способам оплаты).
                     </p>
                   ) : null}
                 </div>
                 <div className="settings-toggle-field settings-form__wide">
-                  <span>{t("pages.settings.settingspaymentmethodspage.status")}</span>
+                  <span>Статус</span>
                   <label className="settings-switch">
                     <input
                       type="checkbox"
@@ -392,7 +392,7 @@ function SettingsPaymentMethodsPage() {
               </div>
               {error ? <p className="settings-form__error" role="alert">{error}</p> : null}
               <footer className="settings-form__footer">
-                <button type="button" disabled={saving} onClick={closeDrawer}>{t("pages.settings.settingspaymentmethodspage.otmena")}</button>
+                <button type="button" disabled={saving} onClick={closeDrawer}>Отмена</button>
                 <button type="submit" disabled={saving}>{saving ? "Сохранение..." : "Сохранить"}</button>
               </footer>
             </form>
@@ -408,20 +408,20 @@ function SettingsPaymentMethodsPage() {
               <header className="settings-form__header">
                 <span className="settings-accent-bar" />
                 <div>
-                  <p>{t("pages.settings.settingspaymentmethodspage.udalenie")}</p>
-                  <h2 id="payment-delete-title">{t("pages.settings.settingspaymentmethodspage.udalit_sposob_oplaty")}</h2>
+                  <p>Удаление</p>
+                  <h2 id="payment-delete-title">Удалить способ оплаты?</h2>
                 </div>
-                <button type="button" aria-label={t("pages.settings.settingspaymentmethodspage.zakryt")} disabled={deleting} onClick={() => setDeleteTarget(null)}>
+                <button type="button" aria-label="Закрыть" disabled={deleting} onClick={() => setDeleteTarget(null)}>
                   <Icon name="bi-x-lg" size={18} />
                 </button>
               </header>
               <div className="settings-form__body">
                 <p id="payment-delete-body" className="settings-confirm__text">
-                  «<strong>{deleteTarget.name}</strong>{t("pages.settings.settingspaymentmethodspage.budet_udalen_eto_deystvie_neobratimo")}
+                  «<strong>{deleteTarget.name}</strong>» будет удалён. Это действие необратимо.
                 </p>
               </div>
               <footer className="settings-form__footer">
-                <button type="button" autoFocus disabled={deleting} onClick={() => setDeleteTarget(null)}>{t("pages.settings.settingspaymentmethodspage.otmena")}</button>
+                <button type="button" autoFocus disabled={deleting} onClick={() => setDeleteTarget(null)}>Отмена</button>
                 <button type="button" className="settings-confirm__delete" disabled={deleting} onClick={confirmDelete}>
                   {deleting ? "Удаление..." : "Удалить"}
                 </button>

@@ -655,6 +655,7 @@ export function useDishesCatalog() {
       if (!data?.id) throw new Error("Backend не вернул продукт с фото.");
       const photoRow = mapNomenclatureProduct(data, unitOptionsRef.current);
       setRows((current) => current.map((row) => (row.id === id ? photoRow : row)));
+      return true;
     } catch (err) {
       const message = `Фото не загружено: ${err.response?.data?.detail || err.message || "ошибка загрузки"}`;
       setActionError(message);

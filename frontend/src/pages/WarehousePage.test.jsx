@@ -138,12 +138,14 @@ describe("Warehouse stock summary (V36 dishes family)", () => {
     // wh-1: 50×1000 + 10×500 = 55 000; wh-2: 5×1000 = 5 000; итого 60 000.
     expect(within(table).getByText("Главный склад")).toBeInTheDocument();
     expect(within(table).getByText("BAR")).toBeInTheDocument();
-    expect(table.textContent).toMatch(/55[\s\u00a0\u202f]*000 UZS/);
-    expect(table.textContent).toMatch(/5[\s\u00a0\u202f]*000 UZS/);
     const tfoot = container.querySelector(".warehouse-stock-table tfoot");
     expect(tfoot).not.toBeNull();
     expect(tfoot.textContent).toMatch(/Итого/);
-    expect(tfoot.textContent).toMatch(/60[\s\u00a0\u202f]*000 UZS/);
+    await waitFor(() => {
+      expect(table.textContent).toMatch(/55[\s\u00a0\u202f]*000 UZS/);
+      expect(table.textContent).toMatch(/5[\s\u00a0\u202f]*000 UZS/);
+      expect(tfoot.textContent).toMatch(/60[\s\u00a0\u202f]*000 UZS/);
+    });
     // Товары отделяются от Продуктов: без sale-карточек всё — Продукты.
     expect(warehouseService.list).toHaveBeenCalledWith("incoming", expect.anything());
   });
@@ -343,8 +345,10 @@ describe("Warehouse stock summary (V36 dishes family)", () => {
     const { container } = render(<WarehousePage initialSection="stock" />);
     const table = await screen.findByRole("table", { name: "Остаток по складам" });
     // wh-1: продукты 50×1000=50 000, товары 10×500=5 000, сумма 55 000.
-    expect(table.textContent).toMatch(/50[\s\u00a0\u202f]*000 UZS/);
-    expect(table.textContent).toMatch(/55[\s\u00a0\u202f]*000 UZS/);
+    await waitFor(() => {
+      expect(table.textContent).toMatch(/50[\s\u00a0\u202f]*000 UZS/);
+      expect(table.textContent).toMatch(/55[\s\u00a0\u202f]*000 UZS/);
+    });
     // Статус-точка как в Официантах: без пилюли, точка + текст.
     expect(container.querySelector(".wh-status-dot.is-active")).not.toBeNull();
     fireEvent.click(await screen.findByRole("button", { name: "Открыть остатки склада Главный склад" }));

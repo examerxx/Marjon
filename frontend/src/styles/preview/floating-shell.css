@@ -1,0 +1,841 @@
+/* Isolated :5293 proposal. Body alone paints the shared workspace canvas;
+   layout/scroll wrappers stay transparent, panel surfaces keep their design. */
+body.marjon-dark-shell.dashboard-body {
+  --floating-canvas-bg: #E5F0F9;
+  background: var(--floating-canvas-bg);
+  overflow: hidden;
+}
+body.marjon-dark-shell.dashboard-body #root {
+  min-height: 100dvh;
+  background: transparent;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell {
+  --floating-gap: 14px;
+  --owner-sidebar-open-w: 280px;
+  --owner-sidebar-current-w: 280px;
+  display: flex;
+  align-items: stretch;
+  gap: var(--floating-gap);
+  padding: 12px;
+  padding-bottom: 0;
+  height: 100dvh;
+  min-height: 0;
+  width: 100%;
+  /* Flex owns the viewport; only the main-content cell may scroll. */
+  overflow: hidden;
+  background: transparent;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  gap: var(--floating-gap);
+  /* One surface behind the topbar and the cards: the sidebar gap, the topbar
+     gutter and the card gutters all read as its padding, not canvas strips. */
+  margin-left: calc(-1 * var(--floating-gap));
+  width: calc(100% + var(--floating-gap));
+  padding-left: var(--floating-gap);
+  /* Same as the page canvas: one flat background behind every panel. */
+  background: var(--floating-canvas-bg);
+  /* Square corner: a rounded one poked a third arc into the sidebar/topbar slot. */
+  border-radius: 0;
+  /* Lets the gap strip read the scroll position of the cards column. */
+  timeline-scope: --dashboard-scroll;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace::before {
+  content: "";
+  position: absolute;
+  inset: 64px 0 auto 0;
+  height: var(--floating-gap);
+  /* Same fade under the topbar: card shadows get their 14px of room. */
+  background-color: var(--floating-canvas-bg);
+  background-image: linear-gradient(180deg, var(--floating-canvas-bg) 0 45%, rgba(229, 240, 249, 0) 100%);
+  /* The fade alone would let scrolled cards ghost through the gap, so the solid
+     layer turns on as soon as the column moves; at rest the shadow keeps its room.
+     Opacity keeps this on the compositor: animating the fill repainted the whole
+     column every scroll frame, which re-rastered the glass cards and made them
+     lag behind the rest of the scroll. */
+  opacity: 0;
+  will-change: opacity;
+  animation: dashboard-gap-seal 1ms linear both;
+  animation-timeline: --dashboard-scroll;
+  animation-range: 0 12px;
+  pointer-events: none;
+  z-index: 5;
+}
+@keyframes dashboard-gap-seal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--floating-gap);
+  /* Hover shadows of the edge cards fade out towards the sidebar instead of
+     stopping dead at the scroll clip. */
+  background: linear-gradient(90deg, var(--floating-canvas-bg) 0 45%, rgba(229, 240, 249, 0) 100%);
+  border-radius: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .mobile-bottom-nav {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell::-webkit-scrollbar {
+  display: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell.is-sidebar-collapsed {
+  --owner-sidebar-current-w: 88px;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar.is-collapsed .sidebar-nav-item {
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
+  margin-inline: 0;
+  left: 0;
+  right: auto;
+  transform: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar.is-collapsed .sidebar-nav {
+  margin-left: 10px;
+  margin-right: 0;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar.is-collapsed .sidebar-link {
+  display: grid;
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
+  height: 56px;
+  min-height: 56px;
+  margin-inline: 0;
+  padding: 0 17px;
+  left: 0;
+  right: auto;
+  transform: none;
+  grid-template-columns: 22px minmax(0, 0fr) 0;
+  /* Keep the icon in the first grid column throughout the width transition,
+     exactly as on 5292. Centering the shrinking grid made it sweep sideways. */
+  justify-content: stretch;
+  gap: 0;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell::before,
+body.marjon-dark-shell.dashboard-body .dashboard-shell.is-sidebar-expanded::before,
+body.marjon-dark-shell.dashboard-body .dashboard-shell.is-sidebar-collapsed::before {
+  content: none;
+  display: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar {
+  flex: 0 0 64px;
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 64px;
+  min-height: 64px;
+  margin: 0;
+  padding: 0 20px;
+  border-radius: 18px;
+  isolation: isolate;
+  overflow: visible;
+}
+/* Anchor the flourish to the stationary right edge, independent of rail width. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar {
+  --dark-shell-text: #142d50;
+  color: #142d50;
+  background: #fff;
+  border: 1px solid #cbd2dc;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0 calc(50vw - 13px) 0 auto;
+  width: min(34vw, 420px);
+  transform: translateX(50%);
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: url("../../assets/brand/topbar-ivory-flourish.png") no-repeat;
+  background-position: center;
+  background-size: 100% auto;
+  opacity: 0.78;
+  filter: drop-shadow(0 1.5px 2px rgba(101, 79, 51, 0.32));
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .marjon-shell-wave-layer {
+  display: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar :is(.mj-datepicker__trigger, .topbar-info-widget, .topbar-icon, .topbar-balance-pill, .topbar-balance-amount) {
+  color: #142d50;
+  background: rgba(248, 250, 253, 0.92);
+  border-color: rgba(28, 62, 96, 0.08);
+  box-shadow: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar :is(.topbar-info-widget, .topbar-icon):hover {
+  background-color: #eaf0f7;
+  border-color: rgba(28, 62, 96, 0.16);
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar {
+  flex: 0 0 var(--owner-sidebar-current-w);
+  transition: flex-basis 180ms ease, width 180ms ease,
+    min-width 180ms ease, max-width 180ms ease;
+  position: relative;
+  inset: auto;
+  transform: none;
+  width: var(--owner-sidebar-current-w);
+  min-width: 0;
+  /* Only the sidebar keeps a bottom gap; the cards column runs off the viewport. */
+  height: auto;
+  min-height: 0;
+  margin: 0 0 12px;
+  padding: 16px 6px 10px;
+  border: 0;
+  border-radius: 20px;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-brand {
+  display: flex;
+  position: relative;
+  inset: auto;
+  flex: 0 0 52px;
+  min-height: 52px;
+  width: 100%;
+  margin: 0 0 16px;
+  padding: 0 14px;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar.is-collapsed .sidebar-brand {
+  padding: 0;
+  justify-content: center;
+}
+/* Preview-only wordmark, concept 08: high-contrast serif, without bead dots. */
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .sidebar-brand__identity {
+  display: flex;
+  position: static;
+  width: 100%;
+  justify-content: flex-start;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark {
+  display: inline-flex;
+  /* Anchor the symbol to the brand row, not its shrinking text wrapper. */
+  position: absolute;
+  inset: 6px auto auto 8px;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  gap: 0;
+  width: 202px;
+  transition: width 180ms ease;
+  color: #082544;
+  font-family: "Bodoni MT", "Bodoni Bd BT", "Times New Roman", serif;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.25px;
+  cursor: pointer;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark:is(:hover, :focus, :focus-visible, :active) {
+  outline: none;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-brand-symbol {
+  display: block;
+  width: 54px;
+  height: 40px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark__full {
+  display: block;
+  width: 138px;
+  min-width: 0;
+  max-width: 138px;
+  margin-left: 10px;
+  flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  transition: width 250ms ease, max-width 250ms ease, margin 250ms ease,
+    opacity 180ms ease, transform 250ms ease, visibility 180ms ease;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark__full img {
+  display: block;
+  width: 138px;
+  max-width: none;
+  height: 30px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar.is-collapsed .preview-serif-wordmark {
+  width: 54px;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar.is-collapsed .preview-serif-wordmark__full {
+  width: 0;
+  max-width: 0;
+  margin-left: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-10px);
+}
+@media (max-width: 1000px) {
+  body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark { width: 54px; }
+  body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark__full {
+    width: 0; max-width: 0; margin-left: 0; opacity: 0; visibility: hidden;
+  }
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-search {
+  flex: 0 0 42px;
+  height: 42px;
+  min-height: 42px;
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav,
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav-scroll {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 0;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-user {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-account {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  padding: 0;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav-scroll {
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  flex: 1 1 auto;
+}
+/* The submenu sheet is 2px wider than the nav column (268 vs 266 — the owner
+   token subtracts the 6px paddings but not the 1px borders). The scrollport
+   clipped that 2px, cutting off the sheet's right border and corners. Give the
+   scrollport the extra 2px in its padding so the sheet renders whole without
+   resizing it or the items. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav-scroll {
+  box-sizing: border-box;
+  width: calc(100% + 2px);
+  min-width: 0;
+  max-width: none;
+  margin-right: -2px;
+  padding-right: 2px;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav-item,
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-link {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin-inline: 0;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-link {
+  display: grid;
+  width: calc(100% - 1px);
+  grid-template-columns: 22px minmax(0, 1fr) 18px;
+  gap: 12px 10px;
+  padding: 0 27px 0 20px;
+  height: 46px;
+  min-height: 46px;
+  font-size: 16px;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-link > span:not(.sidebar-icon) {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: inherit;
+  font-size: inherit;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .marjon-shell-wave-layer {
+  border-radius: inherit;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .marjon-shell-wave-layer {
+  border-radius: inherit;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-main {
+  flex: 1 1 0;
+  position: relative;
+  inset: auto;
+  width: calc(100% + var(--floating-gap));
+  max-width: none;
+  transform: none;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  /* Clip box reaches into both gutters so card shadows are not cut at the card
+     edges; the padding keeps the content on its original x/y. */
+  margin: calc(-1 * var(--floating-gap)) 0 0 calc(-1 * var(--floating-gap));
+  padding: var(--floating-gap) 0 0 var(--floating-gap);
+  border-radius: 0;
+  background: transparent;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-timeline-name: --dashboard-scroll;
+  scroll-timeline-axis: block;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-main::-webkit-scrollbar {
+  display: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-main > .dashboard-content {
+  background: transparent;
+  /* The base dashboard shadow returns on hover only; on the flat shell the column
+     is invisible, so nothing must paint above it. */
+  box-shadow: none;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-main > .dashboard-content > .owner-kpi-band {
+  position: relative;
+  top: auto;
+  z-index: auto;
+  flex-shrink: 0;
+  /* One canvas paints through this wrapper, including around glass cards. */
+  background: transparent;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 0;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-main > .dashboard-content > .owner-kpi-band .kpi-grid {
+  margin: 0;
+}
+/* Content panels share the sidebar's warm border instead of the cool blue-grey. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-main > .dashboard-content > :is(.owner-main-grid, .owner-widgets) > .card,
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-main > .dashboard-content > .owner-main-grid .warehouse-summary-item {
+  border-color: #dcd8d0;
+}
+/* Rows of the two bottom lists: same warm border as the card and sidebar. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell .owner-widgets :is(.top-dish--compact, .recent-order) {
+  border-color: #dcd8d0;
+}
+/* Catalog panels (Dishes, raw materials, warehouse, finance, sales) as well. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell .dashboard-content .dish-catalog-card {
+  border-color: #dcd8d0;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-main > .dashboard-content > .owner-main-grid,
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-main > .dashboard-content > .owner-widgets {
+  background: transparent;
+  width: 100%;
+  min-width: 0;
+  margin-left: 0;
+  margin-right: 0;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell .floating-shell-brand {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 10px;
+  width: 258px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell .floating-shell-brand img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-left {
+  min-width: 0;
+  gap: 12px;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-back-slot {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-back-slot .dashboard-back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  top: auto;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  gap: 9px;
+  margin: 0;
+  color: var(--color-brand-dark);
+  background: var(--neutral-50);
+  border: 1px solid var(--blue-100);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 650;
+  box-shadow: none;
+  transform: none;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-back-slot .dashboard-back-button:hover {
+  background: color-mix(in srgb, var(--color-brand) 14%, var(--color-card));
+  border-color: var(--color-brand);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-brand) 16%, transparent);
+  transform: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-custom-back svg {
+  color: black;
+  stroke-width: 1.5;
+  transition: transform 160ms ease;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-custom-back svg * {
+  color: black;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-custom-back:hover svg {
+  transform: translateX(-1px);
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-custom-back:active {
+  transform: scale(.99);
+  box-shadow: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-custom-back:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-custom-back,
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-custom-back svg { transition: none; }
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-current-page {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--neutral-900);
+  font-family: "Manrope", "Golos Text", sans-serif;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -.25px;
+}
+@media (max-width: 1000px) {
+  body.marjon-dark-shell.dashboard-body .dashboard-shell,
+  body.marjon-dark-shell.dashboard-body .dashboard-shell.is-sidebar-collapsed { --owner-sidebar-current-w: 78px; }
+  body.marjon-dark-shell.dashboard-body .dashboard-shell .floating-shell-brand { width: auto; margin-right: 12px; }
+  body.marjon-dark-shell.dashboard-body .dashboard-shell .floating-shell-brand span { display: none; }
+}
+@media (max-width: 640px) {
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar::before { right: calc(50vw - 9px); }
+  body.marjon-dark-shell.dashboard-body .dashboard-shell { padding: 8px; --floating-gap: 8px; }
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar { padding: 0 10px; }
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar { padding-inline: 2px; }
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-topbar .topbar-date-slot { display: none; }
+}
+/* Mobile already has SidebarMobileNav: do not reserve a second desktop rail. */
+@media (max-width: 768px) {
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace {
+    /* No sidebar to attach to: the surface would only shrink the content. */
+    margin-left: 0;
+    width: 100%;
+    padding-left: 0;
+    padding-bottom: var(--floating-gap);
+    background: transparent;
+    border-radius: 0;
+  }
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar {
+    display: none;
+  }
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace::after {
+    content: none;
+  }
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace::before {
+    content: none;
+  }
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-main {
+    /* Without the surface there is no gutter to reach into. */
+    margin: 0;
+    width: 100%;
+    padding: 0;
+  }
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > .dashboard-workspace > .dashboard-main > .dashboard-content {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 100%;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell .owner-kpi-band .premium-kpi .premium-kpi__top {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell .owner-kpi-band .premium-kpi .premium-kpi__top .kpi-label {
+  margin: 0; min-width: 0; max-width: none; flex: 1; text-align: left; line-height: 1.35; font-size: 13px;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell .owner-kpi-band .premium-kpi .kpi-value {
+  transform: translateY(20px);
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell .owner-kpi-band .premium-kpi .premium-kpi__top .premium-kpi__icon {
+  flex-shrink: 0; margin: 0;
+}
+body.dashboard-body .dashboard-shell .menu-categories-page .settings-actions > .dishcat-add-reference {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  border-radius: 26px; padding: 0 21px; min-height: 40px;
+  background: linear-gradient(110deg, #00b9c4, #32c5cb); color: white;
+  box-shadow: 0 5px 12px rgba(0, 185, 196, .22); border: 0;
+}
+body.dashboard-body .dashboard-shell .dishcat-add-reference__plus {
+  display: inline-flex; align-items: center; justify-content: center;
+  position: relative; box-sizing: border-box; padding: 0; margin: 0;
+  width: 20px; height: 20px; flex: 0 0 20px; border: 0; border-radius: 0; background: transparent; color: #08b9c4; line-height: 0;
+}
+body.dashboard-body .dashboard-shell .dishcat-add-reference__plus::before,
+body.dashboard-body .dashboard-shell .dishcat-add-reference__plus::after {
+  content: none;
+}
+body.dashboard-body .dashboard-shell .dishcat-add-reference__plus > svg {
+  display: block; position: static; width: 20px; height: 20px; min-width: 20px; margin: 0; padding: 0;
+  transform: none; border: 0; overflow: visible;
+}
+body.dashboard-body .dishcat-modal-layer .settings-modal:has(#dishcat-modal-title) .settings-form__header {
+  display: grid; grid-template-columns: 7px minmax(0, 1fr) 34px;
+  align-items: center; gap: 12px; margin-bottom: 20px;
+}
+body.dashboard-body .dishcat-modal-layer .settings-modal:has(#dishcat-modal-title) .settings-form__header > div { min-width: 0; }
+body.dashboard-body .dishcat-modal-layer .settings-modal:has(#dishcat-modal-title) .settings-accent-bar { width: 7px; height: 42px; margin: 0; border-radius: 5px; }
+body.dashboard-body .dishcat-modal-layer .settings-modal:has(#dishcat-modal-title) .settings-form__header p {
+  margin: 0 0 5px; font-size: 10px; line-height: 1.2; letter-spacing: 1px; font-weight: 600;
+}
+body.dashboard-body .dishcat-modal-layer .settings-modal #dishcat-modal-title {
+  margin: 0; font-size: 22px; line-height: 1.2; font-weight: 650; letter-spacing: -.3px;
+}
+body.dashboard-body .dishcat-modal-layer .settings-modal:has(#dishcat-modal-title) .settings-form__header > button {
+  width: 34px; height: 34px; min-width: 34px; padding: 0; margin: 0; align-self: center;
+}
+@media(max-width: 480px) { body.dashboard-body .dishcat-modal-layer .settings-modal #dishcat-modal-title { font-size: 19px; } }
+/* Reversible light-sidebar study; all overrides stay inside this rail. */
+#preview-topbar-profile { position: relative; width: 230px; max-width: 42vw; flex-shrink: 0; }
+#preview-topbar-profile .sidebar-account { position: relative; width: 100%; margin: 0; }
+#preview-topbar-profile .sidebar-user {
+  display: flex; align-items: center; gap: 12px; width: 100%; height: 46px;
+  min-height: 46px; max-height: 46px;
+  padding: 5px 14px 5px 6px; margin: 0; border: 1px solid #e2e6ed; border-radius: 999px;
+  color: #122a50; background: #fff; box-shadow: none;
+}
+#preview-topbar-profile .sidebar-user__avatar { flex: 0 0 34px; width: 34px; height: 34px; border-radius: 50%; overflow: hidden; background: #edf4fa; }
+#preview-topbar-profile .sidebar-user__avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+#preview-topbar-profile .sidebar-user__meta { display: block; min-width: 0; flex: 1; text-align: left; }
+#preview-topbar-profile .sidebar-user__meta strong { display: block; color: #122a50; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#preview-topbar-profile .sidebar-user__meta em { display: none; }
+#preview-topbar-profile .sidebar-user__arrow { flex: 0 0 16px; transform: rotate(90deg); color: #607697; transition: transform .18s; }
+#preview-topbar-profile .is-open .sidebar-user__arrow { transform: rotate(-90deg); }
+#preview-topbar-profile .sidebar-user::before,
+#preview-topbar-profile .sidebar-user::after { display: none; }
+#preview-topbar-profile .sidebar-account__menu {
+  position: absolute; inset: calc(100% + 10px) 0 auto auto; width: 280px;
+  max-height: calc(100dvh - 100px); overflow-y: auto; z-index: 1200;
+  color: #122a50; background: #fff; border: 1px solid #d7e1ee;
+  border-radius: 16px; box-shadow: 0 12px 30px #122a5020; padding: 12px;
+  transform-origin: top right; animation: none; display: flex; flex-direction: column; gap: 4px;
+}
+#preview-topbar-profile .sidebar-account__head { display: flex; align-items: center; gap: 10px; padding: 4px 6px 10px; }
+#preview-topbar-profile .sidebar-account__head-meta { min-width: 0; }
+#preview-topbar-profile .sidebar-account__head-meta strong { display: block; overflow-wrap: anywhere; }
+#preview-topbar-profile .sidebar-account__item,
+#preview-topbar-profile .sidebar-account__lang-trigger {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px;
+  padding: 10px 12px; color: #122a50; font: inherit; font-size: 14px;
+  text-align: left; text-decoration: none; border: 0; border-radius: 10px; background: transparent; cursor: pointer;
+}
+#preview-topbar-profile .sidebar-account__item:hover,
+#preview-topbar-profile .sidebar-account__lang-trigger:hover { background: #eff6f8; }
+#preview-topbar-profile .sidebar-account__lang-label,
+#preview-topbar-profile .sidebar-account__lang-current { display: inline-flex; align-items: center; gap: 8px; }
+#preview-topbar-profile .sidebar-account__lang-current { margin-left: auto; }
+#preview-topbar-profile .sidebar-account__lang-current-flag img,
+#preview-topbar-profile .sidebar-account__lang-flag img { width: 20px; height: 14px; object-fit: cover; }
+#preview-topbar-profile .sidebar-account__lang-panel { display: flex; gap: 6px; padding: 6px; }
+#preview-topbar-profile .sidebar-account__lang-panel button { display: flex; align-items: center; gap: 5px; padding: 8px; border: 1px solid #dce4ec; border-radius: 8px; background: #fff; color: #122a50; }
+#preview-topbar-profile .sidebar-account__lang-panel button.is-active { background: #e4f8f6; border-color: #23bfbd; }
+#preview-topbar-profile .sidebar-account__item--danger { color: #d63848; }
+#preview-profile-balance { padding: 10px 0; margin-bottom: 6px; border-bottom: 1px solid #e3e8f0; }
+#preview-profile-balance .topbar-balance-pill { display: flex; justify-content: space-between; width: 100%; }
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar {
+  --dark-shell-text: #122a50;
+  --dark-shell-muted: #607697;
+  --dark-shell-nav-icon: #122a50;
+  --dark-shell-chevron: #607697;
+  color: #122a50;
+  background: url("../../assets/brand/sidebar-ivory-mint-relief-v3.png") no-repeat left bottom / 100% auto, linear-gradient(120deg, #fff, #f3f6fc);
+  border: 1px solid #dcd8d0;
+  /* Lifts the rail off the flat canvas; z-index keeps the cast visible in the
+     14px gap, which the workspace surface would otherwise paint over.
+     Blur 30 stops just short of the topbar/card edge, so the gutter darkens
+     but the panels beside it stay clean. */
+  box-shadow: 0 10px 30px rgba(24, 42, 66, 0.2), 0 2px 6px rgba(24, 42, 66, 0.07);
+  z-index: 6;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .marjon-shell-wave-layer {
+  display: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .brand-title {
+  color: #101e38;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .brand-subtitle {
+  display: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-link {
+  --dark-shell-nav-icon: #122a50;
+  --dark-shell-chevron: #607697;
+  color: #122a50;
+  text-shadow: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-link:hover,
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-link:focus-visible {
+  --dark-shell-nav-icon: #122a50;
+  --dark-shell-chevron: #607697;
+  color: #122a50;
+  background: #e9f3f6;
+}
+/* Only the current page gets the filled pill. Deep enough under the label for
+   white 15px text, with the glossy cyan left as a tail past the text. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav .sidebar-link.is-active,
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar:not(.is-collapsed) .sidebar-nav .sidebar-link--button.is-active {
+  --dark-shell-nav-icon: #fff;
+  --dark-shell-chevron: #fff;
+  color: #fff;
+  background: linear-gradient(90deg, #2999a1 0%, #1a9aa1 38%, #1cc2c2 68%, #4fe0db 100%);
+  border-color: transparent;
+  background-clip: padding-box;
+  box-shadow: 0 4px 10px rgba(28, 194, 194, 0.14);
+  text-shadow: none;
+}
+/* An expanded category wears the same pill, as in the reference shell: opening
+   and closing the sheet is what turns the fill on and off. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav-item.has-submenu.is-open > .sidebar-link,
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav-item.has-submenu.is-open > .sidebar-link:focus-visible {
+  --dark-shell-nav-icon: #fff;
+  --dark-shell-chevron: #fff;
+  color: #fff;
+  background: linear-gradient(90deg, #2999a1 0%, #1a9aa1 38%, #1cc2c2 68%, #4fe0db 100%);
+  border-color: transparent;
+  background-clip: padding-box;
+  box-shadow: 0 4px 10px rgba(28, 194, 194, 0.14);
+  text-shadow: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav-item.has-submenu.is-open > .sidebar-link:hover {
+  --dark-shell-nav-icon: #fff;
+  --dark-shell-chevron: #fff;
+  color: #fff;
+  background: linear-gradient(90deg, #2999a1 0%, #1a9aa1 38%, #1cc2c2 68%, #4fe0db 100%);
+}
+/* Half of the original 3px hover nudge: a hint of motion, still aligned. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-link--button,
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-link--button:focus-visible {
+  transform: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-link--button:hover {
+  transform: translateX(1.5px);
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar :is(.sidebar-search__field, .sidebar-user, .sidebar-search__results, .sidebar-account__menu, .sidebar-collapsed-popover) {
+  background: rgba(250, 252, 255, .96);
+  border-color: #d7e1ee;
+  color: #122a50;
+  box-shadow: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-submenu {
+  background: #fbfcfd;
+  border: 0;
+  border-radius: 16px;
+  box-shadow: none;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav-item.has-submenu.is-open > .sidebar-submenu {
+  margin-top: 6px;
+  border: 1px solid #dcd8d0;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-search input::placeholder {
+  color: #607697;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-submenu__link:hover {
+  color: #122a50;
+  background: #e4f6f6;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-submenu__link.is-active {
+  color: #0b6570;
+  background: #dcf1f0;
+  font-weight: 600;
+}
+/* The dark shell turns hovered/selected submenu glyphs white for its navy sheet;
+   on the light preview sheet that erased them, so the icon follows the label ink. */
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-submenu__link:hover,
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-submenu__link:focus-visible {
+  --dark-shell-nav-icon: #122a50;
+}
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-submenu__link.is-active {
+  --dark-shell-nav-icon: #0b6570;
+}
+
+/* Keep the compact rail and full menu on the same icon axis. */
+@media (min-width: 1024px) {
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .preview-serif-wordmark {
+    inset-inline-start: 8px;
+  }
+}
+
+/* Resize the decorative art inside its existing card slot. */
+body.dashboard-body .dashboard-shell .dashboard-kpi-card--income .dashboard-kpi-card__art.is-transparent-art {
+  translate: 10px 0;
+}
+body.dashboard-body .dashboard-shell .dashboard-kpi-card--revenue .dashboard-kpi-card__art.is-transparent-art {
+  scale: 0.86;
+  transform-origin: right bottom;
+}
+body.dashboard-body .dashboard-shell .dashboard-side-metric__art.is-transparent-art {
+  scale: 1.32;
+  transform-origin: center;
+}
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav {
+    transition: margin-left 180ms ease, margin-top 180ms ease;
+  }
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-nav .sidebar-link {
+    transition: width 180ms ease, min-width 180ms ease, max-width 180ms ease,
+      height 180ms ease, min-height 180ms ease, max-height 180ms ease,
+      padding 180ms ease, grid-template-columns 180ms ease, gap 180ms ease,
+      background-color 160ms ease, box-shadow 160ms ease;
+  }
+}

@@ -2,6 +2,13 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (() => {
+        let theme = "light";
+        try { if (localStorage.getItem("marjon_theme") === "dark") theme = "dark"; } catch {}
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/marjon-favicon-v2.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

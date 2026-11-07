@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { t } from "../../i18n/t";
 
 const sizeOptions = [
   { value: "standard", label: "Стандартный" },
@@ -30,7 +29,7 @@ function SegmentedControl({ label, value, options, onChange }) {
             onClick={() => onChange(option.value)}
             key={option.value}
           >
-            {t(option.label)}
+            {option.label}
           </button>
         ))}
       </div>
@@ -95,7 +94,7 @@ export default function ReceiptSectionEditor({
               checked={detailsOpen}
               onChange={() => onToggle(block)}
             /> : null}
-            <span>{t(labels[block] || block)}</span>
+            <span>{labels[block] || block}</span>
           </label>
           {renderBlockHeader?.(block)}
         </div>
@@ -109,7 +108,7 @@ export default function ReceiptSectionEditor({
                 <div className={styleClassName}>
                   {sizeOpts.length ? (
                   <SegmentedControl
-                    label={t("components.receipt.receiptsectioneditor.razmer_teksta")}
+                    label="Размер текста"
                     value={blockStyles?.[block]?.size || sizeOpts[0].value}
                     options={sizeOpts}
                     onChange={(value) => onStyleChange(block, { size: value })}
@@ -117,7 +116,7 @@ export default function ReceiptSectionEditor({
                   ) : null}
                   {alignOpts.length ? (
                   <SegmentedControl
-                    label={t("components.receipt.receiptsectioneditor.vyravnivanie")}
+                    label="Выравнивание"
                     value={blockStyles?.[block]?.align || alignOpts[0].value}
                     options={alignOpts}
                     onChange={(value) => onStyleChange(block, { align: value })}
@@ -125,7 +124,7 @@ export default function ReceiptSectionEditor({
                   ) : null}
                   {weightOpts.length ? (
                   <SegmentedControl
-                    label={t("components.receipt.receiptsectioneditor.zhirnost")}
+                    label="Жирность"
                     value={blockStyles?.[block]?.weight || weightOpts[0].value}
                     options={weightOpts}
                     onChange={(value) => onStyleChange(block, { weight: value })}
@@ -166,7 +165,7 @@ export default function ReceiptSectionEditor({
               aria-expanded={open}
               onClick={() => toggleGroup(group.key)}
             >
-              <span className="receipt-section-group__title">{t(group.title)}</span>
+              <span className="receipt-section-group__title">{group.title}</span>
               <span className="receipt-section-group__chevron" aria-hidden="true" />
             </button>
             <div className={`receipt-section-group__body${open ? " is-open" : ""}`}>

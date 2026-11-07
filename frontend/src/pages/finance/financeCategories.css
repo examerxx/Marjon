@@ -1,0 +1,13 @@
+.finance-category-tabs button.is-active {
+  background: var(--color-card);
+  color: var(--color-brand-dark);
+  box-shadow: 0 1px 4px var(--color-border);
+  border-radius: 999px;
+}
+.finance-categories-page .dishcat-meta { gap: 14px; }
+.finance-categories-page .dishcat-info strong { overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .finance-categories-page .dishcat-row { flex-wrap: wrap; gap: 10px; }
+  .finance-categories-page .dishcat-main { flex-basis: 100%; }
+  .finance-categories-page .dishcat-meta { margin-left: auto; flex-wrap: wrap; }
+}

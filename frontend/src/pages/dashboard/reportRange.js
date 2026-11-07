@@ -1,5 +1,4 @@
 import { formatDateLabel, todayInputValue, toDateInputValue } from "../../utils/date";
-import { t } from "../../i18n/t";
 
 // Работа с периодом выручки OWNER-дашборда: разбор/нормализация диапазона дат
 // и человекочитаемые подписи. Вынесено из OwnerDashboard.jsx (FE-07B) без изменений логики.
@@ -147,8 +146,17 @@ export function reportRangeLabel(range) {
 }
 
 export function formatDaysLabel(days) {
-  // Число дней склоняется средствами i18next: у ru четыре формы (_one/_few/
-  // _many/_other), у uz и en — две. Раньше здесь были жёсткие русские
-  // суффиксы, из-за чего на узбекском оставалось «1 день».
-  return t("dashboard.days", { count: Math.max(1, Number(days) || 1) });
+  const value = Math.max(1, Number(days) || 1);
+  const mod10 = value % 10;
+  const mod100 = value % 100;
+
+  if (mod10 === 1 && mod100 !== 11) {
+    return `${value} день`;
+  }
+
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return `${value} дня`;
+  }
+
+  return `${value} дней`;
 }

@@ -201,6 +201,22 @@ export default function RevenueChart({ sales, valueKey = "revenue" }) {
       plugins: [revealPlugin],
     });
 
+    // Canvas colours must follow the palette without remounting the page or
+    // losing its filters. Observe only the theme attribute, not layout changes.
+    const applyTheme = () => {
+      const styles = getComputedStyle(document.body);
+      const dark = document.documentElement.dataset.theme === "dark";
+      const muted = dark ? styles.getPropertyValue("--color-text-muted").trim() || "#8eacbf" : "#667085";
+      const line = dark ? styles.getPropertyValue("--theme-line-soft").trim() || "#173d53" : "rgba(16, 24, 40, 0.08)";
+      chart.options.scales.x.ticks.color = muted;
+      chart.options.scales.y.ticks.color = muted;
+      chart.options.scales.y.grid.color = line;
+      chart.update("none");
+    };
+    applyTheme();
+    const themeObserver = new MutationObserver(applyTheme);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
     const revealStart = performance.now();
     const runReveal = (timestamp) => {
       const elapsed = timestamp - revealStart;
@@ -263,6 +279,7 @@ export default function RevenueChart({ sales, valueKey = "revenue" }) {
       if (sizeObserver) sizeObserver.disconnect();
       window.removeEventListener("scroll", hideTooltip, true);
       window.removeEventListener("resize", hideTooltip);
+      themeObserver.disconnect();
       chart.destroy();
     };
 

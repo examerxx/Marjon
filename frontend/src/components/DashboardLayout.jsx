@@ -4,7 +4,7 @@ import Sidebar from "./Sidebar";
 import SupportWidget from "./SupportWidget";
 import Topbar from "./Topbar";
 import BranchSessionBanner from "./BranchSessionBanner";
-import { pageMeta } from "./pageMeta";
+import { resolvePageMeta } from "./pageMeta";
 import { clampToToday, todayInputValue } from "../utils/date";
 import { useAuth } from "../hooks/useAuth";
 import "./dashboardStartup.css";
@@ -34,7 +34,7 @@ export default function DashboardLayout() {
   const [shellReady, setShellReady] = useState(false);
   const shellRef = useRef(null);
 
-  const [title, subtitle] = useMemo(() => pageMeta[location.pathname] || ["Dashboard", ""], [location.pathname]);
+  const [title, subtitle] = useMemo(() => resolvePageMeta(location.pathname), [location.pathname]);
   const isUsersSection = location.pathname.startsWith("/users");
   const isStaffLayout = isUsersSection || STAFF_LAYOUT_PATHS.has(location.pathname);
   const isTableReport = TABLE_REPORT_PATHS.has(location.pathname);
@@ -65,19 +65,30 @@ export default function DashboardLayout() {
 
   return (
     <div>
+      <svg width="0" height="0" aria-hidden="true" focusable="false" style={{ position: "absolute" }}>
+        <defs>
+          <filter id="marjon-dark-card-art" colorInterpolationFilters="sRGB">
+            {/* Use colour separation as alpha: fade the pale backing, keep the coloured objects. */}
+            <feColorMatrix in="SourceGraphic" type="saturate" values="0" result="artGray" />
+            <feBlend in="SourceGraphic" in2="artGray" mode="difference" result="artChroma" />
+            <feColorMatrix in="artChroma" type="matrix"
+              values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  4 4 4 0 -0.88"
+              result="artMask" />
+            <feComposite in="SourceGraphic" in2="artMask" operator="in" />
+          </filter>
+        </defs>
+      </svg>
       <BranchSessionBanner />
       <div ref={shellRef} data-shell-initializing={shellReady ? undefined : ""} className={`dashboard-shell ${sidebarCollapsed ? "is-sidebar-collapsed" : "is-sidebar-expanded"}`}>
         <Sidebar user={user} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((value) => !value)} />
+        <div className="dashboard-workspace">
+        <Topbar title={title} selectedDate={selectedDate} floatingShell onToggleMenu={() => setSidebarCollapsed(value => !value)} />
         <div className={`dashboard-main ${sidebarCollapsed ? "is-sidebar-collapsed" : ""}`}>
-          <Topbar
-            title={title}
-            subtitle={subtitle}
-            selectedDate={selectedDate}
-          />
           <main className={`dashboard-content${isStaffLayout ? " dashboard-content--staff" : ""}${isTableReport ? " dashboard-content--table-report" : ""}`}>
             <Outlet context={selectedDateContext} />
           </main>
           <SupportWidget />
+        </div>
         </div>
       </div>
     </div>

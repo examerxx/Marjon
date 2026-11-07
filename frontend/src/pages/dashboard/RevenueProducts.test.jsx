@@ -29,35 +29,35 @@ describe("Revenue product detail", () => {
     const scroll = screen.getByRole("region", { name: "Продажи оплаченных блюд" });
     expect(scroll.querySelector("thead > .revenue-products__total")).not.toBeNull();
     expect(scroll.querySelector("tbody .revenue-products__total")).toBeNull();
-    expect(revenueStyles).toMatch(/revenue-products tbody \{[^}]*overflow-y: auto/);
+    expect(revenueStyles).toMatch(/kpi-detail-table tbody \{[^}]*overflow-y: auto/);
   });
-  it("sizes the profit panel to its rows and disables hover shadows", () => {
-    const panel = revenueStyles.match(/body\.dashboard-body \.kpi-info-window\.kpi-info-window--profit-detail \{([^}]+)\}/)[1];
+  it("sizes the detail panel to its rows and disables hover shadows", () => {
+    const panel = revenueStyles.match(/body\.dashboard-body \.kpi-info-window\.kpi-info-window--detail \{([^}]+)\}/)[1];
     expect(panel).toContain("height: auto");
     expect(panel).toContain("max-height: calc(100dvh - 32px)");
     expect(revenueStyles).not.toContain("height: min(980px");
     // !important в проекте запрещён (tools/no-important.py): приоритет даёт
     // внеслойный файл + высокая специфичность селектора, а не флаг.
-    expect(revenueStyles).toMatch(/profit-detail:hover,[\s\S]*?box-shadow: none(?!\s*!important)/);
-    expect(revenueStyles).toMatch(/profit-detail tr:hover \{\s*box-shadow: none(?!\s*!important)/);
+    expect(revenueStyles).toMatch(/--detail:hover,[\s\S]*?box-shadow: none(?!\s*!important)/);
+    expect(revenueStyles).toMatch(/--detail tr:hover \{\s*box-shadow: none(?!\s*!important)/);
   });
   it("places the profit title and centered amount in one compact heading", () => {
     show(summary);
     const dialog = screen.getByRole("dialog");
     const head = dialog.querySelector(".kpi-info-window__head");
-    expect(dialog).toHaveClass("kpi-info-window--profit-detail");
-    expect(dialog.parentElement).toHaveClass("kpi-info-backdrop--profit-detail");
-    expect(within(head).getByRole("heading", { name: "Чистая прибыль" }).closest(".kpi-info-window__profit-title")).not.toBeNull();
+    expect(dialog).toHaveClass("kpi-info-window--detail");
+    expect(dialog.parentElement).toHaveClass("kpi-info-backdrop--detail");
+    expect(within(head).getByRole("heading", { name: "Чистая прибыль" }).closest(".kpi-info-window__title-group")).not.toBeNull();
     expect(head.querySelector(".kpi-info-window__value")).not.toBeNull();
     expect(dialog.querySelectorAll(".kpi-info-window__value")).toHaveLength(1);
     expect(dialog.querySelector(":scope > .kpi-info-window__value")).toBeNull();
   });
 
-  it("leaves the income dialog layout unchanged", () => {
+  it("uses the same compact heading for the income dialog", () => {
     show(summary, CARD.income);
     const dialog = screen.getByRole("dialog");
-    expect(dialog).not.toHaveClass("kpi-info-window--profit-detail");
-    expect(dialog.querySelector(":scope > .kpi-info-window__value")).not.toBeNull();
+    expect(dialog).toHaveClass("kpi-info-window--detail");
+    expect(dialog.querySelector(".kpi-info-window__head > .kpi-info-window__value")).not.toBeNull();
   });
   it("reverses both money columns, row values and totals only for income", () => {
     const table = show(summary, CARD.income);
@@ -65,11 +65,11 @@ describe("Revenue product detail", () => {
       "№", "Блюдо / товар", "Категория", "Продано", "Чистая прибыль", "Денежный приход",
     ]);
     const cells = table.querySelectorAll("tbody tr:not(.revenue-products__total) td");
-    expect(cells[4].textContent).toBe("180,01 UZS");
-    expect(cells[5].textContent).toBe("220,01 UZS");
-    const totals = table.querySelectorAll("tbody tr:first-child.revenue-products__total td");
-    expect(totals[0].textContent).toBe("180,01 UZS");
-    expect(totals[1].textContent).toBe("220,01 UZS");
+    expect(cells[4].textContent).toBe("180,01 Сум");
+    expect(cells[5].textContent).toBe("220,01 Сум");
+    const totals = table.querySelectorAll("thead tr.revenue-products__total td");
+    expect(totals[0].textContent).toBe("180,01 Сум");
+    expect(totals[1].textContent).toBe("220,01 Сум");
     expect(screen.queryByText(/Подтверждённые оплаты полностью/)).toBeNull();
   });
   it("removes the orders explanation without changing its count", () => {
@@ -84,15 +84,15 @@ describe("Revenue product detail", () => {
     ]);
     expect(within(table).getByText("Нет данных")).toBeTruthy();
     expect(within(table).queryByText("Итого")).toBeNull();
-    expect(within(table).queryByText("0 UZS")).toBeNull();
+    expect(within(table).queryByText("0 Сум")).toBeNull();
     expect(within(table).queryByText("Доля")).toBeNull();
-    expect(screen.getByRole("dialog").className).toContain("kpi-info-window--revenue-products");
+    expect(screen.getByRole("dialog").className).toContain("kpi-info-window--detail");
   });
   it("renders genuine order fields and their total without mapping completed to ready", () => {
     const table = show({ ...summary, order_rows: [{ id: "order-1", number: "5", date_label: "17.10 19:57",
       place: "Стол 5", amount: "220.01", status: "completed" }], orders_total: "220.01" }, CARD.orders);
     for (const text of ["#5", "17.10 19:57", "Стол 5", "Завершён"]) expect(within(table).getByText(text)).toBeTruthy();
-    expect(within(table).getAllByText("220,01 UZS")).toHaveLength(2);
+    expect(within(table).getAllByText("220,01 Сум")).toHaveLength(2);
   });
   it("does not present a failed order report as empty or show a fake total", () => {
     const table = show({ ...summary, financial_unavailable: true }, CARD.orders);
@@ -107,7 +107,7 @@ describe("Revenue product detail", () => {
     expect(within(table).getByText("Плов")).toBeTruthy();
     expect(within(table).getByText("Горячее")).toBeTruthy();
     expect(within(table).getByText(/0[.,]333/)).toBeTruthy();
-    expect(within(table).getAllByText("220,01 UZS")).toHaveLength(2);
+    expect(within(table).getAllByText("220,01 Сум")).toHaveLength(2);
     expect(within(table).getByText("Итого")).toBeTruthy();
     expect(table.querySelector("thead tr:last-child")).toHaveClass("revenue-products__total");
     expect(table.querySelector("tfoot")).toBeNull();

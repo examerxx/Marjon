@@ -10,7 +10,6 @@
 // react-overrides.css не тронут.
 import { useStopList } from "./useStopList";
 import StopListTable from "./StopListTable";
-import { t } from "../../i18n/t";
 
 function StopListPage() {
   const stop = useStopList();
@@ -30,8 +29,8 @@ function StopListPage() {
           <div className="settings-title-group">
             <span className="settings-accent-bar" aria-hidden="true" />
             <div>
-              <p>{t("pages.nomenclature.stoplistpage.menyu")}</p>
-              <h1>{t("pages.nomenclature.stoplistpage.stop_list")}</h1>
+              <p>Меню</p>
+              <h1>Стоп-лист</h1>
             </div>
           </div>
         </header>

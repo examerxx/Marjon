@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import OwnerDashboard from "../OwnerDashboard";
 import { dashboardService } from "../../api/dashboard";
@@ -97,7 +97,7 @@ describe("OWNER Revenue Analytics no-data zero line", () => {
     await screen.findByTestId("revenue-chart-probe");
     const stats = document.querySelector(".revenue-stat-grid");
     expect([...stats.querySelectorAll("span")].map((node) => node.textContent)).toEqual(["Максимум", "Среднее", "Обслуживание"]);
-    expect(stats.lastElementChild.textContent.replace(/[\s\u00a0\u202f]/g, "")).toContain("16300UZS");
+    await waitFor(() => expect(stats.lastElementChild.textContent.replace(/\s/g, "")).toContain("16300UZS"));
     expect(screen.queryByText("Минимум")).toBeNull();
   });
 
@@ -112,7 +112,7 @@ describe("OWNER Revenue Analytics no-data zero line", () => {
     const probe = await screen.findByTestId("revenue-chart-probe");
     expect(probe).toHaveAttribute("data-points", "2");
     expect(probe).toHaveAttribute("data-revenues", "5000,8000");
-    expect(screen.getByText("Максимум").parentElement).toHaveTextContent("8000 UZS");
+    await waitFor(() => expect(screen.getByText("Максимум").parentElement).toHaveTextContent("8000 UZS"));
   });
 
   it("renders 10 decorative card artworks without total costs", async () => {

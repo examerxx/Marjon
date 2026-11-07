@@ -1,17 +1,10 @@
-.kpi-info-window.kpi-info-window--revenue-products {
-  width: min(1080px, 100%);
-  max-height: calc(100dvh - 40px);
-  overflow-y: auto;
-}
-
-/* Profit detail: compact heading and content-sized rows, bounded by the viewport.
-   Other KPI dialogs retain their existing layout and table sizing. */
-body.dashboard-body .kpi-info-backdrop.kpi-info-backdrop--profit-detail {
+body.dashboard-body .kpi-info-backdrop.kpi-info-backdrop--detail {
   padding: 16px;
   place-items: center;
 }
-body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail {
+body.dashboard-body .kpi-info-window.kpi-info-window--detail {
   box-sizing: border-box;
+  width: min(1080px, 100%);
   height: auto;
   min-height: 0;
   max-height: calc(100dvh - 32px);
@@ -24,14 +17,14 @@ body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail {
    вне @layer, поэтому обычная декларация и так бьёт правила из
    @layer marjon-important (базовая тень .kpi-info-window лежит там), а
    специфичность селектора (0,4,1) выше любой конкурирующей. */
-body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail,
-body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail:hover,
-body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail .revenue-products:hover,
-body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail .revenue-products__scroll:hover,
-body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail tr:hover {
+body.dashboard-body .kpi-info-window.kpi-info-window--detail,
+body.dashboard-body .kpi-info-window.kpi-info-window--detail:hover,
+body.dashboard-body .kpi-info-window.kpi-info-window--detail .revenue-products:hover,
+body.dashboard-body .kpi-info-window.kpi-info-window--detail .revenue-products__scroll:hover,
+body.dashboard-body .kpi-info-window.kpi-info-window--detail tr:hover {
   box-shadow: none;
 }
-body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail .kpi-info-window__head {
+body.dashboard-body .kpi-info-window.kpi-info-window--detail .kpi-info-window__head {
   flex: none;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -40,7 +33,7 @@ body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail .kpi-info-wi
   margin: 0;
   min-height: 50px;
 }
-body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail .kpi-info-window__profit-title {
+body.dashboard-body .kpi-info-window.kpi-info-window--detail .kpi-info-window__title-group {
   grid-column: 1;
   grid-row: 1;
   justify-content: flex-start;
@@ -49,7 +42,7 @@ body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail .kpi-info-wi
   min-width: 0;
   gap: 8px;
 }
-body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail .kpi-info-window__head > .kpi-info-window__value {
+body.dashboard-body .kpi-info-window.kpi-info-window--detail .kpi-info-window__head > .kpi-info-window__value {
   grid-column: 2;
   grid-row: 1;
   justify-content: center;
@@ -61,84 +54,103 @@ body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail .kpi-info-wi
   white-space: nowrap;
   color: #0b1f3f;
 }
-body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail .kpi-info-window__value strong {
+body.dashboard-body .kpi-info-window.kpi-info-window--detail .kpi-info-window__value strong {
   font-size: clamp(28px, 3vw, 40px);
 }
-body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail .kpi-info-window__close {
+body.dashboard-body .kpi-info-window.kpi-info-window--detail .kpi-info-window__close {
   grid-column: 3;
   grid-row: 1;
   justify-self: end;
 }
-body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail > .revenue-products {
+body.dashboard-body .kpi-info-window--detail > :is(.revenue-products, .kpi-payment-report) {
   flex: 0 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
   margin-top: 12px;
 }
-body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail .revenue-products__scroll {
+body.dashboard-body .kpi-info-window--detail :is(.revenue-products__scroll, .kpi-payment-report__table-wrap) {
+  display: flex;
   flex: 0 1 auto;
   min-height: 0;
   max-height: none;
+  overflow: auto hidden;
 }
-/* The header and total are outside the vertically scrolling tbody. */
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products__scroll {
-  display: flex;
-  overflow-y: hidden;
-}
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products table {
+
+/* Only tbody scrolls vertically. The outer viewport scrolls the full table
+   horizontally, so headers, totals and detail rows move together. */
+body.dashboard-body .kpi-info-window--detail .kpi-detail-table {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  --detail-columns: 58% 42%;
 }
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products thead {
+body.dashboard-body .kpi-info-window--detail .kpi-detail-table--share {
+  --detail-columns: 34% 24% 42%;
+  min-width: 480px;
+}
+body.dashboard-body .kpi-info-window--detail .kpi-detail-table--products {
+  --detail-columns: 6% 18% 22% 12% 21% 21%;
+}
+body.dashboard-body .kpi-info-window--detail .kpi-detail-table--orders {
+  --detail-columns: 15% 28% 21% 19% 17%;
+}
+body.dashboard-body .kpi-info-window--detail .kpi-detail-table--average {
+  --detail-columns: 31% 23% 23% 23%;
+}
+.kpi-detail-table :is(thead, tbody) {
   display: block;
   width: 100%;
-  flex: none;
-  padding-right: 0;
-  overflow-y: hidden;
   scrollbar-gutter: stable;
 }
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products tbody {
-  display: block;
+.kpi-detail-table thead {
+  flex: none;
+  overflow: hidden;
+  background: #eff6ff;
+}
+.kpi-detail-table tbody {
   min-height: 0;
   overflow-y: auto;
-  scrollbar-gutter: stable;
 }
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products tbody tr,
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products thead tr {
-  display: table;
-  table-layout: fixed;
-  width: 100%;
+.kpi-detail-table tr {
+  display: grid;
+  grid-template-columns: var(--detail-columns);
 }
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products th,
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products td { box-sizing: border-box; }
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products thead th {
+.kpi-detail-table :is(th, td) {
+  box-sizing: border-box;
+  min-width: 0;
+}
+body.dashboard-body .kpi-info-window--detail .kpi-detail-table thead th {
   position: static;
 }
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products__total > * {
+.kpi-detail-table td[colspan] { grid-column: 1 / -1; }
+.kpi-detail-table th[colspan="3"] { grid-column: span 3; }
+.kpi-detail-table th[colspan="4"] { grid-column: span 4; }
+.kpi-detail-table .revenue-products__total > * {
   background: #f4f7fc;
 }
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products tr:not(.revenue-products__total) > :nth-child(1) { width: 6%; }
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products tr:not(.revenue-products__total) > :nth-child(2) { width: 18%; }
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products tr:not(.revenue-products__total) > :nth-child(3) { width: 22%; }
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products tr:not(.revenue-products__total) > :nth-child(4) { width: 12%; }
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products tr:not(.revenue-products__total) > :nth-child(n+5) { width: 21%; }
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products__total > th { width: 58%; text-transform: none; font-size: 13px; color: #18314f; }
-body.dashboard-body .kpi-info-window--profit-detail .revenue-products__total > td { width: 21%; }
+.kpi-detail-table .revenue-products__total > th {
+  text-transform: none;
+  font-size: 13px;
+  color: #18314f;
+}
+body.dashboard-body .kpi-detail-table--share :is(th, td):nth-child(3) {
+  width: auto;
+}
+
 @media (max-width: 640px) {
-  body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail {
+  body.dashboard-body .kpi-info-window.kpi-info-window--detail {
     padding: 14px;
   }
-  body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail .kpi-info-window__head {
+  body.dashboard-body .kpi-info-window.kpi-info-window--detail .kpi-info-window__head {
     grid-template-columns: minmax(0, 1fr) 38px;
     gap: 10px;
   }
-  body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail .kpi-info-window__head > .kpi-info-window__value {
+  body.dashboard-body .kpi-info-window.kpi-info-window--detail .kpi-info-window__head > .kpi-info-window__value {
     grid-column: 1 / -1;
     grid-row: 2;
   }
-  body.dashboard-body .kpi-info-window.kpi-info-window--profit-detail .kpi-info-window__close {
+  body.dashboard-body .kpi-info-window.kpi-info-window--detail .kpi-info-window__close {
     grid-column: 2;
   }
 }
