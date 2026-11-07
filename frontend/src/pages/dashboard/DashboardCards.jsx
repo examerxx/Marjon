@@ -212,6 +212,7 @@ export function RecentOrdersCard({ orders, status = "ready" }) {
 export function TopSalesCard({ dishes, error = "" }) {
   const hasDishes = dishes.length > 0;
   const [preview, setPreview] = useState(null);
+  const [failedPhotos, setFailedPhotos] = useState(() => new Set());
   const closePreview = useCallback(() => setPreview(null), []);
 
   return (
@@ -227,9 +228,13 @@ export function TopSalesCard({ dishes, error = "" }) {
         {error ? <div role="status"><SectionEmpty icon="bi-exclamation-circle" title="Топ-5 временно недоступен" text={error} /></div> : hasDishes ? dishes.map((item, index) => (
           <div className="top-dish top-dish--compact" key={item.product_id || item.name}>
             <div className="top-dish__rank">{index + 1}</div>
-            {item.photo ? (
+            {item.photo && !failedPhotos.has(item.photo) ? (
               <button type="button" className="dashboard-top-sales__photo" aria-label={`Открыть фото ${item.name}`} aria-haspopup="dialog" onClick={() => setPreview(item)}>
-                <img src={item.photo} alt={item.name} />
+                <img
+                  src={item.photo}
+                  alt={item.name}
+                  onError={() => setFailedPhotos((photos) => new Set(photos).add(item.photo))}
+                />
               </button>
             ) : <span className="dashboard-top-sales__photo" aria-label="Нет фото"><Icon name="bi-image" /></span>}
             <div className="top-dish__body">

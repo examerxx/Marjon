@@ -682,15 +682,24 @@ body.dashboard-body .dashboard-topbar .topbar-theme-toggle svg {
   }
 
   /* Populated dashboard rows use the same material as the surrounding cards. */
-  html[data-theme="dark"] body.dashboard-body .top-dish {
+  html[data-theme="dark"] body.dashboard-body :is(.top-dish, .recent-order) {
     background: var(--theme-control-face) !important;
     color: var(--theme-text) !important;
     border-color: var(--theme-line) !important;
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 3%) !important;
   }
-  html[data-theme="dark"] body.dashboard-body .top-dish:hover {
+  html[data-theme="dark"] body.dashboard-body :is(.top-dish, .recent-order):hover {
     border-color: var(--theme-accent) !important;
     background: var(--theme-hover) !important;
+  }
+
+  html[data-theme="dark"] body.dashboard-body .recent-order > :is(strong, em) {
+    color: var(--theme-text);
+  }
+  html[data-theme="dark"] body.dashboard-body .dashboard-top-sales__photo {
+    background: var(--theme-panel);
+    border-color: var(--theme-line);
+    color: var(--theme-secondary);
   }
 
   html[data-theme="dark"] body.dashboard-body .menu-category-row {
