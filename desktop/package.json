@@ -1,6 +1,6 @@
 {
   "name": "marjon-desktop",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Marjon POS — desktop terminal for cashiers, waiters and kitchen staff",
   "main": "out/main/index.js",
   "type": "commonjs",

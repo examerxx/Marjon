@@ -14,9 +14,12 @@ venv/
 env/
 
 # Environment files
+# .env.production фронтенда — публичный адрес API, без секретов: он должен
+# ехать в git, иначе сборка на чистой машине молча зашивает localhost:8000.
 .env
 .env.local
 .env.production
+!frontend/.env.production
 .marjon-dev.env
 .marjon-dev/
 
