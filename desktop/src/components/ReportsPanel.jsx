@@ -5,7 +5,7 @@ import { pickReceiptPrinter } from '../shared/printers'
 import { t } from '../shared/i18n'
 import CalendarField from './CalendarField'
 import CustomSelect from './CustomSelect'
-import { must } from '../shared/permissions'
+import { mustOrOwner } from '../shared/permissions'
 import { parseApiDate, todayISO } from '../shared/time'
 import { toast } from './Toast'
 
@@ -15,10 +15,15 @@ const COL_KEY = {
   count: 'col_count', qty: 'col_count', quantity: 'col_count', dishes_count: 'col_count', orders: 'col_orders', orders_count: 'col_orders',
   total: 'col_sum', amount: 'col_sum', sum: 'col_sum', orders_total: 'col_sum', revenue: 'col_revenue', date: 'col_date',
   service_fee: 'col_service', waiter_share: 'col_share', price: 'col_price', unit: 'col_unit', profit: 'col_profit',
+  cost_total: 'col_cost',
+  // Отчёт по официантам
+  orders_total: 'col_sum', takeaway_delivery_total: 'col_takeaway', service_total: 'col_service',
+  waiter_service_total: 'col_share', dishes_count: 'col_count',
   // Продажи (список заказов)
   order_number: 'col_order_no', created_at: 'col_created', status: 'col_status', table_number: 'col_table',
   waiter_name: 'col_waiter', items_count: 'col_items', total_amt: 'col_sum', total_amount: 'col_sum',
   discount_amount: 'col_discount', payment_method: 'col_pay_method', order_type: 'col_type', avg_check: 'col_avg',
+  category_name: 'wh_category',
 }
 function colLabel(c) { return COL_KEY[c] ? t(COL_KEY[c]) : c }
 
@@ -35,6 +40,15 @@ const Z_CNT = [
 ]
 
 function today() { return todayISO() }
+// Период по умолчанию — последние 7 дней: отчёт открывается с данными, а не
+// с пустым сегодняшним днём (пустая панель читалась как «не работает»).
+function lastWeekStart() {
+  const d = new Date(`${today()}T00:00:00`)
+  d.setDate(d.getDate() - 6)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mm}-${dd}`
+}
 function isNum(v) { return typeof v === 'number' || (typeof v === 'string' && v !== '' && !isNaN(Number(v)) && /[0-9]/.test(v)) }
 function fmtCell(k, v) {
   if (v == null || v === '') return '—'
@@ -60,10 +74,13 @@ export default function ReportsPanel({ branch, user, onClose }) {
   const TABS = [
     { id: 'products', label: t('rep_products') },
     { id: 'staff', label: t('rep_staff') },
-    ...(must(user, 'can_view_z_report') ? [{ id: 'z', label: t('rep_z') }] : []),
+    ...(mustOrOwner(user, 'can_view_z_report') ? [{ id: 'z', label: t('rep_z') }] : []),
   ]
+  // Без can_view_past_periods бэкенд всё равно отдаёт только сегодняшний день —
+  // не показываем выбор дат, который молча ничего не меняет.
+  const canPast = mustOrOwner(user, 'can_view_past_periods')
   const [tab, setTab] = useState('products')
-  const [from, setFrom] = useState(today())
+  const [from, setFrom] = useState(lastWeekStart)
   const [to, setTo] = useState(today())
   const [rows, setRows] = useState(null)
   const [zData, setZData] = useState(null)   // структурированный Z-отчёт (своя форма, не таблица)
@@ -81,11 +98,14 @@ export default function ReportsPanel({ branch, user, onClose }) {
 
   const run = useCallback((which) => {
     const active = which || tab
+    const day = today()
+    const dateFrom = canPast ? from : day
+    const dateTo = canPast ? to : day
     setTab(active); setLoading(true); setErr(false); setRows(null); setZData(null); setFilter('')
     // Z-отчёт — свой эндпоинт (день или период) и своя форма ответа
     const req = active === 'z'
-      ? reports.zReport(from, to).then((d) => setZData(d))
-      : reports[active]?.({ date_from: from, date_to: to, branch_id: branch?.id })
+      ? reports.zReport(dateFrom, dateTo).then((d) => setZData(d))
+      : reports[active]?.({ date_from: dateFrom, date_to: dateTo, branch_id: branch?.id })
           .then((d) => {
             const arr = Array.isArray(d) ? d : d?.items || d?.rows || d?.data || (d && typeof d === 'object' ? [d] : [])
             setRows(arr)
@@ -94,14 +114,25 @@ export default function ReportsPanel({ branch, user, onClose }) {
       .catch((e) => {
         // Ошибка видна всегда: и в таблице, и тостом с причиной
         setErr(true); setRows([])
-        const detail = e?.response?.data?.detail || e?.message
+        const detail = e?.response?.status === 403 ? t('no_access') : e?.response?.data?.detail || e?.message
         toast(detail ? `${t('rep_error')}: ${detail}` : t('rep_error'))
       })
       .finally(() => setLoading(false))
-  }, [tab, from, to, branch?.id])
+  }, [tab, from, to, branch?.id, canPast])
+
+  // Открытая панель сразу формирует текущий отчёт: пустой экран с кнопкой
+  // «Сформировать» выглядел как неработающая панель.
+  useEffect(() => { run('products') }, [])
 
   const cols = rows && rows.length
-    ? Object.keys(rows[0]).filter((k) => typeof rows[0][k] !== 'object' && !/_id$|^id$/i.test(k)).slice(0, 8)
+    ? Object.keys(rows[0])
+        .filter((k) =>
+          typeof rows[0][k] !== 'object'
+          && !/_id$|^id$/i.test(k)
+          // Служебные поля не выводим: фото — не текст, coverage — флаг расчёта.
+          && !/image_url|cost_coverage_complete/i.test(k)
+        )
+        .slice(0, 8)
     : []
 
   // Колонка с названием (блюдо/сотрудник) для фильтра
@@ -136,11 +167,14 @@ export default function ReportsPanel({ branch, user, onClose }) {
       ? `${t('total')}: ${shown.reduce((s, r) => s + (Number(r[sumCol]) || 0), 0).toLocaleString('ru-RU')} ${t('currency')}`
       : `${t('total')}: ${shown.length}`
     const label = TABS.find((x) => x.id === tab)?.label || t('reports')
+    const day = today()
+    const dateFrom = canPast ? from : day
+    const dateTo = canPast ? to : day
     try {
       await printersApi.printSummary({
         printer_id: receiptPrinter.id,
         title: label,
-        lines: [`${fmtDate(from)} — ${fmtDate(to)}`, ...lines],
+        lines: [`${fmtDate(dateFrom)} — ${fmtDate(dateTo)}`, ...lines],
         footer,
         copies: 1,
       })
@@ -153,6 +187,9 @@ export default function ReportsPanel({ branch, user, onClose }) {
     if (!zData) return
     if (!receiptPrinter) { toast(t('no_receipt_printer')); return }
     const money = (v) => Number(v || 0).toLocaleString('ru-RU')
+    const day = today()
+    const dateFrom = canPast ? from : day
+    const dateTo = canPast ? to : day
     const lines = [
       ...Z_FIN.map(([label, key]) => `${t(label)} — ${money(zData[key])}`),
       ...Z_CNT.map(([label, key]) => `${t(label)} — ${zData[key] ?? 0}`),
@@ -162,7 +199,7 @@ export default function ReportsPanel({ branch, user, onClose }) {
     try {
       await printersApi.printSummary({
         printer_id: receiptPrinter.id,
-        title: `${t('rep_z')} · ${fmtDate(from)}${from !== to ? ` — ${fmtDate(to)}` : ''}`,
+        title: `${t('rep_z')} · ${fmtDate(dateFrom)}${dateFrom !== dateTo ? ` — ${fmtDate(dateTo)}` : ''}`,
         lines,
         footer: `${t('z_net')}: ${money(zData.net_sales)} ${t('currency')}`,
         copies: 1,
@@ -186,10 +223,17 @@ export default function ReportsPanel({ branch, user, onClose }) {
             ))}
           </div>
           <div className="rep-dates">
-            <CalendarField value={from} onChange={setFrom} />
-            <span>—</span><CalendarField value={to} onChange={setTo} />
+            {canPast ? (
+              <>
+                <CalendarField value={from} onChange={setFrom} />
+                <span>—</span><CalendarField value={to} onChange={setTo} />
+              </>
+            ) : (
+              <span className="rep-today" title={t('past_locked')}>{fmtDate(today())}</span>
+            )}
             <button className="btn btn--primary" onClick={() => run()}>{t('generate')}</button>
           </div>
+          {!canPast && <p className="settings-hint rep-past-hint">{t('past_locked')}</p>}
           {/* Селект показываем, как только в отчёте есть хоть одно имя: в отчёте по
               сотрудникам часто одна строка, а фильтр всё равно должен быть виден */}
           {tab !== 'z' && nameOptions.length > 0 && (

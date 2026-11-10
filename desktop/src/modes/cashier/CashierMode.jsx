@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import {
   Search, Plus, Minus, Utensils, Pencil, Coffee, CupSoda,
   LayoutGrid, Armchair, DoorClosed, Sun, Wine, CalendarClock, ArrowLeft, Users, User, Clock, Wallet, BarChart3, ShoppingBag, Bike, Boxes, Printer, Receipt,
-  Bell, ClipboardList, Settings, RefreshCw, List, MoreHorizontal, Eye, X,
+  ClipboardList, Settings, RefreshCw, List, MoreHorizontal, Eye, X,
 } from 'lucide-react'
 import { orders, payments, menu, halls as hallsApi, printers as printersApi, customers as customersApi, auth as authApi, finance as financeApi, companies as companiesApi } from '../../shared/api'
 import { onPrintJob } from '../../shared/ws'
@@ -26,7 +26,7 @@ import InputPromptModal from '../../components/InputPromptModal'
 import PinPad from '../../pages/PinPad'
 import HeaderMenu from '../../components/HeaderMenu'
 import { t } from '../../shared/i18n'
-import { can, must } from '../../shared/permissions'
+import { can, must, mustOrOwner, isOwner } from '../../shared/permissions'
 import { toast } from '../../components/Toast'
 import { errorMessage } from '../../shared/errorMessage.mjs'
 import { formatPhone, extractPhoneDigits, fullPhone } from '../../shared/phone'
@@ -1175,14 +1175,25 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
   // переключатель типа заказа и профиль справа.
   const moreItems = [
     { id: 'refresh', label: t('refresh'), Icon: RefreshCw, onClick: () => window.location.reload() },
-    { id: 'events', label: t('nav_events'), Icon: Bell, onClick: () => setAttOpen(true) },
+    // Пункт открывает Посещаемость, а не «События»: подпись и иконка
+    // совпадают с экраном. Бэкенд /hr/attendance/* требует право
+    // can_approve_attendance — без него пункт не показываем.
+    ...(mustOrOwner(user, 'can_approve_attendance') ? [{ id: 'att', label: t('attendance_page'), Icon: Clock, onClick: () => setAttOpen(true) }] : []),
     { id: 'orders', label: t('orders'), Icon: ClipboardList, onClick: () => setHistOpen(true) },
     { id: 'stop', label: t('menu_more'), Icon: LayoutGrid, onClick: () => setStopOpen(true) },
-    ...(must(user, 'can_view_finance') ? [{ id: 'fin', label: t('finance'), Icon: Wallet, onClick: () => setFinOpen(true) }] : []),
-    { id: 'rep', label: t('reports'), Icon: BarChart3, onClick: () => setRepOpen(true) },
-    ...(must(user, 'can_manage_staff') ? [{ id: 'staff', label: t('dev_staff'), Icon: Users, onClick: () => setStaffOpen(true) }] : []),
-    ...(must(user, 'can_manage_staff') ? [{ id: 'wh', label: t('dev_warehouse'), Icon: Boxes, onClick: () => setWhOpen(true) }] : []),
-    { id: 'print', label: t('print'), Icon: Printer, onClick: () => setPrintOpen(true) },
+    ...(mustOrOwner(user, 'can_view_finance') ? [{ id: 'fin', label: t('finance'), Icon: Wallet, onClick: () => setFinOpen(true) }] : []),
+    // /reports/* закрыт require_permission_or_admin("can_view_finance") —
+    // тот же флаг, что у «Финансов», поэтому и гейт общий.
+    ...(mustOrOwner(user, 'can_view_finance') ? [{ id: 'rep', label: t('reports'), Icon: BarChart3, onClick: () => setRepOpen(true) }] : []),
+    // Управление аккаунтами (/auth/users) — только веб-владелец: остальным
+    // бэкенд отвечает 403, поэтому и пункт меню им не показываем.
+    ...(isOwner(user) ? [{ id: 'staff', label: t('dev_staff'), Icon: Users, onClick: () => setStaffOpen(true) }] : []),
+    ...(mustOrOwner(user, 'can_manage_staff') ? [{ id: 'wh', label: t('dev_warehouse'), Icon: Boxes, onClick: () => setWhOpen(true) }] : []),
+    // Пакетные сводки — для тех, кто ведёт учёт (финансы/персонал), а не
+    // для официанта или повара.
+    ...(mustOrOwner(user, 'can_manage_staff') || mustOrOwner(user, 'can_view_finance')
+      ? [{ id: 'print', label: t('print'), Icon: Printer, onClick: () => setPrintOpen(true) }]
+      : []),
   ]
 
   // Нижний док: рабочие доски и быстрый чек.

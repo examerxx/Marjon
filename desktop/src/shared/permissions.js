@@ -37,3 +37,15 @@ export function can(user, key) {
 export function must(user, key) {
   return readFlag(user?.permissions, key) === true
 }
+
+// Владелец на терминале входит без словаря permissions (как в веб-админке),
+// поэтому панели, которые владелец всегда видит в вебе, открываем и здесь.
+export function isOwner(user) {
+  const slugs = user?.role_slugs || (user?.role_slug ? [user.role_slug] : [])
+  return slugs.includes('owner')
+}
+
+// Строгая проверка с владельцем: тумблер выдан ИЛИ это владелец компании.
+export function mustOrOwner(user, key) {
+  return isOwner(user) || must(user, key)
+}

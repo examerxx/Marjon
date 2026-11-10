@@ -243,6 +243,10 @@ export const auth = {
         headers: tok ? { Authorization: `Bearer ${tok}` } : {},
       }).then((r) => r.data)
     ),
+  // Коллеги филиала для обычного входа сотрудника: /auth/staff-users
+  // намеренно закрыт для всех, кроме владельца и терминала, поэтому
+  // панель посещаемости берёт ростер отсюда (филиал — всегда свой).
+  branchColleagues: () => api.get('/auth/branch-colleagues').then((r) => r.data),
   // ID сотрудников с активной сессией (кто «в смене») — под org-токеном с авто-refresh.
   activeStaff: () =>
     withOrgRefresh((tok) =>

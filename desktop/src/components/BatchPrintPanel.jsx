@@ -39,7 +39,10 @@ export default function BatchPrintPanel({ branch, printerId, onClose }) {
     {
       key: 'accounts', icon: Users, label: t('dev_accounts'),
       build: async () => {
-        const items = asItems(await auth.staffUsers(branch?.id))
+        // /auth/staff-users — только владелец/терминал; обычному сотруднику
+        // доступен ростер коллег его филиала (branch-colleagues).
+        const raw = await auth.branchColleagues().catch(() => auth.staffUsers(branch?.id))
+        const items = asItems(raw)
         // Безопасность: НЕ печатаем pin_code/nfc_id — только имя, роль, телефон
         const lines = items.map((u) => {
           const role = u.role_name || (u.role_slug ? t.role(u.role_slug) : '')
@@ -100,7 +103,9 @@ export default function BatchPrintPanel({ branch, printerId, onClose }) {
     setBusy(cat.key)
     try {
       const { lines, count } = await cat.build()
-      if (!lines.length) { toast(t('dev_empty')); return }
+      // Тост всегда называет категорию: иначе успех одной карточки и
+      // «нет данных» другой висят рядом и выглядят как противоречие.
+      if (!lines.length) { toast(`${cat.label}: ${t('dev_empty')}`); return }
       await printersApi.printSummary({
         printer_id: receiptPrinter.id,
         title: cat.label,
@@ -108,9 +113,12 @@ export default function BatchPrintPanel({ branch, printerId, onClose }) {
         footer: `${t('total')}: ${count}`,
         copies: 1,
       })
-      toast(t('receipt_sent'), 'ok')
+      toast(`${cat.label}: ${t('receipt_sent')}`, 'ok')
     } catch (e) {
-      toast(t('print_failed') + (e?.response?.data?.detail ? `: ${e.response.data.detail}` : ''))
+      const detail = e?.response?.status === 403
+        ? t('no_access')
+        : e?.response?.data?.detail ? `: ${e.response.data.detail}` : ''
+      toast(`${cat.label}: ${t('print_failed')}${detail}`)
     } finally {
       setBusy(null)
     }

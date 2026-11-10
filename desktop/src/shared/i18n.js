@@ -45,7 +45,7 @@ const DICT = {
     receipt_items_total: 'Сумма блюд', receipt_service: 'Обслуживание', receipt_paid_earlier: 'Оплачено ранее',
     no_receipt_printer: 'Чековый принтер не настроен (добавьте его в админке по IP)',
     receipt_sent: 'Чек отправлен на печать', complete_order: 'Закрыть заказ', choose_payment: 'Способ оплаты', hand_to_cashier: 'Передать на кассу',
-    not_enough: 'Не хватает', print_failed: 'Ошибка печати чека',
+    not_enough: 'Не хватает', print_failed: 'Ошибка печати чека', no_access: 'Нет доступа',
     card_amount: 'Сумма к оплате картой', card_hint: 'Проведите карту на терминале, затем закройте заказ',
     card_frozen: 'Остаток после наличных',
     debt_title: 'Заказ в долг', debt_ask: 'Хотите закрыть заказ в долг?',
@@ -143,6 +143,7 @@ const DICT = {
     col_name: 'Название', col_product: 'Блюдо', col_staff: 'Сотрудник', col_cashier: 'Кассир',
     col_count: 'Кол-во', col_orders: 'Заказы', col_revenue: 'Выручка', col_date: 'Дата',
     col_service: 'Обслуга', col_share: 'Доля официанта', col_price: 'Цена', col_unit: 'Ед.', col_profit: 'Прибыль',
+    col_cost: 'Себестоимость', col_takeaway: 'Вынос/доставка',
         col_order_no: '№ заказа', col_created: 'Создан', col_waiter: 'Официант', col_items: 'Позиций',
         col_discount: 'Скидка', col_pay_method: 'Оплата', col_avg: 'Средний чек',
     // Стоп-лист
@@ -159,6 +160,7 @@ const DICT = {
     attendance: 'Приход/уход', att_pending: 'Ожидают подтверждения', att_empty: 'Нет отметок на подтверждение.',
     att_check_in: 'Пришёл', att_check_out: 'Ушёл', att_approve: 'Подтвердить', att_reject: 'Отклонить',
     att_approved: 'Подтверждено', att_rejected: 'Отклонено', att_err: 'Не удалось обновить отметку',
+    att_forbidden: 'Недостаточно прав для отметки посещаемости',
     // 5.5 — экран посещаемости кассира (отметка прихода/ухода всех сотрудников)
     attendance_page: 'Посещаемость', att_mark_in: 'Пришёл', att_mark_out: 'Ушёл',
     att_on_shift: 'На смене', att_off_shift: 'Отсутствует', att_staff: 'Сотрудники', att_journal: 'Журнал за сегодня',
@@ -269,7 +271,7 @@ const DICT = {
     receipt_items_total: 'Taomlar summasi', receipt_service: 'Xizmat haqi', receipt_paid_earlier: 'Avval to‘langan',
     no_receipt_printer: 'Chek printeri sozlanmagan (admin panelda IP bo‘yicha qo‘shing)',
     receipt_sent: 'Chek chop etishga yuborildi', complete_order: 'Buyurtmani yopish', choose_payment: 'To‘lov usuli', hand_to_cashier: 'Kassaga topshirish',
-    not_enough: 'Yetarli emas', print_failed: 'Chek chop etishda xato',
+    not_enough: 'Yetarli emas', print_failed: 'Chek chop etishda xato', no_access: 'Ruxsat yo‘q',
     card_amount: 'Karta bilan to‘lanadigan summa', card_hint: 'Kartani terminalda o‘tkazing, so‘ng buyurtmani yoping',
     card_frozen: 'Naqd to‘lovdan keyingi qoldiq',
     debt_title: 'Qarzga buyurtma', debt_ask: 'Buyurtmani qarzga yopasizmi?',
@@ -367,6 +369,7 @@ const DICT = {
     col_name: 'Nomi', col_product: 'Taom', col_staff: 'Xodim', col_cashier: 'Kassir',
     col_count: 'Miqdor', col_orders: 'Buyurtmalar', col_revenue: 'Tushum', col_date: 'Sana',
     col_service: 'Xizmat haqi', col_share: 'Ofitsiant ulushi', col_price: 'Narx', col_unit: 'Birlik', col_profit: 'Foyda',
+    col_cost: 'Tannarx', col_takeaway: 'Olib ketish/yetkazish',
     col_order_no: 'Buyurtma №', col_created: 'Yaratilgan', col_waiter: 'Ofitsiant', col_items: 'Pozitsiyalar',
     col_discount: 'Chegirma', col_pay_method: "To'lov", col_avg: "O'rtacha chek",
     // Stop-ro‘yxat
@@ -383,6 +386,7 @@ const DICT = {
     attendance: 'Keldi/ketdi', att_pending: 'Tasdiqlash kutilmoqda', att_empty: 'Tasdiqlash uchun belgilar yo‘q.',
     att_check_in: 'Keldi', att_check_out: 'Ketdi', att_approve: 'Tasdiqlash', att_reject: 'Rad etish',
     att_approved: 'Tasdiqlandi', att_rejected: 'Rad etildi', att_err: 'Belgini yangilab bo‘lmadi',
+    att_forbidden: 'Davomat belgisi uchun ruxsat yo‘q',
     // 5.5 — kassir davomat ekrani
     attendance_page: 'Davomat', att_mark_in: 'Keldi', att_mark_out: 'Ketdi',
     att_on_shift: 'Smenada', att_off_shift: 'Yo‘q', att_staff: 'Xodimlar', att_journal: 'Bugungi jurnal',

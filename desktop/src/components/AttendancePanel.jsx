@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { X, Clock, LogIn, LogOut, Check, Ban, RefreshCw, Search, Users, History } from 'lucide-react'
 import { attendance, auth } from '../shared/api'
 import { t } from '../shared/i18n'
-import { must } from '../shared/permissions'
+import { mustOrOwner } from '../shared/permissions'
 import { fmtTime } from '../shared/time'
 import CalendarField from './CalendarField'
 import { toast } from './Toast'
@@ -26,6 +26,13 @@ function avatarColor(name = '') {
 }
 function roleOf(u) { return u.role_slug || (u.role_slugs && u.role_slugs[0]) }
 
+// 403 от бэкенда — это не техническая ошибка, а отсутствие права: показываем
+// понятное сообщение вместо английского «Permission required».
+function errText(e) {
+  if (e?.response?.status === 403) return t('att_forbidden')
+  return e?.response?.data?.detail || e?.message || t('att_err')
+}
+
 export default function AttendancePanel({ user, onClose }) {
   const [staff, setStaff] = useState([])
   const [journal, setJournal] = useState([])
@@ -35,19 +42,28 @@ export default function AttendancePanel({ user, onClose }) {
   const [q, setQ] = useState('')
   // Прошлые дни журнала — только по тумблеру владельца (can_view_past_periods);
   // без права бэкенд игнорирует date и всегда отдаёт сегодняшний журнал.
-  const canPast = must(user, 'can_view_past_periods')
+  const canPast = mustOrOwner(user, 'can_view_past_periods')
+  // Отметки и очередь подтверждения — /hr/attendance/{mark,approve,pending}
+  // под require_permission_or_admin("can_approve_attendance"). Без права
+  // панель не должна даже дёргать эти ручки (иначе красный тост на открытии).
+  const canAtt = mustOrOwner(user, 'can_approve_attendance')
   const [day, setDay] = useState('')          // '' = сегодня
   const [pastLog, setPastLog] = useState([])
 
+  const setRoster = useCallback((d) => {
+    const list = (Array.isArray(d) ? d : d?.items || [])
+      .filter((u) => u.is_active !== false && !HIDDEN_ROLES.includes(String(roleOf(u) || '').toLowerCase()))
+    setStaff(list)
+  }, [])
+
   const loadStaff = useCallback(() => {
-    return auth.staffUsers(user?.branch_id)
-      .then((d) => {
-        const list = (Array.isArray(d) ? d : d?.items || [])
-          .filter((u) => u.is_active !== false && !HIDDEN_ROLES.includes(String(roleOf(u) || '').toLowerCase()))
-        setStaff(list)
-      })
-      .catch(() => setStaff([]))
-  }, [user?.branch_id])
+    // /auth/staff-users доступен только владельцу и терминалу — обычному
+    // сотруднику (кассир/менеджер) он отвечает 403. Ростер коллег его филиала
+    // отдаёт /auth/branch-colleagues, который открыт любому сотруднику.
+    return auth.branchColleagues()
+      .then(setRoster)
+      .catch(() => auth.staffUsers(user?.branch_id).then(setRoster).catch(() => setStaff([])))
+  }, [setRoster, user?.branch_id])
 
   const loadJournal = useCallback(() => {
     return attendance.log()
@@ -56,10 +72,11 @@ export default function AttendancePanel({ user, onClose }) {
   }, [])
 
   const loadPending = useCallback(() => {
+    if (!canAtt) return Promise.resolve(setPending([]))
     return attendance.pending()
       .then((d) => setPending(Array.isArray(d) ? d : d?.items || []))
       .catch(() => setPending([]))
-  }, [])
+  }, [canAtt])
 
   const reload = useCallback(() => {
     setLoading(true)
@@ -106,7 +123,7 @@ export default function AttendancePanel({ user, onClose }) {
       toast(action === 'check_in' ? t('att_marked_in') : t('att_marked_out'), 'success')
       await loadJournal()
     } catch (e) {
-      toast(e?.response?.data?.detail || e.message || t('att_err'), 'error')
+      toast(errText(e), 'error')
     } finally {
       setBusyId(null)
     }
@@ -122,7 +139,7 @@ export default function AttendancePanel({ user, onClose }) {
       toast(approve ? t('att_approved') : t('att_rejected'), 'success')
       await loadJournal()
     } catch (e) {
-      toast(e?.response?.data?.detail || e.message || t('att_err'), 'error')
+      toast(errText(e), 'error')
       loadPending() // откат
     } finally {
       setBusyId(null)
@@ -177,8 +194,8 @@ export default function AttendancePanel({ user, onClose }) {
                       </div>
                       <span className={`attn-badge ${on ? 'attn-badge--on' : 'attn-badge--off'}`}>{on ? t('att_on_shift') : t('att_off_shift')}</span>
                       <div className="attn-card__actions">
-                        <button className="btn btn--sm btn--primary" disabled={busyId === u.id || on} onClick={() => mark(u, 'check_in')}><LogIn size={16} /> {t('att_mark_in')}</button>
-                        <button className="btn btn--sm btn--danger-soft" disabled={busyId === u.id || !on} onClick={() => mark(u, 'check_out')}><LogOut size={16} /> {t('att_mark_out')}</button>
+                        <button className="btn btn--sm btn--primary" disabled={!canAtt || busyId === u.id || on} onClick={() => mark(u, 'check_in')}><LogIn size={16} /> {t('att_mark_in')}</button>
+                        <button className="btn btn--sm btn--danger-soft" disabled={!canAtt || busyId === u.id || !on} onClick={() => mark(u, 'check_out')}><LogOut size={16} /> {t('att_mark_out')}</button>
                       </div>
                     </div>
                   )
