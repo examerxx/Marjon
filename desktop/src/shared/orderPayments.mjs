@@ -26,6 +26,21 @@ export function buildOrderPayment(order, method, detail) {
   // своим названием: интеграции нет, фиксируем только «через что заплатили» —
   // ровно этим значением отчёт и покажет способ оплаты. Разбивки нал/карта
   // у такого способа нет, оплата идёт одной суммой.
+  if (detail?.partialAmount !== undefined) {
+    const amount = cents(detail.partialAmount)
+    if (!['cash', 'card'].includes(name) || amount <= 0 || amount > total) fail('payment_invalid_amount')
+    const received = name === 'cash' ? cents(detail.cash ?? detail.partialAmount) : null
+    if (received !== null && received < amount) fail('payment_not_full')
+    return {
+      order_id: order.id,
+      amount: money(amount),
+      method: name,
+      partial: true,
+      cash_received: received === null ? null : money(received),
+      cash_amount: money(name === 'cash' ? amount : 0),
+      card_amount: money(name === 'card' ? amount : 0),
+    }
+  }
   if (!['cash', 'card', 'mixed'].includes(name)) {
     return {
       order_id: order.id,
@@ -70,7 +85,13 @@ export function submitOrderPayment({ api, storage, server, order, method, detail
   const promise = Promise.resolve().then(async () => {
     try {
       const { data } = await api.post('/payments', attempt.payload, { headers: { 'Idempotency-Key': attempt.key } })
-      if (data?.status !== 'completed' || data?.order_id !== order.id || cents(data.amount) !== cents(payload.amount)) fail('payment_not_confirmed')
+      const vip = payload.method.toLowerCase() === 'vip'
+      const expectedStatus = vip ? 'complimentary' : 'completed'
+      const expectedAmount = vip ? 0 : cents(payload.amount)
+      if (data?.status !== expectedStatus || data?.order_id !== order.id || cents(data.amount) !== expectedAmount) fail('payment_not_confirmed')
+      if (payload.partial && (data.remaining_amount == null || !Number.isFinite(Number(data.remaining_amount)) || Number(data.remaining_amount) < 0)) {
+        fail('payment_not_confirmed')
+      }
       try { storage.removeItem(slot) } catch { /* A retained key safely replays the same confirmed payment. */ }
       return data
     } catch (error) {

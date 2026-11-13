@@ -1,3 +1,4 @@
+import { appendOrderItems } from './orderItems.mjs'
 import axios from 'axios'
 import { DEFAULT_SERVER_URL, normalizeServerUrl } from './config'
 import { submitOrderPayment } from './orderPayments.mjs'
@@ -349,6 +350,9 @@ export const orders = {
   update: (id, data) => api.patch(`/pos/orders/${id}`, data).then((r) => r.data),
   addItem: (orderId, data) => api.post(`/pos/orders/${orderId}/items`, data).then((r) => r.data),
   // Пакетный дозаказ: одна команда — один кухонный тикет на все новые блюда.
+  appendDraftItems: (orderId, lines) => appendOrderItems({
+    api, storage: localStorage, server: baseURL(), orderId, lines,
+  }),
   addItems: (orderId, items) => api.post(`/pos/orders/${orderId}/items/bulk`, { items }).then((r) => r.data),
   // reason — причина удаления (журналируется на бэкенде: кто/когда/почему удалил позицию)
   removeItem: (orderId, itemId, reason) => api.delete(`/pos/orders/${orderId}/items/${itemId}`, {
@@ -357,12 +361,21 @@ export const orders = {
   moveItem: (orderId, itemId, table) => api.post(`/pos/orders/${orderId}/items/${itemId}/move`, null, { params: { table } }).then((r) => r.data),
   // Плюс/минус на уже внесённой позиции: количество меняется до оплаты,
   // поэтому склад не задет (сток списывается в /payments).
-  setItemQuantity: (orderId, itemId, quantity) =>
-    api.patch(`/pos/orders/${orderId}/items/${itemId}`, { quantity }).then((r) => r.data),
+  setItemQuantity: (orderId, itemId, quantity, price) =>
+    api.patch(`/pos/orders/${orderId}/items/${itemId}`, { quantity, price }).then((r) => r.data),
+  // «Сохранить» в заказе: плюс/минус на нескольких внесённых позициях разом.
+  // changes: [{ itemId, quantity }] — НОВОЕ итоговое количество. Уменьшение
+  // подтверждается паролем (pin), reason необязателен; кухню печатает бэкенд.
+  adjustItems: (orderId, changes, { pin, reason } = {}) =>
+    api.post(`/pos/orders/${orderId}/items/adjust`, {
+      changes: changes.map((c) => ({ item_id: c.itemId, quantity: c.quantity })),
+      pin: pin || undefined,
+      reason: reason || undefined,
+    }).then((r) => r.data),
   // Смена ответственного официанта у ОДНОЙ позиции (кассир исправляет путаницу: доля обслуги идёт по ответственному)
-  setItemWaiter: (orderId, itemId, waiterId, reason) =>
+  setItemWaiter: (orderId, itemId, waiterId, reason, actionPin) =>
     api.patch(`/pos/orders/${orderId}/items/${itemId}/waiter`, {
-      waiter_id: waiterId, ...(reason ? { reason } : {}),
+      waiter_id: waiterId, reason, action_pin: actionPin,
     }).then((r) => r.data),
   // extra — дополнительные поля статуса: сейчас это должник при закрытии
   // «в долг» (client_name/client_phone), по ним бэкенд заводит клиента.
@@ -384,6 +397,7 @@ export const payments = {
     api.post('/payments', data, {
       headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
     }).then((r) => r.data),
+  resetPartial: (orderId, paymentIds) => api.post(`/payments/order/${orderId}/reset-partial`, { payment_ids: paymentIds }),
   forOrder: (orderId) => api.get(`/payments/order/${orderId}`).then((r) => r.data),
 }
 
@@ -481,7 +495,7 @@ export const finance = {
   // Способы оплаты из веб-админки (Настройки → «Способ оплаты»): владелец вводит
   // Uzum, Yandex и т.п. руками — интеграции нет, но на кассе их можно выбрать,
   // и в отчётах видно, через что клиент заплатил.
-  paymentTypes: () => api.get('/finance/payment-types', { params: { size: 200 } })
+  paymentTypes: (signal) => api.get('/settings/payment-methods', { signal })
     .then((r) => {
       const data = r.data
       const list = Array.isArray(data) ? data : (data?.items || data?.results || [])

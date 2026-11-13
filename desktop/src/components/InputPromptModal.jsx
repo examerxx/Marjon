@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { ChevronDown, X } from 'lucide-react'
+import { ArrowRight, ChevronDown, Lock, MessageSquare, X } from 'lucide-react'
 import { t } from '../shared/i18n'
+import { formatQty } from '../shared/qty'
 
 /**
  * InputPromptModal — замена window.prompt (в Electron он не работает и молча
@@ -12,18 +13,24 @@ import { t } from '../shared/i18n'
  *   placeholder?, initial?, type? ('text' | 'password' | 'number')
  *   options? — если передан список [{ value, label }], вместо ввода показывается кастомный выбор
  *   extra? — доп. необязательное поле-комментарий { label, placeholder }
+ *   changes? — список изменённых блюд [{ name, from, to }]: показывается над полями
  *   submitLabel? — текст кнопки (по умолчанию «Сохранить»)
  *   allowEmpty? — разрешить отправить пустое значение (для необязательного
  *                 комментария: причина возврата заказа и т.п.)
  *   onSubmit(value, extraValue) — async; при ошибке текст показывается внутри модалки
  *   onClose()
  */
-export default function InputPromptModal({ title, hint, placeholder = '', initial = '', type = 'text', options = [], extra, submitLabel, allowEmpty = false, onSubmit, onClose }) {
+export default function InputPromptModal({ title, hint, placeholder = '', initial = '', type = 'text', options = [], extra, changes, submitLabel, allowEmpty = false, compact = false, sidePad = false, onSubmit, onClose }) {
   const [value, setValue] = useState(() => String(initial || options[0]?.value || ''))
   const [extraValue, setExtraValue] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [optionsOpen, setOptionsOpen] = useState(false)
+  const hasChanges = Array.isArray(changes) && changes.length > 0
+  // Цифровая панель видна только пока вводят пароль; при вводе причины (экранная
+  // клавиатура снизу) она скрывается, чтобы обе не торчали на экране сразу.
+  const [padFocus, setPadFocus] = useState(true)
+  const showPad = sidePad && type === 'password' && padFocus
   const normalizedOptions = options.filter((option, index) =>
     options.findIndex((item) => String(item.value) === String(option.value)) === index
   )
@@ -43,14 +50,46 @@ export default function InputPromptModal({ title, hint, placeholder = '', initia
   }
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 'calc(var(--z-modal) + 10)' }} onClick={onClose}>
-      <div className="modal prompt-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal__header">
-          <h3>{title}</h3>
-          <button className="icon-btn" onClick={onClose}><X size={24} /></button>
-        </div>
+    <div className={compact ? "modal-overlay prompt-overlay--compact" : "modal-overlay"} style={{ zIndex: 'calc(var(--z-modal) + 10)' }} onClick={onClose}>
+      <div className={`modal prompt-modal${hasChanges ? ' prompt-modal--changes' : ''}${showPad ? ' prompt-modal--sidepad' : ''}`} onClick={(e) => e.stopPropagation()}>
+        {hasChanges ? (
+          <div className="modal__header pcm-header">
+            <div className="pcm-header__text">
+              <h3>{title}</h3>
+              <p>{t('changes_subtitle')}</p>
+            </div>
+            <button className="icon-btn" onClick={onClose} aria-label={t('close')}><X size={24} /></button>
+          </div>
+        ) : (
+          <div className="modal__header">
+            <h3>{title}</h3>
+            <button className="icon-btn" onClick={onClose}><X size={24} /></button>
+          </div>
+        )}
         <div className="prompt-modal__body">
-          {hint && <label className="prompt-modal__hint">{hint}</label>}
+          {hasChanges && (
+            <aside className="prompt-changes" aria-label={t('changed_dishes')}>
+              <h4 className="prompt-changes__head">{t('changed_dishes')}</h4>
+              <ul className="prompt-changes__list">
+                {changes.map((c, i) => {
+                  const kind = c.to === 0 ? 'removed' : c.to < c.from ? 'down' : 'up'
+                  return (
+                    <li key={i} className={`prompt-changes__row is-${kind}`}>
+                      <span className="prompt-changes__name" title={c.name}>{c.name}</span>
+                      <span className="prompt-changes__qty">
+                        {formatQty(c.from)} <ArrowRight size={12} aria-hidden="true" /> {c.to === 0 ? t('changed_cancelled') : formatQty(c.to)}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+            </aside>
+          )}
+          {hint && (
+            <label className="prompt-modal__hint">
+              {hasChanges && type === 'password' && <Lock size={14} aria-hidden="true" />} {hint}
+            </label>
+          )}
           {options.length > 0 ? (
             <div className={`prompt-select ${optionsOpen ? 'prompt-select--open' : ''}`}>
               <button
@@ -99,19 +138,23 @@ export default function InputPromptModal({ title, hint, placeholder = '', initia
               placeholder={placeholder}
               autoFocus
               disabled={busy}
+              {...(sidePad && type === 'password' ? { inputMode: 'none', 'data-keyboard': 'off', onFocus: () => setPadFocus(true) } : {})}
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
             />
           )}
           {extra && (
             <>
-              <label className="prompt-modal__hint">{extra.label}</label>
+              <label className="prompt-modal__hint">
+                {hasChanges && <MessageSquare size={14} aria-hidden="true" />} {extra.label}
+              </label>
               <textarea
                 className="input prompt-modal__extra"
                 value={extraValue}
                 placeholder={extra.placeholder || ''}
                 rows={2}
                 disabled={busy}
+                onFocus={() => setPadFocus(false)}
                 onChange={(e) => setExtraValue(e.target.value)}
               />
             </>
@@ -125,6 +168,20 @@ export default function InputPromptModal({ title, hint, placeholder = '', initia
           </button>
         </div>
       </div>
+      {showPad && (
+        <aside className="prompt-sidepad" onClick={(e) => e.stopPropagation()} aria-label={hint || title}>
+          <div className="pay-amount-pad__keys">
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'delete'].map((key, i) => key === '' ? <span key={i} /> : (
+              <button key={key} type="button" className="vkb__key" disabled={busy}
+                aria-label={key === 'delete' ? t('payment_delete_digit') : undefined}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => setValue((v) => (key === 'delete' ? v.slice(0, -1) : v + key))}>
+                {key === 'delete' ? '⌫' : key}
+              </button>
+            ))}
+          </div>
+        </aside>
+      )}
     </div>
   )
 }

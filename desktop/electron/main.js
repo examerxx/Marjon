@@ -27,6 +27,9 @@ if (process.env.MARJON_DEV_CDP_ALLOW === '1') {
   app.commandLine.appendSwitch('remote-allow-origins', '*')
 }
 
+const devProfile = isDev && process.env.MARJON_DEV_PROFILE
+if (devProfile) app.setPath('userData', devProfile)
+
 // ── Single-instance lock ──────────────────────────────────────────────────────
 // В dev не завершаем процесс при отсутствии лока (electron-vite может перезапускать),
 // чтобы окно не закрывалось внезапно. В проде — стандартный single-instance.
@@ -56,7 +59,7 @@ let allowCloseOnce = false
 //   - transparently proxies REST requests to the cloud API, so mobile devices
 //     on the LAN don't need direct internet access / cloud URL configuration
 
-const LOCAL_WS_PORT = 8765
+const LOCAL_WS_PORT = devProfile ? 8766 : 8765
 let localHttpServer = null
 let localWsServer = null
 const localClients = new Set()
@@ -114,7 +117,7 @@ function startLocalWsServer() {
     ws.on('message', (msg) => { if (msg.toString() === 'ping') ws.send('pong') })
   })
 
-  localHttpServer.listen(LOCAL_WS_PORT)
+  localHttpServer.listen(LOCAL_WS_PORT, devProfile ? '127.0.0.1' : undefined)
   console.log(`[LocalWS] Listening on ws://${getLocalIp()}:${LOCAL_WS_PORT} (+ REST proxy)`)
   return { ip: getLocalIp(), port: LOCAL_WS_PORT }
 }

@@ -45,6 +45,10 @@ export default function VirtualKeyboard({ onVisibilityChange }) {
   useEffect(() => {
     function onFocusIn(e) {
       const el = e.target
+      if (el.dataset.keyboard === 'off') {
+        setActiveInput(null)
+        return
+      }
       const isText = el.tagName === 'TEXTAREA' ||
         (el.tagName === 'INPUT' && !NON_TEXT.has((el.getAttribute('type') || 'text').toLowerCase()))
       if (isText) {

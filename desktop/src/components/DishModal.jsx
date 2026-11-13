@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X, Plus, Minus, Ban, Clock, User } from 'lucide-react'
 import { t } from '../shared/i18n'
 import { formatQty } from '../shared/qty'
 import { sanitizeDecimal, sanitizeInt } from '../shared/numeric'
 import { fmtTime } from '../shared/time'
+import WaiterPicker from './WaiterPicker'
 
 /**
  * DishModal — правка позиции заказа: порция, цена и комментарий.
@@ -32,8 +33,24 @@ import { fmtTime } from '../shared/time'
  */
 export default function DishModal({
   product, line, onSubmit, onClose, hideTakeaway = false,
-  meta = null, onCancelDish, readOnly = false,
+  meta = null, onCancelDish, onMoveTable, onSaveSent, readOnly = false,
+  onChangeWaiter, waiterOptions,
 }) {
+  const closeTimer = useRef(null)
+  const [closing, setClosing] = useState(false)
+  useEffect(() => () => clearTimeout(closeTimer.current), [])
+
+  function dismiss(callback = onClose) {
+    if (closeTimer.current !== null) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      callback()
+      return
+    }
+    setClosing(true)
+    closeTimer.current = setTimeout(callback, 150)
+  }
+
+  const overlayClass = `modal-overlay dish-overlay${closing ? ' dish-overlay--closing' : ''}`
   const step = Number(product?.portion_step) || 1
   const isFractional = step !== 1 && step > 0
 
@@ -174,60 +191,184 @@ export default function DishModal({
   const addedBy = meta?.addedByName || meta?.waiterName || ''
   const hasMeta = Boolean(addedBy || meta?.createdAt)
 
-  // Позиция, которая УЖЕ ушла в заказ (на кухню), правится только по смыслу:
-  // количество и цену не меняем (это отдельные операции на бэкенде), зато
-  // видно, кто и когда добавил, можно сменить официанта и отменить блюдо.
+  // Изменения сохранённой позиции отправляем отдельной операцией через onSaveSent.
+  const [sentPrice, setSentPrice] = useState(null)
+  // Итог, который кассир задал напрямую (150 000): количество считается из него,
+  // а при сохранении цена за порцию подгоняется так, чтобы итог был ровно таким.
+  const [exactTotal, setExactTotal] = useState(null)
+  const [priceOpen, setPriceOpen] = useState(false)
+  const [editingTotal, setEditingTotal] = useState(false)
+  const [priceDraft, setPriceDraft] = useState('')
+  const [qtyOpen, setQtyOpen] = useState(false)
+  const [qtyDraft, setQtyDraft] = useState('')
+  const [sentBusy, setSentBusy] = useState(false)
+  const [sentError, setSentError] = useState('')
   if (readOnly) {
-    const roQty = Number(line?.qty) || 0
-    const roPrice = Number(line?.price) || 0
-    const roSum = Number(line?.total) || Math.round(roQty * roPrice)
+    const initialPrice = Number(line?.price || 0) + initModDelta
+    const roPrice = sentPrice ?? initialPrice
+    const changed = qtyNum !== initQty || roPrice !== initialPrice || exactTotal != null
+    const roSum = exactTotal != null ? exactTotal : changed ? Math.max(0, qtyNum * roPrice - Number(line?.discount || 0)) : Number(line?.total ?? qtyNum * roPrice)
+    // Цена за порцию фиксирована; итог ↔ количество связаны. Бэкенд хранит 3 знака.
+    const qtyFromTotal = (sum) => Math.max(0.001, Math.round(((sum + Number(line?.discount || 0)) / (roPrice || 1)) * 1000) / 1000)
+    async function finish() {
+      if (!changed || !onSaveSent) { dismiss(); return }
+      setSentBusy(true)
+      setSentError('')
+      try {
+        const unit = exactTotal != null ? (exactTotal + Number(line?.discount || 0)) / qtyNum : roPrice
+        await onSaveSent(qtyNum, Math.round((unit - initModDelta) * 100) / 100)
+        dismiss()
+      } catch (error) {
+        setSentError(error?.response?.data?.detail || error.message)
+      } finally { setSentBusy(false) }
+    }
+    async function changeWaiter(id) {
+      setSentBusy(true)
+      setSentError('')
+      try {
+        await onChangeWaiter(id)
+      } catch (error) {
+        setSentError(error?.response?.data?.detail || error.message)
+      } finally {
+        setSentBusy(false)
+      }
+    }
     const mods = Array.isArray(line?.modifiers) ? line.modifiers.filter((m) => m && m.name) : []
     return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal dish-modal dish-modal--compact" onClick={(e) => e.stopPropagation()}>
+      <div className={overlayClass} inert={closing ? '' : undefined} onClick={() => { if (!sentBusy && !priceOpen) dismiss() }}>
+        <div className={`modal dish-modal dish-modal--compact dish-modal--sent${priceOpen ? ' dish-modal--shifted' : ''}${qtyOpen ? ' dish-modal--shifted-right' : ''}`} onClick={(e) => e.stopPropagation()}>
           <div className="modal__header dish-modal__head">
-            <h3>{product?.name || line?.name}</h3>
-            <button className="icon-btn" onClick={onClose}><X size={24} /></button>
-          </div>
-          <div className="dish-modal__body">
+            <div className="dish-sent-heading"><h3>{product?.name || line?.name}</h3>
             {hasMeta && (
               <div className="dish-modal__meta">
                 {addedBy && <span><User size={14} /> {addedBy}</span>}
                 {meta?.createdAt && <span><Clock size={14} /> {fmtTime(meta.createdAt)}</span>}
-                {line?.takeaway && <span className="pay-order__take">{t('takeaway')}</span>}
               </div>
             )}
-            <div className="dish-modal__static">
-              <div><span>{t('qty')}</span><strong>{formatQty(roQty)}</strong></div>
-              <div><span>{t('price')}</span><strong>{roPrice.toLocaleString('ru-RU')} {t('currency')}</strong></div>
-              <div className="dish-modal__static-sum"><span>{t('total')}</span><strong>{roSum.toLocaleString('ru-RU')} {t('currency')}</strong></div>
+            </div>
+            <button className="icon-btn" disabled={sentBusy} onClick={() => dismiss()}><X size={24} /></button>
+          </div>
+          <div className="dish-modal__body">
+            <div className="dish-modal__grid">
+              <section className="dish-modal__card dish-modal__card--accent">
+                <div className="dish-modal__card-head">
+                  <span className="dish-sent-label">{t('qty')}</span>
+                  <span className="dish-sent-total">× {roPrice.toLocaleString('ru-RU')} {t('currency')}</span>
+                </div>
+                {onSaveSent ? <div className="dish-modal__control qty-stepper dish-sent-qty">
+                <button aria-label={t('qty_less')} disabled={sentBusy || qtyNum <= step}
+                  onClick={() => { setQty(String(snapQty(qtyNum - step))); setExactTotal(null) }}><Minus size={16} /></button>
+                <button type="button" className="dish-sent-value" aria-label={t('qty')} disabled={sentBusy}
+                  onClick={() => { setPriceOpen(false); setQtyDraft(String(qtyNum)); setQtyOpen(true) }}>
+                  {formatQty(qtyNum)}
+                </button>
+                <button aria-label={t('qty_more')} disabled={sentBusy}
+                  onClick={() => { setQty(String(snapQty(qtyNum + step))); setExactTotal(null) }}><Plus size={16} /></button>
+                </div> : <strong className="dish-sent-value">{formatQty(qtyNum)}</strong>}
+              </section>
+              <section className="dish-modal__card dish-modal__card--accent">
+                <div className="dish-modal__card-head">
+                  <span className="dish-sent-label">{t('price')}</span>
+                  <span className="dish-sent-total">{t('qty')}: {formatQty(qtyNum)}</span>
+                </div>
+                {onSaveSent ? <div className="dish-modal__control dish-modal__price-stepper">
+                  <button type="button" aria-label="Уменьшить цену" disabled={sentBusy || roSum - 500 <= 0}
+                    onClick={() => { setQty(String(qtyFromTotal(roSum - 500))); setExactTotal(roSum - 500) }}><Minus size={20} /></button>
+                  <button type="button" className="dish-sent-value" disabled={sentBusy} onClick={() => {
+                    setQtyOpen(false); setEditingTotal(true); setPriceDraft(String(Math.round(roSum))); setPriceOpen(true)
+                  }}>{Math.round(roSum).toLocaleString('ru-RU')} {t('currency')}</button>
+                  <button type="button" aria-label="Увеличить цену" disabled={sentBusy}
+                    onClick={() => { setQty(String(qtyFromTotal(roSum + 500))); setExactTotal(roSum + 500) }}><Plus size={20} /></button>
+                </div> : <strong className="dish-sent-value">{Math.round(roSum).toLocaleString('ru-RU')} {t('currency')}</strong>}
+              </section>
             </div>
             {mods.length > 0 && (
               <div className="dish-modal__static-mods">
                 {mods.map((m) => <span key={m.id || m.name}>{m.name}</span>)}
               </div>
             )}
-            {line?.note && <p className="dish-modal__static-note">{line.note}</p>}
+            {(onChangeWaiter || onMoveTable || onCancelDish) && <div className="dish-sent-actions">
+              {onChangeWaiter && <WaiterPicker staff={waiterOptions} value={line.waiterId} label={t('change_waiter')} hideLabel
+                onChange={changeWaiter} disabled={sentBusy || !waiterOptions?.length} />}
+              {onMoveTable && <button type="button" className="btn btn--outline" disabled={sentBusy} onClick={onMoveTable}>{t('move_table')}</button>}
+              {onCancelDish && <button type="button" className="btn btn--outline" disabled={sentBusy} onClick={onCancelDish}>
+                <Ban size={18} /> {t('cancel_dish')}
+              </button>}
+            </div>}
+            {sentError && <p role="alert">{sentError}</p>}
           </div>
           <div className="dish-modal__actions">
-            {onCancelDish && (
-              <button type="button" className="btn btn--outline dish-modal__cancel" onClick={onCancelDish}>
-                <Ban size={18} /> {t('cancel_dish')}
-              </button>
-            )}
-            <button type="button" className="btn btn--primary" onClick={onClose}>{t('close')}</button>
+            <button type="button" className="cart-btn cart-btn--pay" disabled={sentBusy || !(qtyNum > 0)} onClick={finish}>{t(changed ? 'save' : 'close')}</button>
           </div>
         </div>
+        {qtyOpen && <div className="pay-confirm pay-confirm--side pay-confirm--left" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={t('qty')}>
+          <div className="pay-amount-pad dish-price-pad">
+            <div className="pay-method__head">
+              <label className="pay-amount-pad__label" htmlFor="dish-sent-qty">{t('qty')}</label>
+              <button className="icon-btn" aria-label={t('close')} onClick={() => setQtyOpen(false)}><X size={18} /></button>
+            </div>
+            <div className="pay-amount-pad__field">
+              <input id="dish-sent-qty" inputMode="none" data-keyboard="off" autoFocus
+                value={qtyDraft.replace('.', ',')} onFocus={(event) => event.target.select()}
+                onChange={(event) => setQtyDraft(sanitizeDecimal(event.target.value.replace(',', '.'), 3))} />
+            </div>
+            <div className="pay-amount-pad__keys">
+              {['1','2','3','4','5','6','7','8','9','.','0','delete'].map((key) => (
+                <button key={key} type="button" className="vkb__key"
+                  aria-label={key === 'delete' ? t('payment_delete_digit') : undefined}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => setQtyDraft((d) => sanitizeDecimal(key === 'delete' ? d.slice(0, -1) : d + key, 3))}>
+                  {key === 'delete' ? '⌫' : key === '.' ? ',' : key}
+                </button>
+              ))}
+            </div>
+            <button className="btn btn--primary" disabled={!(Number(qtyDraft) > 0)}
+              onClick={() => { setQty(String(Number(qtyDraft))); setExactTotal(null); setQtyOpen(false) }}>{t('save')}</button>
+          </div>
+        </div>}
+        {priceOpen && <div className="pay-confirm pay-confirm--side" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={t('price')}>
+          <div className="pay-amount-pad dish-price-pad">
+            <div className="pay-method__head">
+              <label className="pay-amount-pad__label" htmlFor="dish-unit-price">{t('price')}</label>
+              <button className="icon-btn" aria-label={t('close')} onClick={() => setPriceOpen(false)}><X size={18} /></button>
+            </div>
+            <div className="pay-amount-pad__field">
+              <input id="dish-unit-price" inputMode="none" data-keyboard="off" autoFocus
+                value={priceDraft.split('.').map((part, index) => index === 0 ? part.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : part).join(',')} onFocus={(event) => event.target.select()}
+                onChange={(event) => setPriceDraft(sanitizeDecimal(event.target.value, 2))} />
+              <span>{t('currency')}</span>
+            </div>
+            <div className="pay-amount-pad__keys">
+              {['1','2','3','4','5','6','7','8','9','.','0','delete'].map((key) => (
+                <button key={key} type="button" className="vkb__key"
+                  aria-label={key === 'delete' ? t('payment_delete_digit') : undefined}
+                  onMouseDown={(event) => event.preventDefault()} onClick={(event) => {
+                    const field = event.currentTarget.closest('.dish-price-pad').querySelector('input')
+                    const from = sanitizeDecimal(field.value.slice(0, field.selectionStart), 2).length
+                    const to = sanitizeDecimal(field.value.slice(0, field.selectionEnd), 2).length
+                    const start = key === 'delete' && from === to ? Math.max(0, from - 1) : from
+                    setPriceDraft(sanitizeDecimal(priceDraft.slice(0, start) + (key === 'delete' ? '' : key) + priceDraft.slice(to), 2))
+                  }}>{key === 'delete' ? '⌫' : key === '.' ? ',' : key}</button>
+              ))}
+            </div>
+            <button className="btn btn--primary" disabled={!priceDraft || !Number.isFinite(Number(priceDraft)) || Number(priceDraft) <= 0}
+              onClick={() => {
+                setQty(String(qtyFromTotal(Number(priceDraft))))
+                setExactTotal(Number(priceDraft))
+                setPriceOpen(false)
+              }}>{t('save')}</button>
+          </div>
+        </div>}
       </div>
     )
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className={overlayClass} inert={closing ? '' : undefined} onClick={() => dismiss()}>
       <div className="modal dish-modal dish-modal--compact" onClick={(e) => e.stopPropagation()}>
         <div className="modal__header dish-modal__head">
           <h3>{product.name}</h3>
-          <button className="icon-btn" onClick={onClose}><X size={24} /></button>
+          <button className="icon-btn" onClick={() => dismiss()}><X size={24} /></button>
         </div>
 
         <div className="dish-modal__body">
@@ -281,7 +422,7 @@ export default function DishModal({
                     type="text"
                     inputMode="numeric"
                     data-keyboard="num"
-                    value={total}
+                    value={total.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}
                     onChange={(e) => applyTotal(sanitizeInt(e.target.value))}
                     onBlur={normalizeTotal}
                     className="dish-modal__price dish-modal__number-input"
@@ -369,7 +510,7 @@ export default function DishModal({
           )}
           {/* price = цена порции С учётом добавок (курс, который увидит корзина);
               modifiers — снапшот выбранных опций (уходит в позицию заказа). */}
-          <button className="btn btn--primary" onClick={() => onSubmit({ quantity: qtyNum, price: linePrice, note, takeaway, modifiers: Object.values(selected) })}>{t('save')}</button>
+          <button className="cart-btn cart-btn--pay" onClick={() => dismiss(() => onSubmit({ quantity: qtyNum, price: linePrice, note, takeaway, modifiers: Object.values(selected) }))}>{t('save')}</button>
         </div>
       </div>
     </div>

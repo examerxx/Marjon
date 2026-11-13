@@ -77,23 +77,36 @@
 .topbar__center { flex: 1 1 auto; min-width: 0; justify-content: center; }
 .topbar__center:empty { flex: 1 1 auto; }
 /* Переключатель типа заказа переехал в шапку: на доске он больше не занимает
-   строку, поэтому сетка столов начинается от верхнего края. */
+   строку, поэтому сетка столов начинается от верхнего края.
+   LIQUID-GLASS-01: iOS-style «жидкое стекло» — полупрозрачная подложка с
+   размытием, мягкий верхний блик и крупный радиус бордера (22px). Активный
+   пункт — светлая «стеклянная» пилюля внутри подложки. */
 .hall-types--top {
   flex-shrink: 0;
-  padding: 4px;
-  border-radius: 14px;
-  background: #eef3f9;
+  padding: 5px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(236, 243, 250, 0.72) 100%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(22, 40, 63, 0.05),
+    0 10px 26px -14px rgba(22, 40, 63, 0.45);
 }
 .hall-types--top .hall-type {
-  height: 40px;
-  padding: 0 12px;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 18px;
   color: #33475d;
 }
-.hall-types--top .hall-type:hover { background: #e2ebf4; color: #16283c; }
+.hall-types--top .hall-type:hover { background: rgba(255, 255, 255, 0.62); color: #16283c; }
 .hall-types--top .hall-type.is-active {
-  background: linear-gradient(135deg, #0fa8ab 0%, #0a8f9b 100%);
+  background: linear-gradient(180deg, #0fa8ab 0%, #0a8f9b 100%);
   color: #fff;
-  box-shadow: 0 10px 20px -14px rgba(10, 143, 155, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 10px 20px -14px rgba(10, 143, 155, 0.9);
 }
 /* На экране заказа в шапке живёт поиск — разделитель уступает ему место. */
 .topbar:has(.topbar-search) .topbar__rule { display: none; }
@@ -126,6 +139,28 @@
 }
 .topbar__lock:hover { background: #eef3f9; }
 .topbar__lock:active { transform: scale(0.97); }
+/* Счётчик активных заказов — на правом верхнем углу каждой вкладки типа
+   (Столы / С собой / Доставка): teal-кружок с белой цифрой. */
+.hall-types--top .hall-type { position: relative; }
+.hall-type__badge {
+  position: absolute;
+  top: -5px;
+  right: -3px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0fa8ab 0%, #0a8f9b 100%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 4px 10px -4px rgba(10, 143, 155, 0.85);
+  pointer-events: none;
+}
 .topbar__account-btn {
   display: inline-flex;
   align-items: center;
@@ -850,7 +885,7 @@
   border-style: dashed;
   border-color: #b6c1cd;
   background: #e6eaef;
-  color: #8a97a5;
+  color: #2b3a4b;
   cursor: not-allowed;
 }
 .table-pick__table-cap {
@@ -996,3 +1031,148 @@
   .topbar__account-btn { padding: 0 4px; }
   .hall-board__summary { display: none; }
 }
+
+.table-pick--move {
+  z-index: calc(var(--z-modal) + 9);
+}
+
+.table-pick--move .table-pick__panel {
+  width: clamp(320px, 55vw, 880px);
+  max-width: 100%;
+}
+
+/* Занятые столы в выборе: текст чёткий, не серый */
+.table-pick__table--busy .table-pick__table-cap { opacity: 1; color: #3a4a5c; }
+.table-pick__table--busy .table-pick__table-status { color: #1f2d3d; font-weight: 700; background: rgba(22, 40, 63, 0.1); }
+
+/* Занятый стол — кнопка disabled: глобальные стили приглушали её, возвращаем чёткость */
+button.table-pick__table.table-pick__table--busy:disabled { opacity: 1; color: #4A5A6C; }
+button.table-pick__table--busy:disabled .table-pick__table-cap { opacity: 1; color: #4a5a6c; }
+button.table-pick__table--busy:disabled .table-pick__table-no { opacity: 1; color: #4A5A6C; }
+button.table-pick__table--busy:disabled .table-pick__table-status { opacity: 1; color: #4A5A6C; }
+
+/* «Сменить стол» из карточки заказа: выбор столов сверху на всю ширину, карточка видна снизу */
+.table-pick--top {
+  place-items: start center;
+  padding: 14px;
+  background: transparent;
+  backdrop-filter: none;
+  pointer-events: none;
+}
+.table-pick--top .table-pick__panel {
+  pointer-events: auto;
+  width: calc(100vw - 28px);
+  max-width: none;
+  max-height: calc(100vh - 250px);
+  animation: table-pick-top-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes table-pick-top-in {
+  from { opacity: 0; transform: translateY(-24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) { .table-pick--top .table-pick__panel { animation: none; } }
+.modal-overlay.dish-overlay--below { align-items: flex-end; padding-bottom: 16px; }
+
+/* Выбор стола сверху: плавное появление и выравнивание по центру */
+.table-pick--top .table-pick__panel {
+  animation: table-pick-top-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes table-pick-top-in {
+  from { opacity: 0; transform: translateY(-70px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.table-pick--top .table-pick__zones { justify-content: center; }
+.table-pick--top .table-pick__grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+.table-pick--top .table-pick__table { flex: 0 0 148px; }
+.table-pick--top .table-pick__head { justify-content: center; position: relative; }
+.table-pick--top .table-pick__close { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
+.dish-overlay--below > .dish-modal { animation: order-card-rise 420ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes order-card-rise {
+  from { transform: translateY(40px); opacity: 0.6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-pick--top .table-pick__panel, .dish-overlay--below > .dish-modal { animation: none; }
+}
+
+/* Выбор стола из карточки заказа: панель по размеру столов, компактно */
+.table-pick--top .table-pick__panel {
+  width: fit-content;
+  min-width: min(440px, calc(100vw - 28px));
+  max-width: calc(100vw - 28px);
+  padding: 12px 18px 14px;
+  gap: 8px;
+}
+.table-pick--top .table-pick__grid { gap: 10px; }
+.table-pick--top .table-pick__table { flex: 0 0 124px; min-height: 92px; padding: 10px 8px; }
+.table-pick--top .table-pick__table-no { font-size: 24px; }
+
+/* Панель столов — максимально широкая; новая строка только если не помещается */
+.table-pick--top .table-pick__panel {
+  width: calc(100vw - 28px);
+  min-width: 0;
+  max-width: none;
+}
+
+/* Профиль сотрудника: всегда 4 ряда, растянутые на высоту доски */
+.hgroup--fill { display: flex; flex-direction: column; min-height: 100%; margin-bottom: 0; }
+.hgroup--fill > .hgrid {
+  flex: 1 1 auto;
+  grid-template-rows: repeat(4, minmax(168px, 1fr));
+}
+.hgroup--fill .hcell,
+.hgroup--fill .hgrid > .hcard { height: 100%; min-height: 0; }
+.hgroup--fill .hcell > .hcard { height: 100%; }
+
+/* Профиль/доска сотрудника: не больше 6 колонок — на большом экране растут карточки, а не их число */
+.hgroup--fill > .hgrid {
+  grid-template-columns: repeat(auto-fill, minmax(max(230px, calc((100% - 80px) / 6 - 1px)), 1fr));
+}
+
+/* Размер карточки не меняется: на большом экране справа добавляются колонки, снизу — ряды (минимум 4) */
+.hgroup--fill { min-height: 0; display: block; }
+.hgroup--fill > .hgrid {
+  flex: none;
+  grid-template-columns: repeat(auto-fill, 230px);
+  grid-template-rows: none;
+  grid-auto-rows: 220px;
+  justify-content: start;
+  align-content: start;
+}
+
+/* Ширина карточек подстраивается под экран: целое число колонок заполняет всю строку, пустого места справа нет */
+.hgroup--fill > .hgrid {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  justify-content: stretch;
+}
+
+/* Меню на экране заказа: без рамки и скругления, по высоте вровень с боковыми панелями,
+   полоса прокрутки видна по всей высоте */
+.floor > main.ws__main .cashier-products,
+.floor > main.ws__main .cashier-work .cashier-products {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.floor > main.ws__main .cashier-products__grid {
+  padding: 0 10px 0 0;
+  scrollbar-width: auto;
+  scrollbar-color: rgba(255, 255, 255, 0.55) rgba(255, 255, 255, 0.12);
+}
+.floor > main.ws__main .cashier-products__grid::-webkit-scrollbar { width: 8px; }
+.floor > main.ws__main .cashier-products__grid::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+}
+.floor > main.ws__main .cashier-products__grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+}
+
+.hgroup--fill > .hgrid { grid-auto-rows: 220px; }

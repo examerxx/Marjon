@@ -4664,12 +4664,112 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 .pay-method__sum {
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
   padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-brand) 40%, var(--color-border-light));
   border-radius: 14px;
   background: var(--color-brand-bg);
   color: var(--color-text-secondary);
   font-size: var(--text-sm); font-weight: 600;
 }
-.pay-method__sum strong { font-size: var(--text-lg); font-weight: 700; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+.pay-method__sum {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+.pay-method__sum:disabled { cursor: default; }
+.pay-method__sum strong {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.pay-method__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
+  align-items: stretch;
+  width: min(100%, 400px);
+  transition: width 220ms cubic-bezier(.2,.7,.2,1);
+}
+.pay-method__layout--editing {
+  width: min(100%, 736px);
+  column-gap: 16px;
+}
+.pay-amount-pad {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  min-width: 0;
+  max-height: calc(100vh - 40px);
+  padding: 18px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 22px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  animation: pay-amount-pad-in 180ms ease-out both;
+}
+.pay-amount-pad__label {
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.pay-amount-pad__field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding-inline: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-brand-bg);
+}
+.pay-amount-pad__field:focus-within {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 2px var(--color-brand-bg);
+}
+.pay-amount-pad__field input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.pay-amount-pad__field input::placeholder {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+.pay-amount-pad__field > span {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+.pay-amount-pad__keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.pay-amount-pad__keys .vkb__key {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  border-radius: 12px;
+}
+
+@keyframes pay-amount-pad-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@media (max-width: 620px) {
+  .pay-method:has(.pay-method__layout--editing) { overflow-y: auto; }
+  .pay-method__layout--editing { grid-template-columns: minmax(0, 1fr); gap: 12px; width: min(100%, 400px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pay-method__layout { transition: none; }
+  .pay-amount-pad { animation: none; }
+}
 .pay-method__list { display: flex; flex-direction: column; gap: 8px; }
 .pay-method__opt {
   display: flex; align-items: center; gap: 12px;
@@ -4682,10 +4782,14 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
   transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
 }
 .pay-method__opt:hover:not(:disabled) { border-color: var(--color-brand); background: var(--color-brand-bg); color: var(--color-brand); }
-.pay-method__opt:disabled { opacity: .6; cursor: default; }
+.pay-method__opt:disabled { cursor: default; }
+.pay-method__opt:disabled .pay-method__label, .pay-method__opt:disabled .pay-method__ico { opacity: .65; }
 .pay-method__ico { display: inline-flex; flex-shrink: 0; color: var(--color-text-muted); }
 .pay-method__opt:hover:not(:disabled) .pay-method__ico { color: var(--color-brand); }
-.pay-method__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pay-method__label { display: grid; flex: 1; gap: 3px; min-width: 0; }
+.pay-method__reason, .pay-method__notice { color: var(--color-text-secondary); font-size: var(--text-sm); font-weight: 500; }
+.pay-method__opt--blocked:disabled { opacity: 1; background: var(--color-surface-hover); color: var(--color-text-secondary); }
+.pay-method__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Долг — та же карточка, что и выбор способа: итоги, поля клиента, действия. */
 .pay-debt { gap: 10px; }
 .pay-debt__sum {
@@ -5884,3 +5988,1023 @@ select.input:focus {
   .pay-order__close.btn--primary:hover,
   .pay-order__close.btn--primary:active { transform: none; }
 }
+
+.modal-overlay.prompt-overlay--compact {
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgb(7 20 40 / 55%);
+  backdrop-filter: blur(4px);
+}
+
+.modal-overlay.prompt-overlay--compact .modal.prompt-modal {
+  width: clamp(320px, 50vw, 760px);
+  max-width: 100%;
+  height: auto;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  border-radius: 20px;
+}
+
+.pay-method__layout > .pay-method__card { min-height: min(400px, calc(100vh - 40px)); }
+.pay-amount-pad__field { min-height: 58px; }
+.pay-amount-pad__field input { font-size: 24px; }
+.pay-amount-pad__keys .vkb__key { height: 54px; }
+.pay-method__allocated {
+  flex-shrink: 0;
+  color: var(--color-brand);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  animation: pay-amount-pad-in 220ms ease-out both;
+}
+.pay-amount-transfer {
+  position: fixed;
+  z-index: 10000;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--color-brand-bg);
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: 600;
+  text-align: right;
+  pointer-events: none;
+}
+.pay-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(15 35 60 / 35%);
+  backdrop-filter: blur(4px);
+  animation: pay-fade 180ms ease-out;
+}
+.pay-confirm__rows { display: grid; gap: 12px; padding-block: 12px; }
+.pay-confirm__rows > div { display: flex; justify-content: space-between; gap: 16px; }
+.pay-confirm__rows strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.pay-method__reset {
+  margin-inline-start: auto;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: #fff;
+  color: #20324d;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.pay-reset__close { margin-inline-start: auto; }
+.pay-reset__submit { width: 100%; min-height: 44px; }
+
+.cart-edit-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-start: auto;
+  padding: 7px 9px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.cart-edit-actions { display: grid; gap: 12px; padding: 16px; }
+.cashier-cart__items .cart-item.cart-item--summary {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  width: 100%;
+  text-align: left;
+}
+button.cart-item--summary, button.cart-item--summary .cart-item__info { cursor: pointer; }
+button.cart-item--summary:hover { border-color: var(--color-brand); }
+.cart-item--summary .cart-item__price { font-size: 15.5px; font-weight: 600; }
+.cashier-cart__items .cart-item.cart-item--summary {
+  grid-template-columns: minmax(0, 1fr) 52px 106px;
+  column-gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--color-brand) 40%, var(--color-border-light));
+}
+.cashier-cart__items .cart-item--summary .cart-item__qty-badge {
+  display: block;
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  background: none;
+  text-align: center;
+  white-space: nowrap;
+}
+.cashier-cart__items .cart-item--summary .cart-item__price {
+  text-align: right;
+  color: #111;
+}
+[data-theme="dark"] .cashier-cart__items .cart-item--summary .cart-item__price { color: var(--color-text-primary); }
+.dish-price-pad { width: min(300px, 100%); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .dish-overlay { animation: dish-fade-in 180ms ease-out; }
+  .dish-overlay > .dish-modal { animation: dish-slide-in 200ms ease-out; }
+  .dish-overlay--closing { animation: dish-fade-out 150ms ease-in both; }
+  .dish-overlay--closing > .dish-modal { animation: dish-slide-out 150ms ease-in both; }
+}
+
+@keyframes dish-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dish-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes dish-slide-out {
+  from { transform: translateY(0) scale(1); }
+  to { transform: translateY(8px) scale(.985); }
+}
+@keyframes dish-slide-in {
+  from { transform: translateY(8px) scale(.985); }
+  to { transform: translateY(0) scale(1); }
+}
+
+.cashier-cart__items .cart-item--draft {
+  box-shadow: inset 2px 0 var(--color-brand);
+}
+.cart-item--summary .cart-item__meta {
+  line-height: 1.25;
+  min-height: 1.25em;
+}
+.cart-item--summary .cart-item__name { font-size: 15px; }
+.cart-item--summary .cart-item__meta:empty + .cart-item__name {
+  transform: translateY(calc((1.25 * 10.5px + 3px) / -2));
+}
+.cashier-cart__items .cart-item--summary .cart-item__qty-badge {
+  color: #111;
+  font-size: 15.5px;
+  font-weight: 600;
+  font-family: inherit;
+}
+[data-theme="dark"] .cashier-cart__items .cart-item--summary .cart-item__qty-badge { color: var(--color-text-primary); }
+/* Внесённое блюдо кассира: «−  N  +» по сторонам количества. */
+.cashier-cart__items .cart-item--stepper { cursor: pointer; }
+.cashier-cart__items .cart-item--stepper:hover { border-color: var(--color-brand); }
+.cashier-cart__items .cart-item.cart-item--summary.cart-item--stepper {
+  grid-template-columns: minmax(0, 1fr) auto 100px;
+}
+.cart-item__stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: default;
+}
+.cart-item__step {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--color-brand) 45%, var(--color-border-light));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-brand) 9%, var(--color-card));
+  color: var(--color-brand);
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease, border-color 120ms ease;
+}
+.cart-item__step:hover:not(:disabled) { background: color-mix(in srgb, var(--color-brand) 18%, var(--color-card)); border-color: var(--color-brand); }
+.cart-item__step:active:not(:disabled) { transform: scale(0.92); }
+.cart-item__step:disabled { opacity: 0.35; cursor: default; }
+.cart-item__step-value {
+  min-width: 28px;
+  text-align: center;
+  color: #111;
+  font-size: 15.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+[data-theme="dark"] .cart-item__step-value { color: var(--color-text-primary); }
+.cart-item__stepper.is-up .cart-item__step-value { color: #0fbf5f; }
+.cart-item__stepper.is-down .cart-item__step-value { color: #d64545; }
+.dish-sent-heading { display: flex; align-items: center; flex: 1; min-width: 0; gap: 16px; }
+.dish-sent-heading h3 { flex: 1; min-width: 0; }
+.dish-modal--sent .dish-modal__head .dish-modal__meta { margin: 0; justify-content: flex-end; }
+.dish-modal__card-head .dish-sent-label {
+  color: var(--color-text-primary);
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+}
+.dish-sent-total button { color: inherit; font: inherit; background: transparent; border: 0; cursor: pointer; }
+.dish-modal--sent .dish-sent-value {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  height: 52px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font: 600 var(--text-xl) var(--font-mono);
+}
+.dish-modal--sent input.dish-sent-qty-input {
+  width: 100%;
+  padding: 0 8px;
+  text-align: center;
+  outline: none;
+}
+.dish-modal--sent input.dish-sent-qty-input:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand) 18%, transparent);
+}
+.dish-sent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+.dish-sent-actions > * { flex: 1 1 auto; min-height: 42px; }
+.dish-sent-actions .wpick__trigger { height: 100%; min-height: 42px; }
+
+/* Блюдо, уменьшенное до 0: будет отменено при «Сохранить». */
+.cashier-cart__items .cart-item--removed { opacity: 0.6; }
+.cashier-cart__items .cart-item--removed .cart-item__name,
+.cashier-cart__items .cart-item--removed .cart-item__price { text-decoration: line-through; }
+.cashier-cart__items .cart-item--removed .cart-item__step-value { color: #d64545; }
+
+/* ── «Отменить блюдо» с подтверждением изменений (компактно) ───────────── */
+.modal-overlay .modal.prompt-modal.prompt-modal--changes,
+.modal-overlay.prompt-overlay--compact .modal.prompt-modal.prompt-modal--changes {
+  width: 760px;
+  max-width: 94vw;
+  border-radius: 22px;
+}
+.modal-overlay .modal__header.pcm-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 0;
+  padding: 12px 20px 10px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.pcm-header__text { flex: 1; min-width: 0; }
+.pcm-header__text h3 { margin: 0; font-size: 18px; line-height: 1.15; }
+.pcm-header__text p { margin: 1px 0 0; line-height: 1.25; color: var(--color-text-secondary, #5d7086); font-size: 12.5px; font-weight: 500; }
+
+.prompt-modal--changes .prompt-modal__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  grid-auto-rows: min-content;
+  column-gap: 0;
+  row-gap: 6px;
+  padding: 14px 20px 4px;
+}
+.prompt-modal--changes .prompt-modal__body > * { grid-column: 1; margin-right: 18px; }
+.prompt-modal--changes .prompt-modal__hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.prompt-modal--changes .prompt-modal__hint svg { color: var(--color-brand); }
+.prompt-modal--changes .input { border-radius: 12px; }
+.prompt-modal--changes .prompt-modal__extra { resize: none; min-height: 64px; }
+.prompt-modal--changes .prompt-modal__actions { padding-top: 10px; }
+.prompt-modal--changes .prompt-modal__actions .btn { height: 46px; border-radius: 14px; font-size: 15px; font-weight: 700; }
+
+/* Список изменений: тонкая колонка справа, отделена линией от полей */
+.prompt-modal--changes .prompt-modal__body > .prompt-changes {
+  grid-column: 2;
+  grid-row: 1 / span 6;
+  align-self: stretch;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-brand) 22%, var(--color-border-light));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-brand) 5%, var(--color-card));
+}
+.prompt-changes__head {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary, #5d7086);
+}
+.prompt-changes__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  max-height: 190px;
+  overflow-y: auto;
+  list-style: none;
+}
+.prompt-changes__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-light) 70%, transparent);
+  font-size: 14px;
+}
+.prompt-changes__row:last-child { border-bottom: none; }
+.prompt-changes__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.prompt-changes__qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.prompt-changes__row.is-up .prompt-changes__qty { color: #0fbf5f; }
+.prompt-changes__row.is-down .prompt-changes__qty,
+.prompt-changes__row.is-removed .prompt-changes__qty { color: #d64545; }
+.prompt-changes__row.is-removed .prompt-changes__name { text-decoration: line-through; opacity: 0.7; }
+
+.table-pick__current {
+  margin-left: 12px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--color-surface-2, #f1f5f9);
+  border: 1px solid var(--color-border-light);
+  color: var(--color-text-primary, #0f2238);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* Панель ввода цены блюда выезжает справа */
+.pay-confirm--side {
+  place-items: center start;
+  padding: 20px 20px 20px max(20px, calc(50% + 203px));
+  background: transparent;
+  backdrop-filter: none;
+  pointer-events: none;
+}
+.pay-confirm--side .dish-price-pad { pointer-events: auto; }
+.dish-overlay > .dish-modal--sent { transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1); }
+.dish-overlay > .dish-modal--shifted { transform: translateX(-173px); animation: none; }
+.pay-confirm--side .dish-price-pad {
+  width: min(330px, 100%);
+  animation: dish-pad-slide-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes dish-pad-slide-in {
+  from { opacity: 0; transform: translateX(72px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pay-confirm--side .dish-price-pad { animation: none; }
+}
+
+/* Панель количества — слева, карточка сдвигается вправо */
+.pay-confirm--left {
+  place-items: center end;
+  padding: 20px max(20px, calc(50% + 203px)) 20px 20px;
+}
+.pay-confirm--left .dish-price-pad { animation-name: dish-pad-slide-in-left; }
+.dish-overlay > .dish-modal--shifted-right { transform: translateX(173px); animation: none; }
+@keyframes dish-pad-slide-in-left {
+  from { opacity: 0; transform: translateX(-72px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Окно блюда: компактная шапка, поле официанта как кнопка «Сменить стол» */
+.modal-overlay .modal.dish-modal .modal__header.dish-modal__head { min-height: 0; padding: 10px 20px; }
+.dish-modal--sent .dish-modal__body { padding-top: 12px; }
+.dish-sent-actions .wpick__trigger { border-color: var(--color-border-strong); background: var(--color-surface); }
+
+/* Цена под названием блюда, количество (степпер) справа */
+.cashier-cart__items .cart-item__info { display: flex; flex-direction: column; gap: 1px; }
+.cashier-cart__items .cart-item__info .cart-item__price {
+  display: block; width: auto; min-width: 0; margin: 2px 0 0;
+  text-align: left; font-size: var(--text-sm); font-weight: 700;
+}
+.cashier-cart__items .cart-item > .cart-item__stepper,
+.cashier-cart__items .cart-item > .cart-item__qty-badge { margin-left: auto; flex-shrink: 0; }
+
+/* Корзина: две колонки (название+цена | количество справа), строки максимально плотно */
+.cashier-cart__items .cart-item.cart-item--summary,
+.cashier-cart__items .cart-item.cart-item--summary.cart-item--stepper {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 8px;
+  padding: 4px 10px;
+  margin-bottom: 3px;
+}
+.cashier-cart__items .cart-item--summary .cart-item__info { gap: 0; }
+.cashier-cart__items .cart-item--summary .cart-item__meta { min-height: 0; line-height: 1.15; }
+.cashier-cart__items .cart-item--summary .cart-item__name { line-height: 1.2; }
+.cashier-cart__items .cart-item--summary .cart-item__info .cart-item__price { margin: 0; line-height: 1.2; }
+.cashier-cart__items .cart-item--summary > .cart-item__stepper,
+.cashier-cart__items .cart-item--summary > .cart-item__qty-badge { justify-self: end; margin-left: auto; }
+.cashier-cart__items .cart-item--summary .cart-item__step { width: 28px; height: 28px; }
+.cashier-cart__items .cart-item--summary .cart-item__meta:empty + .cart-item__name { transform: none; }
+
+/* ── Корзина: деликатное оформление строк и «− N +» ───────────────────── */
+.cashier-cart__items .cart-item.cart-item--summary,
+.cashier-cart__items .cart-item.cart-item--summary.cart-item--stepper {
+  padding: 8px 10px 8px 14px;
+  margin-bottom: 6px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 14px;
+  background: var(--color-card);
+  box-shadow: 0 1px 2px rgba(16, 42, 67, 0.04);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.cashier-cart__items .cart-item--stepper:hover {
+  border-color: color-mix(in srgb, var(--color-brand) 45%, var(--color-border-light));
+  box-shadow: 0 4px 12px -6px color-mix(in srgb, var(--color-brand) 40%, transparent);
+}
+.cashier-cart__items .cart-item--summary .cart-item__info { gap: 1px; }
+.cashier-cart__items .cart-item--summary .cart-item__meta {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--color-text-muted, #8696a7);
+}
+.cashier-cart__items .cart-item--summary .cart-item__name {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  color: var(--color-text-primary);
+}
+.cashier-cart__items .cart-item--summary .cart-item__info .cart-item__price {
+  margin-top: 1px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--color-brand) 80%, #0b2a33);
+}
+[data-theme="dark"] .cashier-cart__items .cart-item--summary .cart-item__info .cart-item__price { color: var(--color-brand); }
+
+/* Степпер — одна мягкая «таблетка» с круглыми кнопками */
+.cashier-cart__items .cart-item--summary .cart-item__stepper {
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-brand) 5%, var(--color-card));
+}
+.cashier-cart__items .cart-item--summary .cart-item__step {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-card);
+  color: var(--color-brand);
+  box-shadow: 0 1px 3px rgba(16, 42, 67, 0.12);
+}
+.cashier-cart__items .cart-item--summary .cart-item__step:hover:not(:disabled) {
+  background: var(--color-brand);
+  color: #fff;
+  box-shadow: 0 3px 8px -2px color-mix(in srgb, var(--color-brand) 60%, transparent);
+}
+.cashier-cart__items .cart-item--summary .cart-item__step:disabled { opacity: 0.4; box-shadow: none; background: transparent; }
+.cashier-cart__items .cart-item--summary .cart-item__step svg { stroke-width: 2.4; }
+.cashier-cart__items .cart-item--summary .cart-item__step-value {
+  min-width: 30px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.cashier-cart__items .cart-item--summary .cart-item__stepper.is-changed {
+  border-color: currentColor;
+}
+.cashier-cart__items .cart-item--summary .cart-item__stepper.is-up { color: #0fbf5f; background: color-mix(in srgb, #0fbf5f 8%, var(--color-card)); }
+.cashier-cart__items .cart-item--summary .cart-item__stepper.is-down { color: #d64545; background: color-mix(in srgb, #d64545 8%, var(--color-card)); }
+.cashier-cart__items .cart-item--summary .cart-item__stepper.is-changed .cart-item__step { color: var(--color-brand); }
+
+/* Три колонки: название | количество по центру | цена справа; у новых блюд слева акцентная линия */
+.cashier-cart__items .cart-item.cart-item--summary,
+.cashier-cart__items .cart-item.cart-item--summary.cart-item--stepper {
+  grid-template-columns: minmax(0, 1fr) auto minmax(84px, auto);
+  column-gap: 10px;
+}
+.cashier-cart__items .cart-item--summary > .cart-item__stepper,
+.cashier-cart__items .cart-item--summary > .cart-item__qty-badge { justify-self: center; margin-left: 0; }
+.cashier-cart__items .cart-item--summary > .cart-item__price {
+  justify-self: end;
+  text-align: right;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+.cashier-cart__items .cart-item--summary.cart-item--draft {
+  box-shadow: inset 3px 0 0 var(--color-brand), 0 1px 2px rgba(16, 42, 67, 0.04);
+}
+
+/* Цена бирюзовая, без «сум»; линия слева у новых блюд (перебивает общую тень) */
+.cashier-cart__items .cart-item--summary > .cart-item__price { color: var(--color-brand); }
+[data-theme="dark"] .cashier-cart__items .cart-item--summary > .cart-item__price { color: var(--color-brand); }
+.cashier-cart__items .cart-item.cart-item--summary.cart-item--stepper.cart-item--draft,
+.cashier-cart__items .cart-item.cart-item--summary.cart-item--draft {
+  box-shadow: inset 3px 0 0 var(--color-brand), 0 1px 2px rgba(16, 42, 67, 0.04);
+}
+
+/* Фон «таблетки» количества — серо-голубой, чуть светлее #D8DDE4 */
+.cashier-cart__items .cart-item--summary .cart-item__stepper { background: #EBEEF2; border-color: #DDE2E8; }
+[data-theme="dark"] .cashier-cart__items .cart-item--summary .cart-item__stepper { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.14); }
+.cashier-cart__items .cart-item--summary .cart-item__stepper.is-up { background: color-mix(in srgb, #0fbf5f 14%, #EBEEF2); }
+.cashier-cart__items .cart-item--summary .cart-item__stepper.is-down { background: color-mix(in srgb, #d64545 14%, #EBEEF2); }
+
+/* Кнопка под курсором: иконка белая (раньше сливалась с бирюзовым фоном в изменённом состоянии) */
+.cashier-cart__items .cart-item--summary .cart-item__stepper .cart-item__step:hover:not(:disabled),
+.cashier-cart__items .cart-item--summary .cart-item__stepper.is-changed .cart-item__step:hover:not(:disabled) {
+  background: var(--color-brand);
+  color: #fff;
+}
+.cashier-cart__items .cart-item--summary .cart-item__step svg { color: currentColor; stroke: currentColor; }
+
+/* Мелкий текст над названием; линия слева у всех блюд: бирюзовая — внесённые, зелёная — новые */
+.cashier-cart__items .cart-item--summary .cart-item__meta { font-size: 9.5px; line-height: 1.1; }
+.cashier-cart__items .cart-item.cart-item--summary,
+.cashier-cart__items .cart-item.cart-item--summary.cart-item--stepper {
+  box-shadow: inset 3px 0 0 var(--color-brand), 0 1px 2px rgba(16, 42, 67, 0.04);
+}
+.cashier-cart__items .cart-item.cart-item--summary.cart-item--stepper.cart-item--draft,
+.cashier-cart__items .cart-item.cart-item--summary.cart-item--draft {
+  box-shadow: inset 3px 0 0 #0fbf5f, 0 1px 2px rgba(16, 42, 67, 0.04);
+}
+
+/* Цена в корзине — жирность 500 */
+.cashier-cart__items .cart-item--summary > .cart-item__price { font-weight: 500; }
+.cashier-cart__items .cart-item--summary .cart-item__step-value { font-weight: 500; }
+
+/* Нежная рамка у строк корзины; «таблетка» количества ещё светлее */
+.cashier-cart__items .cart-item.cart-item--summary,
+.cashier-cart__items .cart-item.cart-item--summary.cart-item--stepper {
+  border: 1px solid color-mix(in srgb, var(--color-brand) 30%, var(--color-border-light));
+}
+.cashier-cart__items .cart-item--summary .cart-item__stepper { background: #F3F5F8; border-color: #E4E8ED; }
+.cashier-cart__items .cart-item--summary .cart-item__stepper.is-up { background: color-mix(in srgb, #0fbf5f 12%, #F3F5F8); }
+.cashier-cart__items .cart-item--summary .cart-item__stepper.is-down { background: color-mix(in srgb, #d64545 12%, #F3F5F8); }
+.cashier-cart__items .cart-item--summary .cart-item__name { font-weight: 500; }
+
+/* Время/официант — над ценой (справа); цена и мета в одной колонке */
+.cashier-cart__items .cart-item--summary > .cart-item__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-self: end;
+  gap: 1px;
+  min-width: 0;
+}
+.cashier-cart__items .cart-item--summary .cart-item__side .cart-item__meta {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+.cashier-cart__items .cart-item--summary .cart-item__side .cart-item__price { text-align: right; }
+
+/* Кнопка «Добавить блюда»/«Сохранить»/печать — рамка и скругление как у «К оплате» */
+.cart-btn.cart-btn--outline {
+  border: 1px solid color-mix(in srgb, var(--color-brand) 55%, #fff);
+  border-radius: 22px;
+  background: var(--color-card);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 10px 26px -14px rgba(29, 181, 181, 0.55),
+    0 2px 6px rgba(15, 35, 60, 0.08);
+}
+.cart-btn.cart-btn--outline:hover { border-color: var(--color-brand); background: var(--color-brand-bg); }
+
+/* ── Длинное название блюда переносится вниз, а не обрезается «…» ───────── */
+.cashier-cart__items .cart-item--summary .cart-item__name {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+
+/* ── Окно блюда: компактнее; «Закрыть» — как «К оплате» ─────────────────── */
+.modal-overlay .modal.dish-modal .modal__header.dish-modal__head { padding: 6px 14px 6px 20px; }
+.dish-modal__head .icon-btn { width: 36px; height: 36px; min-height: 0; }
+.dish-modal__head h3 { font-size: 17px; }
+.dish-modal--sent .dish-modal__body { padding: 10px 16px 6px; gap: 10px; }
+.dish-modal--compact .dish-modal__actions { padding: 8px 16px 12px; }
+.dish-modal__actions .cart-btn { min-height: 52px; font-size: 16px; }
+
+/* ── «Отменить блюдо»: пароль + цифровая панель справа ──────────────────── */
+.modal-overlay .modal.prompt-modal.prompt-modal--sidepad {
+  width: 720px;
+  max-width: 94vw;
+  transform: translateX(-173px);
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.prompt-sidepad {
+  position: fixed;
+  top: 50%;
+  left: calc(50% + 203px);
+  z-index: 5;
+  width: min(330px, 30vw);
+  padding: 14px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 22px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-50%);
+  animation: prompt-sidepad-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes prompt-sidepad-in {
+  from { opacity: 0; transform: translate(72px, -50%); }
+  to { opacity: 1; transform: translate(0, -50%); }
+}
+@media (prefers-reduced-motion: reduce) { .prompt-sidepad { animation: none; } }
+
+/* Окно блюда: без кружка-иконки официанта в поле выбора */
+.dish-sent-actions .wpick__trigger .wpick__ico { color: var(--color-text-secondary, #5d7086); }
+
+/* Список официантов в карточке блюда — без кружков-иконок */
+.wpick__list--plain .wpick__ico { flex-shrink: 0; color: var(--color-text-secondary, #5d7086); }
+
+/* ── Экран оплаты: чек уже; способы оплаты и цифровая панель — на главном экране ── */
+.pay-screen__receipt-col { flex: 0 0 34%; }
+.pay-receipt-scroll { justify-content: center; }
+.pay-screen__side { flex: 1 1 0; gap: 12px; }
+.pay-screen__side > *,
+.pay-screen__controls > * { max-width: none; }
+.pay-screen__side > .pay-screen__controls {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  overflow: visible;
+}
+.pay-screen__controls > .pay-order__reopen { grid-column: 1 / -1; }
+.pay-screen__controls .pay-screen__reassign,
+.pay-screen__controls .pay-order__cancel { min-height: 48px; }
+
+.pay-screen__pay {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.pay-screen__pay--single { grid-template-columns: minmax(0, 1fr); }
+.pay-screen__pay .pay-method__card {
+  max-width: none;
+  max-height: none;
+  min-height: 0;
+  overflow-y: auto;
+  box-shadow: none;
+}
+.pay-screen__pay .pay-amount-pad {
+  max-height: none;
+  min-height: 0;
+  justify-content: flex-start;
+  box-shadow: none;
+  animation: none;
+}
+.pay-screen__pay .pay-amount-pad__keys { flex: 1 1 auto; grid-auto-rows: minmax(46px, 1fr); }
+.pay-screen__pay .pay-amount-pad__keys .vkb__key { height: auto; min-height: 46px; }
+
+/* Выбранный способ оплаты */
+.pay-method__opt.is-selected {
+  border-color: var(--color-brand);
+  background: var(--color-brand-bg);
+  color: var(--color-brand);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand) 22%, transparent);
+}
+.pay-method__opt.is-selected .pay-method__ico { color: var(--color-brand); }
+
+/* Печать и закрытие — в одну строку внизу */
+.pay-screen__actions { flex-direction: row; gap: 12px; margin-top: 0; }
+.pay-screen__actions .btn--eq { flex: 1 1 0; }
+.pay-screen__actions .pay-order__close { flex: 1.5 1 0; }
+.pay-screen__actions .pay-order__close:disabled { opacity: 0.45; cursor: default; }
+
+/* ── Экран оплаты: контрастное оформление ─────────────────────────────── */
+.pay-screen__pay .pay-method__card,
+.pay-screen__pay .pay-amount-pad {
+  border: 1.5px solid #9db2c6;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px -16px rgba(12, 36, 64, 0.45);
+}
+.pay-screen__pay .pay-method__title,
+.pay-screen__pay .pay-amount-pad__label {
+  color: #0b1f33;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.005em;
+}
+/* «К оплате» — тёмная плашка с крупной белой суммой */
+.pay-screen__pay .pay-method__sum {
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0e7a7a 0%, #0b5f66 100%);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+  font-weight: 700;
+}
+.pay-screen__pay .pay-method__sum strong { color: #fff; font-size: 24px; font-weight: 800; }
+.pay-screen__pay .pay-method__sum:disabled { opacity: 1; }
+
+/* Способы оплаты: плотная рамка, тёмный текст; выбранный — сплошная заливка */
+.pay-screen__pay .pay-method__opt {
+  min-height: 58px;
+  border: 1.5px solid #9db2c6;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #0b1f33;
+  font-size: 17px;
+  font-weight: 700;
+}
+.pay-screen__pay .pay-method__opt .pay-method__ico { color: #3f566c; }
+.pay-screen__pay .pay-method__opt:hover:not(:disabled) {
+  border-color: #0e8f8f;
+  background: #e4f6f6;
+  color: #0b1f33;
+}
+.pay-screen__pay .pay-method__opt.is-selected,
+.pay-screen__pay .pay-method__opt.is-selected:hover:not(:disabled) {
+  border-color: #0b6f73;
+  background: linear-gradient(135deg, #14a3a3 0%, #0b7f86 100%);
+  color: #ffffff;
+  box-shadow: 0 10px 20px -12px rgba(11, 111, 115, 0.8);
+}
+.pay-screen__pay .pay-method__opt.is-selected .pay-method__ico { color: #ffffff; }
+.pay-screen__pay .pay-method__opt:disabled { opacity: 1; background: #eef2f6; border-color: #c4d0dc; color: #6b7f93; }
+
+/* Сумма и цифры */
+.pay-screen__pay .pay-amount-pad__field {
+  min-height: 62px;
+  border: 2px solid #0e8f8f;
+  border-radius: 14px;
+  background: #e8f7f7;
+}
+.pay-screen__pay .pay-amount-pad__field input { color: #0b1f33; font-size: 30px; font-weight: 800; }
+.pay-screen__pay .pay-amount-pad__field > span { color: #3f566c; font-size: 15px; font-weight: 700; }
+.pay-screen__pay .pay-amount-pad__keys .vkb__key {
+  border: 1.5px solid #9db2c6;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #0b1f33;
+  font-size: 24px;
+  font-weight: 800;
+  box-shadow: 0 3px 0 rgba(12, 36, 64, 0.14);
+}
+.pay-screen__pay .pay-amount-pad__keys .vkb__key:hover:not(:disabled) { border-color: #0e8f8f; background: #e4f6f6; }
+.pay-screen__pay .pay-amount-pad__keys .vkb__key:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+.pay-screen__pay .pay-amount-pad__keys .vkb__key--medium { background: #dbe4ee; border-color: #8ea5ba; }
+
+/* Верхний ряд управления — тоже плотнее */
+.pay-screen__controls .wpick__trigger,
+.pay-screen__controls .pay-dialog__disc,
+.pay-screen__controls .pay-screen__reassign,
+.pay-screen__controls .pay-order__cancel {
+  border-color: #9db2c6;
+  border-width: 1.5px;
+  color: #0b1f33;
+}
+.pay-screen__controls .pay-screen__reassign,
+.pay-screen__controls .pay-order__cancel { font-weight: 700; }
+.pay-screen__actions .btn--outline { border: 1.5px solid #9db2c6; color: #0b1f33; font-weight: 700; }
+
+/* «К оплате» — светлая плашка, как поле суммы справа; выбранный способ — как кнопка «Закрыть заказ» */
+.pay-screen__pay .pay-method__sum {
+  border: 2px solid #0e8f8f;
+  border-radius: 14px;
+  background: #e8f7f7;
+  color: #3f566c;
+}
+.pay-screen__pay .pay-method__sum strong { color: #0b1f33; font-size: 26px; font-weight: 800; }
+
+.pay-screen__pay .pay-method__opt.is-selected,
+.pay-screen__pay .pay-method__opt.is-selected:hover:not(:disabled) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 22px;
+  background:
+    radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(64, 213, 213, 0.94) 0%, rgba(29, 181, 181, 0.92) 46%, rgba(17, 138, 138, 0.95) 100%);
+  background-color: rgba(29, 181, 181, 0.55);
+  color: #ffffff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.16),
+    inset 0 0 22px rgba(255, 255, 255, 0.1),
+    0 10px 26px -10px rgba(29, 181, 181, 0.6),
+    0 2px 6px rgba(15, 35, 60, 0.12);
+}
+.pay-screen__pay .pay-method__opt.is-selected .pay-method__ico,
+.pay-screen__pay .pay-method__opt.is-selected .pay-method__name { color: #ffffff; }
+
+/* Мягче рамка и цена с жирностью 500 в «К оплате» и в поле суммы */
+.pay-screen__pay .pay-method__sum,
+.pay-screen__pay .pay-amount-pad__field {
+  border: 1px solid #9fd3d3;
+  background: #eaf7f7;
+}
+.pay-screen__pay .pay-method__sum strong,
+.pay-screen__pay .pay-amount-pad__field input { font-weight: 500; }
+
+/* Верхний ряд оплаты: официант | смена стола; отмена заказа под официантом, скидка — под «Сменить стол» */
+.pay-screen__controls > .pay-order__reopen { order: -1; }
+.pay-screen__controls > .pay-screen__control:has(.wpick) { order: 1; }
+.pay-screen__controls > .pay-screen__reassign { order: 2; }
+.pay-screen__controls > .pay-order__cancel { order: 3; }
+.pay-screen__controls > .pay-screen__control:has(.pay-dialog__disc) { order: 4; }
+
+/* ── Две большие карточки оплаты — объёмные (3D) ──────────────────────── */
+.pay-screen__pay .pay-method__card,
+.pay-screen__pay .pay-amount-pad {
+  border: 1px solid #b3c5d6;
+  border-bottom-color: #8fa6bb;
+  background: linear-gradient(180deg, #ffffff 0%, #f1f6fa 100%);
+  box-shadow:
+    inset 0 1px 0 #ffffff,
+    inset 0 -2px 0 rgba(12, 36, 64, 0.05),
+    0 3px 0 #c9d6e2,
+    0 16px 30px -14px rgba(12, 36, 64, 0.42),
+    0 5px 12px rgba(12, 36, 64, 0.10);
+}
+.pay-screen__pay .pay-method__opt {
+  box-shadow: inset 0 1px 0 #ffffff, 0 3px 0 rgba(12, 36, 64, 0.13), 0 6px 12px -8px rgba(12, 36, 64, 0.35);
+}
+.pay-screen__pay .pay-method__opt:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 1px 0 #ffffff, 0 1px 0 rgba(12, 36, 64, 0.13); }
+.pay-screen__pay .pay-amount-pad__field,
+.pay-screen__pay .pay-method__sum {
+  box-shadow: inset 0 2px 4px rgba(12, 36, 64, 0.08), 0 1px 0 #ffffff;
+}
+
+/* Способы оплаты — плоские, как были (объём только у двух больших карточек) */
+.pay-screen__pay .pay-method__opt:not(.is-selected) { box-shadow: none; }
+.pay-screen__pay .pay-method__opt:active:not(:disabled) { transform: none; }
+
+/* Скидка: цифры крупнее */
+.pay-screen__controls .pay-dialog__disc-input { font-size: 22px; font-weight: 700; }
+.pay-screen__controls .pay-dialog__disc-unit { font-size: 18px; font-weight: 700; }
+
+/* Корзина на экране заказа: цены крупнее */
+.cashier-cart__items .cart-item--summary .cart-item__side .cart-item__price { font-size: 19px; font-weight: 500; }
+
+/* «К оплате» и поле суммы — цвет #D9F1F8 */
+.pay-screen__pay .pay-method__sum,
+.pay-screen__pay .pay-amount-pad__field {
+  background: #D9F1F8;
+  border-color: #b4dbe8;
+}
+.pay-screen__pay .pay-method__sum,
+.pay-screen__pay .pay-amount-pad__field {
+  background: #E6F6FB;
+  border-color: #c3e3ee;
+}
+
+/* Фон двух больших карточек оплаты — #F2F6FA */
+.pay-screen__pay .pay-method__card,
+.pay-screen__pay .pay-amount-pad { background: #F2F6FA; }
+
+
+/* Экран оплаты: светлый задний фон (оставлен после отката редизайна) */
+.pay-screen { background: #eef2f7; }
+.pay-screen .pay-screen__head { background: #ffffff; border-bottom: 1px solid #e2e9f0; }
+
+/* Две большие карточки оплаты — снова белые, объёмные (как в 3D-варианте) */
+.pay-screen__pay .pay-method__card,
+.pay-screen__pay .pay-amount-pad { background: linear-gradient(180deg, #ffffff 0%, #f1f6fa 100%); }
+
+
+/* ── Шапка экрана оплаты: заголовок слева, справа — официант, стол, скидка, отмена ── */
+.pay-screen__head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 64px;
+  padding: 8px 16px;
+}
+.pay-screen__head .pay-screen__brand { flex: 0 0 auto; }
+.pay-screen__head h3 { flex: 0 1 auto; min-width: 0; text-align: left; }
+.pay-screen__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: auto;
+}
+.pay-screen__toolbar > .pay-screen__control { width: auto; flex: 0 1 auto; }
+.pay-screen__toolbar > .pay-screen__control:has(.wpick) { flex: 0 1 220px; min-width: 160px; }
+.pay-screen__toolbar > .pay-screen__control:has(.pay-dialog__disc) { flex: 0 1 270px; min-width: 220px; }
+.pay-screen__toolbar .wpick__trigger,
+.pay-screen__toolbar .pay-dialog__disc,
+.pay-screen__toolbar .pay-screen__reassign,
+.pay-screen__toolbar .pay-order__cancel {
+  min-height: 46px;
+  height: 46px;
+  border: 1.5px solid #9db2c6;
+  border-radius: 14px;
+  color: #0b1f33;
+}
+.pay-screen__toolbar .pay-screen__reassign,
+.pay-screen__toolbar .pay-order__cancel {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 0 18px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pay-screen__toolbar .pay-dialog__disc { padding: 4px 5px 4px 12px; }
+.pay-screen__toolbar .pay-dialog__disc-input { font-size: 20px; font-weight: 700; }
+.pay-screen__toolbar .pay-dialog__disc-unit { font-size: 16px; font-weight: 700; }
+.pay-screen__toolbar .pay-dialog__disc-row .btn--sm { min-height: 34px; height: 34px; }
+@media (max-width: 1280px) {
+  .pay-screen__head { flex-wrap: wrap; }
+  .pay-screen__toolbar { flex-basis: 100%; justify-content: flex-start; }
+}
+
+/* «К оплате» и поле суммы — цвет #E6EBF1 */
+.pay-screen__pay .pay-method__sum,
+.pay-screen__pay .pay-amount-pad__field {
+  background: #E6EBF1;
+  border-color: #cfd8e2;
+}
+.pay-screen__pay .pay-method__sum,
+.pay-screen__pay .pay-amount-pad__field {
+  background: #EEF2F6;
+  border-color: #d8e0e9;
+}
+
+/* Карточки оплаты компактнее по высоте: не растягиваются на весь экран, клавиши фиксированной высоты */
+.pay-screen__pay { flex: 0 0 auto; align-items: stretch; }
+.pay-screen__pay .pay-amount-pad__keys { flex: 0 0 auto; grid-auto-rows: 58px; }
+.pay-screen__pay .pay-amount-pad__keys .vkb__key { min-height: 0; height: 58px; }
+.pay-screen__actions { margin-top: auto; }
+/* Золотая середина по высоте клавиш */
+.pay-screen__pay .pay-amount-pad__keys { grid-auto-rows: 88px; }
+.pay-screen__pay .pay-amount-pad__keys .vkb__key { height: 88px; }
+.pay-screen__pay .pay-amount-pad__keys { grid-auto-rows: 104px; }
+.pay-screen__pay .pay-amount-pad__keys .vkb__key { height: 104px; }
+.pay-screen__pay .pay-amount-pad__keys { grid-auto-rows: 118px; }
+.pay-screen__pay .pay-amount-pad__keys .vkb__key { height: 118px; }
+
+/* Карточки оплаты — по центру колонки по вертикали, кнопки остаются внизу */
+.pay-screen__side > .pay-screen__pay { margin-top: auto; margin-bottom: auto; }
+.pay-screen__side > .pay-screen__actions { margin-top: 0; }
+
+
+/* Ряд кнопок под шапкой (в правой колонке); скидка — в правом углу. Карточки оплаты опущены к низу. */
+.pay-screen__side > .pay-screen__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  flex: 0 0 auto;
+  margin: 0;
+  max-width: none;
+}
+.pay-screen__side > .pay-screen__toolbar > .pay-screen__control:has(.pay-dialog__disc) { order: 10; margin-left: auto; }
+.pay-screen__side > .pay-screen__pay { margin-top: auto; margin-bottom: 0; }
+
+/* Четыре кнопки под шапкой — одинаковой ширины с равными промежутками */
+.pay-screen__side > .pay-screen__toolbar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.pay-screen__side > .pay-screen__toolbar > * { width: 100%; min-width: 0; margin: 0; }
+.pay-screen__side > .pay-screen__toolbar > .pay-screen__control:has(.pay-dialog__disc) { margin-left: 0; }
+.pay-screen__side > .pay-screen__toolbar .pay-screen__reassign,
+.pay-screen__side > .pay-screen__toolbar .pay-order__cancel { width: 100%; padding: 0 10px; }
+
+/* Карточки чуть выше, под ними — разделительная линия перед кнопками */
+.pay-screen__side > .pay-screen__pay { margin-bottom: 14px; }
+.pay-screen__side > .pay-screen__actions {
+  padding-top: 14px;
+  border-top: 1px solid #d3dce6;
+}
+
+/* Тень карточек оплаты короче и не заходит за разделительную линию */
+.pay-screen__pay .pay-method__card,
+.pay-screen__pay .pay-amount-pad {
+  box-shadow:
+    inset 0 1px 0 #ffffff,
+    inset 0 -2px 0 rgba(12, 36, 64, 0.05),
+    0 3px 0 #c9d6e2,
+    0 10px 16px -12px rgba(12, 36, 64, 0.35),
+    0 3px 6px rgba(12, 36, 64, 0.06);
+}
+.pay-screen__side > .pay-screen__pay { margin-bottom: 22px; }
+
+/* Рамка двух больших карточек оплаты темнее */
+.pay-screen__pay .pay-method__card,
+.pay-screen__pay .pay-amount-pad {
+  border-color: #98adc1;
+  border-bottom-color: #7f97ae;
+}
+
+/* Заголовок экрана оплаты — снова по центру шапки */
+.pay-screen__head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+}
+.pay-screen__head h3 { text-align: center; }

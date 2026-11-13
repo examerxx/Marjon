@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import WaiterPicker from '../../components/WaiterPicker'
+import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Search, Plus, Minus, Utensils, Pencil, Coffee, CupSoda,
+  Search, Plus, Utensils, Pencil, Coffee, CupSoda,
   LayoutGrid, Armchair, DoorClosed, Sun, Wine, CalendarClock, ArrowLeft, Users, User, Clock, Wallet, BarChart3, ShoppingBag, Bike, Boxes, Printer, Receipt,
-  Bell, ClipboardList, Settings, RefreshCw, List, MoreHorizontal, Eye, X,
+  Bell, ClipboardList, Settings, RefreshCw, List, MoreHorizontal, Eye, X, Minus, Save, Ban,
 } from 'lucide-react'
 import { orders, payments, menu, halls as hallsApi, printers as printersApi, customers as customersApi, auth as authApi, finance as financeApi, companies as companiesApi } from '../../shared/api'
 import { onPrintJob } from '../../shared/ws'
@@ -69,6 +70,7 @@ function orderToLines(order) {
       price: Number(it.price) || 0,
       qty: Number(it.quantity) || 0,
       total: Number(it.total) || 0,
+      discount: Number(it.discount) || 0,
       note: it.note || '',
       takeaway: !!it.takeaway,
       modifiers: Array.isArray(it.modifiers) ? it.modifiers : [],
@@ -87,6 +89,29 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
   const [hallsError, setHallsError] = useState('')
   const orderSubmitLock = useRef(false)
   const cartItemsRef = useRef(null)
+  // Доска заказов: число колонок читаем из самой сетки, чтобы «+ Добавить заказ»
+  // заполняли ровно 4 ряда при любом размере экрана.
+  const boardScrollRef = useRef(null)
+  const [hallCols, setHallCols] = useState(6)
+  const [hallRows, setHallRows] = useState(4)
+  useLayoutEffect(() => {
+    const el = boardScrollRef.current
+    if (!el) return undefined
+    const measure = () => {
+      const grid = el.querySelector('.hgrid')
+      if (!grid) return
+      const n = getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length
+      if (n > 0) setHallCols((c) => (c === n ? c : n))
+      // Размер карточки фиксирован (220 px + зазор 10): на высоком экране ряды
+      // добавляются снизу, но не меньше четырёх.
+      const rows = Math.max(4, Math.floor((el.clientHeight - 6 + 10) / (220 + 10)))
+      setHallRows((r) => (r === rows ? r : rows))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  })
 
   // Курьер стартует на доске своих заказов (доставка). Физических столов у него нет
   const [view, setView] = useState('floor')  // floor | order
@@ -103,12 +128,18 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
   const [search, setSearch] = useState('')
   const [cart, setCart] = useState([])                 // НОВЫЕ строки (ещё не отправлены)
   const [orderLines, setOrderLines] = useState([])     // строки уже оформленного заказа
+  // Плюс/минус на уже внесённых блюдах: { orderItemId: новое количество }.
+  // Правки копятся локально и уходят на сервер кнопкой «Сохранить».
+  const [qtyDraft, setQtyDraft] = useState({})
   const [orderNote, setOrderNote] = useState('')
   const [deliveryPhone, setDeliveryPhone] = useState('')
   const [deliveryAddress, setDeliveryAddress] = useState('')
   const [custId, setCustId] = useState(null)
   const [custMatches, setCustMatches] = useState([])
   const [editLine, setEditLine] = useState(null)
+  const [cartEditOpen, setCartEditOpen] = useState(false)
+  // Выбранный в карточке заказа официант: применяется по «Сохранить» (null — не менялся)
+  const [cartEditWaiter, setCartEditWaiter] = useState(null)
   const [finOpen, setFinOpen] = useState(false)
   const [histOpen, setHistOpen] = useState(false)
   const [repOpen, setRepOpen] = useState(false)
@@ -133,7 +164,6 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
   const [addToOrderId, setAddToOrderId] = useState(null) // id заказа, в который ДОБАВЛЯЕМ блюда (иначе создаём новый)
   const [existingOrder, setExistingOrder] = useState(null) // снимок заказа, который редактируем
   const [paidBefore, setPaidBefore] = useState(0)         // сколько оплачено до возврата в закрытый заказ
-  const [paymentMethods, setPaymentMethods] = useState([]) // способы оплаты из веб-админки (Uzum, Yandex…)
   // Ячейки «Добавить заказ» на доске «По официантам»: заказ, созданный с
   // нажатой ячейки, остаётся на ней и сразу показывает блюда. Привязка живёт
   // в localStorage — после перезагрузки терминала карточка остаётся на месте.
@@ -307,15 +337,6 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
     companiesApi.profile().then((p) => {
       setOrderTypes(p?.order_types || null)
     }).catch(() => {})
-    // Способы оплаты из веб-админки (Настройки → «Способ оплаты»). Владелец вводит
-    // Uzum, Yandex и т.п. руками — интеграции нет, но на кассе их можно выбрать,
-    // а в отчётах видно, через что клиент заплатил. Наличные и карта — свои кнопки.
-    financeApi.paymentTypes()
-      .then((list) => {
-        const BUILTIN = new Set(['наличные', 'карта', 'cash', 'card', 'смешанный', 'mixed'])
-        setPaymentMethods((list || []).filter((p) => !BUILTIN.has(String(p.name || '').trim().toLowerCase())))
-      })
-      .catch(() => setPaymentMethods([]))
     // Сотрудники для смены официанта. Тот же фильтр, что в экране выбора сотрудника
     // (EmployeeSelector) и панели посещаемости: владелец/менеджер/кладовщик столы на
     // кассе не обслуживают — прячем их, чтобы оба селекта в модалке оплаты (официант
@@ -397,6 +418,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
     setCart([]); setOrderNote(''); setSearch(''); setActiveCat(null)
     setDeliveryPhone(''); setDeliveryAddress(''); setCustId(null); setCustMatches([])
     setEditLine(null)
+    setCartEditOpen(false)
   }
   // Ячейка «Добавить заказ» → созданный заказ остаётся на этой ячейке.
   // Ключ привязки — «сотрудник:ячейка»: у каждого профиля своя раскладка,
@@ -427,7 +449,13 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
   }
   function chooseTable(tb) {
     const actingFor = tablePick?.actingFor || null
+    const pickedZoneId = tablePick?.zoneId || null
+    const pickedReturn = tablePick?.returnLine || null
     setTablePick(null)
+    if (tablePick?.moveOrder) {
+      confirmTableMove(tablePick.moveOrder, tb, pickedZoneId, pickedReturn)
+      return
+    }
     // Ячейку «+», с которой открыли заказ, не забываем: карточка вернётся
     // на неё же, а не отдельной группой сверху (иначе все плюсы съезжают).
     slotWaiterRef.current = actingFor
@@ -435,8 +463,10 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
   }
   // Отмена выбора стола: ячейка «+» больше не цель — заказ с неё не начинали.
   function closeTablePicker() {
+    const backLine = tablePick?.returnLine || null
     setTablePick(null)
     clearSlotIntent()
+    if (backLine) setEditLine(backLine)
   }
   function openOrder(type, table) {
     // Быстрый чек/доставка сбрасывают намерение ячейки — заказ не её.
@@ -510,7 +540,9 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
         return
       }
       if (promptCfg) { setPromptCfg(null); mark(); return }
+      if (tablePick) { closeTablePicker(); mark(); return }
       if (editLine) { setEditLine(null); mark(); return }
+      if (cartEditOpen) { setCartEditOpen(false); mark(); return }
       if (payExisting) { setPayExisting(null); mark(); return }
       if (finOpen) { setFinOpen(false); mark(); return }
       if (histOpen) { setHistOpen(false); mark(); return }
@@ -525,7 +557,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
     window.addEventListener('marjon:back', onNavBack)
     return () => window.removeEventListener('marjon:back', onNavBack)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pinGate, promptCfg, editLine, payExisting, finOpen, histOpen, repOpen, stopOpen, attOpen, staffOpen, whOpen, printOpen, view])
+  }, [pinGate, promptCfg, tablePick, editLine, cartEditOpen, payExisting, finOpen, histOpen, repOpen, stopOpen, attOpen, staffOpen, whOpen, printOpen, view])
   // Автокомплит постоянных клиентов по номеру
   function onDeliveryPhone(raw) {
     const digits = extractPhoneDigits(raw); setDeliveryPhone(digits); setCustId(null)
@@ -574,7 +606,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
   async function completeExistingOrder(order, method, detail) {
     if (closingOrders.current.has(order.id)) return
     closingOrders.current.add(order.id)
-    const refund = Math.max(0, Number(paidBefore || 0) - Number(order?.total_amount || 0))
+    const refund = order.reopened_at ? Math.max(0, Number(paidBefore || 0) - Number(order?.total_amount || 0)) : 0
     try {
       if (method === 'debt') {
         // Existing debt flow is NOT a fully paid receipt and stays out of paid analytics.
@@ -586,7 +618,14 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
           ...(detail?.client_phone ? { client_phone: detail.client_phone } : {}),
         })
       } else {
-        await payments.confirmOrder(order, method, detail)
+        const payment = await payments.confirmOrder(order, method, detail)
+        if (detail?.partialAmount !== undefined) {
+          const remaining = Number(payment.remaining_amount)
+          if (remaining > 0) {
+            setPaidBefore(Math.round((Number(order.total_amount) - remaining) * 100) / 100)
+            return { partial: true, payment }
+          }
+        }
       }
       if (method === 'debt' && detail && Number(detail.cash) > 0) {
         const comment = `Долг: заказ #${order.order_number ?? ''}, получено ${fmt(detail.cash)}, остаток ${fmt(detail.debt)}${detail.client_name ? `, клиент: ${detail.client_name}` : ''}${detail.client_phone ? `, тел: ${detail.client_phone}` : ''}`
@@ -596,7 +635,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
       // который не отвечает, держит сокет до 5 с (printRaw timeout) — именно
       // эта пауза и читалась как «закрытие заказа думает 5–6 секунд».
       const pr = receiptPrinter()
-      if (pr?.ip_address) {
+      if (pr?.ip_address && method !== 'VIP') {
         Promise.resolve()
           .then(() => window.electron?.openDrawer?.({ ip: pr.ip_address, port: pr.port }))
           .catch(() => { /* ящик может не быть подключён */ })
@@ -611,6 +650,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
       const reason = e?.paymentErrorKey ? t(e.paymentErrorKey) : e?.response?.data?.detail
       toast(t('close_order_error') + (reason ? ': ' + (typeof reason === 'string' ? reason : t('payment_invalid_amount')) : ''), 'error')
       if ([400, 422].includes(e?.response?.status)) await refreshPayOrder(order)
+      throw e
     } finally { closingOrders.current.delete(order.id) }
   }
   // Живой пересчёт итога: пока кассир вводит наличные в модалке оплаты — подтягиваем
@@ -623,13 +663,14 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
   function cancelOrder(order) {
     setPromptCfg({
       title: t('cancel_order'),
+      compact: true,
       hint: t('cancel_password_prompt'),
       type: 'password',
       extra: { label: t('cancel_comment'), placeholder: t('cancel_comment_ph') },
       submitLabel: t('cancel_order'),
       onSubmit: async (pwd, comment) => {
         await orders.cancel(order.id, pwd, comment || undefined)
-        setPromptCfg(null); setPayExisting(null)
+        setPromptCfg(null); setPayExisting(null); setCartEditOpen(false)
         setOrderLines([]); setAddToOrderId(null); setExistingOrder(null); setView('floor')
         loadFloor()
       },
@@ -648,15 +689,20 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
   // печатается в чеке (бэкенд хранит его в позиции заказа).
   function cancelOrderItem(line) {
     if (!line?.orderItemId || !addToOrderId) return
+    const backLine = line
     setPromptCfg({
       title: t('cancel_dish'),
-      hint: t('cancel_dish_reason'),
-      placeholder: t('cancel_dish_reason_ph'),
+      compact: true,
+      type: 'password',
+      hint: t('cancel_dish_password'),
+      allowEmpty: true,                    // пароль нужен, только если задан в настройках
+      extra: { label: t('cancel_dish_reason_label'), placeholder: '' },
       submitLabel: t('cancel_dish'),
-      onSubmit: async (reason) => {
+      onBack: () => setEditLine(backLine),
+      onSubmit: async (pin, reason) => {
         const text = String(reason || '').trim()
-        if (!text) throw new Error(t('cancel_dish_reason_required'))
-        const upd = await orders.removeItem(addToOrderId, line.orderItemId, text)
+        // Через общий «adjust»: проверяет пароль и печатает на кухне «ОТМЕНА БЛЮДА»
+        const upd = await orders.adjustItems(addToOrderId, [{ itemId: line.orderItemId, quantity: 0 }], { pin, reason: text || undefined })
         setPromptCfg(null); setEditLine(null)
         setExistingOrder(upd)
         setOrderLines(orderToLines(upd))
@@ -698,25 +744,39 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
     loadFloor()
   }
   // Перенос заказа на другой стол — цель выбирается по id стола и подписывается залом.
-  function reassignTable(order) {
-    const isUuid = (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/i.test(String(v || ''))
+  // returnLine — карточка блюда, из которой открыли выбор стола: «×»/«Отмена» возвращают к ней.
+  function reassignTable(order, returnLine = null) {
+    const zone = zones.find((entry) => entry.tables?.some((table) => String(table.id) === String(order.table_id)))
+    setTablePick({ moveOrder: order, zoneId: zone?.id || zones[0]?.id || null, returnLine })
+  }
+
+  function confirmTableMove(order, target, zoneId, returnLine = null) {
+    const fromCard = cartEditOpen
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/i.test(String(target.id || ''))
     setPromptCfg({
       title: t('move_table'),
-      hint: t('move_to_table'),
-      options: allTables.map((table) => ({
-        value: isUuid(table.id) ? String(table.id) : String(table.number),
-        label: `${table.zoneName ? table.zoneName + ' · ' : ''}${t('table')} ${table.number}`,
-      })),
-      initial: order.table_id ? String(order.table_id) : (order.table_number || ''),
-      extra: { label: t('move_reason'), placeholder: t('move_reason_ph') },
+      // «Отмена»/крестик возвращают к выбору стола, а не закрывают всё
+      onBack: () => setTablePick({ moveOrder: order, zoneId: zoneId || null, returnLine }),
+      hint: `${target.zoneName ? target.zoneName + ' · ' : ''}${t('table')} ${target.number}`,
+      placeholder: t('move_reason_ph'),
+      compact: true,
+      allowEmpty: true,
       submitLabel: t('save'),
-      onSubmit: async (value, reason) => {
-        const target = allTables.find((t) => String(t.id) === String(value) || String(t.number) === String(value))
-        const payload = isUuid(target?.id)
+      onSubmit: async (reason) => {
+        const payload = isUuid
           ? { table_id: target.id, reason: reason || undefined }
-          : { table_number: String(target?.number ?? value), reason: reason || undefined }
-        await orders.update(order.id, payload)
+          : { table_number: String(target.number), reason: reason || undefined }
+        const upd = await orders.update(order.id, payload)
         setPromptCfg(null); setPayExisting(null)
+        // Перенос из карточки заказа: остаёмся на заказе, карточка остаётся открытой
+        // с новым столом в заголовке.
+        if (fromCard) {
+          setExistingOrder(upd)
+          setSelectedTable(upd?.table_number != null ? { id: upd.table_id || undefined, number: upd.table_number } : null)
+          loadFloor()
+          return
+        }
+        setCartEditOpen(false)
         setOrderLines([]); setAddToOrderId(null); setExistingOrder(null); setView('floor')
         loadFloor()
       },
@@ -743,37 +803,136 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
     setCart((prev) => prev.map((i) => i.lineId === editLine.lineId ? { ...i, qty: quantity, price, note, takeaway, modifiers: modifiers || [] } : i))
     setEditLine(null)
   }
-  function updateQty(lineId, d) { setCart((prev) => prev.map((i) => i.lineId === lineId ? { ...i, qty: i.qty + d } : i).filter((i) => i.qty > 0)) }
-  // Плюс/минус на УЖЕ заказанной позиции. Количество меняет бэкенд (позиция
-  // уже на кухне), поэтому локально подменяем снимок заказа — строка и итог
-  // пересчитываются из ответа сервера, без «оптимистичных» расхождений.
-  // qtyBusy гасит двойной клик: два быстрых нажатия иначе отправят одно и то же
-  // абсолютное количество, и вместо 3 порций получится 2.
-  const qtyBusy = useRef(new Set())
-  async function changeSavedQty(item, delta) {
-    if (!addToOrderId || !item?.orderItemId || qtyBusy.current.has(item.lineId)) return
-    const next = Number(item.qty) + delta
-    if (next < 1) return
-    qtyBusy.current.add(item.lineId)
-    try {
-      const upd = await orders.setItemQuantity(addToOrderId, item.orderItemId, next)
-      setExistingOrder(upd)
-      setOrderLines(orderToLines(upd))
-      loadFloor()
-    } catch (e) {
-      toast(e?.response?.data?.detail || e.message, 'error')
-    } finally {
-      qtyBusy.current.delete(item.lineId)
-    }
-  }
-  // «С собой» переключается в карточке блюда (карандаш): отдельный тумблер
-  // в строке корзины ломал общую сетку — кнопки количества уезжали влево.
 
-  const orderLinesSum = orderLines.reduce((s, i) => s + Number(i.total ?? (i.price * i.qty)), 0)
+  // ── Плюс/минус на внесённых блюдах (только кассир, пока заказ не оплачен) ──
+  // Дробные порции (1.3): складываем с округлением до 3 знаков, иначе 0.3+1 ≠ 1.3
+  const r3 = (n) => Math.round(Number(n) * 1000) / 1000
+  const canAdjustQty = !orderReadOnly && !isWaiter && Boolean(addToOrderId)
+  const shownQty = (item) => (item.orderItemId && qtyDraft[item.orderItemId] != null ? qtyDraft[item.orderItemId] : item.qty)
+  // Сумма строки при изменённом количестве: цена за порцию × кол-во (скидка и
+  // добавки уже заложены в item.total, поэтому масштабируем его).
+  const shownLineTotal = (item) => {
+    const base = Number(item.total ?? item.price * item.qty)
+    const qty = shownQty(item)
+    return r3(qty) === r3(item.qty) || !item.qty ? base : (base / item.qty) * qty
+  }
+  const qtyChanges = orderLines
+    .filter((line) => qtyDraft[line.orderItemId] != null && r3(qtyDraft[line.orderItemId]) !== r3(line.qty))
+    .map((line) => ({ line, from: line.qty, to: qtyDraft[line.orderItemId] }))
+  function stepLineQty(line, direction) {
+    setQtyDraft((prev) => {
+      const current = prev[line.orderItemId] != null ? prev[line.orderItemId] : line.qty
+      const next = r3(current + direction)
+      if (next < 0) return prev           // 0 = отменить блюдо целиком (при «Сохранить» — пароль)
+      if (next === r3(line.qty)) {
+        const { [line.orderItemId]: _drop, ...rest } = prev
+        return rest
+      }
+      return { ...prev, [line.orderItemId]: next }
+    })
+  }
+
+  // Новые блюда существующего заказа (ещё не отправлены на кухню): «−/+» меняют
+  // корзину сразу; на нуле строка пропадает — отправлять нечего.
+  const canStepCart = !orderReadOnly   // и при создании нового заказа, и при дозаказе
+  function stepCartQty(item, direction) {
+    setCart((prev) => prev.flatMap((line) => {
+      if (line.lineId !== item.lineId) return [line]
+      const next = r3(line.qty + direction)
+      return next > 0 ? [{ ...line, qty: next }] : []
+    }))
+  }
+
+  const orderLinesSum = orderLines.reduce((s, i) => s + shownLineTotal(i), 0)
   const cartSum = cart.reduce((s, i) => s + i.price * i.qty, 0)
   const total = orderLinesSum + cartSum
-  const itemCount = orderLines.reduce((s, i) => s + i.qty, 0) + cart.reduce((s, i) => s + i.qty, 0)
   const linesCount = orderLines.length + cart.length
+
+  function catalogProduct(item) {
+    return products.find((product) => String(product.id) === String(item.product?.id)) || item.product
+  }
+
+  async function changeDishWaiter(line, waiterId) {
+    async function save(actionPin) {
+      const updated = await orders.setItemWaiter(addToOrderId, line.orderItemId, waiterId, undefined, actionPin)
+      const lines = orderToLines(updated)
+      setExistingOrder(updated)
+      setOrderLines(lines)
+      setEditLine(lines.find(item => item.orderItemId === line.orderItemId) || null)
+      loadFloor()
+    }
+
+    try {
+      await save()
+    } catch (error) {
+      if (error?.response?.data?.detail !== 'Неверный пароль подтверждения операции') throw error
+      setPromptCfg({
+        title: t('change_waiter'), compact: true, type: 'password',
+        hint: t('cancel_password_prompt'),
+        onSubmit: async (pin) => { await save(pin); setPromptCfg(null) },
+      })
+    }
+  }
+
+  function renderCartLines() {
+    if (linesCount === 0) return <p className="cart-empty">{t('tap_dish_hint')}</p>
+
+    return [...orderLines, ...cart].map((item) => {
+      const rowStatus = item.orderItemId ? ' cart-item--sent' : ' cart-item--draft'
+      const details = [item.createdAt && fmtTime(item.createdAt), item.addedByName, item.note].filter(Boolean).join(' · ')
+      // Внесённое блюдо кассира: «− N +» по сторонам количества. До создания
+      // заказа и у новых строк корзины остаётся обычное число.
+      const isSaved = Boolean(item.orderItemId)
+      const stepper = isSaved ? canAdjustQty : canStepCart
+      const qty = isSaved ? shownQty(item) : item.qty
+      const changed = stepper && isSaved && r3(qty) !== r3(item.qty)
+      const removed = stepper && isSaved && qty === 0
+      const body = (
+        <>
+          <span className="cart-item__info">
+            <span className="cart-item__name">{item.name}</span>
+          </span>
+          {stepper ? (
+            <span className={`cart-item__stepper${changed ? (qty < item.qty ? ' is-changed is-down' : ' is-changed is-up') : ''}`} onClick={(e) => e.stopPropagation()}>
+              <button type="button" className="cart-item__step" aria-label={t('qty_decrease')}
+                disabled={qty <= 0 || creating}
+                onClick={() => (isSaved ? stepLineQty(item, -1) : stepCartQty(item, -1))}>
+                <Minus size={16} />
+              </button>
+              <span className="cart-item__step-value">{formatQty(qty)}</span>
+              <button type="button" className="cart-item__step" aria-label={t('qty_increase')}
+                disabled={creating} onClick={() => (isSaved ? stepLineQty(item, 1) : stepCartQty(item, 1))}>
+                <Plus size={16} />
+              </button>
+            </span>
+          ) : (
+            <span className="cart-item__qty-badge">
+              {formatQty(item.qty)}
+            </span>
+          )}
+          <span className="cart-item__side">
+            {details && <span className="cart-item__meta" title={details}>{details}</span>}
+            <span className="cart-item__price">{fmt(item.orderItemId ? shownLineTotal(item) : (item.total ?? item.price * item.qty))}</span>
+          </span>
+        </>
+      )
+      // Со степпером строка — div: кнопки − и + внутри <button> недопустимы.
+      return stepper ? (
+        <div key={item.lineId} role="button" tabIndex={0}
+          className={`cart-item cart-item--view cart-item--summary cart-item--stepper${rowStatus}${removed ? ' cart-item--removed' : ''}`}
+          onClick={() => setEditLine(item)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) setEditLine(item) }}>
+          {body}
+        </div>
+      ) : (
+        <button key={item.lineId} className={`cart-item cart-item--view cart-item--summary${rowStatus}`}
+          type="button" onClick={() => setEditLine(item)}>
+          {body}
+        </button>
+      )
+    })
+  }
+
 
   // Панель заказа заполняется — прокручиваем её вниз, чтобы последняя
   // добавленная позиция всегда была на виду.
@@ -786,20 +945,23 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
     el.scrollTop = el.scrollHeight
   }, [linesCount, view])
 
+  const appendInFlight = useRef(null)
+
   // Досылаем новые строки в существующий заказ и возвращаем свежий снимок.
   // Одна пакетная команда: повар получает один тикет со всеми новыми блюдами.
   async function pushCartToOrder() {
     if (!addToOrderId || !cart.length) return existingOrder
-    const lines = cart
-    const fresh = await orders.addItems(addToOrderId, lines.map((i) => ({
-      product_id: i.product.id, quantity: i.qty, note: i.note || null, takeaway: !!i.takeaway, modifiers: i.modifiers || [],
-    })))
-    const sent = new Set(lines.map((l) => l.lineId))
-    setCart(prev => prev.filter(line => !sent.has(line.lineId)))
-    setExistingOrder(fresh)
-    setOrderLines(orderToLines(fresh))
-    loadFloor()
-    return fresh
+    if (appendInFlight.current) return appendInFlight.current
+    const request = orders.appendDraftItems(addToOrderId, cart).then(({ order: fresh, sentIds }) => {
+      const sent = new Set(sentIds)
+      setCart(prev => prev.filter(line => !sent.has(line.lineId)))
+      setExistingOrder(fresh)
+      setOrderLines(orderToLines(fresh))
+      loadFloor()
+      return fresh
+    }).finally(() => { appendInFlight.current = null })
+    appendInFlight.current = request
+    return request
   }
 
   // Создание заказа / дозаказ. Позиции уходят повару (авто-печать кухонного
@@ -857,12 +1019,10 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
       const order = fresh || await orders.get(addToOrderId)
       let paid = paidBefore
       if (!paid) {
-        try {
-          const list = await payments.forOrder(order.id)
-          paid = (Array.isArray(list) ? list : [])
-            .filter((p) => p.status === 'completed')
-            .reduce((s, p) => s + Number(p.amount || 0), 0)
-        } catch { /* тихо */ }
+        const list = await payments.forOrder(order.id)
+        paid = (Array.isArray(list) ? list : [])
+          .filter((p) => p.status === 'completed')
+          .reduce((s, p) => s + Number(p.amount || 0), 0)
       }
       setPaidBefore(paid)
       setPayExisting(order)
@@ -902,6 +1062,69 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
     }
   }
 
+  // Правки плюс/минус не переживают выход из заказа или смену заказа.
+  useEffect(() => { setQtyDraft({}) }, [addToOrderId, view])
+
+  // «Сохранить»: правки количества внесённых блюд (+ новые блюда из корзины,
+  // если они есть). Любое уменьшение — это отмена части блюда: сначала окно
+  // «Отменить блюдо» с паролем и необязательной причиной. Одни только плюсы и
+  // новые блюда идут без пароля. Чеки на кухню печатает бэкенд.
+  async function saveOrderChanges() {
+    if (!addToOrderId || creating || (!qtyChanges.length && !cart.length)) return
+    const payload = qtyChanges.map(({ line, to }) => ({ itemId: line.orderItemId, quantity: to }))
+    const hasDecrease = qtyChanges.some(({ from, to }) => to < from)
+
+    async function run(pin, reason) {
+      setCreating(true)
+      try {
+        if (payload.length) {
+          let fresh
+          try {
+            fresh = await orders.adjustItems(addToOrderId, payload, { pin, reason })
+          } catch (e) {
+            // Бэкенд без /items/adjust: честно говорим, а не показываем «Not Found».
+            if ([404, 405].includes(e?.response?.status)) throw new Error(t('adjust_backend_missing'))
+            throw e
+          }
+          setExistingOrder(fresh)
+          setOrderLines(orderToLines(fresh))
+          setQtyDraft({})
+        }
+        if (cart.length) await pushCartToOrder()
+        toast(t('order_saved'))
+        loadFloor()
+      } finally {
+        setCreating(false)
+      }
+    }
+
+    if (hasDecrease) {
+      setPromptCfg({
+        title: t('cancel_dish'),
+        compact: true,
+        type: 'password',
+        hint: t('cancel_dish_password'),
+        // Пароль нужен, только если он задан у компании: пустой уходит как есть,
+        // а бэкенд сам скажет «Неверный пароль», если его требуют.
+        allowEmpty: true,
+        // Список изменённых блюд: что было и что станет.
+        changes: qtyChanges.map(({ line, from, to }) => ({ name: line.name, from, to })),
+        extra: { label: t('cancel_dish_reason_optional'), placeholder: '' },
+        submitLabel: t('save'),
+        onSubmit: async (pin, reason) => {
+          await run(pin || undefined, reason || undefined)
+          setPromptCfg(null)
+        },
+      })
+      return
+    }
+    try {
+      await run()
+    } catch (e) {
+      toast(errorMessage(e, t('create_order_error')), 'error')
+    }
+  }
+
   // Экран оплаты — общий для обоих видов. Раньше он рендерился только в виде
   // «столы», поэтому кнопка «К оплате» из корзины ставила состояние и молчала:
   // модалки в этом дереве просто не было.
@@ -910,6 +1133,10 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
       order={payExisting}
       onPrint={printOrderReceipt}
       onComplete={completeExistingOrder}
+      onResetPayments={async (order, paymentIds) => {
+        await payments.resetPartial(order.id, paymentIds)
+        setPaidBefore(0)
+      }}
       onCancel={cancelOrder}
       onReassign={reassignTable}
       staff={staff}
@@ -919,7 +1146,6 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
       canClose={canCloseBill}
       canDebt={canDebt}
       paidBefore={paidBefore}
-      paymentMethods={paymentMethods}
       onClose={() => { setPayExisting(null); setPaidBefore(0) }}
     />
   ) : null
@@ -954,15 +1180,28 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
     : null
   const tablePickOverlay = tablePick ? (
     <div
-      className="table-pick"
+      className={tablePick.moveOrder ? `table-pick table-pick--move${cartEditOpen ? ' table-pick--top' : ''}` : "table-pick"}
       role="dialog"
       aria-modal="true"
-      aria-label={t('pick_table_title')}
+      aria-label={t(tablePick.moveOrder ? 'move_table' : 'pick_table_title')}
       onClick={closeTablePicker}
     >
       <div className="table-pick__panel" onClick={(e) => e.stopPropagation()}>
         <header className="table-pick__head">
-          <p className="table-pick__hint">{t('pick_table_hint')}</p>
+          <p className="table-pick__hint">
+            {t(tablePick.moveOrder ? 'move_table' : 'pick_table_hint')}
+            {tablePick.moveOrder && (() => {
+              const o = tablePick.moveOrder
+              const z = zones.find((zn) => zn.tables?.some((tb) => String(tb.id) === String(o.table_id)))
+              const num = o.table_number ?? z?.tables?.find((tb) => String(tb.id) === String(o.table_id))?.number
+              if (!z && num == null) return null
+              return (
+                <strong className="table-pick__current">
+                  {[z?.name, num != null ? `${t('table')} ${num}` : null].filter(Boolean).join(' · ')}
+                </strong>
+              )
+            })()}
+          </p>
           <button
             type="button"
             className="table-pick__close"
@@ -1143,6 +1382,11 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
 
   // Тип заказа живёт в шапке: над сеткой столов больше нет строки, поэтому
   // карточки начинаются от самого верха доски.
+  // Число активных заказов каждого типа — кружок на правом верхнем углу вкладки.
+  const typeCount = (type) => orderList.filter((o) => o.order_type === type).length
+  const typeBadge = (count) => (count > 0
+    ? <span className="hall-type__badge" aria-label={`${count} ${t('orders')}`}>{count > 99 ? '99+' : count}</span>
+    : null)
   const typeTabs = searchSlot && view === 'floor' && showTypeTabs && createPortal(
     <div className="hall-types hall-types--top" role="group" aria-label={t('receipt_order_type')}>
       <button
@@ -1152,6 +1396,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
         aria-pressed={!orderBoard}
       >
         <LayoutGrid size={16} /> {t('tables')}
+        {typeBadge(typeCount('dine_in'))}
       </button>
       {showTakeawayTab && (
         <button
@@ -1161,6 +1406,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
           aria-pressed={activeZone === 'takeaway'}
         >
           <ShoppingBag size={16} /> {t('takeaway')}
+          {typeBadge(typeCount('takeaway'))}
         </button>
       )}
       {showDeliveryTab && (
@@ -1171,6 +1417,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
           aria-pressed={activeZone === 'delivery'}
         >
           <Bike size={16} /> {t('delivery')}
+          {typeBadge(typeCount('delivery'))}
         </button>
       )}
     </div>,
@@ -1251,7 +1498,8 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
       .filter(({ tables }) => tables.length > 0)
     // В «По официантам» под группами всегда ровно 12 ячеек «Добавить заказ»:
     // одинаковый набор у каждого сотрудника, каждая ведёт на выбор стола.
-    const ADD_SLOTS = 12
+    // Ячеек «+» столько, чтобы вместе с заказами получилось ровно 4 ряда на этом экране.
+    const ADD_SLOTS = Math.max(1, hallCols) * Math.max(4, hallRows)
 
     // Профиль сотрудника из рейла «Персонал»: в окне только его столы по
     // схеме зала. Чужие и свободные столы не показываем — иначе профиль
@@ -1261,7 +1509,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
     const profileTables = filterId
       ? allTables.filter((tb) => {
           const o = orderFor(tb)
-          return Boolean(o) && !boundSlotIds.has(String(o.id)) && orderOwnerId(o) === filterId
+          return Boolean(o) && orderOwnerId(o) === filterId
         })
       : []
     const profileIds = new Set(profileTables.map((tb) => String(tb.id)))
@@ -1278,33 +1526,24 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
     const isNoTable = (o) => o.order_type === 'dine_in'
       && !o.table_id && o.table_number == null
     const profileNoTable = filterId
-      ? orderList.filter((o) => isNoTable(o) && orderOwnerId(o) === filterId && !boundSlotIds.has(String(o.id)))
+      ? orderList.filter((o) => isNoTable(o) && orderOwnerId(o) === filterId)
       : []
     const staffNoTable = orderList.filter(isNoTable)
     // Заказы профиля (без привязанных к ячейкам) — идут в общую сетку.
+    // Все столовые заказы сотрудника — ровно столько, сколько в счётчике рейла.
+    // Раньше брались только заказы, однозначно привязанные к столу зала: заказ с
+    // номером стола, который есть в нескольких залах (или без id стола), пропадал.
     const profileOrders = filterId
-      ? [
-          ...profileZones.flatMap(({ tables }) => tables.map((tb) => orderFor(tb)).filter(Boolean)),
-          ...profileNoTable,
-        ]
+      ? orderList.filter((o) => o.order_type === 'dine_in' && orderOwnerId(o) === filterId)
       : []
     // Счётчик «Все» = ровно столько карточек, сколько на общей доске:
     // это сумма заказов всех сотрудников, а не число людей в рейле.
-    const allOrdersCount = (() => {
-      const ids = new Set()
-      for (const { tables } of staffZones) {
-        for (const tb of tables) {
-          const o = orderFor(tb)
-          if (o) ids.add(String(o.id))
-        }
-      }
-      for (const o of staffNoTable) ids.add(String(o.id))
-      return ids.size
-    })()
+    // «Все» в «Персонал» — все активные заказы: столы, «С собой» и «Доставка».
+    const allOrdersCount = new Set(orderList.map((o) => String(o.id))).size
     // «Все» — доска по сотрудникам, а не по залам: касса сразу видит,
     // кто ведёт какие столы, сколько их и на какую сумму. Порядок групп
     // повторяет рейл (свой профиль первым).
-    const staffGroups = (() => {
+    const buildStaffGroups = (list) => {
       const groups = []
       const groupFor = (ownerId, name) => {
         let group = groups.find((g) => (ownerId ? g.ownerId === ownerId : g.name === name))
@@ -1322,14 +1561,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
         }
         return group
       }
-      for (const { tables } of staffZones) {
-        for (const tb of tables) {
-          const o = orderFor(tb)
-          if (!o) continue
-          groupFor(orderOwnerId(o), o.waiter_name).orders.push(o)
-        }
-      }
-      for (const o of staffNoTable) groupFor(orderOwnerId(o), o.waiter_name).orders.push(o)
+      for (const o of list) groupFor(orderOwnerId(o), o.waiter_name).orders.push(o)
       const railIndex = (group) => {
         const i = group.ownerId
           ? boardWaiters.findIndex((w) => String(w.id) === group.ownerId)
@@ -1337,44 +1569,8 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
         return i === -1 ? boardWaiters.length : i
       }
       return groups.sort((a, b) => railIndex(a) - railIndex(b))
-    })()
-
-    // «+» есть и в чужом профиле: официант заводит заказ на коллегу только
-    // после его PIN; касса/администрация — сразу.
-    const addSlotButton = (i) => (
-      <button
-        key={`add-slot-${i}`}
-        type="button"
-        className="hcard hcard--free"
-        onClick={() => {
-          // Запоминаем, на кого оформляем (чужой профиль — после PIN коллеги),
-          // и спрашиваем зал/стол из конструктора.
-          const target = waiterFilter
-            ? (hallWaiters.find((w) => String(w.id) === String(waiterFilter))
-              || staff.find((w) => String(w.id) === String(waiterFilter)))
-            : null
-          const actingFor = target && String(target.id) !== String(user.id)
-            ? String(target.id)
-            : null
-          const begin = () => {
-            // Запоминаем ячейку: созданный заказ вернётся на неё,
-            // остальные «+» останутся на своих местах.
-            slotIntentRef.current = i
-            slotReturnFilterRef.current = waiterFilter
-            openTablePicker(actingFor)
-          }
-          // Официант на чужое имя — только после PIN коллеги.
-          if (actingFor && isWaiter && !canActForOthers) {
-            setPinGate({ ownerId: actingFor, employee: target, onSuccess: begin })
-          } else {
-            begin()
-          }
-        }}
-      >
-        <span className="hcard__plus"><Plus size={26} /></span>
-        <span className="hcard__free-title">{t('add_order')}</span>
-      </button>
-    )
+    }
+    const staffGroups = buildStaffGroups(orderList)
 
     // Профиль сотрудника — одна сетка карточек: сначала его заказы, затем
     // «+». Заказ, созданный с ячейки, остаётся ровно на ней (slotBindings),
@@ -1393,7 +1589,14 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
     }
     // Текущая раскладка профиля: что стоит в каждой ячейке.
     const profileCellOrders = () => {
-      const queue = [...profileOrders]
+      // Сначала заказы, закреплённые за своими ячейками; остальные заказы
+      // сотрудника (в т.ч. с устаревшей привязкой) заполняют свободные.
+      const placedIds = new Set()
+      for (let i = 0; i < ADD_SLOTS; i += 1) {
+        const bound = boundOrderAt(i)
+        if (bound) placedIds.add(String(bound.id))
+      }
+      const queue = profileOrders.filter((o) => !placedIds.has(String(o.id)))
       const list = []
       for (let i = 0; i < ADD_SLOTS; i += 1) {
         list.push(boundOrderAt(i) || (queue.length > 0 ? queue.shift() : null))
@@ -1462,6 +1665,42 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
       dragSlot?.from === i ? 'hcell--drag' : '',
       dragSlot && dragSlot.from !== i && dragSlot.over === i ? 'hcell--over' : '',
     ].filter(Boolean).join(' ')
+    // «+» есть и в чужом профиле: официант заводит заказ на коллегу только
+    // после его PIN; касса/администрация — сразу.
+    const addSlotButton = (i) => (
+      <button
+        key={`add-slot-${i}`}
+        type="button"
+        className="hcard hcard--free"
+        onClick={() => {
+          // Запоминаем, на кого оформляем (чужой профиль — после PIN коллеги),
+          // и спрашиваем зал/стол из конструктора.
+          const target = waiterFilter
+            ? (hallWaiters.find((w) => String(w.id) === String(waiterFilter))
+              || staff.find((w) => String(w.id) === String(waiterFilter)))
+            : null
+          const actingFor = target && String(target.id) !== String(user.id)
+            ? String(target.id)
+            : null
+          const begin = () => {
+            // Запоминаем ячейку: созданный заказ вернётся на неё,
+            // остальные «+» останутся на своих местах.
+            slotIntentRef.current = i
+            slotReturnFilterRef.current = waiterFilter
+            openTablePicker(actingFor)
+          }
+          // Официант на чужое имя — только после PIN коллеги.
+          if (actingFor && isWaiter && !canActForOthers) {
+            setPinGate({ ownerId: actingFor, employee: target, onSuccess: begin })
+          } else {
+            begin()
+          }
+        }}
+      >
+        <span className="hcard__plus"><Plus size={26} /></span>
+        <span className="hcard__free-title">{t('add_order')}</span>
+      </button>
+    )
     const cellWrap = (i, order) => (
       <div
         key={order?.id || `cell-${i}`}
@@ -1564,24 +1803,43 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
         </aside>
 
         <main className="ws__main ws__main--board">
-          {orderBoard && (
-            <div className="hall-board__head">
-              <div className="hall-board__meta">
-                <span className="hall-board__summary">{boardOrders.length} {t.count(boardOrders.length, 'orders')}</span>
-                <button className="hall-board__new" onClick={() => openOrder(activeZone, null)}>
-                  <Plus size={16} /> {t('new_order')}
+          <div className="board__scroll" ref={boardScrollRef}>
+            {orderBoard ? (() => {
+              const kindIcon = activeZone === 'delivery' ? Bike : ShoppingBag
+              const addBoardOrder = (key) => (
+                <button
+                  key={key}
+                  type="button"
+                  className="hcard hcard--free"
+                  onClick={() => openOrder(activeZone === 'delivery' ? 'delivery' : 'takeaway', null)}
+                >
+                  <span className="hcard__plus"><Plus size={26} /></span>
+                  <span className="hcard__free-title">{t('add_order')}</span>
                 </button>
-              </div>
-            </div>
-          )}
-
-          <div className="board__scroll">
-            {orderBoard ? (
-              boardOrders.length === 0 ? <p className="empty-text empty-text--board">{t('no_orders')}</p> : (
-                <div className="hgrid">
-                  {boardOrders.map((o) => orderCard(o, { icon: activeZone === 'delivery' ? Bike : ShoppingBag }))}
-                </div>
               )
+              // «Персонал → Все»: без «+», только заказы, разложенные по сотрудникам.
+              if (hallMode === 'waiters' && !waiterFilter) {
+                const groups = buildStaffGroups(boardOrders)
+                return groups.length === 0
+                  ? <p className="empty-text empty-text--board">{t('no_orders')}</p>
+                  : groups.map((group) => (
+                    <section className="hgroup" key={group.key}>
+                      <div className="hgroup__title">{group.name}</div>
+                      <div className="hgrid">{group.orders.map((o) => orderCard(o, { icon: kindIcon }))}</div>
+                    </section>
+                  ))
+              }
+              // Профиль сотрудника: его заказы + «+» до 4 рядов по ширине экрана.
+              const mine = filterId ? boardOrders.filter((o) => orderOwnerId(o) === filterId) : boardOrders
+              return (
+                <section className="hgroup hgroup--fill">
+                  <div className="hgrid">
+                    {mine.map((o) => orderCard(o, { icon: kindIcon }))}
+                    {Array.from({ length: Math.max(1, ADD_SLOTS - mine.length) }, (_, i) => addBoardOrder(`add-board-order-${i}`))}
+                  </div>
+                </section>
+              )
+            })(
             ) : loading ? <p className="empty-text empty-text--board">{t('loading')}</p> : shownZones.length === 0 ? (
               <div className="empty-text empty-text--board" role={hallsError ? 'alert' : 'status'}>
                 <p>{hallsError || t('no_halls')}</p>
@@ -1592,7 +1850,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
                 profileCells.length === 0
                   ? <p className="empty-text empty-text--board">{t('no_orders')}</p>
                   : (
-                    <section className="hgroup">
+                    <section className="hgroup hgroup--fill">
                       <div className="hgrid">{profileCells}</div>
                     </section>
                   )
@@ -1601,7 +1859,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
                 : staffGroups.map((group) => (
                   <section className="hgroup" key={group.key}>
                     <div className="hgroup__title">{group.name}</div>
-                    <div className="hgrid">{group.orders.map((o) => orderCard(o))}</div>
+                    <div className="hgrid">{group.orders.map((o) => orderCard(o, { icon: o.order_type === 'delivery' ? Bike : o.order_type === 'takeaway' ? ShoppingBag : Utensils }))}</div>
                   </section>
                 ))
             ) : visibleZones.length === 0 ? (
@@ -1630,7 +1888,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
         {whOpen && <WarehouseWritePanel onClose={() => setWhOpen(false)} />}
         {printOpen && <BatchPrintPanel branch={{ id: user.branch_id }} printerId={user.printer_id} onClose={() => setPrintOpen(false)} />}
         {paymentOverlay}
-        {promptCfg && <InputPromptModal {...promptCfg} onClose={() => setPromptCfg(null)} />}
+        {promptCfg && <InputPromptModal {...promptCfg} onClose={() => { const back = promptCfg.onBack; setPromptCfg(null); back?.() }} />}
         {pinGateOverlay}
         {tablePickOverlay}
         {typeTabs}
@@ -1698,81 +1956,16 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
 
           <aside className="cashier-cart">
             <div className="cashier-cart__header">
-              <ShoppingBag size={18} />
-              <div className="cashier-cart__head-text">
-                <span className="cashier-cart__head-title">{orderTitle}</span>
-                <span className="cashier-cart__head-sub">{itemCount} {t('items_low')} · {fmt(total)} {t('currency')}</span>
-              </div>
-              <span className="cart-count">{itemCount}</span>
+              <span className="cashier-cart__head-title">{orderTitle}</span>
+              {!orderReadOnly && existingOrder && (
+                <button type="button" className="cart-edit-trigger" aria-label={t('cart_edit_title')}
+                  title={t('cart_edit_title')} onClick={() => { setCartEditWaiter(null); setCartEditOpen(true) }}>
+                  <Pencil size={15} aria-hidden="true" />
+                </button>
+              )}
             </div>
             <div className="cashier-cart__items" ref={cartItemsRef}>
-              {linesCount === 0 ? <p className="cart-empty">{t('tap_dish_hint')}</p> : (
-                <>
-                  {/* Уже заказанные блюда: плюс/минус меняют количество (блюдо
-                      уже на кухне, поэтому считает сервер), карандаш открывает
-                      карточку позиции — там видно, кто добавил, можно сменить
-                      официанта и отменить блюдо. */}
-                  {orderLines.map((item) => {
-                    const linePrice = (
-                      <span className="cart-item__price">{fmt(item.total ?? item.price * item.qty)} {t('currency')}</span>
-                    )
-                    const lineBody = (
-                      <>
-                        <span className="cart-item__name">{item.name}</span>
-                        {(item.addedByName || item.createdAt) && (
-                          <span className="cart-item__meta">
-                            {item.createdAt ? fmtTime(item.createdAt) : ''}
-                            {item.addedByName ? `${item.createdAt ? ' · ' : ''}${item.addedByName}` : ''}
-                          </span>
-                        )}
-                        {item.note && <span className="cart-row__note">{item.note}</span>}
-                      </>
-                    )
-                    // Чужой заказ только смотрят: количество стоит отдельным
-                    // чипом слева, сумма — справа, поэтому строка сразу читается.
-                    if (orderReadOnly) {
-                      return (
-                        <div key={item.lineId} className="cart-item cart-item--saved cart-item--view">
-                          <span className="cart-item__qty-badge">{formatQty(item.qty)}</span>
-                          <div className="cart-item__info">{lineBody}</div>
-                          {linePrice}
-                        </div>
-                      )
-                    }
-                    return (
-                      <div key={item.lineId} className="cart-item cart-item--saved">
-                        <button type="button" className="cart-item__info" onClick={() => setEditLine(item)} title={t('edit')}>
-                          {lineBody}
-                          {linePrice}
-                        </button>
-                        <div className="cart-item__controls">
-                          {/* Официант не правит уже отправленные блюда — только добавляет новые. */}
-                          {!isWaiter && <button className="qty-btn" onClick={() => changeSavedQty(item, -1)} title={t('qty_less')}><Minus size={16} /></button>}
-                          <span className="qty-value">{formatQty(item.qty)}</span>
-                          {!isWaiter && <button className="qty-btn" onClick={() => changeSavedQty(item, 1)} title={t('qty_more')}><Plus size={16} /></button>}
-                          <button className="qty-btn qty-btn--edit" onClick={() => setEditLine(item)} title={t('qty_edit')}><Pencil size={15} /></button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {/* Новые блюда — ещё не ушли на кухню, показываем их отдельной группой */}
-                  {cart.map((item) => (
-                    <div key={item.lineId} className="cart-item cart-item--new">
-                      <button type="button" className="cart-item__info" onClick={() => setEditLine(item)} title={t('edit')}>
-                        <span className="cart-item__name">{item.name}</span>
-                        {item.note && <span className="cart-row__note">{item.note}</span>}
-                        <span className="cart-item__price">{fmt(item.price * item.qty)} {t('currency')}</span>
-                      </button>
-                      <div className="cart-item__controls">
-                        <button className="qty-btn" onClick={() => updateQty(item.lineId, -1)} title={t('qty_less')}><Minus size={16} /></button>
-                        <span className="qty-value">{formatQty(item.qty)}</span>
-                        <button className="qty-btn" onClick={() => updateQty(item.lineId, 1)} title={t('qty_more')}><Plus size={16} /></button>
-                        <button className="qty-btn qty-btn--edit" onClick={() => setEditLine(item)} title={t('qty_edit')}><Pencil size={15} /></button>
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
+              {renderCartLines()}
             </div>
             {orderType === 'delivery' && !editingExisting && (
               <div className="cashier-delivery">
@@ -1820,12 +2013,17 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
                   <>
                     {/* Пока в корзине нет новых блюд, досылать нечего — не
                         показываем неактивную кнопку, оставляем только оплату. */}
-                    {cart.length > 0 && (
+                    {qtyChanges.length > 0 ? (
+                      <button className="cart-btn cart-btn--outline" disabled={creating} onClick={saveOrderChanges}>
+                        {creating ? <span className="btn-spinner" aria-hidden="true" /> : <Save size={20} />} {t('save')}
+                      </button>
+                    ) : cart.length > 0 && (
                       <button className="cart-btn cart-btn--outline" disabled={creating} onClick={addDishesAndStay}>
                         {creating ? <span className="btn-spinner" aria-hidden="true" /> : <Plus size={20} />} {t('add_dishes')}
                       </button>
                     )}
-                    <button className="cart-btn cart-btn--pay" disabled={creating} onClick={openPayment}>
+                    {/* Несохранённые «−/+» оплату не меняют — сначала «Сохранить». */}
+                    <button className="cart-btn cart-btn--pay" disabled={creating || qtyChanges.length > 0} onClick={openPayment}>
                       <Receipt size={20} /> {t('to_payment')}
                     </button>
                   </>
@@ -1869,20 +2067,76 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
         searchSlot,
       )}
 
+      {cartEditOpen && !orderReadOnly && existingOrder && (() => {
+        const currentWaiter = String(existingOrder.waiter_id || '')
+        const pendingWaiter = cartEditWaiter === null ? currentWaiter : String(cartEditWaiter)
+        const waiterChanged = pendingWaiter !== currentWaiter
+        const closeEdit = () => { setCartEditOpen(false); setCartEditWaiter(null) }
+        return (
+          <div className={`modal-overlay dish-overlay${tablePick?.moveOrder ? ' dish-overlay--below' : ''}`} onClick={() => { if (!tablePick && !promptCfg) closeEdit() }}>
+            <section className="modal dish-modal dish-modal--compact dish-modal--sent" role="dialog" aria-modal={!editLine}
+              aria-label={t('cart_edit_title')} onClick={(event) => event.stopPropagation()}>
+              <header className="modal__header dish-modal__head">
+                <div className="dish-sent-heading"><h3>{orderTitle}</h3></div>
+                <button type="button" className="icon-btn" aria-label={t('close')} onClick={closeEdit}>
+                  <X size={24} />
+                </button>
+              </header>
+              <div className="dish-modal__body">
+                <div className="dish-sent-actions">
+                  <WaiterPicker staff={staff} value={pendingWaiter} label={t('change_waiter')} hideLabel
+                    onChange={(id) => setCartEditWaiter(id || '')} />
+                  <button type="button" className="btn btn--outline" disabled={orderType !== 'dine_in'}
+                    onClick={() => reassignTable(existingOrder)}>
+                    {t('move_table')}
+                  </button>
+                  <button type="button" className="btn btn--outline"
+                    onClick={() => cancelOrder(existingOrder)}>
+                    <Ban size={18} /> {t('cancel_order')}
+                  </button>
+                </div>
+              </div>
+              <div className="dish-modal__actions">
+                <button type="button" className="cart-btn cart-btn--pay"
+                  onClick={async () => {
+                    if (waiterChanged) await setOrderWaiter(existingOrder, pendingWaiter || null)
+                    closeEdit()
+                  }}>
+                  {t(waiterChanged ? 'save' : 'close')}
+                </button>
+              </div>
+            </section>
+          </div>
+        )
+      })()}
       {editLine && (
         <DishModal
-          product={editLine.product}
+          product={catalogProduct(editLine)}
           line={editLine}
           readOnly={Boolean(editLine.orderItemId)}
           meta={{ addedByName: editLine.addedByName, createdAt: editLine.createdAt }}
-          onCancelDish={!isWaiter && editLine.orderItemId ? () => cancelOrderItem(editLine) : undefined}
+          onCancelDish={!orderReadOnly && !isWaiter && editLine.orderItemId ? () => cancelOrderItem(editLine) : undefined}
+          onChangeWaiter={!orderReadOnly && !isWaiter && editLine.orderItemId ? (id) => changeDishWaiter(editLine, id) : undefined}
+          waiterOptions={waitersAll}
           onSubmit={saveEdit}
+          onMoveTable={!orderReadOnly && editLine.orderItemId && existingOrder && orderType === 'dine_in' ? () => {
+            const backLine = editLine
+            setEditLine(null)
+            reassignTable(existingOrder, backLine)
+          } : undefined}
+          onSaveSent={!orderReadOnly && editLine.orderItemId && !isWaiter ? async (quantity, price) => {
+            const updated = await orders.setItemQuantity(addToOrderId, editLine.orderItemId, quantity, price)
+            setExistingOrder(updated)
+            setOrderLines(orderToLines(updated))
+            loadFloor()
+          } : undefined}
           onClose={() => setEditLine(null)}
           hideTakeaway={courier || (orderType === 'dine_in' && !can(user, 'can_takeaway_at_table'))}
         />
       )}
       {paymentOverlay}
-      {promptCfg && <InputPromptModal {...promptCfg} onClose={() => setPromptCfg(null)} />}
+      {tablePickOverlay}
+      {promptCfg && <InputPromptModal {...promptCfg} onClose={() => { const back = promptCfg.onBack; setPromptCfg(null); back?.() }} />}
       {pinGateOverlay}
       {typeTabs}
       {dock}
