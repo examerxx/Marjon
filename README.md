@@ -1,149 +1,171 @@
-# Marjon
+# Marjon — Restaurant OS
 
-> Облачная SaaS-платформа для автоматизации ресторанов, кафе и фаст-фудов на рынке Узбекистана.
+> SaaS-платформа для автоматизации ресторанов, кафе и фаст-фуда в Узбекистане.
+> POS-касса, кухонный экран, экран раздачи, гостевой ТВ, склад, финансы, CRM, HR,
+> аналитика, фискализация и интеграции с Click / Payme / Uzum.
 
-## О проекте
+**Актуальное техническое задание:** [docs/tz/MARJON_TZ_v3.md](docs/tz/MARJON_TZ_v3.md) ([PDF](docs/tz/MARJON_TZ_v3.pdf)).
+Документ описывает систему в том виде, в котором она реализована в коде.
 
-**Marjon** — комплексная система управления заведениями общепита. Покрывает полный цикл работы: POS-касса, кухонный дисплей (KDS), склад, доставка, CRM, лояльность, HR, аналитика, фискализация (ОФД), интеграция с Click / Payme / Uzum Bank, печать чеков.
+**Новому разработчику начинать здесь:** [docs/ONBOARDING.md](docs/ONBOARDING.md).
 
-**Целевой рынок:** Узбекистан — 29 млн потребителей общепита, рост отрасли +224% за 6 лет, обязательная фискализация (ЦОТУ).
+---
 
-**Дедлайн MVP:** 10.08.2026
+## Каналы системы
+
+| Канал | Кто пользуется | Где живёт |
+|-------|----------------|-----------|
+| Веб-панель владельца | владелец, менеджер | `admin.marjon.tech` — `frontend/` (`index.html`) |
+| POS-десктоп | кассир, официант, курьер | Electron-приложение `desktop/` |
+| Кухонный экран (KDS) | повара | `kitchen.marjon.tech` — `frontend/` (`kitchen.html`) |
+| Экран раздачи (Expo) | менеджер раздачи | `admin.marjon.tech/expo` — `frontend/` (`expo.html`) |
+| Гостевой ТВ | посетители | `admin.marjon.tech/tv` — `frontend/` (`tv.html`) |
+| Мобильный клиент | персонал | Flutter-приложение `mobile/` |
+| HQ-админка (SaaS) | супер-админ Marjon | `frontend/src/admin/` (`admin.html`, секретный путь) |
+| Сайт и магазин | клиенты | `landing/`, страница `/store` в веб-панели |
+
+---
 
 ## Стек
 
-| Компонент | Технология |
-|-----------|-----------|
-| **Backend** | FastAPI, Python 3.12+, SQLAlchemy 2.0 (async), Alembic, PostgreSQL (Supabase) |
-| **Frontend** | React 18, Vite, React Router v6, Axios, Chart.js, CSS (marjon-tokens.css) |
-| **Mobile** | Flutter (кассир, официант, кухня) |
-| **Desktop KDS** | Electron 28 (касса, официант, кухня, offline-очередь) |
-| **Owner App** | Flutter (дашборд владельца) |
-| **Payment gateways** | Go-микросервисы Click / Payme / Uzum (per-company) |
-| **Print Agent** | ESC/POS, polling-based, TCP |
-| **Оплата** | Click, Payme, Uzum Bank, наличные, смешанная |
-| **Фискализация** | ОФД Узбекистана (ЦОТУ / soliq.uz) |
+| Слой | Технологии |
+|------|-----------|
+| Бэкенд | Python 3.13, FastAPI, SQLAlchemy 2.0 (async), Alembic, Pydantic v2, JWT, slowapi |
+| БД | PostgreSQL 16 (прод), SQLite (разработка) |
+| Шина и кэш | Redis 7 (pub/sub для WebSocket кухни, печати и раздачи) |
+| Файлы | MinIO-совместимое хранилище (прод), `backend/media` (dev) |
+| Веб | React 18 (JSX, без TypeScript), Vite 5, React Router 6, Chart.js, i18next (ru/uz/en) |
+| Десктоп | Electron 28 + React, NSIS-установщик и portable-сборка |
+| Мобильный | Flutter (Android/iOS) |
+| Платежи | Go-шлюзы Click / Payme / Uzum (`services/`) |
+| Инфраструктура | Docker Compose, nginx, certbot |
+| Тесты | pytest (136 файлов), vitest (147 файлов), Playwright, node-скрипты |
 
-## Структура проекта
+---
+
+## Структура репозитория
 
 ```
-Marjon/
-├── docs/                        # Документация
-│   ├── tz/                      # Техническое задание (5 документов)
-│   │   ├── TZ_GENERAL.md        #   Общее ТЗ (v1.1, ~1500 строк)
-│   │   ├── TZ_WEB.md            #   Web Admin Panel
-│   │   ├── TZ_MOBILE.md         #   Mobile App (iOS / Android)
-│   │   ├── TZ_DESKTOP.md        #   Desktop KDS (Electron)
-│   │   └── TZ_ADDENDUM.md       #   Дополнение (боли, user stories, offline)
-│   ├── DOCUMENTATION.md         # Полная техническая документация
-│   ├── STYLEGUIDE.md            # Дизайн-система, токены, палитра
-│   └── audit.md                 # Аудит фронтенда (чеки)
-│
-├── backend/                     # FastAPI backend
-│   ├── app/
-│   │   ├── modules/             #   31 бизнес-модуль
-│   │   ├── shared/              #   Базовые классы
-│   │   ├── infrastructure/      #   БД, сессии
-│   │   └── middleware/          #   Multi-tenancy
-│   ├── migrations/              #   Alembic миграции (59 версий)
-│   ├── print_agent/             #   Агент печати ESC/POS
-│   ├── tests/                   #   Тесты (~45 файлов)
-│   ├── requirements.txt
-│   └── Dockerfile
-│
-├── frontend/                    # React SPA (JSX, без TypeScript)
-│   ├── src/
-│   │   ├── pages/               #   ~50 страниц
-│   │   ├── components/          #   Layout, Sidebar, Topbar, UI
-│   │   ├── api/                 #   Axios client, interceptors
-│   │   ├── admin/               #   Отдельное HQ-приложение (admin.html)
-│   │   └── styles/              #   CSS (~47K строк), marjon-tokens.css
-│   ├── index.html               #   Entry: кафе (POS)
-│   ├── admin.html               #   Entry: админка
-│   └── vite.config.js           #   Multi-page build
-│
-├── desktop/                     # Electron-касса (кассир, официант, кухня)
-├── mobile/                      # Flutter (кассир, официант, кухня)
-├── owner/                       # Flutter (дашборд владельца)
-├── services/                    # Go-шлюзы: click-gateway, payme-gateway, uzum-gateway
-│
-├── docs/                        # Документация (см. таблицу ниже)
-├── .github/workflows/           # CI: smoke, visual, desktop-size
-├── TASKS.md                     # 226 задач до production-ready
-├── OFFLINE_PLAN.md              # План offline-режима десктоп-кассы
-├── MARJON_TZ_v2.pdf             # ТЗ (PDF)
-├── .gitignore
-├── CLAUDE.md                    # Инструкции для AI-агентов
-├── docker-compose.yml           # Docker: db + backend + frontend (+профили storage/gateways/ngrok)
-├── render.yaml                  # Render.com деплой API
-├── start.ps1 / start.cmd        # Меню запуска (front, desktop, mobile, owner, all, docker…)
-└── README.md                    # ← вы тут
+backend/            FastAPI: 32 модуля, 100 миграций Alembic, print_agent, тесты
+frontend/           React SPA: панель владельца, HQ-админка, KDS, Expo, ТВ
+desktop/            Electron-касса (кассир, официант, курьер) + offline-очередь
+mobile/             Flutter-клиент для персонала
+owner/              Flutter-приложение владельца (в поставку не входит, не поддерживается)
+landing/            Лендинг marjon.tech (ru/uz)
+services/           Go-шлюзы Payme / Click / Uzum
+nginx/              Конфиги nginx для прода
+store-files/        manifest.json магазина десктопа (сами .exe в git не лежат)
+docs/               ТЗ v3, документация, онбординг, ADR
+docker-compose.yml  Прод-состав стека (db, redis, storage, backend, шлюзы, nginx)
+DEPLOY.md           Порядок выката на прод
 ```
+
+---
 
 ## Быстрый старт
 
-### Backend
+Полная инструкция с нюансами Windows — [docs/ONBOARDING.md](docs/ONBOARDING.md).
+
+### Бэкенд (SQLite, порт 8000)
 
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv
+# Windows: .venv\Scripts\activate; Linux/macOS: source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env  # настроить DATABASE_URL
-alembic upgrade head
-uvicorn app.main:app --reload --port 8000
+DATABASE_URL="sqlite+aiosqlite:///./app.db" python devrun.py   # uvicorn на 127.0.0.1:8000
 ```
 
-Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
+Swagger: http://localhost:8000/docs · Health: http://localhost:8000/health
 
-### Frontend
+Демо-данные: `python seed.py` (компания, филиалы, сотрудники, меню).
+Скрипты отдельных логинов — в `backend/scripts/seed_*.py`.
+
+### Веб-панель (порт 5173)
 
 ```bash
 cd frontend
 npm install
 npm run dev
-# → http://localhost:5173
 ```
 
-Frontend работает автономно — без бэкенда показывает демо-данные с баннером «Демо-данные».
+Dev-окружение ходит через прокси Vite на `localhost:8000` (`frontend/.env.development`),
+прод-сборка берёт `https://api.marjon.tech` (`frontend/.env.production`).
+
+### Десктоп (порт 5174)
+
+```bash
+cd desktop
+npm install
+npm run dev
+```
+
+### Мобильный клиент
+
+```bash
+cd mobile
+flutter pub get
+flutter run
+```
+
+---
+
+## Проверки
+
+```bash
+# бэкенд — из backend/
+pytest
+
+# фронтенд — из frontend/: тесты + сборка + проверка CSS
+npm run verify
+npm run test:unit          # vitest
+npm run test:architecture  # архитектурные ограничения
+npm run test:browser       # Playwright
+
+# десктоп — из desktop/: логика оплат
+npm run test:payments
+```
+
+CI: `.github/workflows/smoke.yml` (pytest на SQLite + сборка фронтенда) и
+`.github/workflows/desktop-size.yml` (размер Windows-сборки).
+
+---
+
+## Роли
+
+`owner`, `manager`, `cashier`, `waiter`, `kitchen`, `monoblock`, `courier`, `warehouse`
+плюс платформенные `superadmin` / `hq_admin`. Права — 40 разрешений RBAC,
+у каждого сотрудника 16 персональных тумблеров. Матрица ролей — в ТЗ, глава 2.
+
+---
 
 ## Документация
 
-| Документ | Описание |
-|---------|----------|
-| [TZ_GENERAL.md](docs/tz/TZ_GENERAL.md) | Общее ТЗ: рынок, конкуренты, архитектура, безопасность, платежи, тестирование |
-| [TZ_WEB.md](docs/tz/TZ_WEB.md) | ТЗ на Web Admin Panel (React SPA) |
-| [TZ_MOBILE.md](docs/tz/TZ_MOBILE.md) | ТЗ на мобильное приложение (React Native + Expo) |
-| [TZ_DESKTOP.md](docs/tz/TZ_DESKTOP.md) | ТЗ на Desktop KDS (Electron) |
-| [TZ_ADDENDUM.md](docs/tz/TZ_ADDENDUM.md) | Дополнение к ТЗ: user stories, offline-сценарии, миграция |
-| [DOCUMENTATION.md](docs/DOCUMENTATION.md) | Полная техническая документация проекта |
-| [STYLEGUIDE.md](docs/STYLEGUIDE.md) | Дизайн-система, токены, палитра Marjon |
+| Документ | О чём |
+|----------|-------|
+| [docs/ONBOARDING.md](docs/ONBOARDING.md) | **Старт для нового программиста:** окружение, запуск, карта кода, процессы, деплой |
+| [docs/tz/MARJON_TZ_v3.md](docs/tz/MARJON_TZ_v3.md) | **ТЗ v3.0 (as-built):** все каналы, процессы, данные, API, ограничения |
+| [DEPLOY.md](DEPLOY.md) | Выкат на прод: бэкапы, миграции, статика, магазин |
+| [docs/TESTING_WINDOWS.md](docs/TESTING_WINDOWS.md) | Запуск и ручное тестирование на Windows |
+| [docs/STYLEGUIDE.md](docs/STYLEGUIDE.md) | Дизайн-система и токены |
+| [docs/web-api-contract-v1.md](docs/web-api-contract-v1.md) | Замороженный контракт Web API (исторический) |
+| [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md) | Ранняя техдока (историческая) |
+| [CLAUDE.md](CLAUDE.md) | Правила работы AI-агентов с репозиторием |
+| [TASKS.md](TASKS.md) | Исторический бэклог задач |
+| [docs/README.md](docs/README.md) | Индекс документации: что актуально, что историческое |
 
-## Платформы
+---
 
-| Платформа | Статус | Описание |
-|-----------|--------|----------|
-| **Web Admin** | 🟢 80% MVP | React SPA — управление заведением |
-| **Desktop** | 🟢 Рабочий | Electron — касса, официант, кухня, offline-очередь, печать TCP 9100 |
-| **Mobile App** | 🟡 Рабочий скелет | Flutter — кассир, официант, кухня |
-| **Owner App** | 🟡 Рабочий скелет | Flutter — дашборд владельца |
-| **Payment gateways** | 🟢 Рабочие | Go — Click / Payme / Uzum (per-company креды) |
-| **Print Agent** | 🟢 Рабочий | ESC/POS polling-агент (`backend/print_agent/`) |
+## Правила работы
 
-## API
+- Прод — только по явной просьбе владельца. Никаких деплоев «заодно».
+- Секреты (пароли SSH, токены, ключи) не попадают в git, в URL и в командную строку.
+- `docker compose down -v` не выполняется никогда — уничтожает тома с БД.
+- Миграции не редактируются после применения: новая ревизия Alembic.
+- Веб-код — JavaScript/JSX, не TypeScript; цвета и радиусы — только через токены.
 
-Все эндпоинты под `/api/v1`. Основные группы:
-
-- `/auth` — JWT авторизация (телефон + пароль)
-- `/pos/orders` — заказы, статусы, оплата
-- `/inventory/*` — товары, ингредиенты, техкарты
-- `/warehouse/*` — склад (приход, расход, остатки, инвентаризация)
-- `/analytics/*` — дашборд, KPI
-- `/reports/*` — 7 типов отчётов
-- `/payments/*` — Click, Payme, Uzum (webhook + create; вебхуки сверяются с глобальными ключами — см. TASKS.md)
-- `/internal/*` — приём колбэков от Go-шлюзов (`services/`) по `X-Webhook-Secret`
-- `/fiscal/*` — фискализация (ОФД)
-- `/ws/kitchen` — WebSocket для кухонного дисплея
+---
 
 ## Лицензия
 
-Проприетарный. Все права защищены.
+Проприетарный продукт. Все права защищены.
