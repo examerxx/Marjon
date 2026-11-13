@@ -40,6 +40,8 @@ const MONOBLOCK_PRIMARY = [
   "Список кассиров",
   "Принтер повара",
   "Печать отмены заказа",
+  // KDS: по этому логину кухонный экран входит в заведение.
+  "Кухня",
   // DESK-PERM-01: панели десктопа «Финансы» и «Посещаемость».
   "Просмотр финансов",
   "Посещаемость (приход/уход)",
@@ -106,7 +108,7 @@ describe("monoblock page visual contract (/users/monoblock) — MONOBLOCK-01", (
     expect(dialog.querySelector("select")).toBeNull();
   });
 
-  it("shows exactly the 7 primary monoblock switches plus the detailed matrix", async () => {
+  it("shows exactly the 8 primary monoblock switches plus the detailed matrix", async () => {
     render(<StaffRolePage role="monoblock" />);
     await screen.findByText("Monoblock One");
     fireEvent.click(screen.getByRole("button", { name: /Добавить/ }));
@@ -114,8 +116,9 @@ describe("monoblock page visual contract (/users/monoblock) — MONOBLOCK-01", (
     const primary = dialog.querySelectorAll(
       ".cashier-permission-switches .staff-permission-switch",
     );
-    // Статус + 6 прав: DESK-PERM-01 добавил «Просмотр финансов» и «Посещаемость».
-    expect(primary).toHaveLength(7);
+    // Статус + 7 прав: KDS добавил «Кухня», DESK-PERM-01 —
+    // «Просмотр финансов» и «Посещаемость».
+    expect(primary).toHaveLength(8);
     for (const label of MONOBLOCK_PRIMARY) {
       if (label === "Статус") {
         expect(within(dialog).getByText("Статус")).toBeInTheDocument();
@@ -155,7 +158,7 @@ describe("monoblock page visual contract (/users/monoblock) — MONOBLOCK-01", (
     fireEvent.click(screen.getByRole("button", { name: /Добавить/ }));
     const dialog = await screen.findByRole("dialog");
     const primary = dialog.querySelector(".cashier-permission-switches");
-    for (const label of ["Главный моноблок", "Список кассиров", "Принтер повара", "Печать отмены заказа"]) {
+    for (const label of ["Главный моноблок", "Список кассиров", "Принтер повара", "Печать отмены заказа", "Кухня"]) {
       const button = within(primary).getByRole("button", { name: label });
       expect(button.classList.contains("is-on")).toBe(false);
       fireEvent.click(button);
@@ -214,6 +217,42 @@ describe("monoblock page visual contract (/users/monoblock) — MONOBLOCK-01", (
     expect(alertSpy).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull(), { timeout: 2000 });
     expect(localStorage.getItem("marjon_staff")).toBeNull();
+  });
+
+  it("saves the «Кухня» switch as can_kitchen so the KDS login works", async () => {
+    const created = {
+      id: "kds-monoblock-uuid",
+      name: "Kitchen Screen",
+      email: null,
+      phone: "998903334455",
+      role_slug: "monoblock",
+      role_slugs: ["monoblock"],
+      is_active: true,
+      permissions: { can_kitchen: true },
+    };
+    api.post.mockResolvedValue({ data: created });
+    render(<StaffRolePage role="monoblock" />);
+    await screen.findByText("Monoblock One");
+    fireEvent.click(screen.getByRole("button", { name: /Добавить/ }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(screen.getByPlaceholderText("Имя моноблока"), {
+      target: { value: "Kitchen Screen" },
+    });
+    fireEvent.change(dialog.querySelector(".staff-phone-field input"), {
+      target: { value: "+998903334455" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Пароль"), {
+      target: { value: "Kitchen1" },
+    });
+    const kitchen = within(dialog).getByRole("button", { name: "Кухня" });
+    fireEvent.click(kitchen);
+    expect(kitchen.classList.contains("is-on")).toBe(true);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Добавить" }));
+    await screen.findByText("Kitchen Screen");
+    expect(api.post).toHaveBeenCalledWith(
+      "/auth/users",
+      expect.objectContaining({ permissions: { can_kitchen: true } }),
+    );
   });
 
   it("shows inline name validation without alert and keeps drawer open", async () => {

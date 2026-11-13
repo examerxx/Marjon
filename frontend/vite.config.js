@@ -29,6 +29,8 @@ export default defineConfig({
         kafe: "index.html",
         admin: "admin.html",
         kitchen: "kitchen.html",
+        tv: "tv.html",
+        expo: "expo.html",
       },
       output: {
         // Split heavy, rarely-changing third-party code into cacheable vendor

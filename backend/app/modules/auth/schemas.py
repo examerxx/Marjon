@@ -218,8 +218,21 @@ class BranchSessionResponse(BaseSchema):
     company: CompanyInfo
 
 
+class KitchenMonoblockLoginRequest(BaseSchema):
+    """Настройка кухонного экрана логином моноблока (карточка users/monoblock).
+
+    branch_id пуст, если у моноблока нет привязки: экран сам выбирает
+    единственный филиал компании, а при нескольких — просит выбрать."""
+
+    model_config = {"from_attributes": True, "extra": "forbid"}
+
+    phone: str = Field(..., min_length=1, max_length=30)
+    password: str = Field(..., min_length=1)
+    branch_id: UUID | None = None
+
+
 class KitchenPinRequest(BaseSchema):
-    """Вход повара на кухонном экране: только PIN.
+    """Вход повара на кухонном экране: PIN (+ сотрудник, выбранный на экране).
 
     Заведение и филиал уже известны из сессии терминала (кухонный экран
     привязывается один раз при настройке), поэтому повару остаётся 4 цифры."""
@@ -227,6 +240,9 @@ class KitchenPinRequest(BaseSchema):
     model_config = {"from_attributes": True, "extra": "forbid"}
 
     pin: str = Field(..., min_length=4, max_length=8)
+    # Выбранный на экране повар: PIN проверяется только по нему (и его
+    # персональный lockout), а не перебором всех поваров филиала.
+    user_id: UUID | None = None
 
     @field_validator("pin")
     @classmethod
@@ -242,6 +258,14 @@ class KitchenPinResponse(TokenResponse):
     user_name: str | None = None
     branch: BranchInfo
     company: CompanyInfo
+
+
+class KitchenCookResponse(BaseSchema):
+    """Повар в списке выбора на кухонном экране."""
+
+    id: UUID
+    name: str
+    has_pin: bool = False
 
 
 class UserResponse(BaseResponseSchema):

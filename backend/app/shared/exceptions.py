@@ -29,3 +29,19 @@ class UnauthorizedError(HTTPException):
 class ValidationError(HTTPException):
     def __init__(self, detail: str = "Validation error"):
         super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail)
+
+
+class BranchSelectionRequiredError(HTTPException):
+    """Логин верный, но у компании несколько филиалов: кухонному экрану нужен
+    конкретный филиал. Клиент показывает выбор и повторяет вход с branch_id."""
+
+    def __init__(
+        self,
+        branches: list[dict] | None = None,
+        detail: str = "Выберите филиал",
+    ):
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"message": detail, "branches": branches or []},
+        )
+

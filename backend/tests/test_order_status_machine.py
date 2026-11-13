@@ -15,8 +15,7 @@ completed.
   в одном месте и забыть в другом);
 * финальные статусы (`completed`, `cancelled`) неизменяемы;
 * `completed` достижим из ЛЮБОГО незавершённого статуса (POS-CLOSE-01);
-* закрытие счёта закрывает и позиции (pending/cooking/ready → served), иначе
-  отчёты показывают «вечно готовится»;
+* финансовое закрытие счёта не означает готовность или выдачу блюд;
 * отмена/закрытие не трогают уже отменённые позиции;
 * каждый отказ — 422 и НЕ меняет состояние заказа.
 """
@@ -216,7 +215,7 @@ async def test_happy_path_walks_new_accepted_cooking_ready_completed(client, db_
         assert response.json()["status"] == status
     order = await _read_order(ctx, order_id)
     assert order.status == "completed"
-    assert {item.status for item in order.items} == {"served"}
+    assert {item.status for item in order.items} == {"ready"}, "Closing the bill is not handoff"
 
 
 @pytest.mark.asyncio
@@ -234,8 +233,8 @@ async def test_order_can_be_closed_from_any_live_status(client, db_engine) -> No
 
 
 @pytest.mark.asyncio
-async def test_closing_serves_only_unfinished_items(client, db_engine) -> None:
-    """Закрытие счёта закрывает позиции, но не воскрешает отменённые."""
+async def test_closing_preserves_all_item_statuses(client, db_engine) -> None:
+    """Financial completion does not imply cooking, readiness or handoff."""
     ctx = await _setup(client, db_engine, slug="sm-serve", email="sm-serve@example.com")
     order_id = await _create_order(client, ctx, items=4)
     await _force_item_statuses(ctx, order_id, ["pending", "cooking", "ready", "cancelled"])
@@ -245,9 +244,9 @@ async def test_closing_serves_only_unfinished_items(client, db_engine) -> None:
 
     order = await _read_order(ctx, order_id)
     statuses = sorted(item.status for item in order.items)
-    assert statuses == ["cancelled", "served", "served", "served"], (
-        "pending/cooking/ready обязаны стать served, отменённая позиция — остаться "
-        f"cancelled; получено {statuses}"
+    assert order.status == "completed"
+    assert statuses == ["cancelled", "cooking", "pending", "ready"], (
+        "Closing the bill must preserve kitchen states, including cancellations"
     )
 
 

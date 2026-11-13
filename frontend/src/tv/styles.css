@@ -1,0 +1,380 @@
+/* ТВ-экран посетителей: тёмная канва POS-зала, крупные номера заказов.
+   Экран висит в зале на телевизоре — доска тянется от vw/vh, чтобы
+   34" 1080p и большой 4K читались одинаково; шапка живёт по метрикам KDS. */
+
+:root {
+  --tv-canvas-1: #4a6578;
+  --tv-canvas-2: #365468;
+  --tv-canvas-3: #223a4d;
+  --tv-canvas-4: #16283a;
+  --tv-green-a: #34b96f;
+  --tv-green-b: #1c8f51;
+  --tv-ink: #101c2a;
+  --tv-radius: 18px;
+  --tv-shadow: 0 30px 60px -40px rgba(0, 0, 0, 0.85);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--tv-canvas-4);
+  font-family: var(--font-body);
+}
+
+.tv {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding: 10px;
+  gap: 10px;
+  background:
+    radial-gradient(130% 120% at 12% 0%, var(--tv-canvas-1) 0%, var(--tv-canvas-2) 38%, var(--tv-canvas-3) 72%, var(--tv-canvas-4) 100%);
+  color: #fff;
+  overflow: hidden;
+  cursor: none;
+  user-select: none;
+}
+
+/* ── Шапка ─────────────────────────────────────────────────────────── */
+/* Те же 62px и радиус, что у .topbar в KDS, но без служебной мишуры:
+   марка, имя аккаунта и крупное время. */
+.tv-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  height: 62px;
+  padding: 0 16px 0 22px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fafd 100%);
+  color: var(--tv-ink);
+  box-shadow: 0 18px 40px -26px rgba(3, 16, 28, 0.65);
+}
+
+.tv-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  /* В отличие от KDS шапка ТВ не складывается в две строки на узком
+     экране, поэтому имя аккаунта уступает место часам и обрезается. */
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.tv-brand__logo {
+  width: 46px;
+  height: auto;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.tv-brand__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.tv-brand__text b {
+  max-width: 520px;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #101c2a;
+}
+
+.tv-head__state {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.tv-offline {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Часы без подложки: только время, крупно — читается с другого конца зала. */
+.tv-clock {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 2.8vw, 54px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: #101c2a;
+}
+
+/* ── Доска ─────────────────────────────────────────────────────────── */
+/* Слева «готовится», справа «готово» — две половины одного экрана. */
+.tv-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  flex: 1 1 auto;
+  gap: clamp(12px, 1.4vw, 24px);
+  min-height: 0;
+}
+
+.tv-section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 0.9vw, 16px);
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(10px, 1vw, 20px);
+  border-radius: var(--tv-radius);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tv-section--ready {
+  border-color: rgba(52, 185, 111, 0.32);
+  background: linear-gradient(180deg, rgba(52, 185, 111, 0.16) 0%, rgba(52, 185, 111, 0.05) 100%);
+}
+
+/* Номер страницы не занимает место в сетке — висит в углу колонки. */
+.tv-section__page {
+  position: absolute;
+  top: clamp(8px, 0.8vw, 16px);
+  right: clamp(10px, 1vw, 20px);
+  font-size: clamp(14px, 1.2vw, 24px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.65;
+}
+
+.tv-section__empty {
+  margin: 0;
+  padding: clamp(12px, 1vw, 20px) clamp(16px, 1.2vw, 24px);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: clamp(15px, 1.3vw, 24px);
+  font-weight: 600;
+}
+
+.tv-grid {
+  display: grid;
+  flex: 1 1 0;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(110px, 8.5vw, 180px), 1fr));
+  grid-auto-rows: clamp(120px, 19vh, 240px);
+  gap: clamp(8px, 0.9vw, 16px);
+  align-content: start;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tv-grid > .tv-section__empty {
+  grid-column: 1 / -1;
+  align-self: start;
+}
+
+.tv-grid--ready {
+  grid-template-columns: repeat(auto-fill, minmax(clamp(130px, 10.5vw, 220px), 1fr));
+}
+
+/* ── Карточка номера ───────────────────────────────────────────────── */
+.tv-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(2px, 0.4vw, 8px);
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(10px, 1vw, 20px);
+  border-radius: var(--tv-radius);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.06) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  animation: tv-card-in 0.35s ease both;
+}
+
+.tv-card__num {
+  font-family: var(--font-display);
+  font-size: clamp(34px, calc(23vw / var(--digits)), min(12vh, 150px));
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+
+.tv-card__state {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: clamp(14px, 1.15vw, 23px);
+  font-weight: 700;
+}
+
+/* Готовый заказ — главный элемент экрана: зелёная карточка с белым номером. */
+.tv-card--ready {
+  background: linear-gradient(150deg, var(--tv-green-a) 0%, var(--tv-green-b) 100%);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 24px 44px -26px rgba(28, 143, 81, 0.95);
+}
+
+.tv-card--ready .tv-card__state {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.tv-card--ready .tv-card__num {
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+}
+
+@keyframes tv-card-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ── Подвал ────────────────────────────────────────────────────────── */
+/* Подвала нет: связь и обновление видны по шапке (бейдж «нет связи»), а
+   лишняя строка текста внизу только отвлекает от номеров. */
+
+/* Логотип живёт в правом нижнем углу — полной яркости: на тёмной канве
+   глянцевая марка и так не спорит с номерами заказов. */
+.tv-logo {
+  position: absolute;
+  right: clamp(12px, 1.6vw, 32px);
+  bottom: clamp(12px, 1.2vw, 28px);
+  width: clamp(58px, 4.8vw, 104px);
+  height: auto;
+  opacity: 1;
+  pointer-events: none;
+}
+
+/* Телевизор в портретной ориентации — половины ставим друг под другом. */
+@media (max-aspect-ratio: 1/1), (max-width: 760px) {
+  .tv-board {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* ── Экран выключен из кассы ──────────────────────────────────────── */
+/* Касса выключила показ очереди: на телевизоре остаётся тёмная канва и
+   приглушённый логотип — без номеров заказов, но и без «нет связи». */
+.tv--off {
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.tv-off {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(12px, 1.2vw, 20px);
+  text-align: center;
+}
+
+.tv-off img {
+  width: clamp(88px, 8vw, 150px);
+  opacity: 0.3;
+}
+
+.tv-off h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.2vw, 40px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.tv-off p {
+  max-width: 620px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: clamp(13px, 1.1vw, 20px);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* ── Экран настройки (нет ?branch=) ───────────────────────────────── */
+.tv--setup {
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.tv-setup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 640px;
+  padding: clamp(24px, 2.4vw, 48px);
+  border-radius: 28px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fafd 100%);
+  color: var(--tv-ink);
+  text-align: center;
+  box-shadow: var(--tv-shadow);
+}
+
+/* Марка шире, чем высока: держим пропорции, а не квадрат 72×72. */
+.tv-setup img {
+  width: 92px;
+  height: auto;
+}
+
+.tv-setup h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 1.8vw, 32px);
+  font-weight: 800;
+}
+
+.tv-setup p {
+  margin: 0;
+  color: #5a6c80;
+  font-size: clamp(13px, 1.05vw, 18px);
+  line-height: 1.5;
+}
+
+.tv-setup code {
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: #eef3f9;
+  color: #0e8080;
+  font-family: var(--font-mono);
+  font-size: clamp(13px, 1.05vw, 18px);
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-card {
+    animation: none;
+  }
+}

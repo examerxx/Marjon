@@ -152,13 +152,23 @@ function storeSession(data) {
   if (data?.company) write(DEVICE_COMPANY, JSON.stringify(data.company));
 }
 
-// Настройка кухонного экрана: логин+пароль филиала (как у десктопа).
+// Настройка кухонного экрана. Два способа входа:
+// - "monoblock" — телефон+пароль аккаунта моноблока с правом «Кухня»
+//   (карточка users/monoblock в вебе) — основной сценарий;
+// - "branch" — логин+пароль филиала (старый способ, остаётся для заведений,
+//   у которых ещё нет моноблока).
 // Вызывается один раз на устройстве; после этого повара входят по PIN.
-export async function kdsConnectDevice(login, password) {
-  const { data } = await kdsApi.post("/auth/kitchen/session", {
-    login: String(login || "").trim(),
-    password,
-  });
+export async function kdsConnectDevice(login, password, { mode = "monoblock", branchId } = {}) {
+  const url = mode === "branch" ? "/auth/kitchen/session" : "/auth/kitchen/monoblock-session";
+  const body =
+    mode === "branch"
+      ? { login: String(login || "").trim(), password }
+      : {
+          phone: String(login || "").trim(),
+          password,
+          ...(branchId ? { branch_id: branchId } : {}),
+        };
+  const { data } = await kdsApi.post(url, body);
   write(DEVICE_TOKEN, data.access_token);
   write(DEVICE_REFRESH, data.refresh_token);
   storeSession(data);
@@ -166,10 +176,20 @@ export async function kdsConnectDevice(login, password) {
   return data;
 }
 
-// Вход повара по PIN. Терминал уже привязан к филиалу, поэтому больше ничего
-// вводить не нужно.
-export async function kdsPinLogin(pin) {
-  const { data } = await kdsApi.post("/auth/kitchen/pin", { pin: String(pin || "") });
+// Повара филиала для экрана выбора. После настройки экран помнит филиал,
+// поэтому список приходит по кухонной сессии терминала.
+export async function kdsGetCooks() {
+  const { data } = await kdsApi.get("/auth/kitchen/cooks");
+  return Array.isArray(data) ? data : [];
+}
+
+// Вход повара по PIN. Терминал уже привязан к филиалу; user_id сужает
+// проверку до выбранного на экране сотрудника.
+export async function kdsPinLogin(pin, userId) {
+  const { data } = await kdsApi.post("/auth/kitchen/pin", {
+    pin: String(pin || ""),
+    ...(userId ? { user_id: userId } : {}),
+  });
   write(COOK_TOKEN, data.access_token);
   write(COOK_REFRESH, data.refresh_token);
   write(COOK_NAME, data.user_name || "");

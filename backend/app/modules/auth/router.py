@@ -10,10 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.session import get_db
 from app.modules.auth.dependencies import (
+    effective_branch_filter,
     get_current_user,
     get_current_user_optional,
     require_company_admin,
     require_company_app_user,
+    require_kitchen_access,
     require_kitchen_device,
     require_staff_lister,
     require_web_owner,
@@ -29,6 +31,8 @@ from app.modules.auth.schemas import (
     CompanyUserResponse,
     CompanyUserUpdate,
     ChangePasswordRequest,
+    KitchenCookResponse,
+    KitchenMonoblockLoginRequest,
     KitchenPinRequest,
     KitchenPinResponse,
     LoginRequest,
@@ -522,6 +526,55 @@ async def kitchen_session(
     )
 
 
+@router.post("/kitchen/monoblock-session", response_model=BranchSessionResponse)
+@limiter.limit("10/minute")
+async def kitchen_monoblock_session(
+    request: Request,
+    data: KitchenMonoblockLoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Настройка кухонного экрана логином моноблока (телефон+пароль из
+    карточки users/monoblock с тумблером «Кухня»). В отличие от десктопа,
+    кухне нужен конкретный филиал: у моноблока он обычно не задан, поэтому
+    единственный филиал компании выбирается сам, а при нескольких сервер
+    отвечает 409 со списком — экран показывает выбор и повторяет вход."""
+    _, branch, company, access_token, refresh_token = await AuthService(db).login_by_monoblock(
+        data.phone,
+        data.password,
+        device_id=device_label(request.headers.get("user-agent")),
+        auth_scope="kitchen",
+        branch_id=data.branch_id,
+        permission_key="can_kitchen",
+    )
+    return BranchSessionResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        branch=BranchInfo(id=branch.id, name=branch.name, company_id=branch.company_id),
+        company=CompanyInfo(
+            id=company.id, name=company.name, slug=company.slug, currency=company.currency
+        ),
+    )
+
+
+@router.get("/kitchen/cooks", response_model=list[KitchenCookResponse])
+@limiter.limit("120/minute")
+async def kitchen_cooks(
+    request: Request,
+    current_user: User = Depends(require_kitchen_access),
+    db: AsyncSession = Depends(get_db),
+):
+    """Повара филиала для экрана выбора: терминал привязан к филиалу, повар
+    выбирает себя и вводит PIN. Доступно и кухонному терминалу, и сессии
+    повара (сменить повара без сброса экрана)."""
+    branch_id = effective_branch_filter(current_user)
+    if branch_id is None:
+        raise HTTPException(
+            status_code=422,
+            detail="Кухонный экран не привязан к филиалу",
+        )
+    return await AuthService(db).list_kitchen_cooks(current_user.company_id, branch_id)
+
+
 @router.post("/kitchen/pin", response_model=KitchenPinResponse)
 @limiter.limit("10/minute")
 async def kitchen_pin(
@@ -537,11 +590,13 @@ async def kitchen_pin(
     user, access_token, refresh_token = await AuthService(db).login_by_pin(
         terminal.company_id,
         data.pin,
-        branch_id=terminal.branch_id,
+        data.user_id,
+        branch_id=getattr(terminal, "token_branch_id", None) or terminal.branch_id,
         allowed_role_slugs=KITCHEN_ROLE_SLUGS,
         auth_scope="kitchen",
     )
-    branch = await db.get(Branch, terminal.branch_id)
+    branch_id = getattr(terminal, "token_branch_id", None) or terminal.branch_id
+    branch = await db.get(Branch, branch_id)
     company = await db.get(Company, terminal.company_id)
     return KitchenPinResponse(
         access_token=access_token,
