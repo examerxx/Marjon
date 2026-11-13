@@ -34,10 +34,16 @@ function toReceiptOrder(order, payments) {
     vat: toNumber(order.tax_amount),
     total_amount: toNumber(order.total_amount),
     created_at: order.created_at,
-    payments: payments.map((payment) => ({
-      label: paymentMethodLabel(payment.method),
-      amount: toNumber(payment.amount),
-    })),
+    // VIP-закрытие хранится как платёж на 0 со статусом complimentary: на чеке
+    // показываем его как «VIP» на всю сумму заказа, иначе способ не виден.
+    payments: payments.map((payment) => {
+      const isVip = payment.status === "complimentary" || String(payment.method || "").trim().toLowerCase() === "vip";
+      const amount = toNumber(payment.amount);
+      return {
+        label: isVip ? "VIP" : paymentMethodLabel(payment.method),
+        amount: isVip && amount <= 0 ? toNumber(order.total_amount) : amount,
+      };
+    }),
     // Отменённые позиции на чек не попадают — как и в печати.
     items: (order.items || [])
       .filter((item) => item.status !== "cancelled")

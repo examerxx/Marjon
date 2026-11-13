@@ -1,4 +1,6 @@
-import { Children, cloneElement, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ExpenseDisclosureRow } from "../components/ExpenseDisclosureRow";
+export { ExpenseDisclosureRow };
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { warehouseService } from "../api/warehouse";
 import { nomenclatureService } from "../api/nomenclature";
@@ -969,39 +971,6 @@ function dishCountLabel(count) {
   if (mod10 === 1 && mod100 !== 11) return `${count} блюдо`;
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${count} блюда`;
   return `${count} блюд`;
-}
-
-// Keep rows mounted through both transition directions. Grid tracks interpolate
-// content height without measuring the whole table on every animation frame.
-export function ExpenseDisclosureRow({ visible, children, className = "" }) {
-  const [expanded, setExpanded] = useState(false);
-  const [present, setPresent] = useState(visible);
-  useEffect(() => {
-    let frame;
-    let nextFrame;
-    let timer;
-    if (visible) {
-      setPresent(true);
-      frame = requestAnimationFrame(() => {
-        nextFrame = requestAnimationFrame(() => setExpanded(true));
-      });
-    } else {
-      setExpanded(false);
-      timer = setTimeout(() => setPresent(false), 280);
-    }
-    return () => { cancelAnimationFrame(frame); cancelAnimationFrame(nextFrame); clearTimeout(timer); };
-  }, [visible]);
-  if (!present) return null;
-  return (
-    <tr hidden={!present} aria-hidden={!visible} inert={!visible ? true : undefined}
-      className={`${className} wh-expense-reveal${expanded ? " is-open" : ""}`}>
-      {Children.map(children, (cell) => cloneElement(cell, {},
-        <div className="wh-expense-reveal__track"><div className="wh-expense-reveal__clip">
-          <div className="wh-expense-reveal__content">{cell.props.children}</div>
-        </div></div>,
-      ))}
-    </tr>
-  );
 }
 
 function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehouse, startCreating = false, onOpenCreate, onCloseCreate, detailDocId = "", onOpenDocDetail, focusIngredientId = "" }) {

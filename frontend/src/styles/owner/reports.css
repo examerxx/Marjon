@@ -3282,8 +3282,7 @@
 }
 
 .orders-report-page .owner-report-table thead th { font-size: 14px; }
-.orders-report-page .owner-report-table tbody td,
-.orders-report-page .owner-report-table tbody td .report-order-status { font-size: 14px; }
+.orders-report-page .owner-report-table tbody td { font-size: 14px; }
 
 /* TITLE-UNIFICATION-01: ordinary reports adopt the accepted Clients title
    rhythm (600 + clamp(24px, 2.4vw, 28px)). Page-scoped to the five ordinary
@@ -3365,3 +3364,114 @@
     z-index: 2;
   }
 }
+
+
+/* Отчёт по заказам: выбор количества строк на странице */
+.orders-report-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  padding: 10px 6px 2px;
+  color: #5d7086;
+  font-size: 13px;
+}
+.orders-report-pager__size { display: inline-flex; align-items: center; gap: 8px; }
+.orders-report-pager__size select {
+  height: 32px;
+  padding: 0 28px 0 10px;
+  border: 1px solid #d6e2ec;
+  border-radius: 10px;
+  background: #fff;
+  color: #17283a;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.orders-report-pager__size select:focus-visible { outline: 2px solid #1cb5b5; outline-offset: 1px; }
+.orders-report-pager__range { font-variant-numeric: tabular-nums; min-width: 96px; text-align: right; }
+.orders-report-pager__nav { display: inline-flex; gap: 6px; }
+.orders-report-pager__nav button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #d6e2ec;
+  border-radius: 10px;
+  background: #fff;
+  color: #17283a;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.orders-report-pager__nav button:hover:not(:disabled) { border-color: #1cb5b5; color: #0f8f8f; }
+.orders-report-pager__nav button:disabled { opacity: 0.4; cursor: default; }
+
+/* Кастомный список количества строк (раскрывается вверх) */
+.pager-select { position: relative; }
+.pager-select__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 76px;
+  height: 34px;
+  padding: 0 11px 0 13px;
+  border: 1px solid #d6e2ec;
+  border-radius: 11px;
+  background: #fff;
+  color: #17283a;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.pager-select__trigger:hover { border-color: #1cb5b5; }
+.pager-select.is-open .pager-select__trigger,
+.pager-select__trigger:focus-visible {
+  border-color: #1cb5b5;
+  box-shadow: 0 0 0 3px rgba(28, 181, 181, 0.16);
+  outline: none;
+}
+.pager-select__chevron { color: #6b8196; transition: transform 160ms ease; }
+.pager-select.is-open .pager-select__chevron { transform: rotate(180deg); color: #0f8f8f; }
+.pager-select__menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 30;
+  min-width: 100%;
+  margin: 0;
+  padding: 5px;
+  list-style: none;
+  border: 1px solid #dbe7f0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 38px -16px rgba(15, 40, 70, 0.35), 0 2px 8px rgba(15, 40, 70, 0.08);
+  animation: pager-select-in 140ms ease-out;
+}
+@keyframes pager-select-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.pager-select__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #17283a;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.pager-select__option:hover { background: #eef7f8; }
+.pager-select__option.is-selected { background: #dff5f5; color: #0b7f7f; }
+@media (prefers-reduced-motion: reduce) { .pager-select__menu { animation: none; } }
+
+/* Пейджер: без подписи, выбор строк ближе к счётчику справа */
+.orders-report-pager { gap: 10px; }
+.orders-report-pager__range { min-width: 0; margin-right: 4px; }

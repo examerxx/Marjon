@@ -4,7 +4,6 @@ import { settingsService } from "../../api/settings";
 import Icon from "../../components/Icon";
 import ReportEmptyState from "../../components/ReportEmptyState";
 import { isAbortError, useLatestRequest, useMutationLocks } from "../../hooks/useAsyncSafety";
-import MarjonSelect from "./MarjonSelect";
 import "./SettingsPaymentMethodsPage.css";
 import { t } from "../../i18n/t";
 
@@ -54,6 +53,7 @@ export function mapRow(item) {
     sort: item.sort_order ?? item.sort ?? 0,
     name: item.name || "",
     type: item.type ?? "",
+    isSystem: item.is_system ?? /^fef15000-0000-4000-8000-00000000000[1-4]$/.test(item.id),
     active: (item.status ?? item.is_active) !== false,
   };
 }
@@ -64,7 +64,7 @@ export function mapRow(item) {
 // `sort`/`status` use the HQ-convention names the backend accepts directly.
 export function formToPayload(form) {
   const sortInput = String(form.sort ?? "").trim();
-  if (!/^\d+$/.test(sortInput)) return null;
+  if (!/^\d+$/.test(sortInput) || Number(sortInput) < 1) return null;
   const name = String(form.name ?? "").trim();
   if (!name) return null;
   // Длина ограничена колонкой payments.method (String(30)): именно название
@@ -165,23 +165,15 @@ function SettingsPaymentMethodsPage() {
     return () => document.removeEventListener("keydown", onKey);
   }, [drawerMode, deleteTarget, saving, deleting]);
 
-  // The type dropdown ALWAYS offers exactly the two business options
-  // (Наличные / Карта). A legacy row whose stored code is neither is NOT added
-  // as a third option; its raw value is preserved in `form.type` (and shown as
-  // a neutral note) until the user explicitly picks a canonical type.
-  const legacyType = form.type && !PAYMENT_TYPE_OPTIONS.some((o) => o.value === form.type)
-    ? form.type
-    : "";
-
   const openAdd = () => {
     setEditingId(null);
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, sort: String(Math.max(0, ...rows.map((row) => Number(row.sort))) + 1) });
     setDrawerMode("create");
   };
 
   const openEdit = (row) => {
     setEditingId(row.id);
-    setForm({ sort: String(row.sort ?? ""), name: row.name, type: row.type, active: row.active });
+    setForm({ sort: String(Math.max(1, row.sort ?? 1)), name: row.name, type: row.type, active: row.active });
     setDrawerMode("edit");
   };
 
@@ -216,6 +208,21 @@ function SettingsPaymentMethodsPage() {
     } finally {
       setSaving(false);
       mutationLocks.release("save");
+    }
+  };
+
+  const toggleDefault = async (row) => {
+    if (!mutationLocks.acquire("toggle-default")) return;
+    setSaving(true);
+    setError("");
+    try {
+      const { data } = await settingsService.updateResource(RESOURCE, row.id, { status: !row.active });
+      setRows((current) => current.map((item) => item.id === row.id ? mapRow(data) : item));
+    } catch (err) {
+      setError(err.response?.data?.detail || "Не удалось изменить статус.");
+    } finally {
+      setSaving(false);
+      mutationLocks.release("toggle-default");
     }
   };
 
@@ -279,7 +286,6 @@ function SettingsPaymentMethodsPage() {
                   <tr>
                     <th>{t("pages.settings.settingspaymentmethodspage.sort")}</th>
                     <th>{t("pages.settings.settingspaymentmethodspage.nazvanie")}</th>
-                    <th>{t("pages.settings.settingspaymentmethodspage.tip")}</th>
                     <th>{t("pages.settings.settingspaymentmethodspage.status")}</th>
                     <th>{t("pages.settings.settingspaymentmethodspage.deystviya")}</th>
                   </tr>
@@ -287,9 +293,8 @@ function SettingsPaymentMethodsPage() {
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.id}>
-                      <td>{row.sort === 0 || row.sort ? String(row.sort) : "—"}</td>
+                      <td>{Math.max(1, row.sort)}</td>
                       <td>{row.name || "—"}</td>
-                      <td>{paymentTypeLabel(row.type)}</td>
                       <td>
                         <span className={`settings-status-badge ${row.active ? "is-active" : "is-inactive"}`}>
                           <span className="settings-status-badge__dot" aria-hidden="true" />
@@ -297,20 +302,26 @@ function SettingsPaymentMethodsPage() {
                         </span>
                       </td>
                       <td>
-                        <div className="settings-row-actions">
+                        {row.isSystem ? (
+                          <label className="settings-switch">
+                            <input type="checkbox" role="switch" aria-label={row.name} checked={row.active}
+                              disabled={saving} onChange={() => toggleDefault(row)} />
+                            <span className="settings-switch__track" aria-hidden="true"><span className="settings-switch__thumb" /></span>
+                          </label>
+                        ) : <div className="settings-row-actions">
                           <button type="button" className="settings-action-edit" aria-label={t("pages.settings.settingspaymentmethodspage.redaktirovat", { name: row.name })} onClick={() => openEdit(row)}>
                             <Icon name="bi-pencil" size={15} />
                           </button>
                           <button type="button" className="settings-action-delete" aria-label={t("pages.settings.settingspaymentmethodspage.udalit", { name: row.name })} disabled={deleting} onClick={() => setDeleteTarget(row)}>
                             <Icon name="bi-trash3" size={15} />
                           </button>
-                        </div>
+                        </div>}
                       </td>
                     </tr>
                   ))}
                   {!error && rows.length === 0 ? (
                     <tr className="pm-empty-row">
-                      <td colSpan={5} className="pm-empty-cell">
+                      <td colSpan={4} className="pm-empty-cell">
                         <ReportEmptyState title={t("pages.settings.settingspaymentmethodspage.sposobov_oplaty_poka_net")} />
                       </td>
                     </tr>
@@ -355,25 +366,6 @@ function SettingsPaymentMethodsPage() {
                       onChange={(event) => setForm((cur) => ({ ...cur, name: event.target.value }))}
                     />
                   </label>
-                </div>
-                <div className="settings-form__wide settings-field">
-                  <label className="settings-field__label" htmlFor="pm-type">{t("pages.settings.settingspaymentmethodspage.tip")}</label>
-                  <MarjonSelect
-                    id="pm-type"
-                    label={t("pages.settings.settingspaymentmethodspage.tip")}
-                    placeholder={t("pages.settings.settingspaymentmethodspage.vyberite_tip")}
-                    value={legacyType ? "" : form.type}
-                    options={PAYMENT_TYPE_OPTIONS}
-                    onChange={(next) => setForm((cur) => ({ ...cur, type: next }))}
-                  />
-                  {legacyType ? (
-                    <p className="pm-legacy-note">{t("pages.settings.settingspaymentmethodspage.tekuschiy_tip")} {paymentTypeLabel(legacyType)}</p>
-                  ) : null}
-                  {form.type === "other" ? (
-                    <p className="pm-legacy-note">
-                      {t("pages.settings.settingspaymentmethodspage.sposob_poyavitsya_otdelnoy_knopkoy_na_kasse")}
-                    </p>
-                  ) : null}
                 </div>
                 <div className="settings-toggle-field settings-form__wide">
                   <span>{t("pages.settings.settingspaymentmethodspage.status")}</span>

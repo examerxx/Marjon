@@ -674,6 +674,14 @@ body.dashboard-body .dashboard-topbar .topbar-theme-toggle svg {
   }
 
   /* Populated dashboard rows use the same material as the surrounding cards. */
+  html[data-theme="dark"] body.dashboard-body .preview-serif-wordmark__full img {
+    filter: url("#marjon-dark-wordmark");
+    mix-blend-mode: normal !important;
+    opacity: .94;
+  }
+  html[data-theme="dark"] body.dashboard-body .preview-serif-wordmark__full {
+    mix-blend-mode: normal;
+  }
   html[data-theme="dark"] body.dashboard-body :is(.top-dish, .recent-order) {
     background: var(--theme-control-face) !important;
     color: var(--theme-text) !important;

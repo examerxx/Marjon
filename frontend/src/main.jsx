@@ -1,4 +1,3 @@
-import { useTranslation } from "react-i18next";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
@@ -37,27 +36,10 @@ import "./styles/preview/floating-shell.css";
 import "./components/topbar/profileRefinements.css";
 import "./styles/preview/sidebar-liquid-glass.css";
 
-/**
- * Перерисовка всего приложения при смене языка.
- *
- * Часть строк переводится через `t()` из `i18n/t` — это обычная функция, она
- * не подписывается на смену языка сама. Без этой границы после переключения
- * обновлялся бы только сайдбар (он использует `useTranslation`), а остальные
- * страницы оставались на прежнем языке.
- *
- * Меняем `key` — React размонтирует и смонтирует дерево заново, все `t()`
- * вызываются уже с новым языком. Смена языка происходит в настройках, не в
- * середине ввода заказа, поэтому потеря локального состояния здесь безопасна.
- */
-function LanguageBoundary({ children }) {
-  const { i18n } = useTranslation();
-  return <React.Fragment key={i18n.language}>{children}</React.Fragment>;
-}
-
 import "./styles/global/theme.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <LanguageBoundary><App /></LanguageBoundary>
+    <App />
   </React.StrictMode>,
 );

@@ -12,6 +12,7 @@ export const emptyForm = {
   financeTemplateId: "",
   comment: "",
   operationDateTime: "",
+  staffService: false,
 };
 
 export function currentMonthRange() {
@@ -65,8 +66,10 @@ export function mapTransactions(items, paymentTypes, categories, counterparties)
     id: String(tx.id),
     date: tx.date,
     createdAt: tx.created_at,
+    staffService: tx.staff_service === true,
     amount: Number(tx.amount),
     type: tx.direction,
+    isVip: tx.direction === "expense" && tx.category_id === "fef15000-0000-4000-8000-000000000005",
     paymentTypeId: tx.payment_type_id ? String(tx.payment_type_id) : "",
     counterpartyId: tx.counterparty_id ? String(tx.counterparty_id) : "",
     categoryId: tx.category_id ? String(tx.category_id) : "",

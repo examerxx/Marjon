@@ -41,7 +41,7 @@ export const reportsService = {
       paramsSerializer: REPEATED_IDS_SERIALIZER,
     });
   },
-  listOrders(dateFrom, dateTo, { filters = {}, ...config } = {}) {
+  listOrders(dateFrom, dateTo, { filters = {}, dateBasis, ...config } = {}) {
     const filterParams = compactParams({
       order_number: filters.orderNumber?.trim(),
       waiter_id: filters.waiterId,
@@ -52,7 +52,7 @@ export const reportsService = {
       payment_method: filters.paymentMethod,
     });
     return api.get("/reports/orders", {
-      params: webReportRangeParams(dateFrom, dateTo, filterParams),
+      params: webReportRangeParams(dateFrom, dateTo, { ...filterParams, ...(dateBasis ? { date_basis: dateBasis } : {}) }),
       ...config,
       paramsSerializer: REPEATED_IDS_SERIALIZER,
     });

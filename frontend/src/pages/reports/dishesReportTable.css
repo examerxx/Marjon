@@ -1,6 +1,15 @@
-.dishes-report-page .dishes-sales-table th { background: #eef6ff; font-size: 12px; font-weight: 800; }
-.dishes-report-page .dishes-sales-table tbody td { font-size: 13px; font-weight: 800; }
-.dishes-report-page .dishes-sales-table tfoot td { font-size: 12px; }
+/* Dishes report table — visual parity with the Orders report (5293 copy).
+   The Orders report is the REFERENCE: headers and cells use the same 14px
+   page-scoped override (reports.css) with font-weight 400 (the shared
+   default). The Dishes table previously ran 12px/800 headers, 13px/800
+   cells, a blue #eef6ff header band, a 56px fixed row height and a
+   bold navy dish name — all of that is dropped so both reports share one
+   typographic rhythm and one table chrome. Column widths, alignment and
+   the photo/dish-detail styles are Dishes-specific and stay unchanged. */
+
+.dishes-report-page .owner-report-table.dishes-sales-table th { font-size: 14px; font-weight: 400; }
+.dishes-report-page .owner-report-table.dishes-sales-table tbody td { font-size: 14px; font-weight: 400; }
+.dishes-report-page .owner-report-table.dishes-sales-table tfoot td { font-size: 14px; }
 .dishes-report-page .dishes-sales-table th:nth-child(1), .dishes-report-page .dishes-sales-table td:nth-child(1) { width: 48px; text-align: center; }
 .dishes-report-page .dishes-sales-table th:nth-child(2), .dishes-report-page .dishes-sales-table td:nth-child(2) { width: 68px; text-align: center; }
 .dishes-report-page .dishes-sales-table th:nth-child(3), .dishes-report-page .dishes-sales-table tbody td:nth-child(3) { text-align: left; padding-left: 66px; }
@@ -9,15 +18,19 @@
 .dishes-report-page .dishes-sales-table th:nth-child(6), .dishes-report-page .dishes-sales-table td:nth-child(6),
 .dishes-report-page .dishes-sales-table th:nth-child(7), .dishes-report-page .dishes-sales-table td:nth-child(7) { text-align: right; white-space: nowrap; }
 .dishes-report-page .dishes-sales-table tbody tr { cursor: pointer; }
-.dishes-report-page .dishes-sales-table tbody tr:hover td { background: #f4fbfc; }
+.dishes-report-page .dishes-sales-table tbody tr:hover td { background: rgba(31, 201, 201, 0.035); }
 .dishes-report-page .dishes-sales-table tbody tr:focus-visible { outline: 2px solid #18c4c9; outline-offset: -2px; }
-.dishes-report-page .dishes-sales-table tbody td { height: 56px; }
-.dishes-report-page .dishes-sales-table .dish-report-name { font-weight: 800; color: #122d4e; }
-.dishes-report-page .dishes-sales-table tfoot td { background: #eaf4fd; border-top: 1px solid #d9e5f0; font-weight: 800; }
+.dishes-report-page .owner-report-table.dishes-sales-table .dish-report-name { font-weight: 400; color: var(--neutral-700, #334155); }
+.dishes-report-page .owner-report-table.dishes-sales-table tfoot td { font-weight: 400; }
 .dishes-report-page .dishes-sales-table tfoot td:first-child { text-align: left; }
 .dishes-report-page .dishes-sales-table tfoot td:nth-child(2) { width: auto; text-align: center; }
 .dishes-report-page .dishes-sales-table tfoot td:nth-child(3), .dishes-report-page .dishes-sales-table tfoot td:last-child { text-align: right; }
-.dish-report-photo { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #e2eaf3; border-radius: 8px; background: #f5f8fc; color: #8ba4be; padding: 0; overflow: hidden; vertical-align: middle; }
+/* Photo cell — sized so the row height matches the Orders report (45px:
+   12px cell padding top/bottom + a ~21px content line). A 36px thumbnail
+   rendered a 61px row, which broke the parity; 20px keeps the thumbnail
+   legible while the row lands on the Orders height. */
+.dishes-report-page .owner-report-table.dishes-sales-table tbody td:nth-child(2) { line-height: 1; }
+.dish-report-photo { width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #e2eaf3; border-radius: 5px; background: #f5f8fc; color: #8ba4be; padding: 0; overflow: hidden; vertical-align: middle; }
 button.dish-report-photo { cursor: zoom-in; }
 .dish-report-photo img { width: 100%; height: 100%; object-fit: cover; }
 .dish-report-detail-page .dish-order-table { table-layout: fixed; width: 100%; min-width: 940px; }

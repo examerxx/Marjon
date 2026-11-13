@@ -1,9 +1,6 @@
 /* Clear, softly bevelled glass for the 5293 sidebar. All reflections stay in
    the background so the labels remain sharp and the hit areas stay intact. */
-body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar {
-  --nav-glass-rim: rgba(176, 185, 201, .3);
-  --nav-glass-face:
-    linear-gradient(165deg, rgba(255,255,255,.48), rgba(255,255,255,.12) 58%, rgba(247,251,253,.24));
+body.dashboard-body {
   --nav-glass-accent-face:
     linear-gradient(180deg, rgba(255,255,255,.22), transparent 45%, rgba(7,73,81,.13) 82%, rgba(255,255,255,.12)),
     radial-gradient(ellipse at 83% 0%, rgba(207,255,251,.22), transparent 65%),
@@ -12,6 +9,12 @@ body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar {
     inset 0 1px 1px rgba(255,255,255,.47),
     inset 0 -1px 2px rgba(199,255,251,.25),
     0 4px 9px -3px rgba(18,112,117,.27);
+}
+
+body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar {
+  --nav-glass-rim: rgba(176, 185, 201, .3);
+  --nav-glass-face:
+    linear-gradient(165deg, rgba(255,255,255,.48), rgba(255,255,255,.12) 58%, rgba(247,251,253,.24));
   --nav-glass-panel:
     radial-gradient(ellipse at 12% 0%, rgba(255,255,255,.48), transparent 62%),
     linear-gradient(160deg, rgba(252,255,255,.78), rgba(229,249,251,.61));

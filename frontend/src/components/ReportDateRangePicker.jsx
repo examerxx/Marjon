@@ -753,7 +753,7 @@ export default function ReportDateRangePicker({
                     </button>
                     {effectiveUseCustomCalendarSelects ? (
                       <CalendarToolbarSelect
-                        label={t("components.reportdaterangepicker.god")}
+                        label="Год"
                         value={calendarView.getFullYear()}
                         options={calendarYearSelectOptions}
                         open={openCalendarSelect === "year"}
@@ -770,7 +770,7 @@ export default function ReportDateRangePicker({
                     )}
                     {effectiveUseCustomCalendarSelects ? (
                       <CalendarToolbarSelect
-                        label={t("components.reportdaterangepicker.mesyats")}
+                        label="Месяц"
                         value={calendarView.getMonth()}
                         options={calendarMonthSelectOptions}
                         open={openCalendarSelect === "month"}

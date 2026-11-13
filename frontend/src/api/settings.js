@@ -3,7 +3,7 @@ import { api } from "./client";
 const RESOURCE_PATHS = Object.freeze({
   clients: "/crm/counterparties",
   places: "/halls",
-  paymentMethods: "/finance/payment-types",
+  paymentMethods: "/settings/payment-methods",
   units: "/units",
   printers: "/printers",
 });

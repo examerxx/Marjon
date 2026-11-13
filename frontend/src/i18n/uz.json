@@ -1367,7 +1367,8 @@
       "zakazov_ne_naydeno": "Buyurtmalar topilmadi",
       "na_stol": "Dasturxonga",
       "na_vynos": "Olib ketish",
-      "dostavka": "Yetkazib berish"
+      "dostavka": "Yetkazib berish",
+      "data_zakrytiya": "Yopilgan sana"
     },
     "ownerdashboard": {
       "dashboard_nedostupen": "Dashboard mavjud emas",

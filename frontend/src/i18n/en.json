@@ -1367,7 +1367,8 @@
       "zakazov_ne_naydeno": "No orders found",
       "na_stol": "To table",
       "na_vynos": "Takeaway",
-      "dostavka": "Delivery"
+      "dostavka": "Delivery",
+      "data_zakrytiya": "Closing date"
     },
     "ownerdashboard": {
       "dashboard_nedostupen": "Dashboard is unavailable",

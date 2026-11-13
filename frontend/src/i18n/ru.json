@@ -1369,7 +1369,8 @@
       "zakazov_ne_naydeno": "Заказов не найдено",
       "na_stol": "На стол",
       "na_vynos": "На вынос",
-      "dostavka": "Доставка"
+      "dostavka": "Доставка",
+      "data_zakrytiya": "Дата закрытия"
     },
     "ownerdashboard": {
       "dashboard_nedostupen": "Dashboard недоступен",

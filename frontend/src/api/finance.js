@@ -73,19 +73,16 @@ export const financeService = {
     return api.get("/finance/finance-history", { params: { page, size, ...params } });
   },
 
-  listCounterpartyTransactions(counterpartyId, { page = 1, size = 20, ...params } = {}) {
-    return api.get(`/finance/counterparties/${counterpartyId}/transactions`, {
-      params: { page, size, ...params, ...(params.date_from || params.date_to ? { web_timezone: "Asia/Tashkent" } : {}) },
+  listCounterpartyOrders(counterpartyId, { dateTo, signal } = {}) {
+    return api.get(`/finance/counterparties/${counterpartyId}/orders`, {
+      params: definedParams({ date_to: dateTo }),
+      ...(signal ? { signal } : {}),
     });
   },
 
-  // DEBT-ORDERS-01: заказы клиента (закрытые «в долг»). Долг не создаёт
-  // финансовую транзакцию, поэтому в «Истории транзакций» у должника было
-  // пусто — показываем его заказы, как в отчёте по заказам.
-  listCounterpartyOrders(counterpartyId, { dateFrom, dateTo, signal } = {}) {
-    return api.get(`/finance/counterparties/${counterpartyId}/orders`, {
-      params: definedParams({ date_from: dateFrom, date_to: dateTo }),
-      ...(signal ? { signal } : {}),
+  listCounterpartyTransactions(counterpartyId, { page = 1, size = 20, ...params } = {}) {
+    return api.get(`/finance/counterparties/${counterpartyId}/transactions`, {
+      params: { page, size, ...params, ...(params.date_from || params.date_to ? { web_timezone: "Asia/Tashkent" } : {}) },
     });
   },
 };

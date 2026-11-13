@@ -516,3 +516,12 @@
 
 .finance-catalog-scroll td.finance-amount-income { color: #168745; }
 .finance-catalog-scroll td.finance-amount-expense { color: #df3543; }
+
+.dashboard-body td.finance-vip-text {
+  color: #145bc5;
+  font-weight: 700;
+}
+
+html[data-theme="dark"] .dashboard-body td.finance-vip-text {
+  color: #78baff;
+}
