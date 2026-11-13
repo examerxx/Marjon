@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import insert
 import sqlalchemy as sa
 
 revision = "vipfinance01"
-down_revision = "layout01"
+down_revision = "display01"
 branch_labels = None
 depends_on = None
 
