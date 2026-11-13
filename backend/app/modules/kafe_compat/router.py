@@ -1,7 +1,7 @@
 """Kafe compatibility layer.
 
 The React kafe-panel calls a handful of endpoints under path shapes that the
-domain routers expose under different names (see docs/tz/TZ_WEB.md §3, §7.2).
+domain routers expose under different names (see docs/tz/MARJON_TZ_v3.md, §5).
 This module exposes exactly those front-end contract paths, delegating to the
 existing models/services, plus real aggregation for the restaurant reports.
 
