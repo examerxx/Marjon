@@ -3963,6 +3963,7 @@ body.vkb-open .login-card {
 .range-input::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--color-brand); cursor: pointer; box-shadow: 0 2px 6px rgba(11, 31, 63, 0.25); }
 .range-input::-moz-range-thumb { width: 22px; height: 22px; border: none; border-radius: 50%; background: var(--color-brand); cursor: pointer; }
 .settings-hint { font-size: var(--text-sm); color: var(--color-text-muted); margin: 2px 0 18px; line-height: 1.5; }
+.settings-hint--error { color: var(--color-danger, #d64545); }
 .settings-num { width: 104px; text-align: center; }
 
 /* ── Тач-степпер порогов таймера кухни (−/+ вместо число-инпута) ── */

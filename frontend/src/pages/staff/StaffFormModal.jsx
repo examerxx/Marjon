@@ -520,10 +520,18 @@ export default function StaffFormModal({
               <span>{t("pages.staff.staffformmodal.pechat_otmeny_zakaza")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
-            {/* DESK-PERM-01: без этих двух тумблеров панели «Финансы» и
-                «Посещаемость» на десктопе было невозможно включить — их гейты
-                must(user, 'can_view_finance' / 'can_approve_attendance') не
-                находились ни в одном списке прав, и кнопки не показывались. */}
+            {/* Кухонный экран по логину моноблока: повара не заводят
+                отдельный вход, а выбирают себя на кухонном сайте и вводят PIN. */}
+            <button
+              className={`staff-permission-switch ${form.canKitchen ? "is-on" : ""}`}
+              type="button"
+              onClick={() => toggleForm("canKitchen")}
+              aria-pressed={Boolean(form.canKitchen)}
+            >
+              <span className="staff-permission-state-dot" aria-hidden="true" />
+              <span>{t("pages.staff.staffformmodal.dostup_k_kuhne")}</span>
+              <b className="staff-switch" aria-hidden="true" />
+            </button>
             <button
               className={`staff-permission-switch ${form.canViewFinance ? "is-on" : ""}`}
               type="button"
@@ -626,6 +634,19 @@ export default function StaffFormModal({
             >
               <span className="staff-permission-state-dot" aria-hidden="true" />
               <span>{t("pages.staff.staffformmodal.poseschaemost_prihod_uhod")}</span>
+              <b className="staff-switch" aria-hidden="true" />
+            </button>
+            {/* EXPO-01: отдельный экран «Раздача». С включённым правом
+                сотрудник входит на /expo по телефону и паролю и подтверждает
+                выдачу — только после этого заказ появляется на ТВ готовым. */}
+            <button
+              className={`staff-permission-switch ${form.canExpo ? "is-on" : ""}`}
+              type="button"
+              onClick={() => toggleForm("canExpo")}
+              aria-pressed={Boolean(form.canExpo)}
+            >
+              <span className="staff-permission-state-dot" aria-hidden="true" />
+              <span>{t("pages.staff.staffformmodal.razdacha")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
             </>

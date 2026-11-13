@@ -67,5 +67,8 @@ owner.zip
 # WorkBuddy AI — локальная память проекта
 .workbuddy-ai/
 
+# Личные заметки по проекту (7 МБ выжимки из чата) — не часть репозитория
+Изучить_проект_*.md
+
 # Local dev media (uploaded without MinIO)
 backend/media/

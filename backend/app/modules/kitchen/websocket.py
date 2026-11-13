@@ -216,7 +216,10 @@ async def kitchen_ws_endpoint(
             allowed_scopes=("app", "kitchen"),
         )
         # Кухонная сессия привязана к филиалу: подписаться на чужой канал нельзя.
-        session_branch = getattr(user, "token_branch_id", None) or getattr(user, "branch_id", None)
+        raw_branch = payload.get("branch_id")
+        if payload.get("auth_scope") == "kitchen" and not raw_branch:
+            raise ValueError("Kitchen session requires a signed branch")
+        session_branch = UUID(raw_branch) if raw_branch is not None else user.branch_id
         if session_branch and session_branch != branch_id:
             raise ValueError("branch mismatch")
         await require_company_resource(

@@ -129,6 +129,13 @@ class Order(TimeStampedModel):
         Uuid(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     reopen_comment: Mapped[str | None] = mapped_column(Text)
+    # EXPO-01: раздача подтвердила, что повар всё сделал, и заказ можно
+    # забирать. Только после этого ТВ-экран показывает заказ готовым; до
+    # подтверждения он остаётся в очереди. NULL = ещё не подтверждён.
+    expo_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expo_confirmed_by_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     items: Mapped[list[OrderItem]] = relationship(back_populates="order", cascade="all, delete-orphan")
 

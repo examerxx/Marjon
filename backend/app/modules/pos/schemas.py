@@ -170,6 +170,10 @@ class OrderResponse(BaseResponseSchema):
     # Phase 1A cancellation truth (additive, nullable).
     cancelled_at: datetime | None = None
     cancelled_by_id: UUID | None = None
+    # EXPO-01: подтверждение раздачи. ТВ показывает заказ готовым только при
+    # заполненном expo_confirmed_at.
+    expo_confirmed_at: datetime | None = None
+    expo_confirmed_by_id: UUID | None = None
 
 
 class TerminalCreate(BaseSchema):

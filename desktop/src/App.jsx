@@ -437,7 +437,9 @@ export default function App() {
     )
   }
 
-  const settingsOverlay = showSettings ? <SettingsModal open onClose={() => setShowSettings(false)} /> : null
+  const settingsOverlay = showSettings
+    ? <SettingsModal open onClose={() => setShowSettings(false)} branchId={effectiveBranchId} />
+    : null
 
   // ── Поток ──
   // Шаг 0: адрес сервера

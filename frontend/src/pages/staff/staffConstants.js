@@ -50,6 +50,12 @@ export const emptyForm = {
   canSeeCashiers: false,
   canCookPrinter: false,
   canPrintCancel: false,
+  // Monoblock → KDS: по этому логину кухонный экран (kitchen.html) входит в
+  // заведение, а повара уже выбирают себя по PIN.
+  canKitchen: false,
+  // EXPO-01: отдельный экран «Раздача» — сотрудник подтверждает, что повар
+  // всё сделал, и заказ уходит на экран посетителей.
+  canExpo: false,
   // Матрица доступов: { [moduleKey]: { enabled, create, read, update, delete } }.
   access: {},
 };
@@ -73,6 +79,8 @@ export const staffPermissionFlags = [
   "canSeeCashiers",
   "canCookPrinter",
   "canPrintCancel",
+  "canKitchen",
+  "canExpo",
   "canViewFinance",
   "canApproveAttendance",
 ];
@@ -132,6 +140,8 @@ export const getPermissionSummary = (values) => {
     values.canViewClosedOrders && "Просмотр закрытых заказов",
     values.canViewFinance && "Просмотр финансов",
     values.canApproveAttendance && "Посещаемость (приход/уход)",
+    values.canKitchen && "Кухня",
+    values.canExpo && "Раздача",
   ].filter(Boolean);
 
   return permissions.join(", ") || values.permission || "Базовый доступ";
@@ -154,6 +164,11 @@ export const staffPermissionKeys = {
   canSeeCashiers: "can_see_cashiers",
   canCookPrinter: "can_cook_printer",
   canPrintCancel: "can_print_cancel",
+  // Моноблок с этим правом открывает кухонный экран своим телефоном и
+  // паролем; повара на экране входят по PIN.
+  canKitchen: "can_kitchen",
+  // EXPO-01: право входить на отдельный экран раздачи (/expo).
+  canExpo: "can_expo",
   // DESK-PERM-01: панели десктопа «Финансы» и «Посещаемость». Флаги читает
   // desktop/src/shared/permissions.js (must(...)), поэтому без них кнопки на
   // терминале не появлялись ни у одной роли — включить их было негде.
@@ -207,6 +222,8 @@ export const cashierSwitchFields = [
   // DESK-PERM-01: панели десктопа, доступные кассиру на терминале.
   "canViewFinance",
   "canApproveAttendance",
+  // EXPO-01: кассир/менеджер может дополнительно закрывать раздачу.
+  "canExpo",
 ];
 
 export const waiterSwitchFields = [
@@ -227,6 +244,8 @@ export const monoblockSwitchFields = [
   // DESK-PERM-01: моноблок — основной терминал заведения, ему нужны обе панели.
   "canViewFinance",
   "canApproveAttendance",
+  // Кухонный экран по логину моноблока (kitchen.html → выбор повара → PIN).
+  "canKitchen",
 ];
 
 // KITCHEN-01: повар (роль kitchen). В карточке — только то, что реально
@@ -368,6 +387,8 @@ export function mapStaffUser(user) {
     canSeeCashiers: readStaffPermission(user, "canSeeCashiers"),
     canCookPrinter: readStaffPermission(user, "canCookPrinter"),
     canPrintCancel: readStaffPermission(user, "canPrintCancel"),
+    canKitchen: readStaffPermission(user, "canKitchen"),
+    canExpo: readStaffPermission(user, "canExpo"),
     canViewFinance: readStaffPermission(user, "canViewFinance"),
     canApproveAttendance: readStaffPermission(user, "canApproveAttendance"),
     // Сохранённая матрица доступов (perms.modules) — карточка открывается

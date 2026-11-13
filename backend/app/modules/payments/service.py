@@ -85,6 +85,7 @@ class PaymentService:
                     select(Order)
                     .where(Order.id == data.order_id, Order.company_id == company_id)
                     .with_for_update()
+                    .execution_options(populate_existing=True)
                 )
             ).scalar_one_or_none()
             if order is None:
@@ -222,13 +223,7 @@ class PaymentService:
                 order.status = "completed"
                 self.db.add(order)
                 await self.db.flush()
-                # Same item completion semantics as POS status close, in this payment transaction.
-                from sqlalchemy import update
-                from app.modules.pos.models import OrderItem
-                await self.db.execute(update(OrderItem).where(
-                    OrderItem.order_id == order.id,
-                    OrderItem.status.in_(["pending", "cooking", "ready"]),
-                ).values(status="served"))
+                # Financial completion does not imply kitchen readiness or handoff.
                 await self._checkpoint("after_order")
 
                 # Списание сырья по рецептам блюд завершённого заказа.

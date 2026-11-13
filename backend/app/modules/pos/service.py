@@ -7,6 +7,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from sqlalchemy import delete, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.config import settings
 from app.modules.auth.models import User
@@ -17,6 +18,7 @@ from app.modules.halls.models import Hall, Table
 from app.modules.inventory.models import Product
 from app.modules.inventory.service import product_cost_total
 from app.modules.kitchen.websocket import kitchen_manager
+from app.modules.audit.models import AuditLog
 from app.modules.audit.service import AuditService
 from app.modules.pos.models import (
     Order, OrderItem, OrderNumberCounter, OrderPublicIdCounter, PosTerminal, CashierShift,
@@ -336,22 +338,46 @@ class OrderService:
 
     # ── Read ──────────────────────────────────────────────────────────────────
 
-    async def get(self, company_id: UUID, order_id: UUID) -> Order:
-        order = await self.repo.get_by_id(order_id, company_id)
-        if not order:
+    async def get(
+        self, company_id: UUID, order_id: UUID, *, for_update: bool = False,
+    ) -> Order:
+        query = select(Order).where(Order.id == order_id, Order.company_id == company_id)
+        if self.branch_scope is not None:
+            query = query.where(Order.branch_id == self.branch_scope)
+        if for_update:
+            query = query.with_for_update()
+        # selectinload reads items AFTER the parent lock; refresh both identity-map states.
+        order = (await self.db.execute(
+            query.options(selectinload(Order.items)).execution_options(populate_existing=True)
+        )).scalar_one_or_none()
+        if order is None:
             raise NotFoundError("Order not found")
-        # Branch-изоляция: филиал не может достать чужой заказ по прямому id
-        # (отдаём 404, а не 403 — не раскрываем существование чужого заказа).
-        if self.branch_scope and order.branch_id != self.branch_scope:
-            raise NotFoundError("Order not found")
-        # Мутации в той же сессии (add/remove item) оставляют в identity-map
-        # stale-коллекцию items — ответ собираем всегда из свежих позиций,
-        # иначе клиент видит пустой/прошлый состав (десктоп вынужден рефетчить).
-        # refresh (async) — единственный greenlet-безопасный способ; sync
-        # expire() здесь роняет MissingGreenlet в _attach_waiter_names.
-        await self.db.refresh(order, attribute_names=["items"])
         await self._attach_waiter_names([order])
         return order
+
+    async def sync_readiness(self, order: Order) -> str | None:
+        """Sync a locked parent's kitchen state without reopening financial completion."""
+        await self.db.flush()
+        statuses = list((await self.db.scalars(
+            select(OrderItem.status).where(
+                OrderItem.order_id == order.id, OrderItem.status != "cancelled",
+            )
+        )).all())
+        all_ready = bool(statuses) and all(s in ("ready", "served") for s in statuses)
+        next_status = None
+        if all_ready and order.status in ("new", "accepted", "cooking"):
+            next_status = "ready"
+        elif not all_ready and order.status == "ready":
+            next_status = "cooking"
+        if next_status:
+            order.status = next_status
+        # Блюдо вернули в работу/добавили новое — подтверждение раздачи
+        # больше недействительно, заказ снова ждёт выдачи.
+        if not all_ready and getattr(order, "expo_confirmed_at", None) is not None:
+            order.expo_confirmed_at = None
+            order.expo_confirmed_by_id = None
+        order.updated_at = _utcnow()
+        return next_status
 
     async def list(
         self,
@@ -385,10 +411,7 @@ class OrderService:
         self, company_id: UUID, order_id: UUID, data: OrderStatusUpdate,
         actor_id: UUID | None = None, user: User | None = None,
     ) -> Order:
-        await self.db.execute(select(Order.id).where(
-            Order.id == order_id, Order.company_id == company_id,
-        ).with_for_update())
-        order = await self.get(company_id, order_id)
+        order = await self.get(company_id, order_id, for_update=True)
         current = order.status
         target = data.status
 
@@ -419,14 +442,16 @@ class OrderService:
             for item in order.items:
                 if item.status == "pending":
                     item.status = "cooking"
-        if target == "completed":
-            # POS-CLOSE-01: счёт закрыт → все незавершённые позиции считаются
-            # отданными. Без этого позиции остаются pending/cooking навсегда и
-            # отчёты (по блюдам, по отменам) показывают «вечно готовится».
-            # Валидные статусы позиции: pending | cooking | ready | served | cancelled.
+        if target == "ready":
+            # «Заказ готов» = готовы его блюда. Касса и кухня ставят один и тот
+            # же статус, поэтому позиции не должны оставаться «в готовке»:
+            # иначе кухонный экран покажет недоделанные блюда у готового заказа.
             for item in order.items:
-                if item.status in ("pending", "cooking", "ready"):
-                    item.status = "served"
+                if item.status in ("pending", "cooking"):
+                    item.status = "ready"
+        if target == "completed":
+            # Долг после частичной оплаты: сырьё списываем при закрытии счёта
+            # (полностью оплаченный заказ списывается в PaymentService).
             paid_total = await self._paid_total(company_id, order.id)
             if order.reopened_at is None and 0 < paid_total < order.total_amount:
                 from app.modules.inventory.service import StockService
@@ -434,6 +459,7 @@ class OrderService:
                 await StockService(self.db).deduct_for_order(
                     company_id, order.id, created_by=actor_id,
                 )
+        # Financial completion leaves kitchen readiness and handoff unchanged.
         await self.repo.save(order)
         updated_order = await self.get(company_id, order_id)
         try:
@@ -568,11 +594,10 @@ class OrderService:
             )
             self.db.add(debtor)
         await self.db.flush()
-        from app.modules.audit.models import AuditLog
-
+        # Keep the parent lock until financial completion commits, including the audit entry.
         self.db.add(AuditLog(
-            company_id=company_id, user_id=None, action="order.debt_client", entity_type="order",
-            entity_id=order.id,
+            company_id=company_id, user_id=None, action="order.debt_client",
+            entity_type="order", entity_id=order.id,
             new_data={"client_name": name or None, "client_phone": phone or None,
                       "counterparty_id": str(debtor.id), "debt": str(debt)},
         ))
@@ -590,7 +615,7 @@ class OrderService:
         что у заказа проставлен reopened_at: PaymentService.process помечает
         прежние completed-платежи как refunded и пишет оплату по новому итогу.
         """
-        order = await self.get(company_id, order_id)
+        order = await self.get(company_id, order_id, for_update=True)
         if order.status != "completed":
             raise ValidationError(
                 "Вернуть в работу можно только закрытый заказ"
@@ -634,10 +659,7 @@ class OrderService:
         password: str | None = None, comment: str | None = None,
         user: User | None = None,
     ) -> Order:
-        await self.db.execute(select(Order.id).where(
-            Order.id == order_id, Order.company_id == company_id,
-        ).with_for_update())
-        order = await self.get(company_id, order_id)
+        order = await self.get(company_id, order_id, for_update=True)
         if order.status in ("completed", "cancelled"):
             raise ValidationError(f"Невозможно отменить заказ в статусе '{order.status}'")
         if order.reopened_at is None and await self._paid_total(company_id, order.id) > 0:
@@ -743,10 +765,7 @@ class OrderService:
         from app.modules.finance.idempotency import FinancialOperationService, request_fingerprint_v2
         from app.modules.printers.service import PrinterService
 
-        await self.db.execute(select(Order.id).where(
-            Order.id == order_id, Order.company_id == company_id,
-        ).with_for_update())
-        order = await self.get(company_id, order_id)
+        order = await self.get(company_id, order_id, for_update=True)
         operation = None
         if idempotency_key is not None:
             claim = await FinancialOperationService(self.db).claim(
@@ -809,6 +828,11 @@ class OrderService:
         order.receipt_printed_at = None
         if order.status in ("ready", "new", "accepted"):
             order.status = "cooking"
+        # Новые позиции всегда pending: если раздача уже подтвердила выдачу,
+        # подтверждение недействительно. Без сброса заказ остаётся за фильтром
+        # доски повара (expo_confirmed_at IS NULL) и дозаказ туда не попадает.
+        order.expo_confirmed_at = None
+        order.expo_confirmed_by_id = None
         self._recalculate_totals(
             order, None,
             await self._effective_service_rate(company_id, order, None),
@@ -822,6 +846,17 @@ class OrderService:
         if operation is not None:
             FinancialOperationService.complete(operation, {"item_ids": [str(item.id) for item in created]})
         await self.db.commit()
+        # Дозаказ обязан появиться на кухонном экране сразу. create() шлёт
+        # new_order, а add_items раньше молчал: блюда приезжали только со
+        # следующим опросом (5 с) и без звука. order_updated заставит KDS
+        # перечитать заказ, включая возврат ready → cooking.
+        try:
+            await kitchen_manager.broadcast(
+                company_id, order.branch_id, "order_updated",
+                {"order_id": str(order.id), "status": order.status},
+            )
+        except Exception:
+            pass
         await printer_service.notify_kitchen_additions(company_id, jobs)
         return await self.get(company_id, order_id)
 
@@ -832,7 +867,7 @@ class OrderService:
         reason: str | None = None, user: User | None = None, pin: str | None = None,
         commit: bool = True,
     ) -> Order:
-        order = await self.get(company_id, order_id)
+        order = await self.get(company_id, order_id, for_update=True)
         if order.status in ("completed", "cancelled"):
             raise ValidationError("Нельзя удалить позицию из завершённого или отменённого заказа")
         # Опциональное подтверждение (инертно без company.cancel_password);
@@ -860,11 +895,19 @@ class OrderService:
             service_base=await self._service_base_q(order.id),
             tax_rate=await self._vat_rate(order),
         )
+        await self.sync_readiness(order)
         if not commit:
             # Пакетная правка (adjust_items): коммит и аудит делает вызывающий.
             await self.db.flush()
             return order
         await self.db.commit()
+        try:
+            await kitchen_manager.broadcast(
+                company_id, order.branch_id, "order_updated",
+                {"order_id": str(order.id), "status": order.status},
+            )
+        except Exception:
+            pass
         try:
             await AuditService(self.db).log(
                 company_id, user.id if user else None, "order.remove_item", "order_item",
@@ -888,10 +931,7 @@ class OrderService:
         `create()` — дозаказ и правка количества его не печатают. Дневной
         лимит двигаем на ДЕЛЬТУ: старая порция уже сидит в sold_count.
         """
-        await self.db.execute(select(Order.id).where(
-            Order.id == order_id, Order.company_id == company_id,
-        ).with_for_update())
-        order = await self.get(company_id, order_id)
+        order = await self.get(company_id, order_id, for_update=True)
         if order.status in ("completed", "cancelled"):
             raise ValidationError("Нельзя изменить позицию завершённого или отменённого заказа")
 
@@ -949,11 +989,21 @@ class OrderService:
             service_base=await self._service_base_q(order.id),
             tax_rate=await self._vat_rate(order),
         )
+        if delta > 0 and item.status in ("ready", "served"):
+            item.status = "cooking"
+        await self.sync_readiness(order)
         if not commit:
             # Пакетная правка (adjust_items): коммит и аудит делает вызывающий.
             await self.db.flush()
             return order
         await self.db.commit()
+        try:
+            await kitchen_manager.broadcast(
+                company_id, order.branch_id, "order_updated",
+                {"order_id": str(order.id), "status": order.status},
+            )
+        except Exception:
+            pass
         try:
             await AuditService(self.db).log(
                 company_id, user.id if user else None, "order.set_item_quantity", "order_item",
@@ -1044,7 +1094,7 @@ class OrderService:
         self, company_id: UUID, order_id: UUID, data: OrderUpdate,
         user: User | None = None,
     ) -> Order:
-        order = await self.get(company_id, order_id)
+        order = await self.get(company_id, order_id, for_update=True)
         if order.status in ("completed", "cancelled"):
             raise ValidationError("Нельзя редактировать завершённый или отменённый заказ")
 

@@ -87,6 +87,53 @@ export function IconArrow({ size }) {
   );
 }
 
+export function IconBack({ size }) {
+  return (
+    <Svg size={size}>
+      <path d="M19.5 12h-14" />
+      <path d="m10.5 7-5 5 5 5" />
+    </Svg>
+  );
+}
+
+export function IconEye({ size }) {
+  return (
+    <Svg size={size}>
+      <path d="M2.8 12S6.4 5.8 12 5.8 21.2 12 21.2 12 17.6 18.2 12 18.2 2.8 12 2.8 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </Svg>
+  );
+}
+
+export function IconEyeOff({ size }) {
+  return (
+    <Svg size={size}>
+      <path d="M4 4.5 20 19.5" />
+      <path d="M9.9 6.3A9.7 9.7 0 0 1 12 6c5.6 0 9.2 6 9.2 6a17 17 0 0 1-3.2 3.9" />
+      <path d="M6.4 8.1A17.4 17.4 0 0 0 2.8 12s3.6 6 9.2 6a9.8 9.8 0 0 0 3.5-.7" />
+    </Svg>
+  );
+}
+
+export function IconUndo({ size }) {
+  return (
+    <Svg size={size}>
+      <path d="M5.5 9.5h8.7a4.8 4.8 0 0 1 0 9.6H8.5" />
+      <path d="m9.5 5.5-4 4 4 4" />
+    </Svg>
+  );
+}
+
+export function IconTv({ size }) {
+  return (
+    <Svg size={size}>
+      <rect x="3.5" y="6.2" width="17" height="11.6" rx="2.2" />
+      <path d="M9.2 20.4h5.6" />
+      <path d="M12 17.8v2.6" />
+    </Svg>
+  );
+}
+
 export function IconWifi({ size }) {
   return (
     <Svg size={size}>

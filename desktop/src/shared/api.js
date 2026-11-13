@@ -525,6 +525,15 @@ export const reports = {
   },
 }
 
+// Экран очереди для гостей (ТВ или второй монитор). Флаг живёт на филиале:
+// выключенный экран не получает номера заказов, даже если касса работает.
+export const guestDisplay = {
+  get: (branchId) =>
+    api.get('/kitchen/display/settings', { params: { branch_id: branchId } }).then((r) => r.data),
+  setEnabled: (branchId, enabled) =>
+    api.patch('/kitchen/display/settings', { branch_id: branchId, enabled }).then((r) => r.data),
+}
+
 export const stopList = {
   list: (branchId) => api.get('/inventory/stop-list', { params: { branch_id: branchId } }).then((r) => r.data),
   add: (productId, branchId) => api.post('/inventory/stop-list', { product_id: productId, branch_id: branchId }).then((r) => r.data),

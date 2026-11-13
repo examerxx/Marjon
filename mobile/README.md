@@ -1,16 +1,57 @@
-# marjon_mobile
+# marjon_mobile — рабочее место сотрудника
 
-A new Flutter project.
+Flutter-клиент Marjon POS: официант, кассир, кухня (KDS), раздача. Ходит в тот же
+`/api/v1`, что веб-панель и десктоп (см. `docs/ONBOARDING.md`, раздел «Мобильный клиент»).
 
-## Getting Started
+## Обычный запуск (Android / эмулятор)
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run                     # по умолчанию https://api.marjon.tech/api/v1
+flutter run --dart-define=MARJON_API=http://10.0.2.2:8000/api/v1   # эмулятор → локальный бэкенд
+```
 
-A few resources to get you started if this is your first Flutter project:
+Для iOS нужен macOS + Xcode: с Windows нативное приложение под iPhone собрать нельзя.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Запуск на iPhone с Windows (через браузер)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Тот же код собирается в Flutter Web и хостится на ПК в локальной сети. ПК проксирует
+`/api/*` и `/ws/*` в прод, поэтому запросы идут с одного origin — CORS и mixed content
+не мешают, а продакшн-конфиг трогать не нужно.
+
+1. Собрать с адресом ПК в локальной сети:
+
+   ```bash
+   flutter pub get
+   flutter build web --release --no-web-resources-cdn \
+     --dart-define=MARJON_API=http://<IP-ПК>:8080/api/v1
+   ```
+
+2. Поднять хост (порт 8080, доступен всей сети):
+
+   ```bash
+   python tool/serve_web.py            # --port, --upstream, --root — по необходимости
+   ```
+
+3. На iPhone открыть `http://<IP-ПК>:8080` в Safari. Вход — телефон и пароль
+   сотрудника из продакшна.
+
+Адрес ПК: `ipconfig` → IPv4. Если адрес сменился, пересоберите проект (шаг 1) или
+поправьте сервер прямо в приложении: иконка сервера в правом верхнем углу экрана входа.
+
+### Если телефон не открывает страницу
+
+- ПК и телефон должны быть в одной Wi-Fi-сети, ПК не должен спать.
+- Брандмауэр Windows: разрешить входящие для `python.exe` в частной сети либо запустить
+  хост интерпретатором, у которого правило уже есть.
+- Порт занят: `python tool/serve_web.py --port 8081` (и пересобрать с новым портом).
+
+`tool/serve_web.py` — только для локальной разработки: он отдаёт статику и туннелирует
+запросы на `api.marjon.tech` без дополнительной авторизации. В интернет его не выставлять.
+
+## Проверки
+
+```bash
+flutter analyze
+flutter test
+```

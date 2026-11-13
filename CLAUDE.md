@@ -2,7 +2,10 @@
 
 > Этот файл читается автоматически при каждой сессии.
 > Прочитай ПОЛНОСТЬЮ перед любой работой с кодом.
-> Последнее обновление: 2026-09-17 (сверено с кодом)
+> Последнее обновление: 2026-11-13 (сверено с кодом)
+>
+> Актуальное ТЗ — `docs/tz/MARJON_TZ_v3.md`. Инструкция для нового разработчика —
+> `docs/ONBOARDING.md`. Индекс документации — `docs/README.md`.
 
 ---
 
@@ -26,7 +29,8 @@ POS-касса, кухонный дисплей (KDS), склад, достав�
 | Backend + Frontend | Обе части проекта доступны для работы |
 | Не пушь без просьбы | `git push` только когда пользователь явно просит |
 | Не создавай лишнего | Не добавляй фичи, абстракции и файлы сверх задания |
-| Desktop / Mobile / Owner | Код существует и рабочий (`desktop/`, `mobile/`, `owner/`) — меняй только по явному заданию, без расширения скоупа |
+| Desktop / Mobile | Код существует и рабочий (`desktop/`, `mobile/`) — меняй только по явному заданию, без расширения скоупа |
+| Owner App | `owner/` — legacy, в поставку не входит и не поддерживается |
 
 ---
 
@@ -37,7 +41,7 @@ POS-касса, кухонный дисплей (KDS), склад, достав�
 | Что | Технология | Заметки |
 |-----|-----------|---------|
 | UI | React 18, JSX | **Не TypeScript!** Весь код `.jsx` |
-| Сборка | Vite 5 | Multi-page: `index.html` (кафе POS) + `admin.html` (админка) |
+| Сборка | Vite 5 | Multi-page: `index.html` (панель владельца), `admin.html` (HQ), `kitchen.html`, `expo.html`, `tv.html` |
 | Роутинг | React Router v6 | `<Routes>` в `App.jsx` |
 | HTTP | Axios | Единый клиент в `src/api/client.js` |
 | Графики | Chart.js 4 | Используется в дашборде и отчётах |
@@ -48,8 +52,8 @@ POS-касса, кухонный дисплей (KDS), склад, достав�
 
 ### Backend
 
-FastAPI + Python 3.12 + SQLAlchemy 2.0 async + Alembic (59 версий в `migrations/versions/`) + PostgreSQL.
-31 модуль в `backend/app/modules/`. Swagger: `localhost:8000/docs`.
+FastAPI + Python 3.13 + SQLAlchemy 2.0 async + Alembic (100 ревизий в `migrations/versions/`) + PostgreSQL.
+32 модуля в `backend/app/modules/`. Swagger: `localhost:8000/docs`.
 
 Бэкенд можно менять. Сейчас активная работа над мобилкой и десктопом — бэкенд чиним потом.
 
@@ -334,12 +338,10 @@ dashboard-shell (display: flex, flex-direction: row)
 
 | Документ | Путь | Что внутри |
 |---------|------|-----------|
-| Общее ТЗ | `docs/tz/TZ_GENERAL.md` | Рынок, конкуренты, архитектура, безопасность, платежи, тестирование, оптимизация |
-| Web ТЗ | `docs/tz/TZ_WEB.md` | Все страницы web-панели, API-маршруты, demo fallback |
-| Mobile ТЗ | `docs/tz/TZ_MOBILE.md` | React Native + Expo, роли, экраны |
-| Desktop ТЗ | `docs/tz/TZ_DESKTOP.md` | Electron KDS для поваров |
-| Дополнение | `docs/tz/TZ_ADDENDUM.md` | User stories, offline-сценарии, боли рынка |
-| Техдока | `docs/DOCUMENTATION.md` | Архитектура, модели, API endpoints |
+| ТЗ v3 (as-built) | `docs/tz/MARJON_TZ_v3.md` | Полное описание реализованной системы: роли, архитектура, процессы, экраны, данные, API, ограничения |
+| Онбординг | `docs/ONBOARDING.md` | Запуск, карта кода, процессы, деплой — для нового разработчика |
+| Индекс документации | `docs/README.md` | Что актуально, что историческое |
+| Техдока (историческая) | `docs/DOCUMENTATION.md` | Архитектура, модели, API endpoints |
 | Стайлгайд | `docs/STYLEGUIDE.md` | Дизайн-система, палитра, компоненты |
 
 ---
@@ -364,7 +366,7 @@ dashboard-shell (display: flex, flex-direction: row)
 | Web Admin Panel | 🟢 ~80% MVP | `frontend/` (owner-only gate, см. 5.1) |
 | Desktop (касса, официант, кухня) | 🟢 Рабочий | `desktop/` (Electron 28, offline-очередь; детали и лимиты — OFFLINE_PLAN.md) |
 | Mobile App (Flutter) | 🟡 Рабочий скелет | `mobile/` |
-| Owner App (Flutter) | 🟡 Рабочий скелет | `owner/` |
+| Owner App (Flutter) | ⚪ Legacy | `owner/` (в поставку не входит, не поддерживается) |
 | Payment gateways (Go) | 🟢 Рабочие | `services/click-gateway`, `services/payme-gateway`, `services/uzum-gateway` |
 | Print Agent | 🟢 Рабочий | `backend/print_agent/` (polling → TCP 9100) |
 | Админка (HQ) | 🟡 Частично | `frontend/src/admin/` |
