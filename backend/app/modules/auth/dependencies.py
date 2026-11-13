@@ -28,6 +28,7 @@ KITCHEN_ALLOWED_PATHS: tuple[str, ...] = (
     "/api/v1/auth/refresh",
     "/api/v1/auth/logout",
     "/api/v1/auth/kitchen/pin",
+    "/api/v1/auth/kitchen/cooks",
 )
 
 
@@ -176,7 +177,10 @@ async def require_kitchen_device(
         raise ForbiddenError("Kitchen terminal session required")
     if current_user.company_id is None or current_user.is_superadmin:
         raise ForbiddenError("Company app identity required")
-    if not getattr(current_user, "branch_id", None):
+    if not (
+        getattr(current_user, "branch_id", None)
+        or getattr(current_user, "token_branch_id", None)
+    ):
         raise ForbiddenError("Kitchen terminal must be bound to a branch")
     return current_user
 

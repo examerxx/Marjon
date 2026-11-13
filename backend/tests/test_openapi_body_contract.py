@@ -26,6 +26,7 @@ REQUIRED_BODY_ROUTES = {
     # KDS: настройка кухонного экрана и вход повара по PIN — тоже
     # rate-limited POST'ы с конкретными моделями тела.
     "/api/v1/auth/kitchen/session": "BranchLoginRequest",
+    "/api/v1/auth/kitchen/monoblock-session": "KitchenMonoblockLoginRequest",
     "/api/v1/auth/kitchen/pin": "KitchenPinRequest",
     "/api/v1/pos/orders": "OrderCreate",
 }
@@ -77,6 +78,17 @@ def test_all_slowapi_limited_routes_keep_concrete_body_models():
         if isinstance(route, APIRoute)
         and f"{route.endpoint.__module__}.{route.endpoint.__name__}" in limited_endpoint_names
     ]
+
+    # Публичный ТВ-экран посетителей и список поваров для кухонного терминала —
+    # rate-limited GET'ы без тела запроса: филиал берётся из query/токена.
+    # Они не входят в контракт «body-модель не подменена на query» и перечислены
+    # явно, чтобы лимит на публичной ручке не остался незамеченным.
+    bodyless_limited = {route.path for route in limited_routes if not route.dependant.body_params}
+    assert bodyless_limited == {
+        "/api/v1/kitchen/display",
+        "/api/v1/auth/kitchen/cooks",
+    }
+    limited_routes = [route for route in limited_routes if route.dependant.body_params]
 
     assert {route.path for route in limited_routes} == set(REQUIRED_BODY_ROUTES)
     for route in limited_routes:

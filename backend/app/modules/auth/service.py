@@ -28,11 +28,18 @@ from app.modules.audit.service import AuditService
 from app.modules.companies.models import Branch, Company
 from app.modules.nomenclature.default_units import seed_default_units
 from app.modules.rbac.models import Role, UserRole
-from app.modules.rbac.constants import COMPANY_ROLE_SLUGS
+from app.modules.rbac.constants import COMPANY_ROLE_SLUGS, KITCHEN_ROLE_SLUGS
 from app.modules.rbac.permissions import reconcile_frozen_owner_permissions, sync_role_permissions
 from app.modules.rbac.service import RBACService
 from app.shared.phone import normalize_branch_login
-from app.shared.exceptions import ConflictError, ForbiddenError, NotFoundError, UnauthorizedError, ValidationError
+from app.shared.exceptions import (
+    BranchSelectionRequiredError,
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+    UnauthorizedError,
+    ValidationError,
+)
 
 # BE-08: PIN brute-force throttling, independent of the global rate limiter
 # on POST /auth/pin-login — this locks the SPECIFIC account after repeated
@@ -346,13 +353,26 @@ class AuthService:
         return terminal
 
     async def login_by_monoblock(
-        self, phone: str, password: str, *, device_id: str | None = None
+        self,
+        phone: str,
+        password: str,
+        *,
+        device_id: str | None = None,
+        auth_scope: str = "app",
+        branch_id: UUID | None = None,
+        permission_key: str | None = None,
     ) -> tuple[User, "Branch | None", "Company", str, str]:
         """Десктоп, шаг 1: вход по телефону+паролю аккаунта моноблока
         (карточка users/monoblock в вебе). У моноблока нет PIN — дальше десктоп
         идёт в /auth/staff-users и /auth/pin-login как раньше. Контракт ответа
         повторяет старый branch-login (токен + branch/company), чтобы десктоп
-        сохранял привязку атомарно."""
+        сохранял привязку атомарно.
+
+        Кухонный экран (auth_scope="kitchen") входит тем же логином моноблока,
+        если в карточке включён тумблер «Кухня» (permission_key="can_kitchen").
+        Сессия привязывается к филиалу: у моноблока он обычно не задан, поэтому
+        берём единственный филиал компании, а при нескольких — просим выбрать.
+        """
         raw = phone.strip()
         # Телефоны в базе лежат вперемешку с "+" и без — ищем оба варианта.
         candidates = [raw]
@@ -382,16 +402,131 @@ class AuthService:
         )).scalars().all())
         if "monoblock" not in role_slugs:
             raise ForbiddenError("Вход с десктопа — только для аккаунта моноблока")
-        branch = await self.db.get(Branch, user.branch_id) if user.branch_id else None
-        if branch is not None and (not branch.is_active or branch.company_id != user.company_id):
-            branch = None
+        if permission_key is not None:
+            permissions = user.permissions if isinstance(user.permissions, dict) else {}
+            if permissions.get(permission_key) is not True:
+                raise ForbiddenError(
+                    "Кухня выключена в карточке моноблока — включите тумблер «Кухня»"
+                    if permission_key == "can_kitchen"
+                    else "Недостаточно прав для этого входа"
+                )
+        branch = await self._resolve_monoblock_branch(user, branch_id, auth_scope)
         company = await self.db.get(Company, user.company_id)
 
-        access_token = create_access_token(user.id, user.company_id, auth_version=user.auth_version)
-        refresh_token = create_refresh_token()
+        if auth_scope == "kitchen":
+            # Кухонный экран живёт под сессией филиала, как при входе по
+            # логину филиала: только так филиал переживает обновление access-
+            # токена (у моноблока колонки branch_id обычно нет). Логин
+            # моноблока — лишь пропуск: он проверен выше вместе с can_kitchen.
+            terminal = await self._ensure_branch_principal(branch)
+            access_token = create_access_token(
+                terminal.id,
+                terminal.company_id,
+                auth_scope="kitchen",
+                branch_id=branch.id,
+            )
+            refresh_token = create_refresh_token(auth_scope="kitchen")
+            await self._save_refresh_token(terminal.id, refresh_token, device_id=device_id)
+            return user, branch, company, access_token, refresh_token
+
+        access_token = create_access_token(
+            user.id,
+            user.company_id,
+            auth_scope=auth_scope,
+            auth_version=user.auth_version,
+            branch_id=branch.id if branch is not None else None,
+        )
+        refresh_token = create_refresh_token(auth_scope=auth_scope)
         await self._save_refresh_token(user.id, refresh_token, device_id=device_id)
 
         return user, branch, company, access_token, refresh_token
+
+    async def _resolve_monoblock_branch(
+        self, user: User, branch_id: UUID | None, auth_scope: str
+    ) -> "Branch | None":
+        """Филиал для сессии моноблока. Для десктопа (app) поведение прежнее:
+        только явная привязка пользователя. Кухонному экрану филиал обязателен,
+        поэтому без привязки берём единственный филиал компании, а при
+        нескольких — сигналим клиенту, что нужно выбрать."""
+        if branch_id is not None:
+            branch = await self.db.get(Branch, branch_id)
+            if branch is None or branch.company_id != user.company_id:
+                raise ValidationError("Филиал не найден в этой компании")
+            if not branch.is_active:
+                raise ValidationError("Филиал неактивен")
+            return branch
+
+        if user.branch_id is not None:
+            branch = await self.db.get(Branch, user.branch_id)
+            if branch is not None and branch.is_active and branch.company_id == user.company_id:
+                return branch
+            return None
+
+        if auth_scope != "kitchen":
+            return None
+
+        branches = list((await self.db.execute(
+            select(Branch)
+            .where(Branch.company_id == user.company_id, Branch.is_active.is_(True))
+            .order_by(Branch.name)
+        )).scalars().all())
+        if len(branches) == 1:
+            return branches[0]
+        if not branches:
+            raise ValidationError(
+                "У компании нет активных филиалов — кухонный экран некуда привязать"
+            )
+        raise BranchSelectionRequiredError(
+            [{"id": str(branch.id), "name": branch.name} for branch in branches]
+        )
+
+    async def list_kitchen_cooks(self, company_id: UUID, branch_id: UUID) -> list[dict]:
+        """Повара филиала для списка выбора на кухонном экране.
+
+        Филиал сотрудника — User.branch_id либо HR-запись: реальный редактор
+        сотрудников пишет филиал туда, поэтому смотреть только колонку нельзя.
+        «Сетевые» повара без привязки видны во всех филиалах, как в PIN-поиске."""
+        from app.modules.hr.models import Employee
+
+        emp_branches: dict[UUID, set[UUID]] = {}
+        for user_id, emp_branch in (await self.db.execute(
+            select(Employee.user_id, Employee.branch_id).where(
+                Employee.company_id == company_id
+            )
+        )).all():
+            if emp_branch is not None:
+                emp_branches.setdefault(user_id, set()).add(emp_branch)
+
+        users = list((await self.db.execute(
+            select(User)
+            .join(UserRole, UserRole.user_id == User.id)
+            .join(Role, Role.id == UserRole.role_id)
+            .where(
+                User.company_id == company_id,
+                User.is_active.is_(True),
+                Role.slug.in_(KITCHEN_ROLE_SLUGS),
+            )
+            .order_by(User.name, User.created_at)
+        )).scalars().unique().all())
+
+        result: list[dict] = []
+        for user in users:
+            if user.is_superadmin:
+                continue
+            user_branches = (
+                ({user.branch_id} if user.branch_id else set())
+                | emp_branches.get(user.id, set())
+            )
+            if user_branches and branch_id not in user_branches:
+                continue
+            result.append(
+                {
+                    "id": user.id,
+                    "name": user.name or user.phone or user.email or "Повар",
+                    "has_pin": user.pin_hash is not None,
+                }
+            )
+        return result
 
     async def _ensure_branch_principal(self, branch: "Branch") -> User:
         """Служебный аккаунт-принципал филиала. Токен привязан к user.id, поэтому
@@ -763,8 +898,34 @@ class AuthService:
                 auth_scope = "kitchen"
             else:
                 auth_scope = "app"
+            # Кухонная сессия должна остаться привязанной к филиалу: без claim
+            # в новом access-токене /kitchen/orders после первого продления
+            # отвечает 422 «branch_id is required». Берём филиал сотрудника,
+            # затем HR-запись, затем единственный филиал компании.
+            branch_id = None
+            if auth_scope == "kitchen":
+                branch_id = user.branch_id
+                if branch_id is None:
+                    from app.modules.hr.models import Employee
+                    branch_id = (await self.db.execute(
+                        select(Employee.branch_id)
+                        .where(Employee.user_id == user.id)
+                        .limit(1)
+                    )).scalar_one_or_none()
+                if branch_id is None:
+                    company_branches = list((await self.db.execute(
+                        select(Branch.id)
+                        .where(Branch.company_id == user.company_id, Branch.is_active.is_(True))
+                        .order_by(Branch.name)
+                        .limit(2)
+                    )).scalars().all())
+                    branch_id = company_branches[0] if len(company_branches) == 1 else None
             new_access = create_access_token(
-                user.id, user.company_id, auth_scope=auth_scope, auth_version=user.auth_version
+                user.id,
+                user.company_id,
+                auth_scope=auth_scope,
+                auth_version=user.auth_version,
+                branch_id=branch_id,
             )
             new_refresh = create_refresh_token(auth_scope=auth_scope)
             now = datetime.now(timezone.utc)

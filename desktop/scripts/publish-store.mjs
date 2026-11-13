@@ -37,9 +37,16 @@ if (!existsSync(distDir)) {
   process.exit(1);
 }
 
-const artifacts = readdirSync(distDir).filter((name) => name.toLowerCase().endsWith(".exe"));
+// В dist копятся сборки прошлых версий: electron-builder их не удаляет.
+// Берём только .exe текущей версии, иначе в магазин уедет старый бинарник.
+const allArtifacts = readdirSync(distDir).filter((name) => name.toLowerCase().endsWith(".exe"));
+const artifacts = allArtifacts.filter((name) => name.includes(version));
+const skipped = allArtifacts.filter((name) => !name.includes(version));
+if (skipped.length) {
+  console.log(`Пропущены чужие версии: ${skipped.join(", ")}`);
+}
 if (!artifacts.length) {
-  console.error(`В ${distDir} нет .exe — сборка не дала установщиков.`);
+  console.error(`В ${distDir} нет .exe версии ${version} — соберите «npm run package».`);
   process.exit(1);
 }
 

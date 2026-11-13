@@ -130,7 +130,7 @@ describe("kitchen page (/users/kitchen) matches the staff template", () => {
     expect(within(dialog).getByText("Добавить повара")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Имя повара")).toBeInTheDocument();
     expect(within(dialog).getByText("PIN для кухни")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("4 цифры")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("4–8 цифр")).toBeInTheDocument();
 
     // Статус + два кухонных права.
     expect(within(dialog).getByRole("button", { name: /Статус/ })).toBeInTheDocument();
@@ -164,7 +164,7 @@ describe("kitchen page (/users/kitchen) matches the staff template", () => {
     fireEvent.change(screen.getByPlaceholderText("Имя повара"), { target: { value: "Cook Two" } });
     fireEvent.change(dialog.querySelector(".staff-phone-field input"), { target: { value: "+998901112233" } });
     fireEvent.change(screen.getByPlaceholderText("Пароль"), { target: { value: "Cook1234" } });
-    fireEvent.change(screen.getByPlaceholderText("4 цифры"), { target: { value: "4321" } });
+    fireEvent.change(screen.getByPlaceholderText("4–8 цифр"), { target: { value: "4321" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Печать на принтер повара" }));
     fireEvent.click(within(dialog).getByRole("button", { name: "Печать отмены заказа" }));
     fireEvent.click(within(dialog).getByRole("button", { name: "Добавить" }));

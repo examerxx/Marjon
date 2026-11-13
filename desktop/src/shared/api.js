@@ -352,6 +352,8 @@ export const orders = {
   },
   update: (id, data) => api.patch(`/pos/orders/${id}`, data).then((r) => r.data),
   addItem: (orderId, data) => api.post(`/pos/orders/${orderId}/items`, data).then((r) => r.data),
+  // Пакетный дозаказ: одна команда — один кухонный тикет на все новые блюда.
+  addItems: (orderId, items) => api.post(`/pos/orders/${orderId}/items/bulk`, { items }).then((r) => r.data),
   // reason — причина удаления (журналируется на бэкенде: кто/когда/почему удалил позицию)
   removeItem: (orderId, itemId, reason) => api.delete(`/pos/orders/${orderId}/items/${itemId}`, {
     params: reason ? { reason } : {},
@@ -511,6 +513,15 @@ export const reports = {
       params: period ? { date_from: from, date_to: to } : { date: from },
     }).then((r) => r.data)
   },
+}
+
+// Экран очереди для гостей (ТВ или второй монитор). Флаг живёт на филиале:
+// выключенный экран не получает номера заказов, даже если касса работает.
+export const guestDisplay = {
+  get: (branchId) =>
+    api.get('/kitchen/display/settings', { params: { branch_id: branchId } }).then((r) => r.data),
+  setEnabled: (branchId, enabled) =>
+    api.patch('/kitchen/display/settings', { branch_id: branchId, enabled }).then((r) => r.data),
 }
 
 export const stopList = {

@@ -14,8 +14,8 @@ from app.modules.auth.dependencies import (
 )
 from app.modules.auth.models import User
 from app.modules.pos.schemas import (
-    OrderCreate, OrderItemCreate, OrderItemQuantityUpdate, OrderItemWaiterUpdate, OrderResponse,
-    OrderReopen, OrderStatusUpdate, OrderUpdate,
+    OrderCreate, OrderItemCreate, OrderItemQuantityUpdate, OrderItemWaiterUpdate, OrderItemsAdd,
+    OrderResponse, OrderReopen, OrderStatusUpdate, OrderUpdate,
     TerminalCreate, TerminalResponse,
     ShiftOpen, ShiftClose, ShiftResponse, MyShiftSummary,
 )
@@ -109,6 +109,12 @@ async def cancel_order(order_id: UUID, password: str | None = Query(None), comme
 @router.post("/orders/{order_id}/items", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
 async def add_item(order_id: UUID, data: OrderItemCreate, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
     return await OrderService(db, branch_scope=effective_branch_filter(user)).add_item(user.company_id, order_id, data, user)
+
+
+@router.post("/orders/{order_id}/items/bulk", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
+async def add_items(order_id: UUID, data: OrderItemsAdd, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
+    """Дозаказ пачкой: новые блюда уходят повару одним кухонным тикетом."""
+    return await OrderService(db, branch_scope=effective_branch_filter(user)).add_items(user.company_id, order_id, data.items, user)
 
 
 @router.delete("/orders/{order_id}/items/{item_id}", response_model=OrderResponse)

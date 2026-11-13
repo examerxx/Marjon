@@ -1,0 +1,775 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Экран «Раздача» (expo). Отдельный сайт между кухней и ТВ гостей:
+   сотрудник подтверждает, что повар всё сделал, и заказ уходит на экран.
+   Дизайн — тот же, что у кухни и десктопа: тёмная navy/teal-канва,
+   плавающая белая панель сверху, белые карточки с бирюзовой шапкой,
+   а вход — белая карточка по центру, как на логине десктопа.
+   ───────────────────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--neutral-950);
+  color: var(--neutral-100);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+button {
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--teal-400);
+  outline-offset: 2px;
+}
+
+/* ── Вход: белая карточка на тёмной канве (как логин десктопа) ─────────── */
+
+.expo-auth {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100dvh;
+  padding: 16px;
+  background: linear-gradient(135deg, var(--neutral-950) 0%, var(--neutral-900) 100%);
+  overflow: hidden;
+}
+
+.expo-auth__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at top right, rgba(29, 181, 181, 0.16) 0%, transparent 55%),
+    radial-gradient(ellipse at bottom left, rgba(37, 99, 235, 0.14) 0%, transparent 52%);
+}
+
+.expo-gate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: min(420px, 100%);
+  max-height: calc(100dvh - 32px);
+  padding: 30px 28px 28px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 32px 80px rgba(3, 16, 28, 0.5), 0 8px 24px rgba(3, 16, 28, 0.24);
+  color: var(--neutral-900);
+  overflow: auto;
+}
+
+.expo-brand-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.expo-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--teal-500);
+}
+
+.expo-brand-mark img {
+  display: block;
+  width: 52px;
+  height: auto;
+  object-fit: contain;
+}
+
+.expo-brand-mark b {
+  font-family: var(--font-display);
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.expo-gate__title {
+  margin: 6px 0 0;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #101c2a;
+}
+
+.expo-gate__sub {
+  margin: 0;
+  max-width: 320px;
+  color: #6b7c93;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.expo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.expo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.expo-field__label {
+  color: #6b7c93;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.expo-field__phone,
+.expo-field__pw {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 50px;
+  border: 1px solid rgba(22, 40, 63, 0.16);
+  border-radius: 12px;
+  background: #f6f9fc;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.expo-field__phone:focus-within,
+.expo-field__pw:focus-within {
+  border-color: var(--teal-500);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(29, 181, 181, 0.18);
+}
+
+.expo-field__prefix {
+  padding: 0 10px 0 14px;
+  border-right: 1px solid rgba(22, 40, 63, 0.12);
+  color: #33475d;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.expo-field__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: #16283f;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.expo-field__phone .expo-field__input {
+  padding-left: 12px;
+}
+
+.expo-field__input:focus {
+  outline: none;
+}
+
+.expo-field__pw .expo-field__input {
+  padding-right: 46px;
+}
+
+.expo-eye {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #6b7c93;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.expo-eye:hover {
+  background: #e8eff7;
+  color: #33475d;
+}
+
+.expo-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px 13px;
+  border-radius: 11px;
+  background: #fef2f2;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.expo-error svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.expo-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 52px;
+  margin-top: 2px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--teal-500);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.12s ease;
+}
+
+.expo-submit:hover:not(:disabled) {
+  background: var(--teal-600);
+}
+
+.expo-submit:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.expo-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ── Доска: та же канва, что у кухни ──────────────────────────────────── */
+
+.expo {
+  --expo-canvas-1: #4a6578;
+  --expo-canvas-2: #365468;
+  --expo-canvas-3: #223a4d;
+  --expo-canvas-4: #16283a;
+  --expo-teal-a: #12b2b2;
+  --expo-teal-b: #0a8e9b;
+  --expo-green-a: #45b87a;
+  --expo-green-b: #2f7f55;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100dvh;
+  padding: 10px;
+  overflow: hidden;
+  background:
+    radial-gradient(130% 120% at 12% 0%, var(--expo-canvas-1) 0%, var(--expo-canvas-2) 38%, var(--expo-canvas-3) 72%, var(--expo-canvas-4) 100%);
+  color: #fff;
+}
+
+/* ── Плавающая белая панель сверху ────────────────────────────────────── */
+
+.expo-topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 0 0 auto;
+  height: 62px;
+  padding: 0 12px 0 16px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fafd 100%);
+  box-shadow: 0 18px 40px -26px rgba(3, 16, 28, 0.65);
+  color: #16283f;
+}
+
+.expo-topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.expo-topbar__logo {
+  width: 46px;
+  height: auto;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.expo-topbar__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.expo-topbar__text b {
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #101c2a;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expo-topbar__text small {
+  overflow: hidden;
+  max-width: 230px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6f85;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expo-topbar__rule {
+  width: 1px;
+  height: 38px;
+  flex: 0 0 auto;
+  background: rgba(22, 40, 63, 0.12);
+}
+
+.expo-count {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: rgba(29, 181, 181, 0.12);
+  color: #0e8080;
+  font-size: 13.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.expo-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.expo-offline {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.expo-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(22, 40, 63, 0.14);
+  border-radius: 12px;
+  background: #fff;
+  color: #33475d;
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+
+.expo-logout:hover {
+  border-color: rgba(22, 40, 63, 0.24);
+  background: #eef3f9;
+}
+
+/* ── Доска заказов ────────────────────────────────────────────────────── */
+
+.expo-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: 14px 16px;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 2px 2px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.expo-board::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.expo-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #fff;
+  color: #16283f;
+  box-shadow: 0 16px 30px -24px rgba(0, 0, 0, 0.72);
+  animation: expo-card-in 260ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes expo-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.expo-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px 13px;
+  background: linear-gradient(135deg, var(--expo-teal-a), var(--expo-teal-b));
+  color: #fff;
+}
+
+.expo-card__id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.expo-card__eyebrow {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.expo-card__num {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+
+.expo-table {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.expo-table b {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.expo-table--muted {
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.expo-card__items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 14px 16px 16px;
+  list-style: none;
+}
+
+.expo-card__items li {
+  display: flex;
+  gap: 8px;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.expo-card__items b {
+  flex: 0 0 auto;
+  color: #0a8e9b;
+  font-variant-numeric: tabular-nums;
+}
+
+.expo-card__more {
+  color: #6b7c93;
+  font-weight: 700;
+}
+
+.expo-card__foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding: 12px 14px 14px;
+  border-top: 1px solid rgba(22, 40, 63, 0.06);
+  background: #eaf4fd;
+}
+
+.expo-card__age {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #5a6c80;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.expo-confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  flex: 1 1 auto;
+  height: 58px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--expo-green-a), var(--expo-green-b));
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 14px 26px -18px rgba(47, 127, 85, 0.95);
+  transition: filter 0.16s ease, transform 0.12s ease;
+}
+
+.expo-confirm:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.expo-confirm:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.expo-confirm:disabled {
+  background: #dbe3eb;
+  color: #7a8ba0;
+  box-shadow: none;
+  cursor: default;
+}
+
+/* ── Пустые состояния ─────────────────────────────────────────────────── */
+
+.expo-state {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 560px;
+  margin: 6vh auto 0;
+  padding: 36px 32px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 18px 40px -26px rgba(3, 16, 28, 0.65);
+  color: #16283f;
+  text-align: center;
+}
+
+.expo-state--empty {
+  margin-top: 12vh;
+}
+
+.expo-state__eyebrow {
+  margin: 0;
+  color: #7a8ba0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.expo-state__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  color: #101c2a;
+}
+
+.expo-state__text {
+  max-width: 440px;
+  margin: 0;
+  color: #5a6c80;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ── Тост ──────────────────────────────────────────────────────────────── */
+
+.expo-toast {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  z-index: 60;
+  padding: 13px 18px;
+  border-radius: 12px;
+  background: #101c2a;
+  box-shadow: 0 20px 44px -18px rgba(0, 0, 0, 0.8);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  animation: expo-toast-in 240ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes expo-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* ── Адаптив ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .expo-topbar {
+    height: auto;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .expo-topbar__rule {
+    display: none;
+  }
+
+  .expo-topbar__right {
+    gap: 8px;
+  }
+
+  .expo-board {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .expo {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .expo-topbar__text small {
+    max-width: 150px;
+  }
+
+  .expo-logout {
+    height: 40px;
+    padding: 0 12px;
+  }
+
+  .expo-board {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .expo-card__num {
+    font-size: 26px;
+  }
+
+  .expo-card__items li {
+    font-size: 15px;
+  }
+
+  .expo-confirm {
+    height: 54px;
+    font-size: 15px;
+  }
+
+  .expo-gate {
+    padding: 24px 20px 22px;
+    border-radius: 16px;
+  }
+
+  .expo-state {
+    margin-top: 3vh;
+    padding: 28px 20px;
+  }
+}
+
+@media (max-height: 720px) {
+  .expo-gate {
+    gap: 14px;
+    padding: 22px 20px;
+  }
+
+  .expo-brand-mark img {
+    width: 44px;
+    height: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expo-card,
+  .expo-toast {
+    animation: none;
+  }
+
+  .expo-field__phone,
+  .expo-field__pw,
+  .expo-eye,
+  .expo-submit,
+  .expo-logout,
+  .expo-confirm {
+    transition: none;
+  }
+
+  .expo-submit:active:not(:disabled),
+  .expo-confirm:active:not(:disabled),
+  .expo-confirm:hover:not(:disabled) {
+    transform: none;
+    filter: none;
+  }
+}

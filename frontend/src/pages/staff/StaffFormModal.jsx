@@ -239,7 +239,7 @@ export default function StaffFormModal({
                   скрыта у менеджера/завсклада как «не поддерживается». */}
               <label className="cashier-photo__upload">
                 <Icon name="bi-camera" size={16} />
-               {t("pages.staff.staffformmodal.zagruzit_foto")}
+                {t("pages.staff.staffformmodal.zagruzit_foto")}
                 <input type="file" accept="image/*" onChange={handlePhotoChange} aria-label={t("pages.staff.staffformmodal.zagruzit_foto")} />
               </label>
             </div>
@@ -367,11 +367,11 @@ export default function StaffFormModal({
                   проверяется при сохранении, а не мелким текстом под полем. */}
               {editingId ? (
                 <small className="muted" id="staff-pin-hint">
-                 {t("pages.staff.staffformmodal.pusto_ostavit_prezhniy_pin_zabyli_kod_vvedite_novyy")}
+                  {t("pages.staff.staffformmodal.pusto_ostavit_prezhniy_pin_zabyli_kod_vvedite_novyy")}
                 </small>
               ) : isKitchenView ? null : (
                 <small className="muted" id="staff-pin-hint">
-                 {t("pages.staff.staffformmodal.kod_dlya_vhoda_na_kasse_mozhno_ostavit_pustym")}
+                  {t("pages.staff.staffformmodal.kod_dlya_vhoda_na_kasse_mozhno_ostavit_pustym")}
                 </small>
               )}
               {saveErrorField === "pin" && saveError ? (
@@ -520,10 +520,18 @@ export default function StaffFormModal({
               <span>{t("pages.staff.staffformmodal.pechat_otmeny_zakaza")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
-            {/* DESK-PERM-01: без этих двух тумблеров панели «Финансы» и
-                «Посещаемость» на десктопе было невозможно включить — их гейты
-                must(user, 'can_view_finance' / 'can_approve_attendance') не
-                находились ни в одном списке прав, и кнопки не показывались. */}
+            {/* Кухонный экран по логину моноблока: повара не заводят
+                отдельный вход, а выбирают себя на кухонном сайте и вводят PIN. */}
+            <button
+              className={`staff-permission-switch ${form.canKitchen ? "is-on" : ""}`}
+              type="button"
+              onClick={() => toggleForm("canKitchen")}
+              aria-pressed={Boolean(form.canKitchen)}
+            >
+              <span className="staff-permission-state-dot" aria-hidden="true" />
+              <span>{t("pages.staff.staffformmodal.dostup_k_kuhne")}</span>
+              <b className="staff-switch" aria-hidden="true" />
+            </button>
             <button
               className={`staff-permission-switch ${form.canViewFinance ? "is-on" : ""}`}
               type="button"
@@ -628,6 +636,19 @@ export default function StaffFormModal({
               <span>{t("pages.staff.staffformmodal.poseschaemost_prihod_uhod")}</span>
               <b className="staff-switch" aria-hidden="true" />
             </button>
+            {/* EXPO-01: отдельный экран «Раздача». С включённым правом
+                сотрудник входит на /expo по телефону и паролю и подтверждает
+                выдачу — только после этого заказ появляется на ТВ готовым. */}
+            <button
+              className={`staff-permission-switch ${form.canExpo ? "is-on" : ""}`}
+              type="button"
+              onClick={() => toggleForm("canExpo")}
+              aria-pressed={Boolean(form.canExpo)}
+            >
+              <span className="staff-permission-state-dot" aria-hidden="true" />
+              <span>{t("pages.staff.staffformmodal.razdacha")}</span>
+              <b className="staff-switch" aria-hidden="true" />
+            </button>
             </>
             )}
             </div>
@@ -689,7 +710,7 @@ export default function StaffFormModal({
 
           <div className="staff-form__footer">
             <button type="button" disabled={saving} onClick={closeModal}>
-             {t("pages.staff.staffformmodal.otmenit")}
+              {t("pages.staff.staffformmodal.otmenit")}
             </button>
             <button type="submit" disabled={saving}>{saving ? t("staff.saving") : editingId ? t("staff.save") : t("staff.add")}</button>
           </div>
@@ -792,7 +813,7 @@ export default function StaffFormModal({
             </div>
           </label>
           <label>
-            <span>{editingId ? "Новый пароль" : "Пароль *"}</span>
+            <span>{editingId ? t("Новый пароль") : "Пароль *"}</span>
             <div className="staff-password-field">
               <input
                 required={!editingId}
@@ -888,7 +909,7 @@ export default function StaffFormModal({
             </button>
           </div>
           <p id="staff-rbac-unavailable" className="muted" role="status">
-           {t("pages.staff.staffformmodal.detalnye_prava_dostupa_nedostupny_do_bi_06")}
+            {t("pages.staff.staffformmodal.detalnye_prava_dostupa_nedostupny_do_bi_06")}
           </p>
           <div className="staff-permission-matrix">
             {staffAccessModules.map((module) => {
@@ -909,7 +930,7 @@ export default function StaffFormModal({
                       title={t("pages.staff.staffformmodal.nedostupno_do_bi_06")}
                       onClick={() => toggleAccess(module.key)}
                       aria-pressed={Boolean(moduleAccess.enabled)}
-                      aria-label={`${t(module.label)}: ${moduleAccess.enabled ? "выключить" : "включить"}`}
+                      aria-label={`${t(module.label)}: ${moduleAccess.enabled ? t("common.disable") : t("common.enable")}`}
                     >
                       <b className="staff-mini-switch" aria-hidden="true" />
                     </button>
@@ -1054,7 +1075,7 @@ export default function StaffFormModal({
 
         <div className="staff-form__footer">
           <button type="button" disabled={saving} onClick={closeModal}>
-           {t("pages.staff.staffformmodal.otmena")}
+            {t("pages.staff.staffformmodal.otmena")}
           </button>
           <button type="submit" disabled={saving}>{saving ? t("staff.saving") : editingId ? t("staff.save") : t("staff.add")}</button>
         </div>
@@ -1062,7 +1083,6 @@ export default function StaffFormModal({
     </div>
   );
 }
-
 
 
 

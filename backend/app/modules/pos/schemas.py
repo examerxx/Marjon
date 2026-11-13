@@ -18,6 +18,12 @@ class OrderItemCreate(BaseSchema):
     takeaway: bool = False
 
 
+class OrderItemsAdd(BaseSchema):
+    """Пакетный дозаказ: касса отправляет все новые строки одной командой,
+    чтобы на кухне вышел один тикет, а не по тикету на каждую позицию."""
+    items: list[OrderItemCreate] = Field(..., min_length=1)
+
+
 class OrderCreate(BaseSchema):
     branch_id: UUID
     terminal_id: UUID | None = None
@@ -145,6 +151,10 @@ class OrderResponse(BaseResponseSchema):
     # Phase 1A cancellation truth (additive, nullable).
     cancelled_at: datetime | None = None
     cancelled_by_id: UUID | None = None
+    # EXPO-01: подтверждение раздачи. ТВ показывает заказ готовым только при
+    # заполненном expo_confirmed_at.
+    expo_confirmed_at: datetime | None = None
+    expo_confirmed_by_id: UUID | None = None
 
 
 class TerminalCreate(BaseSchema):

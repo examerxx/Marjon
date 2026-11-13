@@ -2,6 +2,7 @@ import { useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Icon from "../Icon";
 import { normalizeSeparator } from "./receiptLayout";
+import { t } from "../../i18n/t";
 
 // Разделитель чека — собственный listbox вместо нативного <select>: системный
 // попап рисовался синей подсветкой ОС и выпадал из дизайна MARJON. Здесь те же
@@ -21,6 +22,7 @@ const WEIGHTS = [
 const OPTIONS = PATTERNS.flatMap((pattern) => WEIGHTS.map((weight) => ({
   key: `${pattern.value}:${weight.value}`,
   label: `${pattern.label} · ${weight.label}`,
+  patternLabel: pattern.label,
   weightLabel: weight.label,
   pattern: pattern.value,
   weight: weight.value,
@@ -152,13 +154,13 @@ export default function ReceiptSeparatorSelect({ value, onChange, disabled = fal
       id={listId}
       className="receipt-separator-select__menu"
       role="listbox"
-      aria-label="Стиль разделителей"
+      aria-label={t("components.receipt.receiptseparatorselect.stil_razdeliteley")}
       style={{ left: position.left, width: position.width, maxHeight: position.maxHeight,
                ...(position.top != null ? { top: position.top } : { bottom: position.bottom }) }}
     >
       {GROUPS.map((group) => (
-        <div key={group.label} className="receipt-separator-select__group" role="group" aria-label={group.label}>
-          <p className="receipt-separator-select__group-label">{group.label}</p>
+        <div key={group.label} className="receipt-separator-select__group" role="group" aria-label={t(group.label)}>
+          <p className="receipt-separator-select__group-label">{t(group.label)}</p>
           {group.options.map((option) => {
             const index = OPTIONS.indexOf(option);
             const isSelected = option.key === currentKey;
@@ -172,7 +174,7 @@ export default function ReceiptSeparatorSelect({ value, onChange, disabled = fal
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => commit(index)}
               >
-                <span className="receipt-separator-select__option-label">{option.weightLabel}</span>
+                <span className="receipt-separator-select__option-label">{t(option.weightLabel)}</span>
                 <span
                   className={`receipt-separator-select__sample receipt-separator-select__sample--${option.pattern}`}
                   data-weight={option.weight}
@@ -194,7 +196,7 @@ export default function ReceiptSeparatorSelect({ value, onChange, disabled = fal
 
   return (
     <div className={`receipt-separator-select${open ? " is-open" : ""}`} ref={rootRef}>
-      <span>Разделители</span>
+      <span>{t("components.receipt.receiptseparatorselect.razdeliteli")}</span>
       <button
         type="button"
         ref={triggerRef}
@@ -203,12 +205,12 @@ export default function ReceiptSeparatorSelect({ value, onChange, disabled = fal
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
-        aria-label="Стиль разделителей"
+        aria-label={t("components.receipt.receiptseparatorselect.stil_razdeliteley")}
         disabled={disabled}
         onClick={() => (open ? setOpen(false) : openMenu())}
         onKeyDown={handleKeyDown}
       >
-        <span className="receipt-separator-select__value">{selected.label}</span>
+        <span className="receipt-separator-select__value">{t(selected.patternLabel)} · {t(selected.weightLabel)}</span>
         <Icon name="bi-chevron-down" size={14} className="receipt-separator-select__chevron" />
       </button>
       {menu}

@@ -349,12 +349,13 @@ describe("cashier page visual contract (/users/cashier)", () => {
     expect(within(dialog).queryByText("Email")).toBeNull();
     expect(dialog.querySelector("select")).toBeNull();
 
-    // Permission switches: 1 functional status + 8 interactive permissions
-    // (DESK-PERM-01 добавил «Просмотр финансов» и «Посещаемость»).
+    // Permission switches: 1 functional status + 9 interactive permissions
+    // (DESK-PERM-01 добавил «Просмотр финансов» и «Посещаемость»,
+    // EXPO-01 — «Раздача»).
     const switches = dialog.querySelectorAll(
       ".cashier-permission-switches .staff-permission-switch",
     );
-    expect(switches).toHaveLength(9);
+    expect(switches).toHaveLength(10);
     expect(
       [...switches].filter((button) => button.disabled),
     ).toHaveLength(0);
@@ -801,8 +802,9 @@ describe("cashier drawer ux: footer, animation, phone, permissions", () => {
     const dialog = await screen.findByRole("dialog");
 
     const dots = dialog.querySelectorAll(".staff-permission-state-dot");
-    // По точке на каждый основной тумблер: Статус + 8 прав (DESK-PERM-01).
-    expect(dots).toHaveLength(9);
+    // По точке на каждый основной тумблер: Статус + 9 прав (DESK-PERM-01,
+    // EXPO-01 «Раздача»).
+    expect(dots).toHaveLength(10);
     dots.forEach((dot) => {
       const button = dot.closest(".staff-permission-switch");
       expect(button).not.toBeNull();

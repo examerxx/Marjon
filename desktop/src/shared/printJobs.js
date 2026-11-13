@@ -29,13 +29,16 @@ function remember(jobId) {
 export async function printJob(job, printer) {
   const jobId = job?.job_id || job?.id
   if (!jobId || handled.has(jobId)) return false
+  // PRINT-DUP-01: занимаем job_id ДО первого await. WS и опрос очереди штатно
+  // приносят одно и то же задание; пока печать шла (сотни миллисекунд), второй
+  // вызов ещё не видел id в `handled` и печатал чек повторно.
+  remember(jobId)
 
   const ip = job?.ip_address || printer?.ip_address
   const port = job?.port ?? printer?.port ?? 9100
   console.log('[printJob]', jobId, 'ip=', ip, 'port=', port)
 
   if (!ip || !window.electron?.print) {
-    remember(jobId)
     try {
       await printersApi.jobFail(jobId, !ip ? 'no printer ip' : 'electron print unavailable')
     } catch {
@@ -53,11 +56,9 @@ export async function printJob(job, printer) {
       copies: job.copies ?? 1,
     })
     console.log('[printJob]', jobId, 'printed in', Math.round(performance.now() - t0), 'ms')
-    remember(jobId)
     await printersApi.jobDone(jobId)
     return true
   } catch (err) {
-    remember(jobId)
     console.error('[printJob]', jobId, 'failed:', err)
     try {
       await printersApi.jobFail(jobId, String(err?.message || err))

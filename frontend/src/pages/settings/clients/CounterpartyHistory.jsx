@@ -15,7 +15,7 @@ export const DIRECTION_INCOME = "income";
 export const DIRECTION_EXPENSE = "expense";
 
 export function directionLabel(direction) {
-  return direction === DIRECTION_EXPENSE ? "Расход" : "Приход";
+  return direction === DIRECTION_EXPENSE ? t("Расход") : t("Приход");
 }
 
 export function formatTxDate(value) {
@@ -303,7 +303,7 @@ export function CounterpartyStatementView({ row }) {
           <div className="settings-title-group">
             <span className="settings-accent-bar" />
             <div>
-              <p>История транзакций</p>
+              <p>{t("История транзакций")}</p>
               <div className="client-statement-identity">
                 <h1>{row?.name || "-"}</h1>
                 {row?.phone ? <span className="client-statement-phone">{formatTablePhone(row.phone)}</span> : null}
@@ -311,14 +311,14 @@ export function CounterpartyStatementView({ row }) {
             </div>
           </div>
           <div className="client-statement-right staff-header--cashier">
-            <div className="staff-tabs staff-tabs--slider" role="group" aria-label="Режим" data-active={mode} ref={modeTabsRef}>
+            <div className="staff-tabs staff-tabs--slider" role="group" aria-label={t("Режим")} data-active={mode} ref={modeTabsRef}>
               <span
                 className="staff-tabs__indicator"
                 aria-hidden="true"
                 style={{ transform: `translateX(${modePill.left}px)`, width: modePill.width }}
               />
-              <button type="button" data-mode="simple" className={mode === "simple" ? "is-active" : ""} onClick={() => setMode("simple")}>Простой</button>
-              <button type="button" data-mode="detailed" className={mode === "detailed" ? "is-active" : ""} onClick={() => setMode("detailed")}>Подробный</button>
+              <button type="button" data-mode="simple" className={mode === "simple" ? "is-active" : ""} onClick={() => setMode("simple")}>{t("Простой")}</button>
+              <button type="button" data-mode="detailed" className={mode === "detailed" ? "is-active" : ""} onClick={() => setMode("detailed")}>{t("Подробный")}</button>
             </div>
             <ReportDateRangePicker
               variant="canonical"
@@ -328,21 +328,25 @@ export function CounterpartyStatementView({ row }) {
               open={panelState.active === "period"}
               onOpenChange={(nextOpen) => requestPanel(nextOpen ? "period" : "")}
               onExitComplete={() => completePanelExit("period")}
-              buttonAriaLabel="Период истории транзакций"
+              buttonAriaLabel={t("pages.settings.clients.counterpartyhistory.period_istorii_tranzaktsiy")}
             />
           </div>
         </header>
 
         <div className="staff-table-wrapper client-statement-table-region">
-          {loading ? <div className="settings-empty-state">Загрузка...</div> : null}
+          {loading ? <div className="settings-empty-state">{t("pages.settings.clients.counterpartyhistory.zagruzka")}</div> : null}
           {!loading && error ? <div className="settings-empty-state" role="alert">{error}</div> : null}
           {!loading && !error && !items.length && !orders.length && !ordersLoading && !ordersError ? (
             <div className="client-statement-empty">
-              <ReportEmptyState title="Нет транзакций за выбранный период" />
+              <ReportEmptyState
+                title={isClient
+                  ? t("pages.settings.clients.counterpartyhistory.net_zakazov_za_period")
+                  : t("pages.settings.clients.counterpartyhistory.net_tranzaktsiy_za_vybrannyy_period")}
+              />
             </div>
           ) : null}
 
-          {ordersLoading ? <div className="settings-empty-state">Загрузка заказов…</div> : null}
+          {ordersLoading ? <div className="settings-empty-state">{t("admin.admincatalog.zagruzka_zakazov")}</div> : null}
           {ordersError ? <div className="settings-empty-state" role="alert">{ordersError}</div> : null}
           {!ordersLoading && !ordersError && isClient && orders.length > 0 ? (
             <>
@@ -399,11 +403,11 @@ export function CounterpartyStatementView({ row }) {
               <table className="staff-table client-statement-table">
                 <thead>
                   <tr>
-                    <th>Дата</th>
-                    {mode === "simple" ? <th>Операций</th> : <th>Операция</th>}
-                    <th>Приход</th>
-                    <th>Расход</th>
-                    {mode === "detailed" ? <th>Комментарий</th> : null}
+                    <th>{t("pages.settings.clients.counterpartyhistory.data")}</th>
+                    {mode === "simple" ? <th>{t("Операций")}</th> : <th>{t("pages.settings.clients.counterpartyhistory.operatsiya")}</th>}
+                    <th>{t("pages.settings.clients.counterpartyhistory.prihod")}</th>
+                    <th>{t("pages.settings.clients.counterpartyhistory.rashod")}</th>
+                    {mode === "detailed" ? <th>{t("pages.settings.clients.counterpartyhistory.kommentariy")}</th> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -426,8 +430,8 @@ export function CounterpartyStatementView({ row }) {
                 </tbody>
               </table>
               <div className="client-statement-summary">
-                <span>Обороты за период: приход {formatTxMoney(sums.income)} · расход {formatTxMoney(sums.expense)}</span>
-                <span>Операций: {sums.count}</span>
+                <span>{t("pages.settings.clients.counterpartyhistory.oboroty_za_period_prihod")} {formatTxMoney(sums.income)} {t("pages.settings.clients.counterpartyhistory.rashod_2")} {formatTxMoney(sums.expense)}</span>
+                <span>{t("pages.settings.clients.counterpartyhistory.operatsiy_2")} {sums.count}</span>
               </div>
             </>
           ) : null}

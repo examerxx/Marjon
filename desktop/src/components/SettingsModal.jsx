@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { X, Volume2, Server, Monitor, Timer, Globe, Maximize, ZoomIn, ZoomOut, Check, Printer, Wifi, Minus, Plus } from 'lucide-react'
+import { X, Volume2, Server, Monitor, Timer, Globe, Maximize, ZoomIn, ZoomOut, Check, Printer, Tv, Wifi, Minus, Plus } from 'lucide-react'
 import { soundService } from '../services/sound'
-import { printers as printersApi, queueSize } from '../shared/api'
+import { guestDisplay, printers as printersApi, queueSize } from '../shared/api'
 import { t } from '../shared/i18n'
 import { DEFAULT_SERVER_URL, normalizeServerUrl } from '../shared/config'
 
@@ -35,7 +35,7 @@ function Stepper({ value, onChange, min = 1, max = 99, step = 1, unit }) {
   )
 }
 
-export default function SettingsModal({ open, onClose }) {
+export default function SettingsModal({ open, onClose, branchId }) {
   const [soundEnabled, setSoundEnabled] = useState(soundService.enabled)
   const [volume, setVolume] = useState(soundService.volume)
   const [serverUrl, setServerUrl] = useState(() => localStorage.getItem('marjon_server_url') || DEFAULT_SERVER_URL)
@@ -50,12 +50,27 @@ export default function SettingsModal({ open, onClose }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('marjon_theme') || 'light')
   const [printerList, setPrinterList] = useState([])
   const [pingState, setPingState] = useState({})   // { [id]: 'ok'|'fail'|'...' }
+  // Экран очереди привязан к филиалу, а не к терминалу — тумблер меняет
+  // серверный флаг, поэтому его видят все подключённые ТВ этого филиала.
+  const [displayEnabled, setDisplayEnabled] = useState(null)
+  const [displayBusy, setDisplayBusy] = useState(false)
+  const [displayError, setDisplayError] = useState('')
 
   useEffect(() => {
     if (!open) return
     Promise.resolve(el()?.getZoom?.()).then((z) => { if (z) setZoom(z) }).catch(() => {})
     printersApi.list().then((d) => setPrinterList(Array.isArray(d) ? d : d?.items || [])).catch(() => setPrinterList([]))
   }, [open])
+
+  useEffect(() => {
+    if (!open || !branchId) { setDisplayEnabled(null); return }
+    let alive = true
+    setDisplayError('')
+    guestDisplay.get(branchId)
+      .then((d) => { if (alive) setDisplayEnabled(Boolean(d?.enabled)) })
+      .catch(() => { if (alive) { setDisplayEnabled(null); setDisplayError(t('s_guest_display_error')) } })
+    return () => { alive = false }
+  }, [open, branchId])
 
   // Печатает в первую очередь СЕРВЕР (бэкенд сам шлёт ESC/POS на ip:9100), и только
   // если он не смог — задание уходит на терминал по WebSocket. Поэтому проверяем обе
@@ -96,6 +111,21 @@ export default function SettingsModal({ open, onClose }) {
     persist('marjon_timer_yellow', String(timerYellow))
     persist('marjon_timer_red', String(timerRed))
     setTimersSaved(true); setTimeout(() => setTimersSaved(false), 1600)
+  }
+
+  async function toggleDisplay() {
+    if (!branchId || displayBusy || displayEnabled === null) return
+    const next = !displayEnabled
+    setDisplayBusy(true)
+    setDisplayError('')
+    try {
+      const d = await guestDisplay.setEnabled(branchId, next)
+      setDisplayEnabled(Boolean(d?.enabled))
+    } catch {
+      setDisplayError(t('s_guest_display_error'))
+    } finally {
+      setDisplayBusy(false)
+    }
   }
   function saveServer() {
     // Канонический вид: адрес без /api/v1 ломал вход (404 Not Found),
@@ -182,6 +212,26 @@ export default function SettingsModal({ open, onClose }) {
                 onClick={() => { const n = !autoLaunch; setAutoLaunch(n); persist('marjon_autolaunch', n ? '1' : '0'); try { el()?.setAutoLaunch?.(n) } catch {} }}
               ><span className="toggle__dot" /></button>
             </div>
+          </section>
+
+          {/* Экран очереди для гостей (отдельный ТВ/монитор) */}
+          <section className="settings-section">
+            <h3><Tv size={18} /> {t('s_guest_display')}</h3>
+            <p className="settings-hint">{t('s_guest_display_hint')}</p>
+            {!branchId ? (
+              <p className="settings-hint">{t('s_guest_display_no_branch')}</p>
+            ) : (
+              <div className="settings-row">
+                <span>{t('s_guest_display_show')}</span>
+                <button
+                  className={`toggle ${displayEnabled ? 'toggle--on' : ''}`}
+                  onClick={toggleDisplay}
+                  disabled={displayBusy || displayEnabled === null}
+                  aria-label={t('s_guest_display_show')}
+                ><span className="toggle__dot" /></button>
+              </div>
+            )}
+            {displayError ? <p className="settings-hint settings-hint--error">{displayError}</p> : null}
           </section>
 
           {/* Язык и тема */}

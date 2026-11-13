@@ -1,7 +1,30 @@
 {
   "app": "Marjon Desktop",
-  "updated": "2026-10-26",
+  "updated": "2026-11-08",
   "releases": [
+    {
+      "version": "1.0.6",
+      "platform": "windows",
+      "channel": "stable",
+      "date": "2026-11-08",
+      "notes": "Срочный фикс входа: в сборке 1.0.5 адрес сервера по ошибке был 127.0.0.1, из-за чего вход на терминалах не работал. В 1.0.6 адрес снова https://api.marjon.tech. Если терминал всё равно не входит — на экране входа укажите сервер https://api.marjon.tech/api/v1. Остальные изменения те же, что в 1.0.5.",
+      "files": [
+        {
+          "kind": "installer",
+          "label": "Установщик",
+          "file": "Marjon-Setup-1.0.6.exe",
+          "size": 71179207,
+          "sha256": "110e4ce31af43d13f011109124ce97367022c4554cab8794601d0d8da8770d71"
+        },
+        {
+          "kind": "portable",
+          "label": "Portable",
+          "file": "Marjon-Portable-1.0.6.exe",
+          "size": 70963346,
+          "sha256": "1c98a6bca8f7d0dd2fa15d932cda6ff144fa5dcbd0de28fda8559c605d01001a"
+        }
+      ]
+    },
     {
       "version": "1.0.4",
       "platform": "windows",

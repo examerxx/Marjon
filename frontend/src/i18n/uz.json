@@ -173,7 +173,9 @@
     "dishes_unavailable": "Taomlar mavjud emas",
     "archived_suffix": "arxiv",
     "number_sign": "№",
-    "suppliers_unavailable": "Yetkazib beruvchilar mavjud emas"
+    "suppliers_unavailable": "Yetkazib beruvchilar mavjud emas",
+    "disable": "O'chirish",
+    "enable": "Yoqish"
   },
   "auth": {
     "login": "Kirish",
@@ -321,6 +323,37 @@
       "odin_raz_nastroit": "Bir marta sozlab,",
       "dalshe_tolko_pin": "keyin — faqat PIN",
       "marjon_pos_kuhnya": "MARJON POS · oshxona",
+      "monoblok": "Monoblok",
+      "telefon_monobloka": "Monoblok telefoni",
+      "monoblok_hint": "«Oshxona» huquqi bor monoblok logini bilan kiring. Oshpazlar o'zini tanlab, PIN kodini kiritadi.",
+      "filial_hint": "Sozlamalardagi filial logini va parolini kiriting. Oshpazlar o'zini tanlab, PIN kodini kiritadi.",
+      "parol": "Parol",
+      "pokazat_parol": "Parolni ko'rsatish",
+      "skryt_parol": "Parolni yashirish",
+      "podklyuchit_ekran": "Ekranni ulash",
+      "podklyuchaem": "Ulanmoqda…",
+      "login_filiala_placeholder": "Filial logini yoki telefoni",
+      "ukazhite_login_i_parol": "Login va parolni kiriting.",
+      "nomer_polnostyu": "Raqamni to'liq kiriting: +998 90 111-22-33.",
+      "vyberite_filial": "Filialni tanlang",
+      "u_organizatsii_neskolko_filialov": "Tashkilotda bir nechta filial bor — bu oshxona qaysi filialga tegishli ekanini tanlang.",
+      "nazad": "Orqaga",
+      "kto_na_smene": "Smenada kim bor?",
+      "vyberite_sebya_i_pin": "o'zingizni tanlang va PIN kiriting",
+      "zagruzhaem_povarov": "Oshpazlar yuklanmoqda…",
+      "pin_ne_zadan": "PIN belgilanmagan",
+      "voyti_po_pin": "PIN bilan kirish",
+      "povarov_poka_net": "Hozircha oshpazlar yo'q",
+      "dobavte_povara_s_roley_kuhnya": "Admin panelda «Oshxona» roli bilan xodim qo'shing — u shu yerda avtomatik paydo bo'ladi.",
+      "obnovit_spisok": "Ro'yxatni yangilash",
+      "smenit_organizatsiyu": "Tashkilotni almashtirish",
+      "vybrat_drugogo": "Boshqasini tanlash",
+      "mozhno_nabirat_na_klaviature": "Ekran klaviaturasidan ham terish mumkin",
+      "kuhnya_vyklyuchena_v_kartochke": "Bu akkauntda oshxonaga ruxsat yo'q. Monoblok kartochkasida «Oshxona» tugmasini yoqing.",
+      "nevernyy_telefon_ili_parol_monobloka": "Monoblok telefoni yoki paroli xato. Ma'lumotlarni «Monoblok» bo'limida tekshiring.",
+      "ne_udalos_podklyuchit_ekran": "Ekranni ulab bo'lmadi. Aloqani tekshirib, qayta urinib ko'ring.",
+      "login_filiala_iz_nastroyek": "Filial logini va paroli adminkada sozlanadi: Sozlamalar → Filiallar.",
+      "nevernyy_login_ili_parol_filiala": "Filial logini yoki paroli xato. Ularni adminkada tekshiring: Sozlamalar → Filiallar.",
       "podklyuchenie": "Ulanish",
       "ekran_kuhni": "Oshxona ekrani",
       "eto_login_i_parol": "Bu login va parol",
@@ -353,7 +386,71 @@
       "ochered_pusta": "Navbat bo'sh",
       "kuhnya_svobodna": "Oshxona bo'sh",
       "novye_zakazy_poyavyatsya_zdes_sami_ekran_slushaet": "Yangi buyurtmalar bu yerda o'zi paydo bo'ladi: ekran navbatni tinglaydi va har besh sekundda yangilanadi.",
-      "poslednyaya_sinhronizatsiya": "oxirgi sinxronizatsiya"
+      "poslednyaya_sinhronizatsiya": "oxirgi sinxronizatsiya",
+      "filial": "Filial",
+      "stol": "Stol",
+      "zakaz": "Buyurtma",
+      "sdelal": "Tayyorladim",
+      "ne_sdelal": "Tayyorlanmadi",
+      "ves_stol_gotov": "Butun stol tayyor",
+      "stol_gotov": "Stol tayyor",
+      "vse_gotovo": "Barcha taomlar tayyor",
+      "ostalos": "Qoldi: {{n}}",
+      "gotovitsya": "Tayyorlanmoqda",
+      "zhdet": "Kutmoqda",
+      "otmeneno": "Bekor qilindi",
+      "v_rabote": "Ishda",
+      "gotovye": "Tayyor",
+      "tv_dlya_gostey": "Mehmonlar uchun TV",
+      "save_failed": "Tayyorlikni saqlab bo‘lmadi. Aloqani tekshirib, qayta urinib ko‘ring.",
+      "new_orders": "Yangi buyurtmalar: {{n}}",
+      "ves_zakaz_gotov": "Butun buyurtma tayyor",
+      "zakaz_gotov": "Buyurtma tayyor"
+    },
+    "expo": {
+      "title": "Tarqatish",
+      "employee": "Xodim",
+      "login_title": "Tarqatishga kirish",
+      "login_hint": "«Tarqatish» huquqi bor xodimning telefoni va paroli.",
+      "phone": "Telefon",
+      "phone_incomplete": "Raqamni to'liq kiriting: +998 90 111-22-33.",
+      "password": "Parol",
+      "show_password": "Parolni ko'rsatish",
+      "hide_password": "Parolni yashirish",
+      "sign_in": "Kirish",
+      "signing_in": "Kirilmoqda…",
+      "sign_out": "Chiqish",
+      "login_error": "Telefon yoki parol noto'g'ri",
+      "network_error": "Server bilan aloqa yo'q. Internetni tekshirib, qayta urinib ko'ring.",
+      "no_access_title": "Tarqatishga ruxsat yo'q",
+      "no_access": "Xodimda «Tarqatish» huquqi yoqilgan emas. Uni «Xodimlar» bo'limida xodim kartochkasida yoqing.",
+      "branch_required_title": "Ekran filialga bog'lanmagan",
+      "branch_required": "«Tarqatish» huquqi bor filial xodimi bilan kiring: tarqatish bitta filialning buyurtmalarini ko'rsatadi.",
+      "waiting_short": "topshirishga",
+      "empty_title": "Hozircha topshirish uchun narsa yo'q",
+      "empty_hint": "Oshpaz barcha taomlarni tayyor deb belgilagach, buyurtma shu yerda paydo bo'ladi.",
+      "table": "Stol",
+      "confirm": "Tasdiqlash — oshpaz hammasini qildi",
+      "confirming": "Tasdiqlanmoqda…",
+      "confirmed": "{{n}}-buyurtma mehmonlar ekraniga yuborildi",
+      "confirm_error": "Tasdiqlab bo'lmadi. Aloqani tekshirib, qayta urinib ko'ring.",
+      "min_short": "daq"
+    },
+    "tv": {
+      "ready_title": "Tayyor — buyurtmani oling",
+      "queue_title": "Tayyorlanmoqda — navbatda",
+      "ready": "tayyor",
+      "queued": "navbatda",
+      "order": "Buyurtma",
+      "empty": "Hozircha tayyor buyurtma yoʻq",
+      "empty_hint": "Yangi buyurtmalar shu yerda avtomatik paydo boʻladi",
+      "offline": "Aloqa yoʻq — oxirgi maʼlumotlar",
+      "setup_title": "Ekran hali sozlanmagan",
+      "setup_hint": "Manzilni ?branch=<filial ID> parametri bilan oching. Kerakli ID bilan havolani oshxona ekranidan nusxalash mumkin.",
+      "guest_display": "mehmonlar uchun ekran",
+      "updates_auto": "avtomatik yangilanadi",
+      "disabled_title": "Ekran o'chirilgan",
+      "disabled_hint": "Navbat ko'rsatish to'xtatilgan. Uni kassadagi desktop sozlamalaridan yoqing."
     }
   },
   "waiter": {
@@ -757,7 +854,17 @@
         "kategoriya": "Turkum",
         "ne_vybrana": "Tanlanmagan",
         "kommentariy": "Izoh",
-        "otmena": "Bekor qilish"
+        "otmena": "Bekor qilish",
+        "data_i_vremya_operatsii": "Operatsiya sanasi va vaqti",
+        "vyberite_datu_i_vremya": "Sana va vaqtni tanlang",
+        "gruppa_kontragentov": "Kontragentlar guruhi",
+        "tolko_chtenie": " — faqat o'qish",
+        "net_kontragentov_v_etoy_gruppe": "Bu guruhda kontragentlar yo'q",
+        "net_sposobov_oplaty": "To'lov usullari yo'q",
+        "naznachenie_operatsii_ili_primechanie": "Operatsiya maqsadi yoki izoh",
+        "redaktirovanie_operatsii": "Operatsiyani tahrirlash",
+        "rashodnaya_operatsiya": "Chiqim operatsiyasi",
+        "prihodnaya_operatsiya": "Kirim operatsiyasi"
       }
     },
     "settings": {
@@ -949,7 +1056,13 @@
         "udalit_printer": "Printer o'chirilsinmi?",
         "budet_udalen_iz_nastroek": "» sozlamalardan o'chiriladi.",
         "redaktirovat_printer": "«{{name}}» ni tahrirlash",
-        "ne_aktiven": "Faol emas"
+        "ne_aktiven": "Faol emas",
+        "tip": "Turi",
+        "tip_printera": "Printer turi",
+        "chekovyy_kassa": "Chek (kassa)",
+        "kuhonnyy_povar": "Oshxona (oshpaz)",
+        "kassa": "Kassa",
+        "kuhnya": "Oshxona"
       },
       "settingsresourcepage": {
         "vse": "Barchasi",
@@ -1022,7 +1135,8 @@
           "zakazov": "Buyurtmalar:",
           "finansovye_operatsii": "Moliyaviy operatsiyalar",
           "otkryt_chek": "Buyurtma chekini ochish",
-          "period_istorii": "Davr"
+          "period_istorii": "Davr",
+          "period_istorii_tranzaktsiy": "Tranzaksiyalar tarixi davri"
         }
       },
       "profile": {
@@ -1126,7 +1240,12 @@
       "skachat_excel": "Excel yuklab olish",
       "poisk_po_kontragentu": "Kontragent bo'yicha qidirish",
       "itogo": "Jami",
-      "po_zaprosu_nichego_ne_naydeno": "So'rov bo'yicha hech narsa topilmadi"
+      "po_zaprosu_nichego_ne_naydeno": "So'rov bo'yicha hech narsa topilmadi",
+      "saldo": "Saldo",
+      "debitory": "Debitorlar",
+      "kreditory": "Kreditorlar",
+      "vid_zadolzhennosti": "Qarzdorlik turi",
+      "vse_kontragenty": "Barcha kontragentlar"
     },
     "dishesreportpage": {
       "net_foto": "Foto yo'q",
@@ -1221,7 +1340,10 @@
       "rashod_2": "Chiqim",
       "deystviya": "Amallar",
       "zagruzka": "Yuklanmoqda...",
-      "tranzaktsiy_net": "Tranzaksiyalar yo'q."
+      "tranzaktsiy_net": "Tranzaksiyalar yo'q.",
+      "vvod_polozhitelnoy_summy": "Musbat summani kiriting.",
+      "ukazhite_datu_i_vremya_operatsii": "Operatsiya sanasi va vaqtini ko'rsating.",
+      "k_obzoru_denezhnyh_operatsiy": "Pul operatsiyalari ko'rinishiga"
     },
     "loginpage": {
       "vhod_filiala": "Filial kirishi",
@@ -1818,12 +1940,14 @@
         "spisok_kassirov": "Kassirlar ro'yxati",
         "printer_povara": "Oshpaz printeri",
         "pechat_otmeny_zakaza": "Buyurtma bekor qilinganini chop etish",
+        "dostup_k_kuhne": "Oshxona",
         "prosmotr_finansov": "Moliyani ko'rish",
         "poseschaemost_prihod_uhod": "Davomat (kelish/ketish)",
         "pechat_na_printer_povara": "Oshpaz printeriga chop etish",
         "mozhet_zakryt_schet": "Hisobni yopa oladi",
         "otkryt_denezhnyy_yaschik_posle_oplaty": "To'lovdan keyin pul yashigini ochish",
         "prosmotr_zakrytyh_zakazov": "Yopilgan buyurtmalarni ko'rish",
+        "razdacha": "Tarqatish",
         "otmenit": "Bekor qilish",
         "imya_2": "Ism *",
         "imya_sotrudnika": "Xodim ismi",
@@ -1960,7 +2084,8 @@
         "nedopustimoe_znachenie": "noto'g'ri qiymat",
         "otchet_po_kassiram": "Kassirlar hisoboti",
         "otchet_po_ofitsiantam": "Ofitsiantlar hisoboti",
-        "otchet_po_mestam": "Joylar hisoboti"
+        "otchet_po_mestam": "Joylar hisoboti",
+        "net_oplat_za_vybrannyy_period": "Tanlangan davr uchun to'lovlar yo'q"
       },
       "cancelledorderdetails": {
         "otchety_otmenennye_blyuda": "Hisobotlar / Bekor qilingan taomlar",
@@ -2164,7 +2289,8 @@
         "etot_produkt_poka_ne_ispolzuetsya_v_blyudah": "Bu mahsulot hozircha taomlarda ishlatilmaydi",
         "error": {
           "save": "Ishlatishni saqlab bo'lmadi."
-        }
+        },
+        "archive_suffix": "{{name}} (arxiv)"
       },
       "rawmaterialspage": {
         "sklad": "Ombor",
@@ -2397,7 +2523,8 @@
         "sht": "dona",
         "prodazh_poka_net": "Hozircha savdolar yo'q",
         "novye_zakazy_budut_otobrazhatsya_zdes": "Yangi buyurtmalar shu yerda ko'rinadi.",
-        "posle_pervyh_zakazov_zdes_poyavyatsya_samye_prodavaemye_pozitsii": "Birinchi buyurtmalardan so'ng bu yerda eng ko'p sotilgan pozitsiyalar paydo bo'ladi."
+        "posle_pervyh_zakazov_zdes_poyavyatsya_samye_prodavaemye_pozitsii": "Birinchi buyurtmalardan so'ng bu yerda eng ko'p sotilgan pozitsiyalar paydo bo'ladi.",
+        "za_vybrannyy_period_zakazov_net": "Tanlangan davr uchun buyurtmalar yo'q"
       },
       "dashboarddialogs": {
         "itogo": "Jami",
@@ -2430,7 +2557,8 @@
         "ne_udalos_zagruzit_zakazy": "Buyurtmalarni yuklab bo'lmadi",
         "ne_udalos_zagruzit_sredniy_chek": "O'rtacha chekni yuklab bo'lmadi",
         "otkryt_chek_zakaza": "Buyurtma chekini ochish",
-        "net_dannyh": "Ma'lumot yo'q"
+        "net_dannyh": "Ma'lumot yo'q",
+        "detalizatsiya_pokazatelya": "Ko'rsatkich tafsiloti"
       },
       "orderreceiptdialog": {
         "chek_zakaza": "Buyurtma cheki",

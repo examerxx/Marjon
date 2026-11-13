@@ -65,11 +65,11 @@ describe("Revenue product detail", () => {
       "№", "Блюдо / товар", "Категория", "Продано", "Чистая прибыль", "Денежный приход",
     ]);
     const cells = table.querySelectorAll("tbody tr:not(.revenue-products__total) td");
-    expect(cells[4].textContent).toBe("180,01 Сум");
-    expect(cells[5].textContent).toBe("220,01 Сум");
+    expect(cells[4].textContent).toBe("180,01 сум");
+    expect(cells[5].textContent).toBe("220,01 сум");
     const totals = table.querySelectorAll("thead tr.revenue-products__total td");
-    expect(totals[0].textContent).toBe("180,01 Сум");
-    expect(totals[1].textContent).toBe("220,01 Сум");
+    expect(totals[0].textContent).toBe("180,01 сум");
+    expect(totals[1].textContent).toBe("220,01 сум");
     expect(screen.queryByText(/Подтверждённые оплаты полностью/)).toBeNull();
   });
   it("removes the orders explanation without changing its count", () => {
@@ -84,7 +84,7 @@ describe("Revenue product detail", () => {
     ]);
     expect(within(table).getByText("Нет данных")).toBeTruthy();
     expect(within(table).queryByText("Итого")).toBeNull();
-    expect(within(table).queryByText("0 Сум")).toBeNull();
+    expect(within(table).queryByText("0 сум")).toBeNull();
     expect(within(table).queryByText("Доля")).toBeNull();
     expect(screen.getByRole("dialog").className).toContain("kpi-info-window--detail");
   });
@@ -92,7 +92,7 @@ describe("Revenue product detail", () => {
     const table = show({ ...summary, order_rows: [{ id: "order-1", number: "5", date_label: "17.10 19:57",
       place: "Стол 5", amount: "220.01", status: "completed" }], orders_total: "220.01" }, CARD.orders);
     for (const text of ["#5", "17.10 19:57", "Стол 5", "Завершён"]) expect(within(table).getByText(text)).toBeTruthy();
-    expect(within(table).getAllByText("220,01 Сум")).toHaveLength(2);
+    expect(within(table).getAllByText("220,01 сум")).toHaveLength(2);
   });
   it("does not present a failed order report as empty or show a fake total", () => {
     const table = show({ ...summary, financial_unavailable: true }, CARD.orders);
@@ -107,7 +107,7 @@ describe("Revenue product detail", () => {
     expect(within(table).getByText("Плов")).toBeTruthy();
     expect(within(table).getByText("Горячее")).toBeTruthy();
     expect(within(table).getByText(/0[.,]333/)).toBeTruthy();
-    expect(within(table).getAllByText("220,01 Сум")).toHaveLength(2);
+    expect(within(table).getAllByText("220,01 сум")).toHaveLength(2);
     expect(within(table).getByText("Итого")).toBeTruthy();
     expect(table.querySelector("thead tr:last-child")).toHaveClass("revenue-products__total");
     expect(table.querySelector("tfoot")).toBeNull();

@@ -787,14 +787,15 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
   }, [linesCount, view])
 
   // Досылаем новые строки в существующий заказ и возвращаем свежий снимок.
+  // Одна пакетная команда: повар получает один тикет со всеми новыми блюдами.
   async function pushCartToOrder() {
     if (!addToOrderId || !cart.length) return existingOrder
-    for (const i of cart) {
-      await orders.addItem(addToOrderId, { product_id: i.product.id, quantity: i.qty, note: i.note || null, takeaway: !!i.takeaway, modifiers: i.modifiers || [] })
-      setCart(prev => prev.filter(line => line.lineId !== i.lineId))
-    }
-    const fresh = await orders.get(addToOrderId)
-    setCart([])
+    const lines = cart
+    const fresh = await orders.addItems(addToOrderId, lines.map((i) => ({
+      product_id: i.product.id, quantity: i.qty, note: i.note || null, takeaway: !!i.takeaway, modifiers: i.modifiers || [],
+    })))
+    const sent = new Set(lines.map((l) => l.lineId))
+    setCart(prev => prev.filter(line => !sent.has(line.lineId)))
     setExistingOrder(fresh)
     setOrderLines(orderToLines(fresh))
     loadFloor()
@@ -877,9 +878,23 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
     setCreating(true)
     try {
       await pushCartToOrder()
-      toast(t('order_created'))
+      toast(t('dishes_sent'))
       setView('floor')
       loadFloor()
+    } catch (e) {
+      toast(errorMessage(e, t('create_order_error')), 'error')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  // Кассир: дослать блюда и остаться в заказе — следом он жмёт «К оплате».
+  async function addDishesAndStay() {
+    if (!addToOrderId || !cart.length || creating) return
+    setCreating(true)
+    try {
+      await pushCartToOrder()
+      toast(t('dishes_sent'))
     } catch (e) {
       toast(errorMessage(e, t('create_order_error')), 'error')
     } finally {
@@ -1794,9 +1809,10 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
               <div className="total-row total-row--final"><span>{t('total')}</span><span>{fmt(total)} {t('currency')}</span></div>
             </div>
             <div className="cashier-cart__actions">
-              {/* Существующий заказ. Кассир закрывает счёт кнопкой «К оплате»
-                  (новые строки досылаются внутри openPayment). Официант счёт
-                  не закрывает: он только досылает блюда и печатает чек. */}
+              {/* Существующий заказ. И официант, и кассир могут дослать
+                  блюда — они сразу уходят на кухню отдельным тикетом.
+                  Кассир дополнительно закрывает счёт кнопкой «К оплате»
+                  (новые строки досылаются и внутри openPayment). */}
               {orderReadOnly ? (
                 <button className="cart-btn cart-btn--pay" onClick={unlockForeignOrder}>
                   <Plus size={20} /> {t('add_order')}
@@ -1812,9 +1828,18 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
                     </button>
                   </>
                 ) : (
-                  <button className="cart-btn cart-btn--pay" disabled={creating} onClick={openPayment}>
-                    <Receipt size={20} /> {t('to_payment')}
-                  </button>
+                  <>
+                    {/* Пока в корзине нет новых блюд, досылать нечего — не
+                        показываем неактивную кнопку, оставляем только оплату. */}
+                    {cart.length > 0 && (
+                      <button className="cart-btn cart-btn--outline" disabled={creating} onClick={addDishesAndStay}>
+                        {creating ? <span className="btn-spinner" aria-hidden="true" /> : <Plus size={20} />} {t('add_dishes')}
+                      </button>
+                    )}
+                    <button className="cart-btn cart-btn--pay" disabled={creating} onClick={openPayment}>
+                      <Receipt size={20} /> {t('to_payment')}
+                    </button>
+                  </>
                 )
               ) : (
                 <button className="cart-btn cart-btn--pay" disabled={cart.length === 0 || creating} onClick={createOrder}>

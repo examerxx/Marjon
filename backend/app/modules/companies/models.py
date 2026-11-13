@@ -93,5 +93,11 @@ class Branch(TimeStampedModel):
         Integer, default=0, server_default="0", nullable=False
     )
     password_locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # DISPLAY-OFF-01: тумблер «Экран очереди» в настройках десктопа. Публичная
+    # ТВ-страница филиала при выключенном флаге не показывает номера заказов —
+    # на подключённом экране висит логотип, а не очередь гостей.
+    guest_display_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default="1", nullable=False
+    )
 
     company: Mapped[Company] = relationship(back_populates="branches")

@@ -894,87 +894,6 @@
   .settings-place__edit:hover { border-color: rgba(22, 198, 200, .6); }
   .settings-places-empty { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; padding: 40px 16px; }
   .settings-places-retry { margin-left: 8px; }
-  /* Схема зала: канва 1000×620 в условных единицах (см. HallLayoutEditor.jsx).
-     Пропорции держит aspect-ratio, поэтому столы можно расставлять мышью. */
-  .settings-hall-plan {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      margin-bottom: 22px;
-      padding: 16px;
-      border: 1px solid rgba(215, 226, 240, .9);
-      border-radius: 16px;
-      background: #f7fafd;
-  }
-  .settings-hall-plan__head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 16px;
-  }
-  .settings-hall-plan__head h2 { margin: 0; color: #0b1f3f; font-size: 17px; }
-  .settings-hall-plan__head p { margin: 4px 0 0; color: var(--neutral-500, #64748b); font-size: 13px; }
-  .settings-hall-plan__actions { display: flex; gap: 8px; flex-shrink: 0; }
-  .settings-hall-plan__actions button {
-      padding: 8px 14px;
-      border: 1px solid rgba(153, 176, 206, .9);
-      border-radius: 10px;
-      background: #fff;
-      color: #0b1f3f;
-      font: inherit;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-  }
-  .settings-hall-plan__actions button.is-primary {
-      border-color: #0f99b8;
-      background: #0f99b8;
-      color: #fff;
-  }
-  .settings-hall-plan__actions button:disabled { opacity: .55; cursor: not-allowed; }
-  .settings-hall-plan__canvas {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 1000 / 620;
-      border: 1px dashed rgba(153, 176, 206, .8);
-      border-radius: 12px;
-      background-color: #fff;
-      background-image:
-          linear-gradient(rgba(215, 226, 240, .55) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(215, 226, 240, .55) 1px, transparent 1px);
-      background-size: 5% 8.06%;
-      overflow: hidden;
-      touch-action: none;
-  }
-  .settings-hall-plan__table {
-      position: absolute;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 2px;
-      padding: 0;
-      border: 1px solid rgba(22, 198, 200, .55);
-      border-radius: 10px;
-      background: #e8fbfb;
-      color: #0b1f3f;
-      font: inherit;
-      cursor: grab;
-      user-select: none;
-      -webkit-user-select: none;
-      touch-action: none;
-      transition: box-shadow 120ms ease, border-color 120ms ease;
-  }
-  .settings-hall-plan__table:hover { border-color: #0f99b8; box-shadow: 0 4px 12px rgba(15, 153, 184, .18); }
-  .settings-hall-plan__table:focus-visible { outline: 2px solid #0f99b8; outline-offset: 2px; }
-  .settings-hall-plan__table.is-dragging { cursor: grabbing; box-shadow: 0 8px 20px rgba(15, 153, 184, .28); }
-  .settings-hall-plan__number { font-size: 15px; font-weight: 700; }
-  .settings-hall-plan__capacity { color: var(--neutral-500, #64748b); font-size: 11px; }
-  @media (max-width: 720px) {
-      .settings-hall-plan__head { flex-direction: column; }
-      .settings-hall-plan__actions { width: 100%; }
-      .settings-hall-plan__actions button { flex: 1; }
-  }
   .settings-tbl { display: flex; flex-direction: column; gap: 8px; }
   .settings-tbl__row {
       display: grid;
@@ -1503,6 +1422,37 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--neutral-800, #1e293b);
+}
+/* DEBT-ORDERS-01: карточка клиента показывает его заказы (как отчёт по
+   заказам) — строка кликабельна и открывает чек. */
+.client-statement-page .client-orders-table tbody tr.client-statement-order-row {
+  cursor: pointer;
+}
+.client-statement-page .client-orders-table tbody tr.client-statement-order-row:hover {
+  background: rgba(15, 153, 184, 0.06);
+}
+.client-statement-page .client-orders-table tbody tr.client-statement-order-row:focus-visible {
+  outline: 2px solid var(--owner-accent, #1fc9c9);
+  outline-offset: -2px;
+}
+.client-statement-money {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.client-statement-debt {
+  white-space: nowrap;
+}
+.client-statement-debt.is-debt {
+  color: #b42318;
+  font-weight: 700;
+}
+.client-statement-section-title {
+  margin: 22px 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--neutral-600, #475569);
 }
 .settings-delete-confirm {
   font-size: 12px;

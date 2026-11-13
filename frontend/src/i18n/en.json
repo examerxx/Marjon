@@ -173,7 +173,9 @@
     "dishes_unavailable": "Dishes unavailable",
     "archived_suffix": "archived",
     "number_sign": "№",
-    "suppliers_unavailable": "Suppliers unavailable"
+    "suppliers_unavailable": "Suppliers unavailable",
+    "disable": "Turn off",
+    "enable": "Turn on"
   },
   "auth": {
     "login": "Sign in",
@@ -321,6 +323,37 @@
       "odin_raz_nastroit": "Configure once,",
       "dalshe_tolko_pin": "then only the PIN",
       "marjon_pos_kuhnya": "MARJON POS · kitchen",
+      "monoblok": "Monoblock",
+      "telefon_monobloka": "Monoblock phone",
+      "monoblok_hint": "Sign in with the monoblock login that has the Kitchen permission. Cooks then pick themselves and enter their PIN.",
+      "filial_hint": "Enter the branch login and password from settings. Cooks then pick themselves and enter their PIN.",
+      "parol": "Password",
+      "pokazat_parol": "Show password",
+      "skryt_parol": "Hide password",
+      "podklyuchit_ekran": "Connect screen",
+      "podklyuchaem": "Connecting…",
+      "login_filiala_placeholder": "Branch login or phone",
+      "ukazhite_login_i_parol": "Enter the login and password.",
+      "nomer_polnostyu": "Enter the full number: +998 90 111-22-33.",
+      "vyberite_filial": "Choose a branch",
+      "u_organizatsii_neskolko_filialov": "This company has several branches — choose the one this kitchen belongs to.",
+      "nazad": "Back",
+      "kto_na_smene": "Who is on shift?",
+      "vyberite_sebya_i_pin": "pick yourself and enter your PIN",
+      "zagruzhaem_povarov": "Loading cooks…",
+      "pin_ne_zadan": "PIN not set",
+      "voyti_po_pin": "Sign in with PIN",
+      "povarov_poka_net": "No cooks yet",
+      "dobavte_povara_s_roley_kuhnya": "Add an employee with the Kitchen role in the admin — they will appear here automatically.",
+      "obnovit_spisok": "Refresh list",
+      "smenit_organizatsiyu": "Change company",
+      "vybrat_drugogo": "Choose another",
+      "mozhno_nabirat_na_klaviature": "You can use the on-screen keypad",
+      "kuhnya_vyklyuchena_v_kartochke": "This account has no kitchen access. Turn on the Kitchen switch in the monoblock card.",
+      "nevernyy_telefon_ili_parol_monobloka": "Wrong monoblock phone or password. Check the details in the Monoblock section.",
+      "ne_udalos_podklyuchit_ekran": "Could not connect the screen. Check the connection and try again.",
+      "login_filiala_iz_nastroyek": "The branch login and password are set in the admin: Settings → Branches.",
+      "nevernyy_login_ili_parol_filiala": "Wrong branch login or password. Check them in the admin: Settings → Branches.",
       "podklyuchenie": "Connection",
       "ekran_kuhni": "Kitchen screen",
       "eto_login_i_parol": "This is the login and password",
@@ -353,7 +386,71 @@
       "ochered_pusta": "The queue is empty",
       "kuhnya_svobodna": "Kitchen is free",
       "novye_zakazy_poyavyatsya_zdes_sami_ekran_slushaet": "New orders appear here automatically: the screen listens to the queue and refreshes every five seconds.",
-      "poslednyaya_sinhronizatsiya": "last synchronization"
+      "poslednyaya_sinhronizatsiya": "last synchronization",
+      "filial": "Branch",
+      "stol": "Table",
+      "zakaz": "Order",
+      "sdelal": "Done",
+      "ne_sdelal": "Not done",
+      "ves_stol_gotov": "Whole table ready",
+      "stol_gotov": "Table ready",
+      "vse_gotovo": "All dishes ready",
+      "ostalos": "{{n}} left",
+      "gotovitsya": "Cooking",
+      "zhdet": "Waiting",
+      "otmeneno": "Cancelled",
+      "v_rabote": "In progress",
+      "gotovye": "Ready",
+      "tv_dlya_gostey": "Guest TV",
+      "save_failed": "Could not save readiness. Check the connection and try again.",
+      "new_orders": "New orders: {{n}}",
+      "ves_zakaz_gotov": "Whole order ready",
+      "zakaz_gotov": "Order ready"
+    },
+    "expo": {
+      "title": "Expo",
+      "employee": "Employee",
+      "login_title": "Expo sign-in",
+      "login_hint": "Phone and password of an employee with the Expo permission.",
+      "phone": "Phone",
+      "phone_incomplete": "Enter the full number: +998 90 111-22-33.",
+      "password": "Password",
+      "show_password": "Show password",
+      "hide_password": "Hide password",
+      "sign_in": "Sign in",
+      "signing_in": "Signing in…",
+      "sign_out": "Sign out",
+      "login_error": "Invalid phone or password",
+      "network_error": "No connection to the server. Check the network and try again.",
+      "no_access_title": "No Expo access",
+      "no_access": "This employee does not have the Expo permission. Enable it in the employee card under Staff.",
+      "branch_required_title": "The screen is not bound to a branch",
+      "branch_required": "Sign in as a branch employee with the Expo permission: Expo shows orders of a single branch.",
+      "waiting_short": "awaiting pickup",
+      "empty_title": "Nothing to hand out",
+      "empty_hint": "An order appears here once the cook marks every dish ready.",
+      "table": "Table",
+      "confirm": "Confirm — the cook is done",
+      "confirming": "Confirming…",
+      "confirmed": "Order {{n}} sent to the guest screen",
+      "confirm_error": "Could not confirm. Check the connection and try again.",
+      "min_short": "min"
+    },
+    "tv": {
+      "ready_title": "Ready — pick up your order",
+      "queue_title": "Cooking — in queue",
+      "ready": "ready",
+      "queued": "in queue",
+      "order": "Order",
+      "empty": "No ready orders yet",
+      "empty_hint": "New orders will appear here automatically",
+      "offline": "No connection — last known data",
+      "setup_title": "This screen is not set up yet",
+      "setup_hint": "Open the address with ?branch=<branch ID>. The kitchen screen can copy the link with the right ID.",
+      "guest_display": "guest display",
+      "updates_auto": "updates automatically",
+      "disabled_title": "Screen is off",
+      "disabled_hint": "Queue display is paused. Turn it back on in the desktop settings."
     }
   },
   "waiter": {
@@ -757,7 +854,17 @@
         "kategoriya": "Category",
         "ne_vybrana": "Not selected",
         "kommentariy": "Comment",
-        "otmena": "Cancel"
+        "otmena": "Cancel",
+        "data_i_vremya_operatsii": "Operation date and time",
+        "vyberite_datu_i_vremya": "Select date and time",
+        "gruppa_kontragentov": "Counterparty group",
+        "tolko_chtenie": " — read only",
+        "net_kontragentov_v_etoy_gruppe": "No counterparties in this group",
+        "net_sposobov_oplaty": "No payment methods",
+        "naznachenie_operatsii_ili_primechanie": "Operation purpose or note",
+        "redaktirovanie_operatsii": "Edit operation",
+        "rashodnaya_operatsiya": "Expense operation",
+        "prihodnaya_operatsiya": "Income operation"
       }
     },
     "settings": {
@@ -949,7 +1056,13 @@
         "udalit_printer": "Delete the printer?",
         "budet_udalen_iz_nastroek": "» will be removed from settings.",
         "redaktirovat_printer": "Edit “{{name}}”",
-        "ne_aktiven": "Inactive"
+        "ne_aktiven": "Inactive",
+        "tip": "Type",
+        "tip_printera": "Printer type",
+        "chekovyy_kassa": "Receipt (cashier)",
+        "kuhonnyy_povar": "Kitchen (cook)",
+        "kassa": "Cashier",
+        "kuhnya": "Kitchen"
       },
       "settingsresourcepage": {
         "vse": "All",
@@ -1022,7 +1135,8 @@
           "zakazov": "Orders:",
           "finansovye_operatsii": "Financial operations",
           "otkryt_chek": "Open order receipt",
-          "period_istorii": "Period"
+          "period_istorii": "Period",
+          "period_istorii_tranzaktsiy": "Transaction history period"
         }
       },
       "profile": {
@@ -1126,7 +1240,12 @@
       "skachat_excel": "Download Excel",
       "poisk_po_kontragentu": "Search by counterparty",
       "itogo": "Total",
-      "po_zaprosu_nichego_ne_naydeno": "Nothing found for the query"
+      "po_zaprosu_nichego_ne_naydeno": "Nothing found for the query",
+      "saldo": "Balance",
+      "debitory": "Debtors",
+      "kreditory": "Creditors",
+      "vid_zadolzhennosti": "Debt type",
+      "vse_kontragenty": "All counterparties"
     },
     "dishesreportpage": {
       "net_foto": "No photo",
@@ -1221,7 +1340,10 @@
       "rashod_2": "Outgoing",
       "deystviya": "Actions",
       "zagruzka": "Loading...",
-      "tranzaktsiy_net": "No transactions."
+      "tranzaktsiy_net": "No transactions.",
+      "vvod_polozhitelnoy_summy": "Enter a positive amount.",
+      "ukazhite_datu_i_vremya_operatsii": "Specify the operation date and time.",
+      "k_obzoru_denezhnyh_operatsiy": "Back to cash operations overview"
     },
     "loginpage": {
       "vhod_filiala": "Branch sign-in",
@@ -1818,12 +1940,14 @@
         "spisok_kassirov": "Cashier list",
         "printer_povara": "Cook's printer",
         "pechat_otmeny_zakaza": "Print order cancellation",
+        "dostup_k_kuhne": "Kitchen",
         "prosmotr_finansov": "View finance",
         "poseschaemost_prihod_uhod": "Attendance (in/out)",
         "pechat_na_printer_povara": "Print to the cook's printer",
         "mozhet_zakryt_schet": "Can close the bill",
         "otkryt_denezhnyy_yaschik_posle_oplaty": "Open cash drawer after payment",
         "prosmotr_zakrytyh_zakazov": "View closed orders",
+        "razdacha": "Expo",
         "otmenit": "Cancel",
         "imya_2": "Name *",
         "imya_sotrudnika": "Employee name",
@@ -1960,7 +2084,8 @@
         "nedopustimoe_znachenie": "invalid value",
         "otchet_po_kassiram": "Cashier report",
         "otchet_po_ofitsiantam": "Waiters report",
-        "otchet_po_mestam": "Places report"
+        "otchet_po_mestam": "Places report",
+        "net_oplat_za_vybrannyy_period": "No payments for the selected period"
       },
       "cancelledorderdetails": {
         "otchety_otmenennye_blyuda": "Reports / Cancelled dishes",
@@ -2164,7 +2289,8 @@
         "etot_produkt_poka_ne_ispolzuetsya_v_blyudah": "This product is not used in dishes yet",
         "error": {
           "save": "Could not save usage."
-        }
+        },
+        "archive_suffix": "{{name}} (archived)"
       },
       "rawmaterialspage": {
         "sklad": "Warehouse",
@@ -2397,7 +2523,8 @@
         "sht": "pcs",
         "prodazh_poka_net": "No sales yet",
         "novye_zakazy_budut_otobrazhatsya_zdes": "New orders will appear here.",
-        "posle_pervyh_zakazov_zdes_poyavyatsya_samye_prodavaemye_pozitsii": "Your best-selling items will appear here after the first orders."
+        "posle_pervyh_zakazov_zdes_poyavyatsya_samye_prodavaemye_pozitsii": "Your best-selling items will appear here after the first orders.",
+        "za_vybrannyy_period_zakazov_net": "No orders for the selected period"
       },
       "dashboarddialogs": {
         "itogo": "Total",
@@ -2430,7 +2557,8 @@
         "ne_udalos_zagruzit_zakazy": "Failed to load orders",
         "ne_udalos_zagruzit_sredniy_chek": "Failed to load average check",
         "otkryt_chek_zakaza": "Open order receipt",
-        "net_dannyh": "No data"
+        "net_dannyh": "No data",
+        "detalizatsiya_pokazatelya": "Metric details"
       },
       "orderreceiptdialog": {
         "chek_zakaza": "Order receipt",

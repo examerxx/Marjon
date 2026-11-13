@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import Icon from '../components/Icon';
 
 import { StatusBadge } from "./AdminShared";
+import { t } from "../i18n/t";
 
 export function DetailModal({ data, onClose }) {
   useEffect(() => {
@@ -14,7 +15,7 @@ export function DetailModal({ data, onClose }) {
   if (!data) return null;
   const actions = data.actions && data.actions.length
     ? data.actions
-    : [{ label: "Закрыть", variant: "ghost", onClick: onClose }];
+    : [{ label: t("admin.admindashboardoverview.zakryt"), variant: "ghost", onClick: onClose }];
 
   return (
     <div className="admin-modal" role="dialog" aria-modal="true" aria-label={data.title} onClick={onClose}>
@@ -25,7 +26,7 @@ export function DetailModal({ data, onClose }) {
             {data.subtitle ? <p>{data.subtitle}</p> : null}
           </div>
           {data.status ? <StatusBadge status={data.status} /> : null}
-          <button className="admin-modal__close" type="button" onClick={onClose} aria-label="Закрыть">
+          <button className="admin-modal__close" type="button" onClick={onClose} aria-label={t("admin.admindashboardoverview.zakryt")}>
             <Icon name="bi-x-lg" size={18} />
           </button>
         </div>

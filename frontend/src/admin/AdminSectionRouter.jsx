@@ -19,6 +19,7 @@ import { OrganizationDirectoryPage, OrganizationStatusPage, organizationRows } f
 import { StatusBadge, getAdminFinanceLoadMessage } from "./AdminShared";
 
 import { StorageBalancePage, StorageExpensePage, StorageIncomeJournalPage, StorageIncomePage, StorageInventoryPage, StorageWriteoffPage } from "./AdminStorage";
+import { t } from "../i18n/t";
 
 const SECTION_API_MAP = {
   "org-list": { serviceKey: "organizations", mapRow: (r) => [r.name || "—", r.type || "—", r.branches_count == null ? "—" : String(r.branches_count), r.admin_name || r.owner_name || "—", r.status || "—"] },
@@ -447,15 +448,15 @@ export function CategoryPage({ active, search, onCreate, onRowDetail, onNotify, 
   });
   return (
     <section className="admin-category-page">
-      {loadState === "loading" ? <div className="admin-data-state" role="status">Загрузка данных...</div> : null}
-      {loadState === "error" ? <div className="admin-data-state" role="alert">Не удалось загрузить данные.</div> : null}
-      {loadState === "unsupported" ? <div className="admin-data-state" role="status">Backend источник не подключён.</div> : null}
+      {loadState === "loading" ? <div className="admin-data-state" role="status">{t("admin.adminsectionrouter.zagruzka_dannyh")}</div> : null}
+      {loadState === "error" ? <div className="admin-data-state" role="alert">{t("admin.adminsectionrouter.ne_udalos_zagruzit_dannye")}</div> : null}
+      {loadState === "unsupported" ? <div className="admin-data-state" role="status">{t("admin.adminsectionrouter.backend_istochnik_ne_podklyuchen")}</div> : null}
       <div className="admin-panel-head">
         <div>
-          <h2>{content.title}</h2>
-          <p>{content.text}</p>
+          <h2>{t(content.title)}</h2>
+          <p>{t(content.text)}</p>
         </div>
-        {active !== "bank-transactions" ? <button type="button" onClick={() => onCreate(active)}>Создать</button> : null}
+        {active !== "bank-transactions" ? <button type="button" onClick={() => onCreate(active)}>{t("admin.adminsectionrouter.sozdat")}</button> : null}
       </div>
       <div className="admin-category-table">
         <div className="admin-category-table__row admin-category-table__head" style={{ gridTemplateColumns: `repeat(${content.columns.length}, minmax(0, 1fr))` }}>
@@ -466,7 +467,7 @@ export function CategoryPage({ active, search, onCreate, onRowDetail, onNotify, 
             {row.map((cell, index) => content.columns[index] === "Статус" ? <StatusBadge status={cell} key={index} /> : <span key={index}>{cell}</span>)}
           </div>
         ))}
-        {loadState === "empty" ? <div className="admin-data-state" role="status">Список пуст.</div> : null}
+        {loadState === "empty" ? <div className="admin-data-state" role="status">{t("admin.adminsectionrouter.spisok_pust")}</div> : null}
       </div>
     </section>
   );

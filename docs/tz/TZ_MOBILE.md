@@ -1,3 +1,5 @@
+> **Устарело.** Актуальная редакция — [MARJON_TZ_v3.md](./MARJON_TZ_v3.md) от 13.11.2026. Документ сохранён как исторический.
+
 # MARJON — ТЗ: Mobile App (iOS / Android)
 
 > **Платформа:** iOS, Android  

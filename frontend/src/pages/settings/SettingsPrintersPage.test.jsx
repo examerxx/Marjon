@@ -39,40 +39,35 @@ describe("SettingsPrintersPage (simplified V2)", () => {
     expect(container.querySelector(".settings-card")).not.toBeNull();
   });
 
-  it("renders exactly № / Название / IP адрес / Статус / Действия", async () => {
+  it("renders exactly № / Название / IP адрес / Тип / Статус / Действия", async () => {
     const { container } = render(<SettingsPrintersPage />);
     await screen.findByText("Real One");
     const headers = [...container.querySelectorAll("thead th")].map((th) => th.textContent.trim());
-    expect(headers).toEqual(["№", "Название", "IP адрес", "Статус", "Действия"]);
+    expect(headers).toEqual(["№", "Название", "IP адрес", "Тип", "Статус", "Действия"]);
     const firstRow = screen.getByText("Real One").closest("tr");
     const cells = [...firstRow.querySelectorAll("td")].map((td) => td.textContent.trim());
     expect(cells[0]).toBe("1");
     expect(cells[1]).toBe("Real One");
     expect(cells[2]).toBe("192.168.1.15");
+    expect(cells[3]).toBe("Касса");
     const secondRow = screen.getByText("Real Two").closest("tr");
     expect([...secondRow.querySelectorAll("td")][2].textContent.trim()).toBe("—");
-    expect([...secondRow.querySelectorAll("td")][3].textContent.trim()).toBe("Не активен");
+    expect([...secondRow.querySelectorAll("td")][3].textContent.trim()).toBe("Кухня");
+    expect([...secondRow.querySelectorAll("td")][4].textContent.trim()).toBe("Не активен");
     expect(container.querySelector(".settings-status-badge.is-active")).not.toBeNull();
     expect(container.querySelector(".settings-status-badge.is-inactive")).not.toBeNull();
   });
 
-  it("contains no cook/chef field anywhere", async () => {
-    const { container } = render(<SettingsPrintersPage />);
+  it("offers exactly the cashier/kitchen routing roles", async () => {
+    render(<SettingsPrintersPage />);
     await screen.findByText("Real One");
     fireEvent.click(screen.getByRole("button", { name: /Добавить принтер/ }));
-    await screen.findByRole("dialog");
-    const text = container.textContent + document.body.textContent;
-    for (const banned of ["Повар", "повар", "Повара", "chef", "Chef", "cook", "Cook", "повара"]) {
-      expect(text).not.toContain(banned);
-    }
-    const { readFileSync } = await import("node:fs");
-    const source = readFileSync(`${process.cwd()}/src/pages/settings/SettingsPrintersPage.jsx`, "utf8");
-    for (const banned of ["овар", "chef", "Chef", "cook", "Cook"]) {
-      expect(source).not.toContain(banned);
-    }
+    const dialog = await screen.findByRole("dialog");
+    const options = [...dialog.querySelectorAll("select option")].map((option) => option.textContent.trim());
+    expect(options).toEqual(["Чековый (касса)", "Кухонный (повар)"]);
   });
 
-  it("Add modal has exactly Название + IP адрес + Статус toggle", async () => {
+  it("Add modal has exactly Название + IP адрес + Тип принтера + Статус toggle", async () => {
     const { container } = render(<SettingsPrintersPage />);
     await screen.findByText("Real One");
     fireEvent.click(screen.getByRole("button", { name: /Добавить принтер/ }));
@@ -83,8 +78,8 @@ describe("SettingsPrintersPage (simplified V2)", () => {
     expect(document.querySelector(".settings-drawer.settings-modal-overlay")).not.toBeNull();
     const labels = [...dialog.querySelectorAll(".settings-form__body > label > span, .settings-form__body .settings-toggle-field > span")]
       .map((el) => el.textContent);
-    expect(labels).toEqual(["Название", "IP адрес", "Статус"]);
-    for (const banned of ["Тип принтера", "Тип подключения", "Филиал", "Бумага", "Зона", "Порт", "USB", "Serial", "Устройство", "Тест"]) {
+    expect(labels).toEqual(["Название", "IP адрес", "Тип принтера", "Статус"]);
+    for (const banned of ["Тип подключения", "Филиал", "Бумага", "Зона", "Порт", "USB", "Serial", "Устройство", "Тест"]) {
       expect(within(dialog).queryByText(banned, { exact: false })).toBeNull();
     }
     expect(within(dialog).getByText("Активен")).toBeInTheDocument();
@@ -110,7 +105,27 @@ describe("SettingsPrintersPage (simplified V2)", () => {
     expect(settingsService.updateResource).not.toHaveBeenCalled();
     expect(await screen.findByText("New One")).toBeInTheDocument();
     const row = screen.getByText("New One").closest("tr");
-    expect([...row.querySelectorAll("td")][3].textContent.trim()).toBe("Активен");
+    expect([...row.querySelectorAll("td")][4].textContent.trim()).toBe("Активен");
+  });
+
+  it("creates a kitchen printer when the cook role is chosen", async () => {
+    render(<SettingsPrintersPage />);
+    await screen.findByText("Real One");
+    fireEvent.click(screen.getByRole("button", { name: /Добавить принтер/ }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText(/Название/), { target: { value: "Кухня-принтер" } });
+    fireEvent.change(within(dialog).getByLabelText(/IP адрес/), { target: { value: "192.168.1.50" } });
+    fireEvent.change(within(dialog).getByLabelText(/Тип принтера/), { target: { value: "kitchen" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Сохранить" }));
+    await waitFor(() => expect(settingsService.createResource).toHaveBeenCalledWith("printers", {
+      name: "Кухня-принтер",
+      printer_type: "kitchen",
+      connection_type: "network",
+      ip_address: "192.168.1.50",
+      port: 9100,
+    }));
+    const row = (await screen.findByText("Кухня-принтер")).closest("tr");
+    expect([...row.querySelectorAll("td")][3].textContent.trim()).toBe("Кухня");
   });
 
   it("Add+inactive persists through an explicit follow-up PATCH (never faked)", async () => {
@@ -128,10 +143,10 @@ describe("SettingsPrintersPage (simplified V2)", () => {
     // (The mock echoes name:"x" — a mock artifact; the real backend returns
     // the complete object. Status comes from the PATCH response.)
     const firstRow = document.querySelector(".settings-table tbody tr");
-    expect([...firstRow.querySelectorAll("td")][3].textContent.trim()).toBe("Не активен");
+    expect([...firstRow.querySelectorAll("td")][4].textContent.trim()).toBe("Не активен");
   });
 
-  it("Edit prefills the three fields and patches name/ip/status", async () => {
+  it("Edit prefills the fields and patches name/ip/type/status", async () => {
     render(<SettingsPrintersPage />);
     await screen.findByText("Real One");
     const row = screen.getByText("Real One").closest("tr");
@@ -141,11 +156,16 @@ describe("SettingsPrintersPage (simplified V2)", () => {
     expect(screen.getByText("Редактирование")).toBeInTheDocument();
     expect(within(dialog).getByLabelText(/Название/)).toHaveValue("Real One");
     expect(within(dialog).getByLabelText(/IP адрес/)).toHaveValue("192.168.1.15");
+    expect(within(dialog).getByLabelText(/Тип принтера/)).toHaveValue("receipt");
     fireEvent.change(within(dialog).getByLabelText(/IP адрес/), { target: { value: "10.0.0.9" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Сохранить" }));
     await waitFor(() => expect(settingsService.updateResource).toHaveBeenCalledWith(
-      "printers", "p1", { name: "Real One", ip_address: "10.0.0.9", is_active: true },
+      "printers", "p1", { name: "Real One", ip_address: "10.0.0.9", is_active: true, printer_type: "receipt" },
     ));
+    const kitchenRow = screen.getByText("Real Two").closest("tr");
+    fireEvent.click(within(kitchenRow).getByRole("button", { name: /Редактировать/ }));
+    const kitchenDialog = await screen.findByRole("dialog");
+    expect(within(kitchenDialog).getByLabelText(/Тип принтера/)).toHaveValue("kitchen");
   });
 
   it("rejects empty name/IP without POST", async () => {
@@ -201,6 +221,14 @@ describe("SettingsPrintersPage (simplified V2)", () => {
       name: "P",
       ip_address: "10.0.0.2",
       is_active: false,
+      printer_type: "receipt",
+    });
+    expect(apiMapFormToPayload({ name: "P", ip: "10.0.0.2", type: "kitchen" }, { editing: false })).toEqual({
+      name: "P",
+      printer_type: "kitchen",
+      connection_type: "network",
+      ip_address: "10.0.0.2",
+      port: 9100,
     });
   });
 });

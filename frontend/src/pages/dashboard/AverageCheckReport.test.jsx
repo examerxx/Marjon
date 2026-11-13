@@ -25,7 +25,7 @@ describe("Average check by place", () => {
       "Место", "Оплачено заказов", "Денежный приход", "Средний чек",
     ]);
     for (const text of ["Стол 2", "Стол 5", "3 шт", "2 шт", "5 шт"]) expect(within(table).getByText(text)).toBeTruthy();
-    expect(table.querySelector("thead tr.revenue-products__total td:last-child").textContent).toMatch(/140\s000 Сум/);
+    expect(table.querySelector("thead tr.revenue-products__total td:last-child").textContent).toMatch(/140\s000 сум/);
     expect(within(table).queryByText("Индекс")).toBeNull();
     expect(within(table).queryByText("Канал")).toBeNull();
     expect(screen.queryByText(/Денежный приход \/ количество/)).toBeNull();
@@ -35,7 +35,7 @@ describe("Average check by place", () => {
     expect(within(table).getByText("Нет данных")).toBeTruthy();
     expect(within(table).queryByText("Итого")).toBeNull();
     expect(within(table).queryByText("0 шт")).toBeNull();
-    expect(within(table).queryAllByText("0 Сум")).toHaveLength(0);
+    expect(within(table).queryAllByText("0 сум")).toHaveLength(0);
   });
   it("distinguishes failed requests from empty data", () => {
     const table = show({ ...summary, average_check_rows: [], avg_check: null, financial_unavailable: true });
@@ -45,6 +45,6 @@ describe("Average check by place", () => {
   });
   it("preserves fractional monetary amounts in the table", () => {
     const table = show({ ...summary, avg_check: "140000.25" });
-    expect(within(table).getByText(/140\s000,25 Сум/)).toBeTruthy();
+    expect(within(table).getByText(/140\s000,25 сум/)).toBeTruthy();
   });
 });

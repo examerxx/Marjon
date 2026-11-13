@@ -545,15 +545,16 @@ describe("staff role isolation (cashier vs waiter)", () => {
     expect(screen.queryByText("Cashier One")).not.toBeInTheDocument();
   });
 
-  it("locks primary switch sets: cashier 9, waiter 6 (matrix extra)", async () => {
+  it("locks primary switch sets: cashier 10, waiter 6 (matrix extra)", async () => {
     const { unmount } = render(<StaffRolePage role="cashier" />);
     await screen.findByText("Cashier One");
     fireEvent.click(screen.getByRole("button", { name: /Добавить/ }));
     let dialog = await screen.findByRole("dialog");
-    // Статус + 8 прав: DESK-PERM-01 добавил «Просмотр финансов» и «Посещаемость».
+    // Статус + 9 прав: DESK-PERM-01 добавил «Просмотр финансов» и «Посещаемость»,
+    // EXPO-01 — «Раздача».
     expect(
       dialog.querySelectorAll(".cashier-permission-switches .staff-permission-switch"),
-    ).toHaveLength(9);
+    ).toHaveLength(10);
     unmount();
 
     render(<StaffRolePage role="waiter" />);
