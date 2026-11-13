@@ -3,7 +3,7 @@
 # the concrete OrderCreate body after ``@limiter.limit`` wraps the function.
 from datetime import date
 from uuid import UUID
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, Header, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.session import get_db
@@ -14,7 +14,7 @@ from app.modules.auth.dependencies import (
 )
 from app.modules.auth.models import User
 from app.modules.pos.schemas import (
-    OrderCreate, OrderItemCreate, OrderItemQuantityUpdate, OrderItemWaiterUpdate, OrderItemsAdd,
+    OrderCreate, OrderItemCreate, OrderItemQuantityUpdate, OrderItemWaiterUpdate, OrderItemsAdd, OrderItemsAdjust,
     OrderResponse, OrderReopen, OrderStatusUpdate, OrderUpdate,
     TerminalCreate, TerminalResponse,
     ShiftOpen, ShiftClose, ShiftResponse, MyShiftSummary,
@@ -112,9 +112,22 @@ async def add_item(order_id: UUID, data: OrderItemCreate, user: User = Depends(r
 
 
 @router.post("/orders/{order_id}/items/bulk", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
-async def add_items(order_id: UUID, data: OrderItemsAdd, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
+async def add_items(order_id: UUID, data: OrderItemsAdd, idempotency_key: str | None = Header(None, alias="Idempotency-Key"), user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
     """Дозаказ пачкой: новые блюда уходят повару одним кухонным тикетом."""
-    return await OrderService(db, branch_scope=effective_branch_filter(user)).add_items(user.company_id, order_id, data.items, user)
+    return await OrderService(db, branch_scope=effective_branch_filter(user)).add_items(user.company_id, order_id, data.items, user, idempotency_key)
+
+
+@router.post("/orders/{order_id}/items/adjust", response_model=OrderResponse)
+async def adjust_items(order_id: UUID, data: OrderItemsAdjust, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
+    """«Сохранить» в заказе: плюс/минус на внесённых позициях одной командой.
+
+    Уменьшение (отмена части блюда) подтверждается паролем; на кухню уходит
+    тикет «ОТМЕНА БЛЮДА» и/или тикет с добавленным количеством.
+    """
+    return await OrderService(db, branch_scope=effective_branch_filter(user)).adjust_items(
+        user.company_id, order_id, [(change.item_id, change.quantity) for change in data.changes],
+        user, pin=data.pin, reason=data.reason,
+    )
 
 
 @router.delete("/orders/{order_id}/items/{item_id}", response_model=OrderResponse)
@@ -125,7 +138,7 @@ async def remove_item(order_id: UUID, item_id: UUID, reason: str | None = Query(
 @router.patch("/orders/{order_id}/items/{item_id}", response_model=OrderResponse)
 async def set_item_quantity(order_id: UUID, item_id: UUID, data: OrderItemQuantityUpdate, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
     """Плюс/минус на уже внесённой позиции: касса меняет количество до оплаты."""
-    return await OrderService(db, branch_scope=effective_branch_filter(user)).set_item_quantity(user.company_id, order_id, item_id, data.quantity, user)
+    return await OrderService(db, branch_scope=effective_branch_filter(user)).set_item_quantity(user.company_id, order_id, item_id, data.quantity, user, price=data.price)
 
 
 @router.post("/orders/{order_id}/items/{item_id}/move", response_model=OrderResponse)

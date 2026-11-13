@@ -42,6 +42,12 @@ class Payment(TimeStampedModel):
     fiscal_code: Mapped[str | None] = mapped_column(String(255))
 
 
+    @property
+    def remaining_amount(self) -> Decimal | None:
+        amount = (self.provider_data or {}).get("remaining_amount")
+        return Decimal(amount) if amount is not None else None
+
+
 class PaymentGatewaySettings(TimeStampedModel):
     """Per-company payment gateway credentials stored by the owner."""
     __tablename__ = "payment_gateway_settings"

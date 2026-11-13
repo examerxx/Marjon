@@ -16,6 +16,8 @@ class OrderReportRow(BaseModel):
     public_id: int
     order_number: str
     created_at: datetime
+    # Дата закрытия заказа (оплата/завершение) для отчёта по дате закрытия.
+    report_date: datetime | None = None
     status: str
     table_number: str | None
     # ORDERS-TRUTH-01 historical place snapshot (Order.hall_name_snapshot), NOT a

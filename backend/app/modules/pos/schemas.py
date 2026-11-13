@@ -87,6 +87,23 @@ class OrderItemWaiterUpdate(BaseSchema):
     action_pin: str | None = None   # PIN подтверждения (для официанта; кассир — без PIN)
 
 
+class OrderItemQuantityChange(BaseSchema):
+    item_id: UUID
+    # 0 — полная отмена блюда (то же, что «Отменить блюдо»).
+    quantity: Decimal = Field(..., ge=0)
+
+
+class OrderItemsAdjust(BaseSchema):
+    """Плюс/минус сразу на нескольких внесённых позициях (кнопка «Сохранить»).
+
+    quantity — НОВОЕ итоговое количество позиции. Если хоть одно уменьшено,
+    нужен pin (пароль отмены компании, если он задан); reason — необязательно.
+    """
+    changes: list[OrderItemQuantityChange] = Field(..., min_length=1)
+    pin: str | None = Field(None, max_length=128)
+    reason: str | None = Field(None, max_length=500)
+
+
 class OrderItemQuantityUpdate(BaseSchema):
     """Количество уже внесённой в заказ позиции (плюс/минус в корзине кассы).
 
@@ -95,6 +112,7 @@ class OrderItemQuantityUpdate(BaseSchema):
     Дневной лимит двигается на дельту, а не пересчитывается целиком.
     """
     quantity: Decimal = Field(..., gt=0)
+    price: Decimal | None = Field(None, ge=0, max_digits=15, decimal_places=2)
 
 
 class OrderItemResponse(BaseResponseSchema):
@@ -142,6 +160,7 @@ class OrderResponse(BaseResponseSchema):
     # Доставка/самовывоз + печать чека + ответственный официант (decision A).
     customer_phone: str | None = None
     customer_address: str | None = None
+    reopened_at: datetime | None = None
     receipt_printed_at: datetime | None = None
     waiter_id: UUID | None = None
     waiter_name: str | None = None

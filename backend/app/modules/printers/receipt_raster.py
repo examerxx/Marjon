@@ -27,6 +27,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from app.modules.printers.formatter import (
     EscPosFormatter,
+    KITCHEN_ITEM_CANCEL_LABEL,
     KitchenTicketData,
     ORDER_TYPE_LABELS,
     PAYMENT_METHOD_LABELS,
@@ -534,6 +535,7 @@ def render_kitchen_ticket_raster(data: KitchenTicketData, template: dict | None,
             return max(2, int(base * spacing_mult))
 
         cancelled = data.status == "cancelled"
+        is_item_cancel = getattr(data, "kind", "new") == "item_cancel"
         show_cancel = cancelled and en("cancelOrderNumber", True)
         show_normal_number = (not show_cancel) and en("orderNumber", True)
         item_comment_on = en("comment", en("itemComments", True))
@@ -566,11 +568,14 @@ def render_kitchen_ticket_raster(data: KitchenTicketData, template: dict | None,
                     render_number_block()
                 elif block == "orderNumber" and show_normal_number:
                     render_number_block()
-            elif block == "orderType" and en("orderType", True):
-                if order_type_label:
+            elif block == "orderType" and (is_item_cancel or en("orderType", True)):
+                header_label = KITCHEN_ITEM_CANCEL_LABEL if is_item_cancel else order_type_label
+                if header_label:
                     font, _ = _kitchen_font_for(template, helper, "orderType")
+                    if is_item_cancel:
+                        font = _load_font("bold", font.size)
                     _, align = _kitchen_font_for(template, helper, "orderNumber")
-                    canvas.line_of_text(order_type_label, font, align, gap(6))
+                    canvas.line_of_text(header_label, font, align, gap(6))
                     any_info = True
             elif block == "table" and en("table", True):
                 render_row("table", "Стол:", data.table_number)

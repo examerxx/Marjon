@@ -167,6 +167,7 @@ async def debt_credit_report(
 async def orders_report(
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
+    date_basis: str = Query("opened", pattern="^(opened|closed)$"),
     web_timezone: str | None = Query(None, pattern="^Asia/Tashkent$"),
     order_number: str | None = Query(None, max_length=100),
     waiter_id: list[UUID] | None = Query(None),
@@ -185,6 +186,7 @@ async def orders_report(
         date_from,
         date_to,
         branch_id=effective_branch_filter(user),
+        date_basis=date_basis,
         order_number=order_number,
         waiter_id=waiter_id,
         cashier_id=cashier_id,

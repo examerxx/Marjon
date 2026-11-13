@@ -10,6 +10,7 @@ from sqlalchemy import and_, case, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
+from app.modules.audit.models import AuditLog
 from app.modules.admin_reports.schemas import (
     AttendanceRow, CancelledAuthorOption, CancelledFiltersResponse, CancelledItemRow, CancelledReportTotals,
     DebtCreditRow,
@@ -305,14 +306,14 @@ class AdminReportService:
             for r in rows
         ]
 
-    def _order_date_filter(self, query, date_from: date | None, date_to: date | None):
+    def _order_date_filter(self, query, date_from: date | None, date_to: date | None, *, column=Order.created_at):
         if self.web_timezone:
             from app.shared.web_time import web_date_conditions
-            return query.where(*web_date_conditions(Order.created_at, date_from, date_to))
+            return query.where(*web_date_conditions(column, date_from, date_to))
         if date_from:
-            query = query.where(Order.created_at >= datetime.combine(date_from, datetime.min.time()))
+            query = query.where(column >= datetime.combine(date_from, datetime.min.time()))
         if date_to:
-            query = query.where(Order.created_at <= datetime.combine(date_to, datetime.max.time()))
+            query = query.where(column <= datetime.combine(date_to, datetime.max.time()))
         return query
 
     async def orders_report(
@@ -322,6 +323,7 @@ class AdminReportService:
         date_to: date | None,
         *,
         branch_id: UUID | None = None,
+        date_basis: str = "opened",
         order_number: str | None = None,
         waiter_id: Sequence[UUID] | None = None,
         cashier_id: Sequence[UUID] | None = None,
@@ -336,9 +338,32 @@ class AdminReportService:
             .correlate(Order)
             .scalar_subquery()
         )
+        if date_basis == "closed":
+            # Дата закрытия = последний платёж (в т.ч. VIP complimentary) или событие
+            # завершения/VIP-закрытия в журнале; иначе VIP-заказ не попадал в отчёт.
+            paid_at = select(func.max(Payment.updated_at)).where(
+                Payment.company_id == Order.company_id,
+                Payment.order_id == Order.id,
+                Payment.status.in_(("completed", "complimentary")),
+            ).correlate(Order).scalar_subquery()
+            completed_at = select(func.max(AuditLog.created_at)).where(
+                AuditLog.company_id == Order.company_id,
+                AuditLog.entity_id == Order.id,
+                or_(
+                    and_(
+                        AuditLog.action == "order.status_change",
+                        AuditLog.new_data["status"].as_string() == "completed",
+                    ),
+                    AuditLog.action == "order.vip_close",
+                ),
+            ).correlate(Order).scalar_subquery()
+            event_date = func.greatest(paid_at, completed_at)
+        else:
+            event_date = Order.created_at
         query = (
             select(
                 Order.id, Order.public_id, Order.order_number, Order.created_at,
+                event_date.label("report_date"),
                 Order.status, Order.table_number, Order.hall_name_snapshot,
                 Order.order_type,
                 User.name.label("waiter_name"),
@@ -350,7 +375,7 @@ class AdminReportService:
                 and_(User.id == Order.waiter_id, User.company_id == company_id),
             )
             .where(Order.company_id == company_id)
-            .order_by(Order.created_at.desc())
+            .order_by(event_date.desc(), Order.id.desc())
         )
         if branch_id is not None:
             query = query.where(Order.branch_id == branch_id)
@@ -439,12 +464,14 @@ class AdminReportService:
                     select(Payment.id).where(
                         Payment.company_id == company_id,
                         Payment.order_id == Order.id,
-                        Payment.status == "completed",
+                        Payment.status.in_(("completed", "complimentary")),
                         Payment.method.in_(list(payment_method)),
                     )
                 )
             )
-        query = self._order_date_filter(query, date_from, date_to)
+        if date_basis == "closed":
+            query = query.where(Order.status == "completed", event_date.is_not(None))
+        query = self._order_date_filter(query, date_from, date_to, column=event_date)
         rows = (await self.db.execute(query)).all()
         cashier_names, payment_methods = await self._order_payment_attribution(
             company_id, [r.id for r in rows]
@@ -477,7 +504,7 @@ class AdminReportService:
         return [
             OrderReportRow(
                 order_id=r.id, public_id=r.public_id, order_number=r.order_number,
-                created_at=r.created_at, status=r.status,
+                created_at=r.created_at, report_date=r.report_date, status=r.status,
                 table_number=r.table_number, hall_name=r.hall_name_snapshot,
                 waiter_name=r.waiter_name,
                 items_count=r.items_count, total_amount=Decimal(str(r.total_amount or 0)),
@@ -535,7 +562,7 @@ class AdminReportService:
                 )
                 .where(
                     Payment.company_id == company_id,
-                    Payment.status == "completed",
+                    Payment.status.in_(("completed", "complimentary")),
                     Payment.order_id.in_(list(order_ids)),
                 )
                 .order_by(Payment.created_at.asc(), Payment.id.asc())

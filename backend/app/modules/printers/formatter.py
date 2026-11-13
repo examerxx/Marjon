@@ -178,6 +178,12 @@ class KitchenTicketData:
     status: str = "new"
     printed_at: datetime = field(default_factory=datetime.now)
     staff_label: str = "Официант"
+    # "new" — обычный тикет; "item_cancel" — отмена блюд в живом заказе: вместо
+    # строки типа заказа печатается «ОТМЕНА БЛЮДА», остальное без изменений.
+    kind: str = "new"
+
+
+KITCHEN_ITEM_CANCEL_LABEL = "ОТМЕНА БЛЮДА"
 
 
 class EscPosFormatter:
@@ -971,6 +977,7 @@ class EscPosFormatter:
         out += self._LINE_SPACING_CODES.get(str(template.get("lineSpacing") or "medium").lower(), self.LINE_SPACING_DEFAULT)
 
         cancelled = data.status == "cancelled"
+        is_item_cancel = getattr(data, "kind", "new") == "item_cancel"
         show_cancel = cancelled and en("cancelOrderNumber", True)
         show_normal_number = (not show_cancel) and en("orderNumber", True)
         # 'comment' is the unified modern key for both item-level notes and
@@ -1013,12 +1020,15 @@ class EscPosFormatter:
                 elif block == "orderNumber" and show_normal_number:
                     render_number_block()
                     any_info = True
-            elif block == "orderType" and en("orderType", True):
-                if order_type_label:
+            elif block == "orderType" and (is_item_cancel or en("orderType", True)):
+                header_label = KITCHEN_ITEM_CANCEL_LABEL if is_item_cancel else order_type_label
+                if header_label:
                     style = {**self._kitchen_style(template, "orderType"),
                              "align": self._kitchen_style(template, "orderNumber")["align"]}
+                    if is_item_cancel:
+                        style = {**style, "weight": "bold"}
                     prefix, suffix, div = self._style_bytes(style)
-                    out.extend(prefix + self._wrapped_line(order_type_label, self.cols // div) + suffix)
+                    out.extend(prefix + self._wrapped_line(header_label, self.cols // div) + suffix)
                     any_info = True
             elif block == "table" and en("table", True):
                 any_info = render_row("table", "Стол:", data.table_number) or any_info

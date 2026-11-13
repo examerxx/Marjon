@@ -25,6 +25,7 @@ from app.modules.auth.dependencies import (
 )
 from app.modules.auth.models import User
 from app.modules.companies.models import Branch, Company
+from app.modules.finance.defaults import DEFAULT_PAYMENT_IDS
 from app.modules.finance.models import (
     Counterparty,
     FinanceHistory,
@@ -250,7 +251,8 @@ async def kafe_update_transaction(
 
 # ── Финансы: категории доходов/расходов ──────────────────────────────────────
 def _cat_dict(c: TransactionCategory) -> dict:
-    return {"id": c.id, "name": c.name, "kind": c.kind, "status": c.status, "parent_id": c.parent_id}
+    return {"id": c.id, "name": c.name, "kind": c.kind, "status": c.status, "parent_id": c.parent_id,
+            "is_system": c.scope_kind == "system"}
 
 
 @router.get("/finance/transaction-categories", tags=["finance-kafe"])
@@ -420,7 +422,7 @@ async def delete_place(item_id: UUID, user: User = Depends(require_company_admin
 # ── Настройки: способы оплаты ────────────────────────────────────────────────
 def _pm_dict(p: PaymentType) -> dict:
     return {"id": p.id, "name": p.name, "type": p.type, "sort": p.sort, "status": p.status,
-            "sort_order": p.sort, "short_name": p.type}
+            "sort_order": p.sort, "short_name": p.type, "is_system": p.scope_kind == "system" or p.source_template_id in DEFAULT_PAYMENT_IDS}
 
 
 @router.get("/settings/payment-methods", tags=["settings"])

@@ -1,10 +1,11 @@
 ﻿from __future__ import annotations
 from uuid import UUID
-from fastapi import APIRouter, Depends, Header, status
+from fastapi import APIRouter, Body, Depends, Header, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.database.session import get_db
 from app.modules.auth.dependencies import (
+    effective_branch_filter,
     require_company_admin,
     require_company_app_user,
 )
@@ -40,6 +41,18 @@ async def order_payments(
     db: AsyncSession = Depends(get_db),
 ):
     return await PaymentService(db).list_for_order(user.company_id, order_id)
+
+
+@router.post("/order/{order_id}/reset-partial", status_code=status.HTTP_204_NO_CONTENT)
+async def reset_partial_payments(
+    order_id: UUID,
+    payment_ids: set[UUID] = Body(embed=True),
+    user: User = Depends(require_company_app_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await PaymentService(db).reset_partial(
+        user.company_id, order_id, user, payment_ids, effective_branch_filter(user),
+    )
 
 
 # ── Gateway settings (owner only) ─────────────────────────────────────────────
