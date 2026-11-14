@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="15" fill="#0c0c0d"/>
+  <svg x="10" y="17.2" width="44" height="29.7" viewBox="55 370 430 290">
+    <defs>
+      <linearGradient id="mj-t1" x1="92" y1="610" x2="302" y2="402" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#14B8A6"/><stop offset="1" stop-color="#11AAA4"/></linearGradient>
+      <linearGradient id="mj-t2" x1="246" y1="610" x2="453" y2="402" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#43CEC7"/><stop offset="1" stop-color="#67D8D2"/></linearGradient>
+    </defs>
+    <rect x="39.71" y="472.12" width="316.08" height="86.27" rx="43.135" transform="rotate(-45 197.75 515.25)" fill="url(#mj-t1)"/>
+    <rect x="193.39" y="472.61" width="314.75" height="85.29" rx="42.645" transform="rotate(-45.44 350.76 515.25)" fill="url(#mj-t2)"/>
+    <path d="M461 525C466 526 470 531 470 537L470 599C470 616 461 629 445 636C434 641 420 641 408 635C394 628 386 615 386 600C386 589 390 580 398 571L439 530C445 524 453 522 461 525Z" fill="#f2f0e8"/>
+  </svg>
+</svg>

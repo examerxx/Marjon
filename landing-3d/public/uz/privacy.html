@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="uz" class="no-js">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Maxfiylik siyosati — Marjon</title>
+<meta name="description" content="Marjon maxfiylik siyosati: platforma va mobil ilovalar qanday ma'lumotlarni to'playdi, ular qanday ishlatiladi va saqlanadi." />
+<meta name="theme-color" content="#f2f0e8" />
+<link rel="canonical" href="https://marjon.tech/uz/privacy.html" />
+<link rel="alternate" hreflang="ru" href="https://marjon.tech/privacy.html" />
+<link rel="alternate" hreflang="uz" href="https://marjon.tech/uz/privacy.html" />
+<link rel="alternate" hreflang="x-default" href="https://marjon.tech/privacy.html" />
+<link rel="icon" type="image/svg+xml" href="/assets/mark.svg" />
+<link rel="apple-touch-icon" href="/assets/icon-512.png" />
+
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Marjon" />
+<meta property="og:locale" content="uz_UZ" />
+<meta property="og:title" content="Maxfiylik siyosati — Marjon" />
+<meta property="og:description" content="Marjon qanday ma'lumotlarni to'playdi, ular qanday ishlatiladi, saqlanadi va kimga uzatiladi." />
+<meta property="og:url" content="https://marjon.tech/uz/privacy.html" />
+<meta property="og:image" content="https://marjon.tech/assets/og-image.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Maxfiylik siyosati — Marjon" />
+<meta name="twitter:description" content="Marjon qanday ma'lumotlarni to'playdi, ular qanday ishlatiladi, saqlanadi va kimga uzatiladi." />
+<meta name="twitter:image" content="https://marjon.tech/assets/og-image.png" />
+
+<link rel="preload" href="/assets/fonts/onest.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="/assets/fonts/jbmono.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="stylesheet" href="/assets/styles.css" />
+
+<script>document.documentElement.classList.replace('no-js', 'js');</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Kontentga o'tish</a>
+
+<svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <symbol id="i-arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 17.5 17.5 6.5M8 6.5h9.5V16"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-brand" viewBox="55 370 430 290">
+    <defs>
+      <linearGradient id="mj-t1" x1="92" y1="610" x2="302" y2="402" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#14B8A6"/><stop offset="1" stop-color="#11AAA4"/></linearGradient>
+      <linearGradient id="mj-t2" x1="246" y1="610" x2="453" y2="402" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#43CEC7"/><stop offset="1" stop-color="#67D8D2"/></linearGradient>
+    </defs>
+    <rect x="39.71" y="472.12" width="316.08" height="86.27" rx="43.135" transform="rotate(-45 197.75 515.25)" fill="url(#mj-t1)"/>
+    <rect x="193.39" y="472.61" width="314.75" height="85.29" rx="42.645" transform="rotate(-45.44 350.76 515.25)" fill="url(#mj-t2)"/>
+    <path d="M461 525C466 526 470 531 470 537L470 599C470 616 461 629 445 636C434 641 420 641 408 635C394 628 386 615 386 600C386 589 390 580 398 571L439 530C445 524 453 522 461 525Z" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5.5c0 4.6 3 7.7 7 9.5 4-1.8 7-4.9 7-9.5V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></symbol>
+</svg>
+
+<div class="doc-progress" aria-hidden="true"><i></i></div>
+
+<div class="nav-wrap">
+  <nav class="nav" aria-label="Asosiy navigatsiya">
+    <a class="brand" href="index.html" aria-label="Marjon — bosh sahifa">
+      <span class="brand-mark" aria-hidden="true"><svg aria-hidden="true" focusable="false"><use href="#i-brand"/></svg></span>
+      <span>Marjon</span><sup>UZ</sup>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#modules">Imkoniyatlar</a>
+      <a href="index.html#roles">Rollar</a>
+      <a href="index.html#platforms">Platformalar</a>
+      <a href="index.html#faq">Savollar</a>
+    </div>
+    <div class="nav-tools">
+      <div class="lang-switch" role="group" aria-label="Sayt tili">
+        <a href="/privacy.html" hreflang="ru" lang="ru">RU</a>
+        <a href="/uz/privacy.html" hreflang="uz" lang="uz" class="is-active" aria-current="page">UZ</a>
+      </div>
+      <a class="nav-login" href="https://admin.marjon.tech/login">Kirish</a>
+      <a class="btn btn-primary btn-sm" href="index.html#contact">
+        Ulash
+        <span class="arr"><svg aria-hidden="true"><use href="#i-arr"/></svg></span>
+      </a>
+    </div>
+    <button class="burger" type="button" aria-label="Menyuni ochish" aria-expanded="false" aria-controls="mobileMenu" data-label-open="Menyuni ochish" data-label-close="Menyuni yopish">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+</div>
+
+<div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+  <div class="mm-links">
+    <a href="index.html"><span>00</span>Bosh sahifa</a>
+    <a href="index.html#modules"><span>01</span>Imkoniyatlar</a>
+    <a href="index.html#roles"><span>02</span>Rollar</a>
+    <a href="index.html#platforms"><span>03</span>Platformalar</a>
+    <a href="index.html#uzbekistan"><span>04</span>O'zbekiston</a>
+    <a href="index.html#faq"><span>05</span>Savollar</a>
+    <a href="index.html#contact"><span>06</span>Ulash</a>
+  </div>
+  <div class="mm-foot">
+    <div class="mm-actions">
+      <a class="btn btn-primary" href="mailto:support@marjon.tech?subject=Ma'lumotlar%20bo'yicha%20savol">
+        Bizga yozing
+        <span class="arr"><svg aria-hidden="true"><use href="#i-arr"/></svg></span>
+      </a>
+      <a class="btn btn-ghost" href="https://admin.marjon.tech/login">
+        Panelga kirish
+        <span class="arr"><svg aria-hidden="true"><use href="#i-right"/></svg></span>
+      </a>
+    </div>
+    <div class="mm-aside">
+      <div class="lang-switch" role="group" aria-label="Sayt tili">
+        <a href="/privacy.html" hreflang="ru" lang="ru">RU</a>
+        <a href="/uz/privacy.html" hreflang="uz" lang="uz" class="is-active" aria-current="page">UZ</a>
+      </div>
+      <div class="mono-label">
+        Toshkent · Asia/Tashkent<br />
+        <a href="mailto:support@marjon.tech">support@marjon.tech</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main id="main">
+
+<section class="legal-hero">
+  <div class="container">
+    <div class="hero-top reveal">
+      <span class="kicker">Hujjatlar · Maxfiylik</span>
+      <span class="ht-note">11.08.2026 dan kuchga kiradi · UZ</span>
+    </div>
+
+    <h1>
+      <span class="line"><span style="--i:0">Maxfiylik</span></span>
+      <span class="line"><span style="--i:1"><span class="muted">siyosati.</span></span></span>
+    </h1>
+
+    <div class="legal-head reveal">
+      <p class="lede">2026-yil 11-avgustdan kuchga kiradi · Marjon veb-paneli, mobil ilovalar (shu jumladan Marjon Owner) va api.marjon.tech API'siga tatbiq etiladi</p>
+      <div class="legal-stamp" aria-label="Hujjat 11 ta bo'limdan iborat">
+        <b>11</b>
+        <span>bo'lim<br />UZ</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="legal-body">
+  <div class="container legal-grid">
+    <aside class="legal-side">
+      <nav class="doc-toc" aria-label="Hujjat mundarijasi">
+        <span class="mono-label">Mundarija</span>
+        <ol>
+          <li><a href="#scope"><span>01</span>Ushbu siyosat kimni va nimani qamrab oladi</a></li>
+          <li><a href="#collect"><span>02</span>Qanday ma'lumotlarni to'playmiz</a></li>
+          <li><a href="#use"><span>03</span>Ma'lumotlardan qanday foydalanamiz</a></li>
+          <li><a href="#share"><span>04</span>Ma'lumotlar kimga uzatiladi</a></li>
+          <li><a href="#storage"><span>05</span>Saqlash va himoya</a></li>
+          <li><a href="#mobile"><span>06</span>Mobil ilovalar</a></li>
+          <li><a href="#rights"><span>07</span>Sizning huquqlaringiz</a></li>
+          <li><a href="#retention"><span>08</span>O'chirish va saqlash muddatlari</a></li>
+          <li><a href="#children"><span>09</span>Yosh cheklovlari</a></li>
+          <li><a href="#changes"><span>10</span>Siyosatga kiritiladigan o'zgarishlar</a></li>
+          <li><a href="#contact"><span>11</span>Kontaktlar</a></li>
+        </ol>
+      </nav>
+
+      <div class="doc-help">
+        <span class="doc-help-ico"><svg aria-hidden="true"><use href="#i-shield"/></svg></span>
+        <span class="mono-label">Ma'lumotlar bo'yicha savollar</span>
+        <p>Bizga yozing — Toshkent ish vaqti bo'yicha javob beramiz.</p>
+        <a href="mailto:support@marjon.tech">support@marjon.tech</a>
+      </div>
+    </aside>
+
+    <article class="doc">
+      <section id="scope">
+        <h2><span class="num">01</span>Ushbu siyosat kimni va nimani qamrab oladi</h2>
+        <p>Ushbu siyosat <strong>Marjon</strong> korxonani boshqarish veb-panelida, mobil ilovalarda (shu jumladan <strong>Marjon Owner</strong>) va <strong>api.marjon.tech</strong> API-servisida ma'lumotlarni qanday qayta ishlashini tavsiflaydi. Ma'lumotlar operatori sifatida Marjon kafe va restoranlar uchun SaaS-platforma yetkazib beruvchi sifatida ishtirok etadi.</p>
+        <p>Agar siz Marjon'dan foydalanadigan restoran mehmoni bo'lsangiz (masalan, kassada buyurtma uchun to'lov qilsangiz), ushbu siyosat korxona buyurtmaga xizmat ko'rsatish uchun tizimga kiritadigan buyurtma ma'lumotlariga ham tatbiq etiladi.</p>
+      </section>
+
+      <section id="collect">
+        <h2><span class="num">02</span>Qanday ma'lumotlarni to'playmiz</h2>
+        <p>Ma'lumotlar tarkibi ulardan kim foydalanishiga bog'liq:</p>
+        <ul>
+          <li><strong>Korxona xodimining hisobi</strong> — telefon yoki email, parol (xesh ko'rinishida saqlanadi, ochiq matnda emas), ism, rol va kirish huquqlari.</li>
+          <li><strong>Korxona ma'lumotlari</strong> — nomi, manzili, filiallari, menyu, ombor, buyurtmalar, moliyaviy operatsiyalar va hisobotlar — egasi va xodimlar tomonidan ish jarayonida kiritiladi.</li>
+          <li><strong>Buyurtma va to'lov ma'lumotlari</strong> — buyurtma tarkibi, summasi, to'lov usuli; bank kartasi ma'lumotlari bizga uzatilmaydi va saqlanmaydi — ularni Click, Payme va Uzum Bank bevosita qayta ishlaydi.</li>
+          <li><strong>Texnik ma'lumotlar</strong> — mobil ilova ulanadigan server manzili va qurilmaning avtorizatsiya tokeni.</li>
+        </ul>
+      </section>
+
+      <section id="use">
+        <h2><span class="num">03</span>Ma'lumotlardan qanday foydalanamiz</h2>
+        <p>Ma'lumotlar faqat xizmat ishlashi uchun ishlatiladi: buyurtmalarni qayta ishlash, ombor yuritish, ish haqi va smenalarni hisoblash, hisobotlar shakllantirish, cheklarni fiskallashtirish va to'lovlarni qabul qilish. Mahsulot ichida reklama ko'rsatmaymiz va ma'lumotlardan foydalanuvchilarni o'z korxonasidan tashqarida profillash uchun foydalanmaymiz.</p>
+      </section>
+
+      <section id="share">
+        <h2><span class="num">04</span>Ma'lumotlar kimga uzatiladi</h2>
+        <p>Marjon ma'lumotlarni sotmaydi va marketing maqsadida uchinchi shaxslarga uzatmaydi. Ma'lumotlar faqat xizmatning o'zini ko'rsatish uchun zarur bo'lgan tomonlarga uzatiladi:</p>
+        <ul>
+          <li><strong>To'lov provayderlari</strong> — Click, Payme, Uzum Bank — buyurtma bo'yicha to'lovlarni qayta ishlash uchun.</li>
+          <li><strong>Fiskal ma'lumotlar operatori (OFD)</strong> — soliq.uz — O'zbekistonning cheklarni fiskallashtirish to'g'risidagi qonunchiligi talab qilganidek.</li>
+        </ul>
+        <div class="doc-callout">Marjon ilovalarida reklama, analitika yoki foydalanuvchilarni kuzatish uchun uchinchi tomon SDK'lari ishlatilmaydi.</div>
+      </section>
+
+      <section id="storage">
+        <h2><span class="num">05</span>Saqlash va himoya</h2>
+        <p>Korxonalar ma'lumotlari Marjon server infratuzilmasida (api.marjon.tech) saqlanadi. Ilovalar va server o'rtasidagi ulanish HTTPS/TLS protokoli bilan himoyalangan. Parollar xesh ko'rinishida, qurilmadagi avtorizatsiya tokenlari xavfsiz tizim xotirasida (iOS'da Keychain, Android'da Keystore/EncryptedSharedPreferences) saqlanadi.</p>
+      </section>
+
+      <section id="mobile">
+        <h2><span class="num">06</span>Mobil ilovalar</h2>
+        <p>Marjon Owner mobil ilovasi faqat tarmoqqa kirish ruxsatini so'raydi — korxonangiz serveriga ulanish uchun. Ilova kamera, geolokatsiya, kontaktlar yoki media kutubxonasiga kirishni, agar bu muayyan funksiya uchun (masalan, mahsulot fotosini yuklash) aniq talab qilinmasa, so'ramaydi — bunday holatda ham har doim operatsion tizimdan alohida ruxsat so'raladi.</p>
+      </section>
+
+      <section id="rights">
+        <h2><span class="num">07</span>Sizning huquqlaringiz</h2>
+        <p>Ma'lumotlaringizga kirish, ularni tuzatish yoki o'chirishni <a href="mailto:support@marjon.tech">support@marjon.tech</a> manziliga yozib so'rashingiz mumkin. Korxona egasi istalgan vaqtda o'z tashkiloti ma'lumotlarini eksport qilishni yoki to'liq o'chirishni so'rashi mumkin.</p>
+      </section>
+
+      <section id="retention">
+        <h2><span class="num">08</span>O'chirish va saqlash muddatlari</h2>
+        <p>Tasdiqlangan o'chirish so'rovidan so'ng tashkilot ma'lumotlari 30 kun ichida o'chiriladi yoki anonimlashtiriladi — O'zbekistonning fiskal hisob to'g'risidagi qonunchiligi uzoqroq saqlashni talab qiladigan ma'lumotlar (masalan, fiskal cheklar) bundan mustasno.</p>
+      </section>
+
+      <section id="children">
+        <h2><span class="num">09</span>Yosh cheklovlari</h2>
+        <p>Marjon — umumiy ovqatlanish korxonalari egalari va xodimlari uchun vosita bo'lib, 18 yoshdan kichik shaxslar uchun mo'ljallanmagan.</p>
+      </section>
+
+      <section id="changes">
+        <h2><span class="num">10</span>Siyosatga kiritiladigan o'zgarishlar</h2>
+        <p>Ushbu siyosatga jiddiy o'zgarishlar kiritilsa, o'zgarishlar kuchga kirishidan oldin foydalanuvchilarni ilova yoki ushbu sahifa orqali xabardor qilamiz. Hujjat boshidagi sana har doim joriy versiyani aks ettiradi.</p>
+      </section>
+
+      <section id="contact">
+        <h2><span class="num">11</span>Kontaktlar</h2>
+        <p>Maxfiylik va ma'lumotlarni qayta ishlash bo'yicha savollar: <a href="mailto:support@marjon.tech">support@marjon.tech</a> · <a href="https://marjon.tech">marjon.tech</a></p>
+      </section>
+
+      <div class="doc-end reveal">
+        <div>
+          <span class="mono-label">Savollaringiz qoldimi</span>
+          <p>support@marjon.tech manziliga yozing yoki bosh sahifaga qayting — platformani sizning ma'lumotlaringizda ko'rsatamiz.</p>
+        </div>
+        <a class="btn btn-primary btn-sm" href="index.html">
+          Bosh sahifa
+          <span class="arr"><svg aria-hidden="true"><use href="#i-arr"/></svg></span>
+        </a>
+      </div>
+    </article>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="foot-brand">
+        <a class="brand" href="index.html" aria-label="Marjon — bosh sahifa">
+          <span class="brand-mark" aria-hidden="true"><svg aria-hidden="true" focusable="false"><use href="#i-brand"/></svg></span>
+          <span class="brand-word">Marjon</span><sup>UZ</sup>
+        </a>
+        <p>O'zbekiston kafe va restoranlarini avtomatlashtirish platformasi: kassa, oshxona, ombor, moliya va fiskallashtirish.</p>
+      </div>
+      <div class="foot-col">
+        <h3>Mahsulot</h3>
+        <a href="index.html#modules">Imkoniyatlar</a>
+        <a href="index.html#roles">Rollar</a>
+        <a href="index.html#platforms">Platformalar</a>
+        <a href="index.html#integrations">Integratsiyalar</a>
+      </div>
+      <div class="foot-col">
+        <h3>Hujjatlar</h3>
+        <a href="privacy.html">Maxfiylik siyosati</a>
+        <a href="index.html#faq">Savol-javoblar</a>
+        <a href="index.html#uzbekistan">O'zbekiston</a>
+      </div>
+      <div class="foot-col">
+        <h3>Kontaktlar</h3>
+        <a href="mailto:support@marjon.tech">support@marjon.tech</a>
+        <a href="https://marjon.tech/">marjon.tech</a>
+        <a href="https://admin.marjon.tech/login">Panelga kirish</a>
+        <a href="index.html#top">Toshkent · Asia/Tashkent</a>
+      </div>
+    </div>
+
+    <div class="foot-word" aria-hidden="true"><span>MARJON</span></div>
+
+    <div class="foot-bottom">
+      <span>© <span data-year>2026</span> Marjon. Barcha huquqlar himoyalangan.</span>
+      <span>O'zbekiston umumiy ovqatlanishi uchun yaratilgan</span>
+    </div>
+  </div>
+</footer>
+
+<script src="/assets/app.js" defer></script>
+</body>
+</html>
