@@ -1,10 +1,13 @@
 import '@fontsource-variable/unbounded';
 import '@fontsource-variable/onest';
 import './style.css';
+import './fx.js';
+import './micro.js';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 import { $, $$, initBase, initMotion } from './ui.js';
+import { initDemo } from './demo.js';
 
 const html = document.documentElement;
 const q = new URLSearchParams(location.search);
@@ -46,14 +49,15 @@ async function boot() {
   gsap.registerPlugin(ScrollTrigger);
 
   // Lenis ведёт скролл, тик получает от gsap.ticker (один цикл на всё)
-  if (useGL) {
-    lenis = new Lenis({ lerp: 0.1, wheelMultiplier: 0.9 });
+  if (!reduced) {
+    lenis = new Lenis({ lerp: 0.06, wheelMultiplier: 1, prevent: () => false, smoothWheel: true, syncTouch: true, syncTouchLerp: 0.08, touchInertiaMultiplier: 28 });/* длинное «скольжение» с инерцией */
     lenis.on('scroll', ScrollTrigger.update);
     lenis.stop();
   }
   gsap.ticker.lagSmoothing(0);
 
   motion = initMotion({ scrollTo });
+  initDemo(); // после initMotion: pin модулей стоит выше по странице
 
   // 3D
   if (useGL) {
@@ -77,7 +81,7 @@ async function boot() {
   const top = (sel) => $(sel).getBoundingClientRect().top + window.scrollY;
   const measure = () => {
     const vh = window.innerHeight, max = ScrollTrigger.maxScroll(window);
-    const paper = $('#paper'), pt = top('#paper'), pb = pt + paper.offsetHeight;
+    const paper = $('#paper'), pt = top('#platforms'), pb = top('#paper') + paper.offsetHeight; // демо + бумага закрывают сцену
     paperA = pt; paperB = pb - vh;
     anchors = [
       [0, 0], [top('#problem'), 1], [motion.pin.start, 2], [motion.pin.end, 2.8], [top('#live'), 3],
@@ -132,16 +136,38 @@ async function boot() {
 
   /* ---------- загрузчик → intro ---------- */
   const loader = $('#loader'), nEl = $('[data-loader-n]'), barEl = $('[data-loader-bar]');
-  const cnt = { v: 0 };
+  const cnt = { v: 0 }, fast = q.has('fast');
+  // смена открывается: вордмарк наполняется, модули отмечаются по очереди, идут часы
+  const fillEl = $('[data-ld-fill]'), lis = $$('[data-ld-li]'), statusEl = $('[data-ld-status]'), clockEl = $('[data-ld-clock]');
+  const clock = () => { clockEl.textContent = new Date().toLocaleTimeString('ru-RU', { timeZone: 'Asia/Tashkent', hour12: false }); };
+  clock(); const clockT = setInterval(clock, 1000);
+  if (!fast) {
+    gsap.from('.ld-w-out span', { yPercent: 110, duration: 0.9, ease: 'expo.out', stagger: 0.045 });
+    gsap.from('.ld-top, .ld-bot', { opacity: 0, duration: 0.6, delay: 0.15 });
+  }
+  let ok = 0;
   const fontsReady = Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 2500))]);
-  const counted = new Promise((r) => gsap.to(cnt, { v: 100, duration: q.has('fast') ? 0.01 : 1.5, ease: 'power2.inOut', onUpdate: () => { nEl.textContent = Math.round(cnt.v); gsap.set(barEl, { scaleX: cnt.v / 100 }); }, onComplete: r }));
+  const counted = new Promise((r) => gsap.to(cnt, { v: 100, duration: fast ? 0.01 : 2.3, ease: 'power2.inOut', delay: fast ? 0 : 0.25, onComplete: r, onUpdate: () => {
+    nEl.textContent = Math.round(cnt.v); gsap.set(barEl, { scaleX: cnt.v / 100 });
+    fillEl.style.clipPath = `inset(${(100 - cnt.v).toFixed(2)}% 0 0 0)`;
+    while (ok < lis.length && cnt.v >= ((ok + 1) / lis.length) * 96) lis[ok++].classList.add('ok');
+  } }));
   await Promise.all([fontsReady, counted]);
   world?.render(0.016, 0, 0); // прогрев шейдеров под загрузчиком
-
+  if (!fast) {
+    statusEl.textContent = statusEl.dataset.done;
+    await gsap.timeline()
+      .fromTo('.ld-word', { scale: 1 }, { scale: 1.04, duration: 0.35, ease: 'power2.out' }, 0)
+      .to('.ld-top, .ld-bot, .loader-bar', { opacity: 0, duration: 0.3 }, 0.3)
+      .to('.ld-w span', { yPercent: -125, duration: 0.7, ease: 'expo.in', stagger: { each: 0.035 } }, 0.35);
+  }
+  clearInterval(clockT);
   motion.intro();
   measure();
   tCur = timeAt(window.scrollY);
-  gsap.to(loader, { yPercent: -100, duration: 1, ease: 'expo.inOut', onComplete: () => loader.remove() });
+  // выход: занавес уходит вверх колонками, от центра к краям
+  if (fast) loader.remove();
+  else gsap.to('.ld-cols i', { scaleY: 0, duration: 0.95, ease: 'expo.inOut', stagger: { each: 0.07, from: 'center' }, onComplete: () => loader.remove() });
   if (world) gsap.to(world.S, { intro: 1, duration: 2.6, ease: 'expo.out', delay: 0.2 });
   lenis?.start();
   html.classList.add('ready');

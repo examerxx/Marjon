@@ -10,7 +10,7 @@ export default defineConfig({
     assetsDir: 'static', // public/assets занят старыми privacy-страницами
     target: 'es2020',
     rollupOptions: {
-      input: { ru: page('.'), uz: page('uz') },
+      input: { index: page('.'), uz: page('uz') },
       output: { manualChunks: { three: ['three'], gsap: ['gsap', 'lenis'] } },
     },
   },

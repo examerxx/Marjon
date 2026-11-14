@@ -1,0 +1,26 @@
+/* ---------- общие эффекты A и D: blur-появление, нижний блюр, шапка-инверсия ---------- */
+
+/* 1 · «умный» блюр и инерция блоков считаются в fx.js покадрово (позиция на экране + скорость скролла) */
+.fx-b { will-change: filter, translate; }
+
+/* 2 · прогрессивный блюр у верхней и нижней кромок экрана */
+.fx-edge { position: fixed; left: 0; right: 0; height: clamp(56px, 10vh, 110px); z-index: 90; pointer-events: none; transition: opacity .4s; }
+.fx-edge.is-bottom { bottom: 0; }
+.fx-edge.is-top { top: 0; height: clamp(64px, 11vh, 120px); transform: scaleY(-1); }
+.fx-edge i { position: absolute; inset: 0; }
+.fx-edge i:nth-child(1) { backdrop-filter: blur(1px); -webkit-backdrop-filter: blur(1px); mask-image: linear-gradient(to bottom, transparent 0%, #000 30%, #000 50%, transparent 70%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 30%, #000 50%, transparent 70%); }
+.fx-edge i:nth-child(2) { backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); mask-image: linear-gradient(to bottom, transparent 30%, #000 50%, #000 70%, transparent 88%); -webkit-mask-image: linear-gradient(to bottom, transparent 30%, #000 50%, #000 70%, transparent 88%); }
+.fx-edge i:nth-child(3) { backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); mask-image: linear-gradient(to bottom, transparent 50%, #000 72%, #000 88%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, transparent 50%, #000 72%, #000 88%, transparent 100%); }
+.fx-edge i:nth-child(4) { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); mask-image: linear-gradient(to bottom, transparent 72%, #000 100%); -webkit-mask-image: linear-gradient(to bottom, transparent 72%, #000 100%); }
+.menu-open .fx-edge, .static .fx-edge, .fx-edge.off { opacity: 0; }
+
+/* 3 · шапка: прозрачная, цвет инвертируется относительно того, что под ней */
+html.fx .nav, html.fx .nav.solid, html.fx .nav.on-paper, html.fx .nav.on-paper.solid { background: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; color: #fff !important; mix-blend-mode: difference; }
+html.fx .nav .nav-in { background: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+html.fx .nav .brand svg { filter: brightness(0) invert(1); }
+html.fx .nav .btn { background: #fff !important; color: #000 !important; box-shadow: none !important; }
+html.fx .nav .lang { border-color: rgba(255, 255, 255, .45) !important; }
+html.fx .nav .lang a { color: #fff !important; }
+html.fx .nav .lang a.on { background: #fff !important; color: #000 !important; }
+html.fx .nav .burger span { background: #fff !important; }
+html.fx body.menu-open .nav { mix-blend-mode: normal; }

@@ -7,6 +7,7 @@ const mark = `<svg class="mark" viewBox="55 370 430 290" aria-hidden="true" focu
   <rect x="193.39" y="472.61" width="314.75" height="85.29" rx="42.645" transform="rotate(-45.44 350.76 515.25)" fill="#5fd6cf"/>
   <path d="M461 525C466 526 470 531 470 537L470 599C470 616 461 629 445 636C434 641 420 641 408 635C394 628 386 615 386 600C386 589 390 580 398 571L439 530C445 524 453 522 461 525Z" fill="currentColor"/>
 </svg>`;
+import { demo } from './demo.mjs';
 const pad = (n) => String(n).padStart(2, '0');
 const mmss = (s) => `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
 const h = (lines, cls, tag = 'h2') =>
@@ -58,9 +59,15 @@ export function render(t) {
 <a class="skip" href="#main">${t.skip}</a>
 
 <div class="loader" id="loader" aria-hidden="true">
-  <div class="loader-in">
-    <span class="loader-t">${t.loader}</span>
-    <span class="loader-n"><b data-loader-n>0</b>%</span>
+  <div class="ld-cols">${'<i></i>'.repeat(5)}</div>
+  <div class="ld-top"><span class="ld-status"><i></i><b data-ld-status data-done="${t.loaderDone}">${t.loader}</b></span><span class="ld-clock" data-ld-clock>00:00:00</span></div>
+  <div class="ld-word">
+    <span class="ld-w ld-w-out">${[...'Marjon'].map((c) => `<span>${c}</span>`).join('')}</span>
+    <span class="ld-w ld-w-fill" data-ld-fill>${[...'Marjon'].map((c) => `<span>${c}</span>`).join('')}</span>
+  </div>
+  <div class="ld-bot">
+    <ul class="ld-list">${t.loaderBeads.map((n) => `<li data-ld-li><i></i>${n}</li>`).join('')}</ul>
+    <span class="loader-n"><b data-loader-n>0</b><small>%</small></span>
   </div>
   <i class="loader-bar" data-loader-bar></i>
 </div>
@@ -253,21 +260,11 @@ export function render(t) {
   </div>
 </section>
 
+<!-- ЖИВОЕ ДЕМО: интерфейс сам проходит сценарий (src/demo.mjs) -->
+${demo(t)}
+
 <!-- PAPER -->
 <div class="paper" id="paper">
-  <section class="sec" id="platforms">
-    <div class="wrap">
-      ${head(t.platforms)}
-      <div class="plats">
-        ${[['web', 'dash', 1535, 958], ['desk', 'pos', 1535, 958], ['phone', 'mobile', 575, 1236]].map(([k, img, w, hh], i) => `<article class="plat plat-${k}" data-r>
-          <figure class="shot shot-${k}">${k === 'web' ? '<div class="shot-bar"><i></i><i></i><i></i><span>admin.marjon.tech</span></div>' : ''}<img src="/src/assets/shots/${img}.webp" width="${w}" height="${hh}" alt="${t.platforms.alt[i]}" loading="lazy" decoding="async" /></figure>
-          <div class="plat-txt"><span class="mini">${t.platforms.items[i].os}</span><h3>${t.platforms.items[i].name}</h3><p>${t.platforms.items[i].text}</p>
-          <div class="tags">${t.platforms.items[i].tags.map((x) => `<span>${x}</span>`).join('')}</div></div>
-        </article>`).join('\n        ')}
-      </div>
-    </div>
-  </section>
-
   <section class="sec sec-integ" id="integrations">
     <div class="wrap">${head(t.integ)}</div>
     <div class="mq-wrap" data-r>${marquee(t.integ.a)}${marquee(t.integ.b, true)}
