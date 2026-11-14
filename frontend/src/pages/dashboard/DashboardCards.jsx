@@ -193,7 +193,12 @@ export function RecentOrdersCard({ orders, status = "ready" }) {
           <div className="recent-order" key={order.key || order.id}>
             <strong>{order.id}</strong>
             <span>{order.date}</span>
-            <span>{order.place}</span>
+            <span>
+              {order.place}
+              {order.offline ? (
+                <span className="recent-order__offline">{t("pages.dashboard.dashboardcards.oflayn")}</span>
+              ) : null}
+            </span>
             {order.totalAmount == null ? <em>{order.amount}</em> : <CountUpValue as="em" value={order.totalAmount} format={formatMoney} />}
             {/* Статус — тот же компонент, что в «Отчёте по заказам»: цветная
                 точка + подпись, без плашки. Один источник правды для статусов. */}

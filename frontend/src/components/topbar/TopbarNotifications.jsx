@@ -128,16 +128,24 @@ export default function TopbarNotifications() {
       }));
   }, [lowRows, lowNames]);
   const inboxItems = useMemo(
-    () => inbox.map((item) => ({
-      id: item.id,
-      title: t("components.topbar.topbarnotifications.offline_synced_title"),
-      body: t("components.topbar.topbarnotifications.offline_synced_body", {
-        number: item.data?.order_number ?? "—",
-        amount: Number(item.data?.total || 0).toLocaleString("ru-RU", { maximumFractionDigits: 0 }),
-      }),
-      orderId: item.data?.order_id || null,
-      time: formatTime(item.created_at),
-    })),
+    () => inbox.map((item) => {
+      const isPayment = item.notification_type === "payment.offline_synced";
+      const isOffline = isPayment || item.notification_type === "order.offline_synced";
+      const key = isPayment ? "offline_payment" : "offline_synced";
+      return {
+        id: item.id,
+        title: isOffline ? t(`components.topbar.topbarnotifications.${key}_title`) : item.title,
+        body: isOffline
+          ? t(`components.topbar.topbarnotifications.${key}_body`, {
+            number: item.data?.order_number ?? "—",
+            amount: Number(item.data?.total || 0).toLocaleString("ru-RU", { maximumFractionDigits: 0 }),
+          })
+          : item.body,
+        icon: isPayment ? "bi-cash-stack" : "bi-bag-check",
+        orderId: item.data?.order_id || null,
+        time: formatTime(item.created_at),
+      };
+    }),
     [inbox],
   );
   const count = cancelled.length + itemCancels.length + lowStock.length + inboxItems.length;
@@ -337,7 +345,7 @@ export default function TopbarNotifications() {
               aria-label={`${item.title} ${item.body}`}
             >
               <div className="stock-alert-item__icon owner-notif__icon--order" aria-hidden="true">
-                <Icon name="bi-bag-check" size={18} />
+                <Icon name={item.icon} size={18} />
               </div>
               <div>
                 <strong>{item.title}</strong>

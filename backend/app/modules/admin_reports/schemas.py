@@ -40,6 +40,10 @@ class OrderReportRow(BaseModel):
     # COMPLETED payments only (raw values, never labels) — [] when none.
     service_fee: Decimal
     payment_methods: list[str] = []
+    # OFFLINE-01: заказ оформлен кассой без сети и досинхронизирован позже.
+    # created_at при этом — время приёма на сервере, поэтому отчёт отдаёт
+    # момент терминала отдельным полем для честной пометки в UI.
+    created_offline_at: datetime | None = None
     # Populated only with a product filter: distinct stored per-unit prices of
     # matching order items. Never the current Product.price or an average.
     position_prices: list[Decimal] | None = None

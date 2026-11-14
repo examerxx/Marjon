@@ -20989,6 +20989,20 @@ body,#root {
     font-weight: 500;
   }
 
+  /* OFFLINE-01: заказ оформлен на кассе без интернета — владелец видит это
+     прямо в списке последних продаж. */
+  .recent-order .recent-order__offline {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(18, 161, 80, 0.12);
+    color: #12a150;
+    font-size: 11px;
+    font-weight: 600;
+    vertical-align: 1px;
+  }
+
   /* Статус последнего заказа — общий OrderStatus (точка + подпись), как в
      «Отчёте по заказам». Плашек больше нет: только выравнивание в конце строки. */
   .recent-order .report-order-status {

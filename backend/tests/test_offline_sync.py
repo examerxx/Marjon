@@ -1,6 +1,7 @@
 """OFFLINE-01: идемпотентный приём офлайн-заказов, снимок цены и sync API."""
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import uuid4
 
@@ -126,6 +127,79 @@ async def test_offline_payment_cash_only(client, db_engine):
     async with ctx["sessions"]() as db:
         payment = (await db.execute(select(Payment))).scalars().first()
     assert payment.provider_data["offline_import"] is True
+
+
+async def test_offline_payment_notifies_admins_only_when_order_was_online(client, db_engine):
+    """Связь пропала на оплате: заказ создан онлайн, деньги приняты офлайн —
+    владелец должен узнать о продаже именно при синхронизации платежа, и не
+    получить второе уведомление, если заказ сам был офлайн."""
+    sfx = uuid4().hex[:8]
+    ctx = await _setup_company(
+        client, db_engine, slug=f"off-p-{sfx}", email=f"off-p-{sfx}@example.com"
+    )
+
+    async def notifications():
+        async with ctx["sessions"]() as db:
+            return list((await db.execute(
+                select(Notification).where(Notification.company_id == ctx["company_id"])
+            )).scalars())
+
+    offline_order = (await _create(
+        client, ctx, client_id=str(uuid4()),
+        created_offline_at="2026-11-13T10:00:00+05:00",
+    )).json()
+    await client.post("/payments", headers=ctx["headers"], json={
+        "order_id": offline_order["id"], "amount": str(offline_order["total_amount"]),
+        "method": "cash", "offline_import": True,
+        "client_created_at": "2026-11-13T10:00:00+05:00",
+    })
+    rows = await notifications()
+    assert [n.notification_type for n in rows] == ["order.offline_synced"]
+
+    online_order = (await _create(client, ctx, client_id=str(uuid4()))).json()
+    await client.post("/payments", headers=ctx["headers"], json={
+        "order_id": online_order["id"], "amount": str(online_order["total_amount"]),
+        "method": "cash", "offline_import": True,
+        "client_created_at": "2026-11-13T11:00:00+05:00",
+    })
+    rows = await notifications()
+    assert sorted(n.notification_type for n in rows) == [
+        "order.offline_synced", "payment.offline_synced",
+    ]
+    payment_note = next(n for n in rows if n.notification_type == "payment.offline_synced")
+    assert payment_note.user_id == ctx["owner_id"]
+    assert payment_note.data["order_id"] == online_order["id"]
+
+
+async def test_offline_paid_sale_reaches_owner_financials(client, db_engine):
+    """Офлайн-смена: заказ оплачен наличными без сети, после синхронизации он
+    обязан попасть в выручку дашборда владельца, а не только в список заказов."""
+    sfx = uuid4().hex[:8]
+    ctx = await _setup_company(
+        client, db_engine, slug=f"off-h-{sfx}", email=f"off-h-{sfx}@example.com"
+    )
+    order = (await _create(
+        client, ctx, client_id=str(uuid4()),
+        created_offline_at="2026-11-13T10:00:00+05:00",
+    )).json()
+    total = str(order["total_amount"])
+    paid = await client.post("/payments", headers=ctx["headers"], json={
+        "order_id": order["id"], "amount": total, "method": "cash",
+        "offline_import": True, "client_created_at": "2026-11-13T10:00:00+05:00",
+    })
+    assert paid.status_code == 201, paid.text
+
+    today = datetime.now(timezone.utc).date()
+    resp = await client.get("/analytics/owner-financials", headers=ctx["headers"], params={
+        "date_from": (today - timedelta(days=1)).isoformat(),
+        "date_to": (today + timedelta(days=1)).isoformat(),
+    })
+    assert resp.status_code == 200, resp.text
+    report = resp.json()
+    assert Decimal(report["income_total"]) >= Decimal(total)
+    row = next(r for r in report["order_rows"] if r["id"] == order["id"])
+    assert Decimal(row["amount"]) == Decimal(total)
+    assert [(m["method"], Decimal(m["amount"])) for m in report["payment_methods"]] == [("cash", Decimal(total))]
 
 
 async def test_sync_bootstrap_and_changes(client, db_engine):

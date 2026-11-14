@@ -186,6 +186,7 @@ export default function OwnerDashboard() {
   const [financeTransactions, setFinanceTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [refreshTick, setRefreshTick] = useState(0);
   const hasLoadedDashboardRef = useRef(false);
   const beginRequest = useLatestRequest();
   // Отдельный трекер для складских итогов: общий beginRequest делить нельзя —
@@ -207,6 +208,21 @@ export default function OwnerDashboard() {
     });
     return () => { active = false; };
   }, [previewEnabled]);
+
+  // Офлайн-заказы доезжают до сервера в фоне уже после оформления, поэтому
+  // дашборд тихо перезапрашивает данные раз в минуту и при возврате на вкладку.
+  useEffect(() => {
+    const bump = () => setRefreshTick((value) => value + 1);
+    const timer = setInterval(bump, 60000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") bump();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
 
   function requestPeriodPanel(panelId) {
     setPeriodPanelState((current) => {
@@ -273,7 +289,7 @@ export default function OwnerDashboard() {
         setLoading(false);
       }
     });
-  }, [beginRequest, dashboardPeriodParams]);
+  }, [beginRequest, dashboardPeriodParams, refreshTick]);
 
   // Живые итоги складских карточек за период дашборда (приход/расход — сумма
   // документов по дате регистрации; расход — исторический складской отчёт,
@@ -326,7 +342,7 @@ export default function OwnerDashboard() {
     }).catch(() => {
       if (request.isCurrent()) setWarehouseTotals(null);
     });
-  }, [beginWarehouseRequest, dashboardPeriodParams]);
+  }, [beginWarehouseRequest, dashboardPeriodParams, refreshTick]);
 
   function applyDashboardPeriod(nextRange) {
     const normalized = normalizeReportRange(nextRange);
@@ -417,6 +433,9 @@ export default function OwnerDashboard() {
           // (как в «Отчёте по заказам»), а не собственной плашкой.
           statusCode: order.status || null,
           ready,
+          // Заказ пришёл из офлайн-смены: показываем, что продажа была
+          // оформлена без интернета, даже если на сервере он уже позже.
+          offline: Boolean(order.created_offline_at),
         };
       });
     }

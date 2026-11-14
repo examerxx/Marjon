@@ -232,6 +232,23 @@ class PaymentService:
         except Exception:
             pass
 
+        # OFFLINE-01: деньги, принятые кассой без сети, дошли до сервера.
+        # Если заказ сам был офлайн, владелец уже получил уведомление при его
+        # создании — второй раз не будим; иначе (связь пропала только на
+        # оплате) это единственная новость о продаже.
+        if data.offline_import and order.created_offline_at is None:
+            try:
+                from app.modules.notifications.service import NotificationService
+                await NotificationService(self.db).notify_offline_payment_synced(
+                    company_id, order, data.amount
+                )
+                await self.db.commit()
+            except Exception:
+                await self.db.rollback()
+                logger.warning(
+                    "offline payment notification failed for order %s", order.id, exc_info=True
+                )
+
         try:
             await AuditService(self.db).log(
                 company_id,

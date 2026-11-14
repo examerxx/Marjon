@@ -344,6 +344,7 @@ class AdminReportService:
                 User.name.label("waiter_name"),
                 items_count.label("items_count"),
                 Order.total_amount, Order.service_fee,
+                Order.created_offline_at,
             )
             .outerjoin(
                 User,
@@ -485,6 +486,7 @@ class AdminReportService:
                 cashier_names=cashier_names.get(r.id, []),
                 service_fee=Decimal(str(r.service_fee if r.service_fee is not None else 0)),
                 payment_methods=payment_methods.get(r.id, []),
+                created_offline_at=r.created_offline_at,
                 position_prices=position_prices.get(r.id, []) if product_id else None,
                 position_quantity=position_totals[r.id][0] if r.id in position_totals else None,
                 position_amount=position_totals[r.id][1] if r.id in position_totals else None,

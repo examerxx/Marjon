@@ -2515,6 +2515,7 @@
         "komanda": "Команда",
         "stoly_zanyaty": "Столы заняты",
         "poslednie_zakazy": "Последние заказы",
+        "oflayn": "Офлайн",
         "vse_zakazy": "Все заказы",
         "zakazov_poka_net": "Заказов пока нет",
         "luchshie_prodazhi": "Лучшие продажи",
@@ -2671,7 +2672,9 @@
         "iz_min": "из мин.",
         "zdes_poyavyatsya_vazhnye_sobytiya_po_zakazam": "Здесь появятся важные события по заказам.",
         "offline_synced_title": "Офлайн-заказ синхронизирован",
-        "offline_synced_body": "Заказ №{{number}} · {{amount}} UZS · оформлен без интернета"
+        "offline_synced_body": "Заказ №{{number}} · {{amount}} UZS · оформлен без интернета",
+        "offline_payment_title": "Офлайн-оплата синхронизирована",
+        "offline_payment_body": "Заказ №{{number}} · {{amount}} UZS · оплата наличными без интернета"
       },
       "topbarpaymentmodal": {
         "sposob_oplaty": "Способ оплаты",

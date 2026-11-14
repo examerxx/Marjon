@@ -2513,6 +2513,7 @@
         "komanda": "Jamoa",
         "stoly_zanyaty": "Stollar band",
         "poslednie_zakazy": "So'nggi buyurtmalar",
+        "oflayn": "Oflayn",
         "vse_zakazy": "Barcha buyurtmalar",
         "zakazov_poka_net": "Hozircha buyurtmalar yo'q",
         "luchshie_prodazhi": "Eng yaxshi savdolar",
@@ -2669,7 +2670,9 @@
         "iz_min": "daqiqadan",
         "zdes_poyavyatsya_vazhnye_sobytiya_po_zakazam": "Bu yerda buyurtmalar bo'yicha muhim voqealar paydo bo'ladi.",
         "offline_synced_title": "Oflayn buyurtma sinxronlandi",
-        "offline_synced_body": "Buyurtma №{{number}} · {{amount}} UZS · internetsiz rasmiylashtirilgan"
+        "offline_synced_body": "Buyurtma №{{number}} · {{amount}} UZS · internetsiz rasmiylashtirilgan",
+        "offline_payment_title": "Oflayn to'lov sinxronlandi",
+        "offline_payment_body": "Buyurtma №{{number}} · {{amount}} UZS · naqd to'lov internetsiz qabul qilingan"
       },
       "topbarpaymentmodal": {
         "sposob_oplaty": "To'lov usuli",

@@ -51,6 +51,34 @@ class NotificationService:
         Создаём in_app-строки: их отдаёт GET /notifications/unread, а колокольчик
         админки опрашивает его вместе с отменами и дефицитом.
         """
+        amount = f"{order.total_amount:,.0f}".replace(",", " ")
+        return await self._notify_admins(
+            company_id,
+            title="Офлайн-заказ синхронизирован",
+            body=f"Заказ №{order.order_number} · {amount} UZS · оформлен без интернета",
+            notification_type="order.offline_synced",
+            order=order,
+        )
+
+    async def notify_offline_payment_synced(self, company_id: UUID, order: Any, amount: Any) -> int:
+        """Оплата, принятая кассой без сети, дошла до сервера.
+
+        Нужна для случая, когда сам заказ был создан ещё при связи, а офлайн
+        застал только расчёт: уведомление о заказе уже не сработает, а выручка
+        владельцу важна именно в момент, когда деньги попали в систему.
+        """
+        formatted = f"{amount:,.0f}".replace(",", " ")
+        return await self._notify_admins(
+            company_id,
+            title="Офлайн-оплата синхронизирована",
+            body=f"Заказ №{order.order_number} · {formatted} UZS · оплата наличными без интернета",
+            notification_type="payment.offline_synced",
+            order=order,
+        )
+
+    async def _notify_admins(
+        self, company_id: UUID, *, title: str, body: str, notification_type: str, order: Any,
+    ) -> int:
         recipients = list((await self.db.execute(
             select(User.id)
             .join(UserRole, UserRole.user_id == User.id)
@@ -65,16 +93,14 @@ class NotificationService:
         )).scalars().all())
         if not recipients:
             return 0
-        amount = f"{order.total_amount:,.0f}".replace(",", " ")
-        body = f"Заказ №{order.order_number} · {amount} UZS · оформлен без интернета"
         now = datetime.now(timezone.utc)
         for user_id in recipients:
             self.db.add(Notification(
                 company_id=company_id,
                 user_id=user_id,
-                title="Офлайн-заказ синхронизирован",
+                title=title,
                 body=body,
-                notification_type="order.offline_synced",
+                notification_type=notification_type,
                 channel="in_app",
                 status="sent",
                 sent_at=now,

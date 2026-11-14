@@ -2513,6 +2513,7 @@
         "komanda": "Team",
         "stoly_zanyaty": "Tables are occupied",
         "poslednie_zakazy": "Recent orders",
+        "oflayn": "Offline",
         "vse_zakazy": "All orders",
         "zakazov_poka_net": "No orders yet",
         "luchshie_prodazhi": "Best sellers",
@@ -2669,7 +2670,9 @@
         "iz_min": "from min.",
         "zdes_poyavyatsya_vazhnye_sobytiya_po_zakazam": "Important order events will appear here.",
         "offline_synced_title": "Offline order synced",
-        "offline_synced_body": "Order #{{number}} · {{amount}} UZS · created without internet"
+        "offline_synced_body": "Order #{{number}} · {{amount}} UZS · created without internet",
+        "offline_payment_title": "Offline payment synced",
+        "offline_payment_body": "Order #{{number}} · {{amount}} UZS · cash paid without internet"
       },
       "topbarpaymentmodal": {
         "sposob_oplaty": "Payment methods",
