@@ -73,8 +73,9 @@ h3 { font-family: var(--display); font-weight: 500; font-size: clamp(1.05rem, 1.
 .loader { position: fixed; inset: 0; z-index: 200; display: grid; grid-template-rows: auto 1fr auto; padding: var(--pad); animation: loaderFail .6s 9s forwards; }
 .no-js .loader { display: none; }
 .ld-cols { position: absolute; inset: 0; display: flex; z-index: -1; }
-.ld-cols i { flex: 1; margin-right: -1px; background: var(--ink); transform-origin: 50% 0; }
-.ld-cols i:nth-child(odd) { background: #0c0e0f; }
+.ld-cols i { flex: 1 1 0; margin-right: -2px; background: var(--ink); transform-origin: 50% 0; }
+/* ровный фон без полос; мягкое мятное свечение за вордмарком — отдельным слоем, гаснет перед занавесом */
+.ld-glow { position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(60% 46% at 50% 50%, rgba(63, 227, 196, .10), transparent 70%), radial-gradient(90% 60% at 50% 110%, rgba(63, 227, 196, .06), transparent 70%); }
 .ld-top { display: flex; justify-content: space-between; align-items: center; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 .ld-status { display: inline-flex; align-items: center; gap: 10px; }
 .ld-status i { width: 7px; height: 7px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 0 rgba(63, 227, 196, .6); animation: ldPulse 1.2s infinite; }
@@ -85,7 +86,7 @@ h3 { font-family: var(--display); font-weight: 500; font-size: clamp(1.05rem, 1.
 .ld-w { display: block; white-space: nowrap; }
 .ld-w span { display: inline-block; }
 .ld-w-out { color: transparent; -webkit-text-stroke: 1px rgba(242, 240, 232, .28); }
-.ld-w-fill { position: absolute; left: .04em; top: .06em; color: var(--mint); clip-path: inset(100% 0 0 0); text-shadow: 0 0 60px rgba(63, 227, 196, .35); }
+.ld-w-fill { position: absolute; left: .04em; top: .06em; color: var(--mint); clip-path: inset(100% 0 0 0); }
 .ld-bot { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
 .ld-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: rgba(242, 240, 232, .3); padding-bottom: .6em; }
 .ld-list li { display: inline-flex; align-items: center; gap: 8px; transition: color .35s; }

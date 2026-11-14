@@ -156,9 +156,11 @@ async function boot() {
   world?.render(0.016, 0, 0); // прогрев шейдеров под загрузчиком
   if (!fast) {
     statusEl.textContent = statusEl.dataset.done;
+    gsap.set('.ld-w-out', { opacity: 0 }); // контур больше не нужен — буквы залиты
     await gsap.timeline()
       .fromTo('.ld-word', { scale: 1 }, { scale: 1.04, duration: 0.35, ease: 'power2.out' }, 0)
       .to('.ld-top, .ld-bot, .loader-bar', { opacity: 0, duration: 0.3 }, 0.3)
+      .to('.ld-glow', { opacity: 0, duration: 0.6 }, 0.35)
       .to('.ld-w span', { yPercent: -125, duration: 0.7, ease: 'expo.in', stagger: { each: 0.035 } }, 0.35);
   }
   clearInterval(clockT);

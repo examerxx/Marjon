@@ -60,6 +60,7 @@ export function render(t) {
 
 <div class="loader" id="loader" aria-hidden="true">
   <div class="ld-cols">${'<i></i>'.repeat(5)}</div>
+  <div class="ld-glow"></div>
   <div class="ld-top"><span class="ld-status"><i></i><b data-ld-status data-done="${t.loaderDone}">${t.loader}</b></span><span class="ld-clock" data-ld-clock>00:00:00</span></div>
   <div class="ld-word">
     <span class="ld-w ld-w-out">${[...'Marjon'].map((c) => `<span>${c}</span>`).join('')}</span>
