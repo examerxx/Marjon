@@ -49,6 +49,13 @@ export function buildOrderPayment(order, method, detail) {
   }
 }
 
+// Снять сохранённую серверную попытку оплаты. Нужен, когда связь оборвалась
+// посреди оплаты и терминал провёл её локально: иначе повтор с тем же ключом
+// создал бы вторую оплату рядом с офлайн-проводкой.
+export function clearPaymentAttempt({ storage, server, orderId }) {
+  try { storage.removeItem(`marjon_payment_attempt:${encodeURIComponent(server)}:${orderId}`) } catch { /* storage недоступен */ }
+}
+
 export function submitOrderPayment({ api, storage, server, order, method, detail, newKey = () => crypto.randomUUID() }) {
   const payload = buildOrderPayment(order, method, detail)
   const slot = `marjon_payment_attempt:${encodeURIComponent(server)}:${order.id}`

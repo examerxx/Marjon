@@ -149,6 +149,22 @@ export default function App() {
     return () => window.removeEventListener('marjon:queue', onQ)
   }, [])
 
+  // Состояние офлайн-ядра терминала (SQLite + очередь): связь, сколько
+  // операций ждёт отправки и сколько уже не удалось отправить. В браузере
+  // (без Electron) остаётся старая легаси-очередь localStorage.
+  const [syncState, setSyncState] = useState(null)
+  useEffect(() => {
+    const bridge = typeof window !== 'undefined' ? window.electron?.offline : null
+    if (!bridge) return undefined
+    let alive = true
+    bridge.status().then((s) => { if (alive) setSyncState(s) }).catch(() => {})
+    const unsubscribe = bridge.onState?.((s) => { if (alive) setSyncState(s) })
+    return () => {
+      alive = false
+      if (typeof unsubscribe === 'function') unsubscribe()
+    }
+  }, [])
+
   // Смена языка без перезагрузки: перерисовываем всё дерево (t() читает язык при вызове)
   useEffect(() => {
     const onLang = () => setLangVersion((v) => v + 1)
@@ -507,6 +523,7 @@ export default function App() {
         userRole={modeLabel}
         onAccount={handleAccount}
         onLock={handleLock}
+        sync={syncState || { online: isOnline, pending: queued, dead: 0 }}
       />
 
       <main className="app-shell__content">

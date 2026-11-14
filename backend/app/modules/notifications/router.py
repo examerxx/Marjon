@@ -23,4 +23,4 @@ async def get_unread(user: User = Depends(require_company_app_user), db: AsyncSe
 
 @router.patch("/{notification_id}/read", response_model=NotificationResponse)
 async def mark_read(notification_id: UUID, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
-    return await NotificationService(db).mark_read(user.company_id, notification_id)
+    return await NotificationService(db).mark_read(user.company_id, notification_id, user.id)

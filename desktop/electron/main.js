@@ -5,6 +5,7 @@ const os = require('os')
 const http = require('http')
 const https = require('https')
 const { WebSocketServer } = require('ws')
+const { initOffline } = require('./offline')
 
 const isDev = process.env.NODE_ENV === 'development' || !!process.env['ELECTRON_RENDERER_URL']
 
@@ -284,6 +285,20 @@ function installDevCorsRewrite() {
 app.whenReady().then(() => {
   // Start local WS server immediately so mobile devices can connect
   startLocalWsServer()
+
+  // Офлайн-слой: локальная SQLite, очередь записи и печать без сети.
+  // Инициализируется до окна — рендерер уже на первом рендере видит статус.
+  try {
+    initOffline({
+      app,
+      ipcMain,
+      getWindow: () => mainWindow,
+      enqueuePrint,
+      printRaw,
+    })
+  } catch (err) {
+    console.error('[offline] init failed:', err)
+  }
 
   // Dev-only: разрешить рендереру ходить в бэкенд, которого нет в его CORS-whitelist
   if (process.env.MARJON_DEV_CORS_REWRITE === '1') installDevCorsRewrite()

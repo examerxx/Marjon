@@ -2667,7 +2667,9 @@
         "defitsit": ": kamomad",
         "ostatok": "Qoldiq",
         "iz_min": "daqiqadan",
-        "zdes_poyavyatsya_vazhnye_sobytiya_po_zakazam": "Bu yerda buyurtmalar bo'yicha muhim voqealar paydo bo'ladi."
+        "zdes_poyavyatsya_vazhnye_sobytiya_po_zakazam": "Bu yerda buyurtmalar bo'yicha muhim voqealar paydo bo'ladi.",
+        "offline_synced_title": "Oflayn buyurtma sinxronlandi",
+        "offline_synced_body": "Buyurtma №{{number}} · {{amount}} UZS · internetsiz rasmiylashtirilgan"
       },
       "topbarpaymentmodal": {
         "sposob_oplaty": "To'lov usuli",

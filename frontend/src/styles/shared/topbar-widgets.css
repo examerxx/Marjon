@@ -581,6 +581,18 @@ button.owner-notif__item--low {
   color: #d97706;
   background: rgba(217, 119, 6, 0.12);
 }
+/* Досинхронизированный офлайн-заказ: зелёный тон «дошло до системы». */
+button.owner-notif__item--order {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.owner-notif__item--order .owner-notif__icon--order,
+.owner-notif__icon--order {
+  color: #12a150;
+  background: rgba(18, 161, 80, 0.12);
+}
 .owner-notif__empty {
   display: grid;
   justify-items: center;

@@ -158,9 +158,16 @@ class PaymentService:
                 cashier_id=cashier_id,
                 cash_received=data.cash_received,
                 change_given=change_given,
-                provider_data={"manual_breakdown": {
-                    "cash": str(data.cash_amount), "card": str(data.card_amount),
-                }} if data.cash_amount is not None else {},
+                provider_data={
+                    **({"manual_breakdown": {
+                        "cash": str(data.cash_amount), "card": str(data.card_amount),
+                    }} if data.cash_amount is not None else {}),
+                    # OFFLINE-01: оплата принята кассой без сети; время терминала
+                    # сохраняем для аудита и контроля срока фискализации.
+                    **({"offline_import": True,
+                        "client_created_at": data.client_created_at.isoformat()}
+                       if data.offline_import else {}),
+                },
             )
             self.db.add(payment)
             await self.db.flush()
@@ -236,6 +243,9 @@ class PaymentService:
                     "order_id": str(order.id),
                     "amount": str(data.amount),
                     "method": data.method,
+                    **({"offline_import": True,
+                        "client_created_at": data.client_created_at.isoformat()}
+                       if data.offline_import else {}),
                 },
             )
         except Exception:

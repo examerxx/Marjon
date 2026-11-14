@@ -1,4 +1,5 @@
 ﻿from __future__ import annotations
+from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 from app.shared.base_schema import BaseSchema, BaseResponseSchema
@@ -15,6 +16,21 @@ class PaymentCreate(BaseSchema):
     cash_received: Decimal | None = None
     cash_amount: Decimal | None = Field(None, ge=0)
     card_amount: Decimal | None = Field(None, ge=0)
+    # OFFLINE-01: оплата, принятая кассой без сети. Разрешены только наличные:
+    # карта и провайдеры требуют онлайн-подтверждения. client_created_at —
+    # время на терминале, попадает в provider_data для аудита.
+    offline_import: bool = False
+    client_created_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def validate_offline_cash_only(self):
+        if not self.offline_import:
+            return self
+        if str(self.method or "").strip().lower() != "cash":
+            raise ValueError("Offline payments are allowed for cash only")
+        if self.card_amount is not None and self.card_amount > 0:
+            raise ValueError("Offline payments cannot contain a card part")
+        return self
 
     @model_validator(mode="after")
     def validate_manual_breakdown(self):
@@ -41,6 +57,10 @@ class PaymentCreate(BaseSchema):
         for key in ("cash_amount", "card_amount"):
             if payload.get(key) is None:
                 payload.pop(key, None)
+        if not payload.get("offline_import"):
+            payload.pop("offline_import", None)
+        if payload.get("client_created_at") is None:
+            payload.pop("client_created_at", None)
         return payload
 
 

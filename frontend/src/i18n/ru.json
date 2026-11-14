@@ -2669,7 +2669,9 @@
         "defitsit": ": дефицит",
         "ostatok": "Остаток",
         "iz_min": "из мин.",
-        "zdes_poyavyatsya_vazhnye_sobytiya_po_zakazam": "Здесь появятся важные события по заказам."
+        "zdes_poyavyatsya_vazhnye_sobytiya_po_zakazam": "Здесь появятся важные события по заказам.",
+        "offline_synced_title": "Офлайн-заказ синхронизирован",
+        "offline_synced_body": "Заказ №{{number}} · {{amount}} UZS · оформлен без интернета"
       },
       "topbarpaymentmodal": {
         "sposob_oplaty": "Способ оплаты",

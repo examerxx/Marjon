@@ -73,6 +73,7 @@ from app.modules.printers.router      import router as printers_router
 from app.modules.halls.router                  import router as halls_router
 from app.modules.inventory.warehouse_router    import router as warehouse_router
 from app.modules.inventory.semi_product_router import router as semi_product_router
+from app.modules.sync.router            import router as sync_router
 from app.modules.kafe_compat.router   import router as kafe_compat_router
 # Главная админка (HQ admin panel)
 from app.modules.handbook.router       import router as handbook_router
@@ -161,6 +162,7 @@ routers = [
     notifications_router, audit_router,
     fiscal_router, subscriptions_router, printers_router,
     halls_router, warehouse_router, semi_product_router,
+    sync_router,
     # Главная админка
     handbook_router, organizations_router, departments_router,
     marketing_router, nomenclature_router, storage_router,

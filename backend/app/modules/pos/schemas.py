@@ -16,12 +16,29 @@ class OrderItemCreate(BaseSchema):
     course: int = 1
     # Позиция «с собой» — не облагается сервисным сбором (decision A).
     takeaway: bool = False
+    # OFFLINE-01: цена из снимка меню на терминале. Используется только при
+    # price_snapshot=True; расхождение с текущим меню пишется в аудит.
+    unit_price: Decimal | None = Field(None, ge=0)
 
 
 class OrderItemsAdd(BaseSchema):
     """Пакетный дозаказ: касса отправляет все новые строки одной командой,
     чтобы на кухне вышел один тикет, а не по тикету на каждую позицию."""
     items: list[OrderItemCreate] = Field(..., min_length=1)
+
+
+class OfflineTotals(BaseSchema):
+    """Итоги, посчитанные терминалом в момент офлайн-продажи.
+
+    Принимаются только вместе с price_snapshot и created_offline_at: чек уже
+    напечатан, поэтому сервер проверяет арифметику и сохраняет снимок, а не
+    пересчитывает его по изменившимся настройкам компании.
+    """
+    subtotal: Decimal
+    discount_amount: Decimal = Decimal("0")
+    tax_amount: Decimal = Decimal("0")
+    service_fee: Decimal = Decimal("0")
+    total_amount: Decimal
 
 
 class OrderCreate(BaseSchema):
@@ -46,6 +63,15 @@ class OrderCreate(BaseSchema):
     discount_amount: Decimal | None = None
     service_fee_rate: float | None = None
     items: list[OrderItemCreate] = Field(default_factory=list)
+    # OFFLINE-01: заказ, созданный кассой без сети. client_id — UUID терминала,
+    # повтор с тем же значением возвращает существующий заказ. client_number —
+    # локальный номер (T1-261113-007). created_offline_at — время на терминале;
+    # price_snapshot=True разрешает прислать unit_price из кэша меню.
+    client_id: str | None = Field(None, max_length=64)
+    client_number: str | None = Field(None, max_length=40)
+    created_offline_at: datetime | None = None
+    price_snapshot: bool = False
+    offline_totals: OfflineTotals | None = None
 
 
 class OrderUpdate(BaseSchema):
@@ -155,6 +181,10 @@ class OrderResponse(BaseResponseSchema):
     # заполненном expo_confirmed_at.
     expo_confirmed_at: datetime | None = None
     expo_confirmed_by_id: UUID | None = None
+    # OFFLINE-01: локальный номер и признак офлайн-происхождения заказа.
+    client_number: str | None = None
+    created_offline_at: datetime | None = None
+    synced_at: datetime | None = None
 
 
 class TerminalCreate(BaseSchema):

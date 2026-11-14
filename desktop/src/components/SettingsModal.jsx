@@ -7,6 +7,13 @@ import { DEFAULT_SERVER_URL, normalizeServerUrl } from '../shared/config'
 
 const el = () => (typeof window !== 'undefined' ? window.electron : null)
 
+const PRINTER_TYPE_LABELS = {
+  receipt: 'printer_type_receipt',
+  kitchen: 'printer_type_kitchen',
+  bar: 'printer_type_bar',
+  waiter: 'printer_type_waiter',
+}
+
 // Тач-степпер целых значений: крупные кнопки −/+ вместо число-инпута (кухонный терминал).
 function Stepper({ value, onChange, min = 1, max = 99, step = 1, unit }) {
   const clamp = (n) => Math.min(max, Math.max(min, n))
@@ -275,7 +282,7 @@ export default function SettingsModal({ open, onClose, branchId }) {
               <p className="settings-hint">{t('printers_none')}</p>
             ) : printerList.map((p) => (
               <div className="settings-row" key={p.id}>
-                <span>{p.name} · {p.printer_type === 'receipt' ? t('cash') : t('mode_kitchen')} · {p.ip_address || '—'}:{p.port ?? 9100}</span>
+                <span>{p.name} · {PRINTER_TYPE_LABELS[p.printer_type] ? t(PRINTER_TYPE_LABELS[p.printer_type]) : p.printer_type} · {p.ip_address || '—'}:{p.port ?? 9100}</span>
                 <button
                   className="btn btn--outline btn--sm"
                   onClick={() => pingPrinter(p)}

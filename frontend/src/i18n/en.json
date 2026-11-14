@@ -2667,7 +2667,9 @@
         "defitsit": ": shortage",
         "ostatok": "Stock balance",
         "iz_min": "from min.",
-        "zdes_poyavyatsya_vazhnye_sobytiya_po_zakazam": "Important order events will appear here."
+        "zdes_poyavyatsya_vazhnye_sobytiya_po_zakazam": "Important order events will appear here.",
+        "offline_synced_title": "Offline order synced",
+        "offline_synced_body": "Order #{{number}} · {{amount}} UZS · created without internet"
       },
       "topbarpaymentmodal": {
         "sposob_oplaty": "Payment methods",

@@ -172,6 +172,20 @@ class OrderService:
     # ── Create ────────────────────────────────────────────────────────────────
 
     async def create(self, company_id: UUID, waiter_id: UUID, data: OrderCreate) -> Order:
+        # OFFLINE-01: повтор POST с тем же client_id — это не новый заказ, а
+        # ретрансляция уже принятого. Возвращаем существующий, иначе таймаут
+        # ответа и повтор outbox создавали бы дубль продажи.
+        if data.client_id:
+            replay = (await self.db.execute(
+                select(Order).where(
+                    Order.company_id == company_id,
+                    Order.client_id == data.client_id,
+                )
+            )).scalar_one_or_none()
+            if replay is not None:
+                order = await self.get(company_id, replay.id)
+                order._offline_replayed = True  # type: ignore[attr-defined]
+                return order
         await self._get_branch(company_id, data.branch_id)
         # Заказ на другого официанта (кто-то ввёл его PIN на терминале).
         # Проверяем, что он из этой же компании; автор запроса остаётся в аудите.
@@ -228,6 +242,10 @@ class OrderService:
             # Доставка/самовывоз: контакты клиента (снимок на момент заказа).
             customer_phone=data.customer_phone,
             customer_address=data.customer_address,
+            client_id=data.client_id,
+            client_number=data.client_number,
+            created_offline_at=data.created_offline_at,
+            synced_at=_utcnow() if data.created_offline_at is not None else None,
         )
         self.db.add(order)
         await self.db.flush()
@@ -243,6 +261,7 @@ class OrderService:
         subtotal = Decimal("0")
         # Обслуга берётся только с позиций «в зале» (не takeaway) — копим отдельно.
         service_base = Decimal("0")
+        price_mismatches: list[dict] = []
         for item_data in data.items:
             product = await self._get_product(company_id, item_data.product_id, for_update=True)
             # STOP-LIST V1: каноническая backend-проверка ДО вставки позиции.
@@ -250,10 +269,24 @@ class OrderService:
             # заблокирована SELECT FOR UPDATE до commit (см. _get_product),
             # поэтому два одновременных POS-клиента сериализуются на этой строке.
             self._ensure_sale_allowed(product, item_data.quantity)
+            # OFFLINE-01: цена, по которой блюдо реально продали на терминале.
+            # Чек офлайн уже напечатан, поэтому сервер принимает снимок и только
+            # фиксирует расхождение с текущим меню (аудит), а не пересчитывает.
+            unit_price = product.price
+            if data.price_snapshot and item_data.unit_price is not None:
+                unit_price = _quantize(item_data.unit_price)
+                if unit_price != _quantize(product.price):
+                    price_mismatches.append({
+                        "product_id": str(product.id),
+                        "name": product.name,
+                        "sale_price": str(unit_price),
+                        "menu_price": str(_quantize(product.price)),
+                        "quantity": str(item_data.quantity),
+                    })
             # Добавки (модификаторы) поднимают цену порции: их наценки (price_delta
             # из снапшота) прибавляем к цене блюда и умножаем на количество.
             modifiers_delta = _modifiers_delta(item_data.modifiers)
-            item_total = _quantize((product.price + modifiers_delta) * item_data.quantity)
+            item_total = _quantize((unit_price + modifiers_delta) * item_data.quantity)
 
             # Apply per-item discount if provided
             item_discount = _quantize(item_data.discount) if item_data.discount else Decimal("0")
@@ -266,7 +299,7 @@ class OrderService:
                 order_id=order.id,
                 product_id=product.id,
                 name=product.name,
-                price=product.price,
+                price=unit_price,
                 quantity=item_data.quantity,
                 discount=item_discount,
                 total=item_total_after_discount,
@@ -291,12 +324,29 @@ class OrderService:
 
         # Calculate totals (обслуга — только с позиций «в зале»)
         order.subtotal = subtotal
-        self._recalculate_totals(
-            order, data.discount_amount,
-            await self._effective_service_rate(company_id, order, data.service_fee_rate),
-            service_base=service_base,
-            tax_rate=await self._vat_rate(order),
-        )
+        if data.offline_totals is not None:
+            if not (data.price_snapshot and data.created_offline_at is not None):
+                raise ValidationError(
+                    "offline_totals допустимы только с price_snapshot и created_offline_at"
+                )
+            totals = data.offline_totals
+            if _quantize(totals.subtotal) != subtotal:
+                raise ValidationError("Сумма позиций офлайн-чека не совпадает с subtotal")
+            order.discount_amount = _quantize(totals.discount_amount)
+            after_discount = max(subtotal - order.discount_amount, Decimal("0"))
+            order.tax_amount = _quantize(totals.tax_amount)
+            order.service_fee = _quantize(totals.service_fee)
+            expected_total = _quantize(after_discount + order.tax_amount + order.service_fee)
+            if _quantize(totals.total_amount) != expected_total:
+                raise ValidationError("Итог офлайн-чека не сходится с суммой строк")
+            order.total_amount = expected_total
+        else:
+            self._recalculate_totals(
+                order, data.discount_amount,
+                await self._effective_service_rate(company_id, order, data.service_fee_rate),
+                service_base=service_base,
+                tax_rate=await self._vat_rate(order),
+            )
         await self.db.commit()
         try:
             await kitchen_manager.broadcast(
@@ -304,6 +354,19 @@ class OrderService:
             )
         except Exception:
             pass
+        # OFFLINE-01: офлайн-заказ дошёл до сервера после возврата интернета.
+        # Владелец должен получить об этом сообщение в колокольчике админки,
+        # а не искать заказ по отчётам.
+        if order.created_offline_at is not None:
+            try:
+                from app.modules.notifications.service import NotificationService
+                await NotificationService(self.db).notify_offline_order_synced(company_id, order)
+                await self.db.commit()
+            except Exception:
+                await self.db.rollback()
+                logger.warning(
+                    "offline order notification failed for order %s", order.id, exc_info=True
+                )
         # Авто-печать кухонного чека (если настроен принтер). Не фатально для заказа.
         try:
             from app.modules.printers.service import PrinterService
@@ -322,8 +385,25 @@ class OrderService:
             await AuditService(self.db).log(
                 company_id, waiter_id, "order.create", "order",
                 entity_id=order.id,
-                new_data={"order_number": order.order_number, "total": str(order.total_amount)},
+                new_data={
+                    "order_number": order.order_number,
+                    "total": str(order.total_amount),
+                    **({"client_id": order.client_id, "client_number": order.client_number,
+                        "created_offline_at": order.created_offline_at.isoformat()}
+                       if order.created_offline_at is not None else {}),
+                },
             )
+            # OFFLINE-01: цена в офлайн-чеке отличается от текущего меню.
+            # Деньги не пересчитываем (чек уже у гостя), но владелец должен
+            # видеть каждое расхождение.
+            if price_mismatches:
+                await AuditService(self.db).log(
+                    company_id, waiter_id, "order.price_snapshot_mismatch", "order",
+                    entity_id=order.id,
+                    old_data={"menu_prices": price_mismatches},
+                    new_data={"client_number": order.client_number,
+                              "client_id": order.client_id},
+                )
         except Exception:
             pass
         # 7.4 — постоянные клиенты: регистрируем/обновляем карточку по телефону.

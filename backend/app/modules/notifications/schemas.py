@@ -25,3 +25,6 @@ class NotificationResponse(BaseResponseSchema):
     channel: str
     status: str
     read_at: datetime | None
+    # Колокольчик админки строит кликабельную карточку из этих полей
+    # (order_id — deep-link в отчёт), поэтому response обязан их отдавать.
+    data: dict = Field(default_factory=dict)

@@ -3,7 +3,7 @@
 # the concrete OrderCreate body after ``@limiter.limit`` wraps the function.
 from datetime import date
 from uuid import UUID
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.session import get_db
@@ -27,12 +27,17 @@ router = APIRouter(prefix="/pos", tags=["pos"])
 
 @router.post("/orders", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("120/minute")
-async def create_order(request: Request, data: OrderCreate, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
+async def create_order(request: Request, response: Response, data: OrderCreate, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
     # Branch-изоляция: сессия филиала создаёт заказы только в своём филиале —
     # не доверяем branch_id из тела, подставляем branch_id принципала.
     if getattr(user, "branch_id", None):
         data = data.model_copy(update={"branch_id": user.branch_id})
-    return await OrderService(db, branch_scope=effective_branch_filter(user)).create(user.company_id, user.id, data)
+    order = await OrderService(db, branch_scope=effective_branch_filter(user)).create(user.company_id, user.id, data)
+    # OFFLINE-01: повтор с тем же client_id — не новый ресурс, отдаём 200,
+    # чтобы клиент отличал ретрансляцию от первого создания.
+    if getattr(order, "_offline_replayed", False):
+        response.status_code = status.HTTP_200_OK
+    return order
 
 
 @router.get("/orders", response_model=list[OrderResponse])

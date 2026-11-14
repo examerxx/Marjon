@@ -5,6 +5,7 @@ import Icon from "../Icon";
 import { InlineLoader } from "../Loader";
 import { reportsService } from "../../api/reports";
 import { warehouseService } from "../../api/warehouse";
+import { notificationsService } from "../../api/notifications";
 import { formatMoney } from "../../api/client";
 import { todayInputValue } from "../../utils/date";
 import { isAbortError, useLatestRequest } from "../../hooks/useAsyncSafety";
@@ -57,9 +58,13 @@ export default function TopbarNotifications() {
   const [lowNames, setLowNames] = useState(new Map());
   const [lowLoaded, setLowLoaded] = useState(false);
   const [lowLoading, setLowLoading] = useState(false);
+  // Серверные уведомления (офлайн-заказ досинхронизирован). Живут в БД, поэтому
+  // не пропадают между сессиями и переживают перезагрузку админки.
+  const [inbox, setInbox] = useState([]);
   const beginRequest = useLatestRequest();
   const beginLowRequest = useLatestRequest();
   const beginDishesRequest = useLatestRequest();
+  const beginInboxRequest = useLatestRequest();
   const [today] = useState(() => todayInputValue());
 
   const cancelled = useMemo(
@@ -122,12 +127,51 @@ export default function TopbarNotifications() {
         min: minOf(row),
       }));
   }, [lowRows, lowNames]);
-  const count = cancelled.length + itemCancels.length + lowStock.length;
+  const inboxItems = useMemo(
+    () => inbox.map((item) => ({
+      id: item.id,
+      title: t("components.topbar.topbarnotifications.offline_synced_title"),
+      body: t("components.topbar.topbarnotifications.offline_synced_body", {
+        number: item.data?.order_number ?? "—",
+        amount: Number(item.data?.total || 0).toLocaleString("ru-RU", { maximumFractionDigits: 0 }),
+      }),
+      orderId: item.data?.order_id || null,
+      time: formatTime(item.created_at),
+    })),
+    [inbox],
+  );
+  const count = cancelled.length + itemCancels.length + lowStock.length + inboxItems.length;
 
   function load() {
     loadOrders();
     loadCancelledDishes();
     loadLowStock();
+    loadInbox();
+  }
+
+  // Серверные уведомления опрашиваются тем же таймером, что отмены и дефицит:
+  // после возврата интернета синхронизация заказа поднимет бейдж без открытия.
+  function loadInbox() {
+    const request = beginInboxRequest();
+    notificationsService.unread({ signal: request.signal })
+      .then(({ data }) => {
+        if (request.isCurrent()) setInbox(apiList(data));
+      })
+      .catch((err) => {
+        if (!request.isCurrent() || isAbortError(err)) return;
+        setInbox([]);
+      });
+  }
+
+  function openInboxItem(item) {
+    setOpen(false);
+    // Владелец прочитал событие — гасим бейдж; ошибку не показываем, повторный
+    // опрос просто вернёт его снова.
+    notificationsService.markRead(item.id).catch(() => {});
+    setInbox((current) => current.filter((row) => row.id !== item.id));
+    const query = new URLSearchParams();
+    if (item.orderId) query.set("order", item.orderId);
+    navigate(`/reports/orders${query.toString() ? `?${query}` : ""}`);
   }
 
   // Отмены целых заказов live: явный фильтр (без него отчёт отмены
@@ -208,10 +252,12 @@ export default function TopbarNotifications() {
     loadOrders();
     loadLowStock();
     loadCancelledDishes();
+    loadInbox();
     const timer = setInterval(() => {
       loadOrders();
       loadLowStock();
       loadCancelledDishes();
+      loadInbox();
     }, LOW_STOCK_POLL_MS);
     return () => clearInterval(timer);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -282,6 +328,23 @@ export default function TopbarNotifications() {
               <button type="button" onClick={load}>{t("components.topbar.topbarnotifications.povtorit")}</button>
             </div>
           ) : null}
+          {!loading && !error ? inboxItems.map((item) => (
+            <button
+              type="button"
+              className="stock-alert-item owner-notif__item owner-notif__item--order"
+              key={item.id}
+              onClick={() => openInboxItem(item)}
+              aria-label={`${item.title} ${item.body}`}
+            >
+              <div className="stock-alert-item__icon owner-notif__icon--order" aria-hidden="true">
+                <Icon name="bi-bag-check" size={18} />
+              </div>
+              <div>
+                <strong>{item.title}</strong>
+                <span>{[item.body, item.time].filter(Boolean).join(" · ")}</span>
+              </div>
+            </button>
+          )) : null}
           {!loading && !error ? cancelled.map((item) => (
             <button type="button" className="stock-alert-item owner-notif__item owner-notif__item--cancel" key={item.id}
               onClick={() => {

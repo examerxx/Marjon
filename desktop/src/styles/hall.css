@@ -111,6 +111,32 @@
   margin-right: 4px;
   background: rgba(22, 40, 63, 0.13);
 }
+/* Индикатор офлайн-ядра: «Офлайн» / «ждут синхронизации: N» / «не отправлено: N».
+   Онлайновый кошелёк очереди прячется, как только всё доехало до сервера. */
+.topbar__sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #eef3f9;
+  color: #33475d;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.topbar__sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0fa8ab;
+}
+.topbar__sync--offline { background: #fdf1de; color: #8a5a12; }
+.topbar__sync--offline .topbar__sync-dot { background: #e0a53a; }
+.topbar__sync--failed { background: #fdeaea; color: #a3302b; }
+.topbar__sync--failed .topbar__sync-dot { background: #d2483f; }
 /* Блокировка — слева от карточки времени, как в прежней шапке. */
 .topbar__lock {
   display: grid;

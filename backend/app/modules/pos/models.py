@@ -43,6 +43,15 @@ class Order(TimeStampedModel):
             postgresql_where=text("order_local_date IS NOT NULL"),
             sqlite_where=text("order_local_date IS NOT NULL"),
         ),
+        # OFFLINE-01: один и тот же офлайн-заказ не может быть принят дважды.
+        # Частичный индекс: заказы без client_id (все онлайн) не участвуют.
+        Index(
+            "uq_orders_company_client_id",
+            "company_id", "client_id",
+            unique=True,
+            postgresql_where=text("client_id IS NOT NULL"),
+            sqlite_where=text("client_id IS NOT NULL"),
+        ),
     )
 
     company_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("companies.id"), index=True)
@@ -136,6 +145,17 @@ class Order(TimeStampedModel):
     expo_confirmed_by_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    # OFFLINE-01: порядок заказа, созданного кассой без сети. client_id — UUID,
+    # который терминал генерирует ДО отправки; повторный POST с тем же client_id
+    # возвращает уже созданный заказ вместо дубля (уникальный индекс ниже).
+    # client_number — локальный номер терминала (T1-261113-007) для офлайн-чека;
+    # канонический order_number по-прежнему присваивает сервер.
+    client_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    client_number: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Время создания на терминале и время приёма сервером. Разница — возраст
+    # офлайн-буфера; по ней же считается срок фискализации.
+    created_offline_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     items: Mapped[list[OrderItem]] = relationship(back_populates="order", cascade="all, delete-orphan")
 

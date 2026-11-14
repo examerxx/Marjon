@@ -1,9 +1,22 @@
 import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
+import { cpSync } from 'node:fs'
 import { resolve } from 'path'
+
+// main-bundle оставляет require('./offline') как есть, поэтому движок должен
+// лежать рядом с out/main/index.js и в dev, и в собранном приложении
+// (electron-builder пакует только out/**). Без этого Electron падал на старте:
+// "Cannot find module './offline'".
+const copyOfflineEngine = {
+  name: 'copy-offline-engine',
+  closeBundle() {
+    cpSync(resolve(__dirname, 'electron/offline'), resolve(__dirname, 'out/main/offline'), { recursive: true })
+  },
+}
 
 export default defineConfig({
   main: {
+    plugins: [copyOfflineEngine],
     build: {
       rollupOptions: {
         input: { index: resolve(__dirname, 'electron/main.js') }

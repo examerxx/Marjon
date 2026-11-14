@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { DEFAULT_SERVER_URL, normalizeServerUrl } from './config'
-import { submitOrderPayment } from './orderPayments.mjs'
+import { submitOrderPayment, clearPaymentAttempt } from './orderPayments.mjs'
 import { resolveOrderCreate } from './orderValidation.mjs'
 
 // Нормализуем на чтении: в localStorage у уже установленных терминалов может
@@ -18,8 +18,57 @@ function canPrintLocally() {
   return Boolean(typeof window !== 'undefined' && window.electron?.print)
 }
 
+// ── Офлайн-мост ─────────────────────────────────────────────────────────────
+// Electron держит локальную SQLite и очередь записи. Рендерер пробует сеть
+// первым; мост включается только когда запрос не дошёл до сервера. В браузере
+// (демо/LAN) моста нет — поведение остаётся прежним.
+function offlineBridge() {
+  return (typeof window !== 'undefined' && window.electron?.offline) || null
+}
+
+// Конфиг моста (адрес сервера, токены, сотрудник, филиал) передаём по IPC
+// только при изменении — иначе каждый запрос стоил бы лишнего перехода.
+let bridgeCfgKey = ''
+function bridgeUserId() {
+  const token = localStorage.getItem('marjon_token') || ''
+  if (token.startsWith('offline:')) return token.slice('offline:'.length)
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1] || ''))
+    return payload.sub || ''
+  } catch { return '' }
+}
+function bridgeBranchId() {
+  const staff = localStorage.getItem('marjon_staff_branch')
+  if (staff) return staff
+  try { return JSON.parse(localStorage.getItem('marjon_branch') || 'null')?.id || '' } catch { return '' }
+}
+function syncBridgeConfig() {
+  const bridge = offlineBridge()
+  if (!bridge) return
+  let user = null
+  try { user = JSON.parse(localStorage.getItem('marjon_user') || 'null') } catch { /* ignore */ }
+  const cfg = {
+    apiBase: baseURL(),
+    token: localStorage.getItem('marjon_token') || '',
+    orgToken: localStorage.getItem('marjon_org_token') || '',
+    userId: user?.id || bridgeUserId(),
+    userName: user?.name || '',
+    branchId: bridgeBranchId(),
+  }
+  const key = [cfg.apiBase, cfg.token, cfg.orgToken, cfg.userId, cfg.userName, cfg.branchId].join('|')
+  if (key === bridgeCfgKey) return
+  bridgeCfgKey = key
+  Promise.resolve(bridge.configure(cfg)).catch(() => { /* мост не критичен */ })
+}
+if (typeof window !== 'undefined') {
+  syncBridgeConfig()
+  window.addEventListener('online', () => { syncBridgeConfig(); offlineBridge()?.flush?.().catch?.(() => {}) })
+  window.addEventListener('marjon:offline-sync', () => offlineBridge()?.syncNow?.().catch?.(() => {}))
+}
+
 api.interceptors.request.use((config) => {
   config.baseURL = baseURL()
+  syncBridgeConfig()
   // До входа сотрудника marjon_token отсутствует — используем org-токен терминала как запасной
   const token = localStorage.getItem('marjon_token') || localStorage.getItem('marjon_org_token')
   // Не перекрываем явно заданный заголовок (staffUsers/pin-login шлют org-токен терминала)
@@ -79,17 +128,90 @@ api.interceptors.response.use(
   }
 )
 
-// Офлайн-кэш: успешные GET кэшируем в localStorage; при ошибке (нет связи) отдаём кэш.
-async function cached(key, promise) {
+// Офлайн-кэш: успешные GET кэшируем в localStorage; при ошибке (нет связи)
+// отдаём SQLite-кэш терминала, затем localStorage. bridgeKey — какое имя
+// сохранить в локальной базе, offline — как из неё прочитать.
+async function cached(key, promise, { bridgeKey = null, offline = null } = {}) {
   try {
     const data = await promise
     try { localStorage.setItem('marjon_cache_' + key, JSON.stringify(data)) } catch { /* quota */ }
+    const bridge = offlineBridge()
+    if (bridge && bridgeKey) Promise.resolve(bridge.cache(bridgeKey, data)).catch(() => {})
     return data
   } catch (e) {
+    const bridge = offlineBridge()
+    if (bridge && offline && !e?.response) {
+      try {
+        const local = await offline(bridge)
+        if (local != null) return local
+      } catch { /* локального снимка нет — идём дальше */ }
+    }
     const raw = localStorage.getItem('marjon_cache_' + key)
     if (raw) { try { return JSON.parse(raw) } catch { /* ignore */ } }
     throw e
   }
+}
+
+// Объединение списков заказов: локальная база + прошлый успешный ответ.
+// Один и тот же заказ встречается в обоих — побеждает локальная версия
+// (в ней есть офлайн-правки, которых сервер ещё не видел).
+function mergeById(local, cachedList) {
+  const map = new Map()
+  for (const item of (Array.isArray(cachedList) ? cachedList : [])) map.set(String(item?.id), item)
+  for (const item of (Array.isArray(local) ? local : [])) map.set(String(item?.id), item)
+  return [...map.values()]
+}
+
+// Локальная копия заказа из SQLite терминала (или null).
+async function localOrder(id) {
+  const bridge = offlineBridge()
+  if (!bridge) return null
+  try { return await bridge.getOrder(id) } catch { return null }
+}
+
+// Запись по заказу. Заказ, созданный офлайн (сервер его ещё не видел),
+// обслуживается мостом СРАЗУ — его локальный id не существует на сервере,
+// и сетевой запрос вернул бы 404. Синхронизированный заказ идёт в сеть,
+// а мост подхватывает только при сетевой ошибке.
+async function orderMutation(orderId, request, run) {
+  const bridge = offlineBridge()
+  const local = await localOrder(orderId)
+  const pending = local && local.sync_state !== 'synced'
+  if (bridge && pending) return run(bridge)
+  try {
+    return await request()
+  } catch (e) {
+    if (e?.response || !bridge || !local) throw e
+    return run(bridge)
+  }
+}
+
+function uuid() {
+  return globalThis.crypto?.randomUUID?.()
+    || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0
+      return (c === 'x' ? r : ((r & 0x3) | 0x8)).toString(16)
+    })
+}
+
+// Оплата наличными без сети: мост ядра принимает только «полную» оплату.
+function offlineCashPayment(order, detail) {
+  const total = Math.round(Number(order?.total_amount || 0) * 100)
+  const received = detail?.cash != null ? Math.round(Number(detail.cash) * 100) : total
+  return {
+    method: 'cash',
+    amount: (total / 100).toFixed(2),
+    cash_received: (Math.max(received, total) / 100).toFixed(2),
+    change_given: (Math.max(received - total, 0) / 100).toFixed(2),
+  }
+}
+
+function tokenUserId(token) {
+  const value = String(token || '')
+  if (value.startsWith('offline:')) return value.slice('offline:'.length)
+  try {
+    return JSON.parse(atob(value.split('.')[1] || '')).sub || ''
+  } catch { return '' }
 }
 
 // ── Офлайн-очередь записи ──────────────────────────────────────────────
@@ -242,18 +364,39 @@ export const auth = {
         params: branchId ? { branch_id: branchId } : {},
         headers: tok ? { Authorization: `Bearer ${tok}` } : {},
       }).then((r) => r.data)
-    ),
+    ).catch((e) => {
+      // Офлайн: карточки сотрудников для рейла берём из локального снимка
+      // персонала (он же используется для PIN-входа без сети).
+      if (e?.response) throw e
+      const bridge = offlineBridge()
+      if (!bridge) throw e
+      return bridge.staffUsers(branchId || bridgeBranchId())
+    }),
   // Коллеги филиала для обычного входа сотрудника: /auth/staff-users
   // намеренно закрыт для всех, кроме владельца и терминала, поэтому
   // панель посещаемости берёт ростер отсюда (филиал — всегда свой).
-  branchColleagues: () => api.get('/auth/branch-colleagues').then((r) => r.data),
+  branchColleagues: () =>
+    api.get('/auth/branch-colleagues').then((r) => r.data).catch((e) => {
+      if (e?.response) throw e
+      const bridge = offlineBridge()
+      return bridge ? bridge.staffUsers(bridgeBranchId()) : Promise.reject(e)
+    }),
   // ID сотрудников с активной сессией (кто «в смене») — под org-токеном с авто-refresh.
   activeStaff: () =>
     withOrgRefresh((tok) =>
       api.get('/auth/active-staff', {
         headers: tok ? { Authorization: `Bearer ${tok}` } : {},
       }).then((r) => r.data)
-    ),
+    ).catch(async (e) => {
+      if (e?.response) throw e
+      const bridge = offlineBridge()
+      if (!bridge) throw e
+      // Офлайн «в смене» = у кого открыта смена в локальном снимке.
+      const shifts = await bridge.cacheGet('shifts')
+      return [...new Set((Array.isArray(shifts) ? shifts : [])
+        .filter((s) => s.status === 'open')
+        .map((s) => s.cashier_id))]
+    }),
   // PIN-вход сотрудника: company_id берётся из org-токена терминала (с авто-refresh).
   // userId — выбранный на кассе сотрудник: бэкенд сверит PIN только с ним, иначе при
   // одинаковых PIN у двоих токен уходил «первому совпавшему».
@@ -262,7 +405,22 @@ export const auth = {
       api.post('/auth/pin-login', { pin, ...(userId ? { user_id: userId } : {}) }, {
         headers: tok ? { Authorization: `Bearer ${tok}` } : {},
       }).then((r) => r.data)
-    ),
+    ).catch(async (e) => {
+      // OFFLINE-PIN: сервер недоступен — сверяем PIN с bcrypt-хэшем из
+      // локального снимка персонала. Пароль сюда не попадает: в кэше только хэш.
+      if (e?.response) throw e
+      const bridge = offlineBridge()
+      if (!bridge) throw e
+      const user = await bridge.verifyPin(pin, userId)
+      if (!user?.id) throw new Error('Invalid PIN')
+      return {
+        access_token: `offline:${user.id}`,
+        refresh_token: `offline:${user.id}`,
+        token_type: 'bearer',
+        offline: true,
+        user,
+      }
+    }),
   // Проверка PIN без смены сессии: логинимся по PIN и под полученным токеном
   // забираем сотрудника через /me (сам токен НЕ сохраняем — сессия официанта
   // остаётся прежней). Нужна для подтверждения опасных действий отдельным PIN.
@@ -276,12 +434,28 @@ export const auth = {
       }).then((r) => r.data)
     ).then(({ access_token }) =>
       api.get('/auth/me', { headers: { Authorization: `Bearer ${access_token}` } }).then((r) => r.data)
-    ),
-  me: () => api.get('/auth/me').then((r) => r.data),
+    ).catch(async (e) => {
+      if (e?.response) throw e
+      const bridge = offlineBridge()
+      if (!bridge) throw e
+      return bridge.verifyPin(pin, userId)
+    }),
+  me: () => cached('me', api.get('/auth/me'), {
+    offline: async (bridge) => {
+      const token = localStorage.getItem('marjon_token') || ''
+      return token.startsWith('offline:') ? bridge.userByToken(token) : null
+    },
+  }),
   // /me под ЯВНО переданным токеном: вход по PIN ещё не зафиксирован в
   // localStorage (сначала проверяем смену), поэтому заголовок задаём вручную.
-  meWithToken: (token) =>
-    api.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.data),
+  meWithToken: (token) => {
+    const value = String(token || '')
+    if (value.startsWith('offline:')) {
+      const bridge = offlineBridge()
+      return bridge ? bridge.userByToken(value) : Promise.reject(new Error('offline bridge unavailable'))
+    }
+    return api.get('/auth/me', { headers: { Authorization: `Bearer ${value}` } }).then((r) => r.data)
+  },
   // Управление сотрудниками (панель «Сотрудники» в меню «…»; правка прав —
   // только владелец в веб-админке). Идут под токеном сотрудника (marjon_token) →
   // несут его permissions, которые читает бэкенд-гейт
@@ -301,7 +475,15 @@ export const companies = {
       api.get('/companies/me/branches', {
         headers: tok ? { Authorization: `Bearer ${tok}` } : {},
       }).then((r) => r.data)
-    ),
+    ).catch(async (e) => {
+      if (e?.response) throw e
+      const bridge = offlineBridge()
+      if (!bridge) throw e
+      const [branch, company] = await Promise.all([bridge.cacheGet('branch'), bridge.cacheGet('company')])
+      return branch?.id
+        ? [{ id: branch.id, name: branch.name, company_id: company?.id || null, is_active: true }]
+        : []
+    }),
   // Профиль компании (типы заказа и др.) — под токеном сотрудника.
   profile: () => api.get('/companies/me').then((r) => r.data),
 }
@@ -318,7 +500,13 @@ export const branding = {
 }
 
 export const printers = {
-  list: () => api.get('/printers').then((r) => r.data),
+  // r.data обязателен: cached() кладёт в кэш ровно то, что вернул вызов.
+  // С «сырым» axios-ответом список принтеров приходил обёрткой, и настройки
+  // (а также выбор чек-принтера в Истории/Отчётах) видели пустой массив.
+  list: () => cached('printers', api.get('/printers').then((r) => r.data), {
+    bridgeKey: 'printers',
+    offline: (bridge) => bridge.cacheGet('printers'),
+  }),
   // Проверка доступности принтера СО СТОРОНЫ СЕРВЕРА (сервер печатает первым).
   ping: (ip, port = 9100) =>
     api.get('/printers/ping', { params: { ip, port } }).then((r) => r.data),
@@ -334,35 +522,115 @@ export const printers = {
   // local_print: печатать сам терминал может только в Electron (IPC → TCP до
   // принтера). В браузере (демо/LAN-доступ к 5189) печатает сервер — иначе
   // задание падает с «electron print unavailable» и чек не выходит нигде.
-  printReceipt: (data) => api.post('/printers/print/receipt', { local_print: canPrintLocally(), ...data }).then((r) => r.data),
-  printKitchen: (data) => api.post('/printers/print/kitchen', { local_print: canPrintLocally(), ...data }).then((r) => r.data),
+  // Без сети сервер печатать не может — тогда ESC/POS собирает само ядро
+  // терминала из локального снимка заказа и печатает напрямую в принтер.
+  printReceipt: (data) =>
+    orderMutation(
+      data?.order_id,
+      () => api.post('/printers/print/receipt', { local_print: canPrintLocally(), ...data }).then((r) => r.data),
+      (bridge) => bridge.printReceipt({ orderId: data.order_id, printerId: data.printer_id, copies: data.copies }),
+    ),
+  printKitchen: (data) =>
+    orderMutation(
+      data?.order_id,
+      () => api.post('/printers/print/kitchen', { local_print: canPrintLocally(), ...data }).then((r) => r.data),
+      (bridge) => bridge.printKitchen({ orderId: data.order_id, itemIds: data.item_ids }),
+    ),
   // Общий чек-сводка (История/Отчёты)
   printSummary: (data) => api.post('/printers/print/summary', { local_print: canPrintLocally(), ...data }).then((r) => r.data),
 }
 
 export const orders = {
-  list: (params) => cached('orders_' + (params?.branch_id || 'all'), api.get('/pos/orders', { params }).then((r) => r.data)),
-  get: (id) => api.get(`/pos/orders/${id}`).then((r) => r.data),
+  // Локальная база сливается с ответом сервера: заказ, созданный без сети,
+  // виден на доске сразу и не исчезает из неё после реконнекта (дубли
+  // схлопываются по id — у синхронизированного заказа локальный id заменён
+  // серверным).
+  list: (params) => {
+    const key = 'orders_' + (params?.branch_id || 'all')
+    const withLocal = (remote) => {
+      const bridge = offlineBridge()
+      if (!bridge) return remote
+      return bridge.listOrders(params || {})
+        .then((local) => mergeById(local, remote))
+        .catch(() => remote)
+    }
+    return cached(key, api.get('/pos/orders', { params }).then((r) => withLocal(r.data)), {
+      offline: async (bridge) => {
+        let previous = []
+        try { previous = JSON.parse(localStorage.getItem('marjon_cache_' + key) || '[]') } catch { /* ignore */ }
+        return mergeById(await bridge.listOrders(params || {}), previous)
+      },
+    })
+  },
+  get: async (id) => {
+    const local = await localOrder(id)
+    if (local && local.sync_state !== 'synced') return local
+    try {
+      return await api.get(`/pos/orders/${id}`).then((r) => r.data)
+    } catch (e) {
+      if (local) return local
+      throw e
+    }
+  },
   create: async (data) => {
     const payload = await resolveOrderCreate(data, {
-      loadHalls: () => api.get('/halls').then(r => r.data),
+      loadHalls: () => cached('halls_all', api.get('/halls').then(r => r.data), {
+        bridgeKey: 'halls',
+        offline: (bridge) => bridge.cacheGet('halls'),
+      }),
       loadBranches: () => companies.branches(),
     })
-    return api.post('/pos/orders', payload).then(r => r.data)
+    // client_id генерирует терминал ДО отправки: повтор POST после обрыва —
+    // это тот же заказ, а не второй (бэкенд отдаёт существующий).
+    const clientId = payload.client_id || uuid()
+    try {
+      return await api.post('/pos/orders', { ...payload, client_id: clientId }).then((r) => r.data)
+    } catch (e) {
+      if (e?.response) throw e
+      const bridge = offlineBridge()
+      if (!bridge) throw e
+      return bridge.createOrder({ ...payload, client_id: clientId })
+    }
   },
-  update: (id, data) => api.patch(`/pos/orders/${id}`, data).then((r) => r.data),
-  addItem: (orderId, data) => api.post(`/pos/orders/${orderId}/items`, data).then((r) => r.data),
+  update: (id, data) =>
+    orderMutation(
+      id,
+      () => api.patch(`/pos/orders/${id}`, data).then((r) => r.data),
+      (bridge) => bridge.updateOrder(id, data, {
+        reason: data?.reason, action_pin: data?.action_pin,
+      }),
+    ),
+  addItem: (orderId, data) =>
+    orderMutation(
+      orderId,
+      () => api.post(`/pos/orders/${orderId}/items`, data).then((r) => r.data),
+      (bridge) => bridge.addItems(orderId, [data]),
+    ),
   // Пакетный дозаказ: одна команда — один кухонный тикет на все новые блюда.
-  addItems: (orderId, items) => api.post(`/pos/orders/${orderId}/items/bulk`, { items }).then((r) => r.data),
+  addItems: (orderId, items) =>
+    orderMutation(
+      orderId,
+      () => api.post(`/pos/orders/${orderId}/items/bulk`, { items }).then((r) => r.data),
+      (bridge) => bridge.addItems(orderId, items),
+    ),
   // reason — причина удаления (журналируется на бэкенде: кто/когда/почему удалил позицию)
-  removeItem: (orderId, itemId, reason) => api.delete(`/pos/orders/${orderId}/items/${itemId}`, {
-    params: reason ? { reason } : {},
-  }).then((r) => r.data),
+  removeItem: (orderId, itemId, reason) =>
+    orderMutation(
+      orderId,
+      () => api.delete(`/pos/orders/${orderId}/items/${itemId}`, {
+        params: reason ? { reason } : {},
+      }).then((r) => r.data),
+      (bridge) => bridge.removeItem(orderId, itemId, reason),
+    ),
   moveItem: (orderId, itemId, table) => api.post(`/pos/orders/${orderId}/items/${itemId}/move`, null, { params: { table } }).then((r) => r.data),
   // Плюс/минус на уже внесённой позиции: количество меняется до оплаты,
   // поэтому склад не задет (сток списывается в /payments).
   setItemQuantity: (orderId, itemId, quantity) =>
-    api.patch(`/pos/orders/${orderId}/items/${itemId}`, { quantity }).then((r) => r.data),
+    orderMutation(
+      orderId,
+      () => api.patch(`/pos/orders/${orderId}/items/${itemId}`, { quantity }).then((r) => r.data),
+      (bridge) => bridge.setItemQty(orderId, itemId, quantity),
+    ),
   // Смена ответственного официанта у ОДНОЙ позиции (кассир исправляет путаницу: доля обслуги идёт по ответственному)
   setItemWaiter: (orderId, itemId, waiterId, reason) =>
     api.patch(`/pos/orders/${orderId}/items/${itemId}/waiter`, {
@@ -370,25 +638,83 @@ export const orders = {
     }).then((r) => r.data),
   // extra — дополнительные поля статуса: сейчас это должник при закрытии
   // «в долг» (client_name/client_phone), по ним бэкенд заводит клиента.
-  updateStatus: (id, status, extra) =>
-    writeQueued('patch', `/pos/orders/${id}/status`, { status, ...(extra || {}) }),
-  cancel: (id, password, comment) => api.delete(`/pos/orders/${id}`, {
-    params: { ...(password ? { password } : {}), ...(comment ? { comment } : {}) },
-  }).then((r) => r.data),
+  // Локальный/офлайн-заказ идёт в очередь ядра (с depends_on от создания);
+  // серверный, но ещё не попавший в локальную базу — в старую очередь.
+  updateStatus: async (id, status, extra) => {
+    const local = await localOrder(id)
+    if (local) {
+      const bridge = offlineBridge()
+      if (local.sync_state !== 'synced') return bridge.updateStatus(id, status, extra)
+      try {
+        return await api.patch(`/pos/orders/${id}/status`, { status, ...(extra || {}) }).then((r) => r.data)
+      } catch (e) {
+        if (e?.response) throw e
+        return bridge.updateStatus(id, status, extra)
+      }
+    }
+    return writeQueued('patch', `/pos/orders/${id}/status`, { status, ...(extra || {}) })
+  },
+  // Отмена заказа. Заказ, которого сервер ещё не видел, отменяется локально
+  // сразу; серверный — только через сервер (там проверяется пароль отмены).
+  // Без связи серверный заказ отменить нельзя — ядро вернёт понятную ошибку.
+  cancel: async (id, password, comment) => {
+    const bridge = offlineBridge()
+    const local = bridge ? await localOrder(id) : null
+    if (bridge && local && local.sync_state !== 'synced') {
+      return bridge.cancelOrder(id, { password, comment })
+    }
+    try {
+      return await api.delete(`/pos/orders/${id}`, {
+        params: { ...(password ? { password } : {}), ...(comment ? { comment } : {}) },
+      }).then((r) => r.data)
+    } catch (e) {
+      if (e?.response || !bridge || !local) throw e
+      return bridge.cancelOrder(id, { password, comment })
+    }
+  },
   // Возврат закрытого заказа в работу: гость вернул блюдо/пожаловался — кассир
   // открывает заказ, отменяет позицию с причиной и закрывает снова (со сдачей).
   reopen: (id, reason) => api.post(`/pos/orders/${id}/reopen`, { reason: reason || null }).then((r) => r.data),
 }
 
 export const payments = {
-  confirmOrder: (order, method, detail) => submitOrderPayment({
-    api, storage: localStorage, server: baseURL(), order, method, detail,
-  }),
+  confirmOrder: async (order, method, detail) => {
+    const bridge = offlineBridge()
+    const local = await localOrder(order?.id)
+    // Заказ, которого сервер ещё не видел, платим только наличными локально —
+    // проводка уйдёт вместе с заказом при восстановлении связи.
+    if (bridge && local && local.sync_state !== 'synced') {
+      return bridge.payOrder(order.id, offlineCashPayment(order, detail))
+    }
+    try {
+      return await submitOrderPayment({
+        api, storage: localStorage, server: baseURL(), order, method, detail,
+      })
+    } catch (e) {
+      // Связь оборвалась посреди оплаты: серверная попытка не подтверждена.
+      // Снимаем её ключ (иначе повтор создал бы дубль) и фиксируем оплату
+      // в локальной базе — ядро досылает её с Idempotency-Key.
+      if (e?.response || !bridge || !local || method !== 'cash') throw e
+      clearPaymentAttempt({ storage: localStorage, server: baseURL(), orderId: order.id })
+      return bridge.payOrder(order.id, offlineCashPayment(order, detail))
+    }
+  },
   process: (data, idempotencyKey) =>
     api.post('/payments', data, {
       headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
     }).then((r) => r.data),
-  forOrder: (orderId) => api.get(`/payments/order/${orderId}`).then((r) => r.data),
+  forOrder: async (orderId) => {
+    const bridge = offlineBridge()
+    const local = await localOrder(orderId)
+    if (bridge && local && local.sync_state !== 'synced') return bridge.paymentsForOrder(orderId)
+    try {
+      return await api.get(`/payments/order/${orderId}`).then((r) => r.data)
+    } catch (e) {
+      if (e?.response || !bridge) throw e
+      const localPayments = await bridge.paymentsForOrder(orderId)
+      return Array.isArray(localPayments) ? localPayments : []
+    }
+  },
 }
 
 export const kitchen = {
@@ -408,9 +734,24 @@ export const kitchen = {
 }
 
 export const menu = {
-  products: (params) => cached('products', api.get('/inventory/products', { params }).then((r) => r.data)),
-  categories: () => cached('categories', api.get('/inventory/categories').then((r) => r.data)),
-  product: (id) => api.get(`/inventory/products/${id}`).then((r) => r.data),
+  products: (params) => cached('products', api.get('/inventory/products', { params }).then((r) => r.data), {
+    bridgeKey: 'products',
+    offline: (bridge) => bridge.cacheGet('products'),
+  }),
+  categories: () => cached('categories', api.get('/inventory/categories').then((r) => r.data), {
+    bridgeKey: 'categories',
+    offline: (bridge) => bridge.cacheGet('categories'),
+  }),
+  product: (id) =>
+    api.get(`/inventory/products/${id}`).then((r) => r.data).catch(async (e) => {
+      if (e?.response) throw e
+      const bridge = offlineBridge()
+      if (!bridge) throw e
+      const list = await bridge.cacheGet('products')
+      const found = (Array.isArray(list) ? list : []).find((p) => String(p.id) === String(id))
+      if (found) return found
+      throw e
+    }),
   // Стоп-лист = доступность блюда (is_available). false → в стопе.
   // Узкий эндпоинт /availability доступен кассиру (в отличие от общего PATCH продукта — только админ).
   setAvailable: (id, isAvailable) => api.patch(`/inventory/products/${id}/availability`, { is_available: isAvailable }).then((r) => r.data),
@@ -437,7 +778,10 @@ export const warehouse = {
 
 // Залы (зоны) с вложенными столами: GET /halls?branch_id= → [{id,name,tables:[{id,number,capacity}]}]
 export const halls = {
-  list: (branchId) => cached('halls_' + branchId, api.get('/halls', { params: { branch_id: branchId } }).then((r) => r.data)),
+  list: (branchId) => cached('halls_' + branchId, api.get('/halls', { params: { branch_id: branchId } }).then((r) => r.data), {
+    bridgeKey: 'halls',
+    offline: (bridge) => bridge.cacheGet('halls'),
+  }),
   // Список залов под токеном сотрудника ДО сохранения сессии: нужен, чтобы
   // определить филиал терминала, когда моноблок привязан только к компании.
   listWithToken: (token) =>
@@ -452,25 +796,76 @@ export const tables = {
 
 // Кассовые смены (бэкенд: /pos/shifts)
 export const shifts = {
-  current: (branchId) => api.get('/pos/shifts/current', { params: { branch_id: branchId } }).then((r) => r.data),
+  current: (branchId) =>
+    api.get('/pos/shifts/current', { params: { branch_id: branchId } }).then((r) => r.data).catch((e) => {
+      if (e?.response) throw e
+      const bridge = offlineBridge()
+      if (!bridge) throw e
+      return bridge.shiftCurrent(branchId, bridgeUserId())
+    }),
   // Проверка/открытие смены ДО фиксации сессии сотрудника: токен из PIN-входа
   // передаём явно, чтобы не записывать его в localStorage до открытия смены.
   currentWithToken: (token, branchId) =>
     api.get('/pos/shifts/current', {
       params: { branch_id: branchId },
       headers: { Authorization: `Bearer ${token}` },
-    }).then((r) => r.data),
+    }).then((r) => r.data).catch((e) => {
+      if (e?.response) throw e
+      const bridge = offlineBridge()
+      if (!bridge) throw e
+      return bridge.shiftCurrent(branchId, tokenUserId(token))
+    }),
   openWithToken: (token, branchId, opening_cash = 0) =>
     api.post('/pos/shifts/open', { branch_id: branchId, opening_cash }, {
       headers: { Authorization: `Bearer ${token}` },
-    }).then((r) => r.data),
-  open: (branchId, opening_cash = 0) => api.post('/pos/shifts/open', { branch_id: branchId, opening_cash }).then((r) => r.data),
+    }).then((r) => r.data).catch((e) => {
+      if (e?.response) throw e
+      const bridge = offlineBridge()
+      if (!bridge) throw e
+      return bridge.shiftOpen(branchId, opening_cash, tokenUserId(token))
+    }),
+  open: (branchId, opening_cash = 0) =>
+    api.post('/pos/shifts/open', { branch_id: branchId, opening_cash }).then((r) => r.data).catch((e) => {
+      if (e?.response) throw e
+      const bridge = offlineBridge()
+      if (!bridge) throw e
+      return bridge.shiftOpen(branchId, opening_cash, bridgeUserId())
+    }),
   close: (branchId, closing_cash = 0) =>
-    api.post('/pos/shifts/close', { branch_id: branchId || undefined, closing_cash }).then((r) => r.data),
+    api.post('/pos/shifts/close', { branch_id: branchId || undefined, closing_cash }).then((r) => r.data).catch((e) => {
+      if (e?.response) throw e
+      const bridge = offlineBridge()
+      if (!bridge) throw e
+      return bridge.shiftClose(branchId || bridgeBranchId(), closing_cash, bridgeUserId())
+    }),
   // Сводка для профиля: текущая смена + выработка и продажи сотрудника за день.
-  summary: (branchId) => api.get('/pos/shifts/me/summary', {
-    params: branchId ? { branch_id: branchId } : {},
-  }).then((r) => r.data),
+  // Офлайн считаем из локальной базы: смена, её длительность и закрытые заказы.
+  summary: (branchId) =>
+    api.get('/pos/shifts/me/summary', {
+      params: branchId ? { branch_id: branchId } : {},
+    }).then((r) => r.data).catch(async (e) => {
+      if (e?.response) throw e
+      const bridge = offlineBridge()
+      if (!bridge) throw e
+      const bId = branchId || bridgeBranchId()
+      const shift = await bridge.shiftCurrent(bId, bridgeUserId())
+      const now = new Date()
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+      const list = await bridge.listOrders({ branch_id: bId, date: today, limit: 500 })
+      const done = list.filter((o) => o.status === 'completed')
+      const sales = done.reduce((s, o) => s + Number(o.total_amount || 0), 0)
+      const seconds = shift?.opened_at
+        ? Math.max(0, Math.floor((Date.now() - Date.parse(shift.opened_at)) / 1000))
+        : 0
+      return {
+        shift,
+        worked_seconds: seconds,
+        shift_seconds: seconds,
+        sales_total: sales.toFixed(2),
+        orders_count: done.length,
+        offline: true,
+      }
+    }),
 }
 
 // Финансы: приход/расход (бэкенд: /finance/transactions).

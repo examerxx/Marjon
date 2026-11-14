@@ -608,7 +608,12 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
       setView('floor')
       loadFloor()
     } catch (e) {
-      const reason = e?.paymentErrorKey ? t(e.paymentErrorKey) : e?.response?.data?.detail
+      // Ошибка офлайн-ядра приходит без HTTP-ответа — показываем её текст,
+      // иначе кассир видел пустое «не удалось закрыть заказ» и не знал причину.
+      const fromResponse = e?.response?.data?.detail
+      const reason = e?.paymentErrorKey
+        ? t(e.paymentErrorKey)
+        : (fromResponse || (e?.response ? null : e?.message))
       toast(t('close_order_error') + (reason ? ': ' + (typeof reason === 'string' ? reason : t('payment_invalid_amount')) : ''), 'error')
       if ([400, 422].includes(e?.response?.status)) await refreshPayOrder(order)
     } finally { closingOrders.current.delete(order.id) }
@@ -676,7 +681,10 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
       onSubmit: async (reason) => {
         let upd
         try { upd = await orders.reopen(order.id, reason || null) }
-        catch (e) { throw new Error(e?.response?.data?.detail || t('reopen_error')) }
+        catch (e) {
+          if (!e?.response) throw new Error(t('offline_action_unavailable'))
+          throw new Error(e?.response?.data?.detail || t('reopen_error'))
+        }
         setPromptCfg(null); setHistOpen(false)
         let paid = 0
         try {
