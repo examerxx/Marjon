@@ -1,0 +1,30 @@
+/* ---------- вариант H «Техника» ---------- */
+.c-mark { display: block; height: 0; }
+.v-h .stage-shade { background: linear-gradient(90deg, rgba(10, 11, 12, .9) 0%, rgba(10, 11, 12, .62) 34%, rgba(10, 11, 12, 0) 58%), linear-gradient(to top, rgba(10, 11, 12, .7), rgba(10, 11, 12, 0) 26%), linear-gradient(rgba(10, 11, 12, .5), rgba(10, 11, 12, 0) 16%); }
+.h-col { display: grid; gap: clamp(24px, 3.4vw, 44px); width: min(47vw, 700px); }
+.hh-hero { min-height: 100svh; display: flex; flex-direction: column; justify-content: space-between; padding: calc(var(--nav-h) + 24px) 0 0; }
+.hh-hero > .wrap:first-child { flex: 1; display: grid; align-content: center; }
+.h-hero-in { gap: clamp(18px, 2.2vw, 30px); padding-block: 4vh; }
+.hh-hero .h-hero { font-size: clamp(2.5rem, 6.1vw, 7.6rem); line-height: .96; letter-spacing: -.05em; }
+.h-sec .h-ch { font-size: clamp(2rem, 4.5vw, 5rem); }
+.h-stack { display: grid; gap: 12px; }
+.h-stack .pain { min-height: 0; }
+.h-mod { display: grid; gap: 10px; background: rgba(15, 17, 19, .74); }
+.h-mod header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.h-mod h3 { font-family: var(--display); font-weight: 500; font-size: clamp(1.3rem, 2.2vw, 2.1rem); letter-spacing: -.035em; }
+.h-mod p { color: var(--muted); }
+.h-chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line-2); font-size: .74rem; color: var(--muted); white-space: nowrap; }
+.h-chip b { color: var(--mint); font-weight: 500; }
+.h-stats { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line-2); }
+.h-stat { display: grid; gap: 8px; padding: clamp(18px, 2.4vw, 30px) 0; border-bottom: 1px solid var(--line-2); }
+.h-stat:nth-child(odd) { border-right: 1px solid var(--line-2); padding-right: 16px; } .h-stat:nth-child(even) { padding-left: clamp(16px, 2.4vw, 30px); }
+.h-stat b { font-size: clamp(2.8rem, 6vw, 6.6rem); display: flex; align-items: baseline; }
+.h-stat b i { font-style: normal; } .h-stat b small { font-size: .28em; color: var(--mint); margin-left: .2em; }
+.h-stat span { color: var(--muted); font-size: .9rem; }
+.h-col .feats { grid-template-columns: 1fr 1fr; margin-top: 0; }
+.h-roles { background: linear-gradient(rgba(10, 11, 12, 0), rgba(10, 11, 12, .82) 12%, rgba(10, 11, 12, .82) 88%, rgba(10, 11, 12, 0)); }
+@media (max-width: 1000px) {
+  .h-col { width: 100%; }
+  .v-h .stage-shade { background: linear-gradient(rgba(10, 11, 12, .55), rgba(10, 11, 12, .72)); }
+}
+@media (max-width: 600px) { .h-col .feats, .h-stats { grid-template-columns: 1fr; } .h-stat:nth-child(odd) { border-right: 0; padding-right: 0; } .h-stat:nth-child(even) { padding-left: 0; } }

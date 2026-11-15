@@ -1,0 +1,12 @@
+/* ---------- общее для вариантов E и F ---------- */
+.poster { background: radial-gradient(90% 70% at 60% 40%, #123a33 0%, #0a0b0c 70%) !important; }
+[data-c] { position: relative; z-index: 2; }
+.v-split { display: grid; grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr); gap: clamp(28px, 5vw, 90px); align-items: start; }
+.v-split > .sec-head { position: sticky; top: calc(var(--nav-h) + 40px); }
+.v-split .h-ch { font-size: clamp(2rem, 4.6vw, 5rem); }
+.v-big { font-family: var(--display); font-weight: 600; letter-spacing: -.05em; line-height: .9; }
+.readout { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding-top: 14px; border-top: 1px dashed var(--line-2); font-size: .8rem; color: var(--muted); }
+.readout b { font-family: var(--display); font-weight: 500; font-size: 1.15rem; letter-spacing: -.03em; color: var(--mint); white-space: nowrap; }
+.readout span { display: inline-flex; align-items: center; gap: 8px; }
+.review { justify-content: flex-start; }
+@media (max-width: 900px) { .v-split { grid-template-columns: 1fr; } .v-split > .sec-head { position: static; } }

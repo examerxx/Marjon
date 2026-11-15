@@ -1,0 +1,43 @@
+/* ---------- вариант F «Зал» ---------- */
+.f-hero { min-height: 100svh; display: flex; flex-direction: column; justify-content: flex-end; padding: calc(var(--nav-h) + 24px) 0 0; }
+.f-hero-in { display: grid; gap: clamp(18px, 2.4vw, 34px); padding-bottom: clamp(24px, 4vh, 54px); }
+.f-hero .h-hero { font-size: clamp(2.6rem, 11.6vw, 14rem); line-height: .9; letter-spacing: -.055em; }
+.f-hero-b { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 60px; align-items: end; }
+.v-f .stage-shade { background: linear-gradient(rgba(10, 11, 12, .55) 0%, rgba(10, 11, 12, 0) 34%, rgba(10, 11, 12, .1) 60%, rgba(10, 11, 12, .82) 100%), radial-gradient(120% 90% at 0% 100%, rgba(10, 11, 12, .75), transparent 60%), rgba(10, 11, 12, .3); }
+
+.f-rows { display: grid; }
+.f-row { position: relative; display: grid; grid-template-columns: clamp(48px, 6vw, 96px) minmax(0, 1fr) auto; gap: 8px 20px; align-items: baseline; padding: clamp(18px, 2.6vw, 32px) 0; border-top: 1px solid var(--line-2); transition: padding-left .7s var(--ease), background .5s; }
+.f-row:last-of-type { border-bottom: 1px solid var(--line-2); }
+.f-row::before { content: ""; position: absolute; left: 0; top: -1px; height: 1px; width: 100%; background: var(--mint); transform: scaleX(0); transform-origin: 0 50%; transition: transform .9s var(--ease); }
+.f-row:hover::before, .f-row:focus-visible::before { transform: scaleX(1); }
+.f-row:hover, .f-row:focus-visible { padding-left: 14px; outline: none; }
+.f-n { font-size: .72rem; letter-spacing: .14em; color: var(--mint); font-variant-numeric: tabular-nums; }
+.f-row h3 { font-family: var(--display); font-weight: 500; font-size: clamp(1.4rem, 3vw, 3rem); letter-spacing: -.04em; line-height: 1.02; transition: color .4s; }
+.f-row:hover h3 { color: var(--mint); }
+.f-pain { grid-template-columns: clamp(48px, 6vw, 96px) minmax(0, 1fr) 24px; }
+.f-pain p { grid-column: 2; color: var(--muted); max-width: 46ch; }
+.f-pain .x { grid-column: 3; grid-row: 1; width: 18px; height: 18px; align-self: center; background: linear-gradient(var(--coral), var(--coral)) 50% / 100% 1.5px no-repeat, linear-gradient(var(--coral), var(--coral)) 50% / 1.5px 100% no-repeat; transform: rotate(45deg); transition: transform .7s var(--ease); }
+.f-pain:hover .x { transform: rotate(135deg) scale(1.2); }
+.f-pain .f-n { color: var(--coral); }
+.f-problem .tools { margin-top: clamp(28px, 5vh, 56px); }
+.f-live { grid-column: 3; grid-row: 1; text-align: right; display: grid; gap: 2px; font-size: .74rem; color: var(--muted); white-space: nowrap; }
+.f-live b { font-family: var(--display); font-weight: 500; font-size: clamp(1rem, 1.6vw, 1.5rem); letter-spacing: -.03em; color: var(--text); }
+.f-m-more { grid-column: 2 / -1; grid-row: 2; display: grid; grid-template-rows: 0fr; transition: grid-template-rows .8s var(--ease), opacity .5s; opacity: 0; }
+.f-m-more > div { overflow: hidden; display: grid; gap: 12px; }
+.f-m-more p { color: var(--muted); max-width: 52ch; padding-top: 6px; }
+.f-m:hover .f-m-more, .f-m:focus-visible .f-m-more, .f-m.on .f-m-more { grid-template-rows: 1fr; opacity: 1; }
+.f-m.on h3 { color: var(--mint); }
+
+.f-stats { margin-top: clamp(48px, 9vh, 110px); display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid var(--line-2); }
+.f-stat { display: grid; grid-template-columns: auto 1fr; gap: 6px 24px; align-items: baseline; padding: clamp(22px, 4vw, 54px) clamp(0px, 2vw, 30px) clamp(22px, 4vw, 54px) 0; border-bottom: 1px solid var(--line-2); }
+.f-stat:nth-child(odd) { border-right: 1px solid var(--line-2); } .f-stat:nth-child(even) { padding-left: clamp(16px, 3vw, 48px); }
+.f-stat b { grid-column: 1 / -1; font-size: clamp(4rem, 13vw, 15rem); display: flex; align-items: baseline; }
+.f-stat b i { font-style: normal; } .f-stat b small { font-size: .26em; color: var(--mint); margin-left: .2em; letter-spacing: -.02em; }
+.f-stat > span:last-child { grid-column: 1 / -1; color: var(--muted); }
+
+@media (max-width: 900px) {
+  .f-hero-b { grid-template-columns: 1fr; }
+  .f-row { grid-template-columns: 44px minmax(0, 1fr); } .f-live { grid-column: 2; grid-row: 3; text-align: left; }
+  .f-m-more { grid-template-rows: 1fr; opacity: 1; }
+}
+@media (max-width: 600px) { .f-stats { grid-template-columns: 1fr; } .f-stat:nth-child(odd) { border-right: 0; } .f-stat:nth-child(even) { padding-left: 0; } }

@@ -10,6 +10,9 @@ export default {
   loader: 'Smena ochilmoqda',
   loaderBeads: ['Kassa', 'Oshxona', 'Zal', 'Ombor', 'Xodimlar', 'Moliya', 'Hisobotlar'],
   loaderDone: 'Smena ochiq',
+  mani: { k: 'Bitta kontur', t: "Kassadagi buyurtma shu soniyaning o'zida <em>oshxonada tiketga</em>, <em>omborda hisobdan chiqarishga</em> va egasi <em>hisobotidagi satrga</em> aylanadi. Hech kim hech narsani qo'lda ko'chirmaydi." },
+  band: ['Kassa', 'Oshxona', 'Zal', 'Ombor', 'Yetkazish', 'Xodimlar', 'Moliya', 'Hisobotlar'],
+  band2: ['Ikki marta kiritishsiz', 'Daftarsiz', 'Excelsiz', 'Kechki kutilmagan holatlarsiz'],
   hero: {
     kicker: "O'zbekiston kafe va restoranlari uchun platforma",
     h1: ['Butun restoran', 'bitta <em>ipda</em>.'],

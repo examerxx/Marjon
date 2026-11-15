@@ -103,9 +103,9 @@ function glowTexture() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
-export function createScene(canvas, { low = false, labels = [] } = {}) {
+export function createScene(canvas, { low = false, labels = [], addon = null } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
-  const maxDpr = low ? 1.5 : 2;
+  let maxDpr = 2;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDpr));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
@@ -142,7 +142,7 @@ export function createScene(canvas, { low = false, labels = [] } = {}) {
   scene.add(bg);
 
   // ---- бусины ----
-  const sphere = new THREE.SphereGeometry(1, low ? 48 : 96, low ? 32 : 64);
+  const sphere = new THREE.SphereGeometry(1, low ? 72 : 96, low ? 48 : 64);
   const beads = [];
   for (let i = 0; i < N; i++) {
     const mat = new THREE.MeshPhysicalMaterial({
@@ -205,7 +205,7 @@ export function createScene(canvas, { low = false, labels = [] } = {}) {
   scene.add(dust);
 
   // ---- постобработка: Render → Bloom → Lens(виньетка+аберрация) → Output → Grain ----
-  const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: low ? 0 : 4 });
+  const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: low || (window.devicePixelRatio || 1) >= 2 ? 2 : 4 });
   const composer = new EffectComposer(renderer, rt);
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.45, 0.4, 0.82);
@@ -322,8 +322,10 @@ export function createScene(canvas, { low = false, labels = [] } = {}) {
     renderer.toneMappingExposure = S.exposure;
     dustMat.uniforms.uTime.value = time;
     dustMat.uniforms.uOpacity.value = S.dust;
-    bloom.strength = S.bloom * (low ? 0.6 : 1);
-    lens.uniforms.uCA.value = low ? 0 : 0.012 + vel * 0.0016;
+    // с техникой в кадре — чище: меньше ореола и почти без хроматической аберрации, чтобы экраны читались резко
+    bloom.strength = S.bloom * (low ? 0.6 : 1) * (addon ? 0.6 : 1);
+    lens.uniforms.uCA.value = low ? 0 : addon ? 0.002 + vel * 0.0006 : 0.012 + vel * 0.0016;
+    if (addon) grain.uniforms.uAmt.value = 0.028;
     grain.uniforms.uTime.value = time;
 
     // экранный круг жемчужины — для тёмного слоя заголовка в hero
@@ -349,6 +351,7 @@ export function createScene(canvas, { low = false, labels = [] } = {}) {
         el.style.opacity = on.toFixed(3); el._o = on;
       }
     }
+    extra?.update(time, S, mouse, portrait > 0.5);
     composer.render(dt);
   }
 
@@ -357,9 +360,25 @@ export function createScene(canvas, { low = false, labels = [] } = {}) {
     sphere.dispose(); beads.forEach((b) => b.mat.dispose());
     lineGeo.dispose(); lineMat.dispose(); glowTex.dispose(); pulses.forEach((p) => p.material.dispose());
     dustGeo.dispose(); dustMat.dispose(); bg.geometry.dispose(); bgMat.dispose();
+    extra?.dispose();
     scene.environment?.dispose(); rt.dispose(); composer.dispose(); renderer.dispose();
   }
 
+  const extra = addon ? addon({ scene, renderer, rig, low }) : null; // версия A+H: техника в той же сцене
   resize();
-  return { S, beads, pearl, render, resize, dispose, renderer };
+  // прогрев под экраном загрузки: ждём текстуры, компилируем все шейдеры и заливаем текстуры в видеопамять —
+  // иначе это происходит при первом появлении объекта и даёт рывок во время прокрутки
+  async function warm() {
+    const wait = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(r, ms))]);
+    if (extra?.ready) await wait(extra.ready, 6000);
+    const hidden = [];
+    scene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } });
+    try {
+      if (renderer.compileAsync) await wait(renderer.compileAsync(scene, camera), 5000); else renderer.compile(scene, camera);
+      scene.traverse((o) => { if (!o.material) return; for (const m of Array.isArray(o.material) ? o.material : [o.material]) for (const k of ['map', 'alphaMap']) { const t = m[k]; if (t && t.isTexture && t.image && (t.image.width || t.image.videoWidth)) renderer.initTexture(t); } });
+    } catch (err) { /* прогрев необязателен */ }
+    hidden.forEach((o) => { o.visible = false; });
+  }
+  const setMaxDpr = (v) => { if (v < maxDpr) { maxDpr = v; resize(); } }; // авто-снижение качества, если кадры идут медленно
+  return { S, beads, pearl, render, resize, dispose, renderer, setMaxDpr, warm };
 }

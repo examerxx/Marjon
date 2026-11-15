@@ -1,27 +1,58 @@
 // HTML-шаблон лендинга. Один источник для ru и uz: scripts/build-pages.mjs
 // рендерит его в index.html и uz/index.html.
-const arrow = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 17.5 17.5 6.5M8 6.5h9.5V16"/></svg>';
-const right = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>';
-const mark = `<svg class="mark" viewBox="55 370 430 290" aria-hidden="true" focusable="false">
+export const arrow = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 17.5 17.5 6.5M8 6.5h9.5V16"/></svg>';
+export const right = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>';
+export const mark = `<svg class="mark" viewBox="55 370 430 290" aria-hidden="true" focusable="false">
   <rect x="39.71" y="472.12" width="316.08" height="86.27" rx="43.135" transform="rotate(-45 197.75 515.25)" fill="#14B8A6"/>
   <rect x="193.39" y="472.61" width="314.75" height="85.29" rx="42.645" transform="rotate(-45.44 350.76 515.25)" fill="#5fd6cf"/>
   <path d="M461 525C466 526 470 531 470 537L470 599C470 616 461 629 445 636C434 641 420 641 408 635C394 628 386 615 386 600C386 589 390 580 398 571L439 530C445 524 453 522 461 525Z" fill="currentColor"/>
 </svg>`;
 import { demo } from './demo.mjs';
-const pad = (n) => String(n).padStart(2, '0');
+export const pad = (n) => String(n).padStart(2, '0');
 const mmss = (s) => `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
-const h = (lines, cls, tag = 'h2') =>
+export const h = (lines, cls, tag = 'h2') =>
   `<${tag} class="${cls}" data-split>${lines.map((l) => `<span class="ln">${l}</span>`).join(' ')}</${tag}>`;
-const head = (s, extra = '') => `
+export const head = (s, extra = '') => `
       <header class="sec-head ${extra}">
         <p class="kicker" data-r>${s.kicker}</p>
         ${h(s.h2, 'h-ch')}
         <p class="lede" data-r>${s.lede}</p>
       </header>`;
-const marquee = (items, rev) => `
+export const marquee = (items, rev) => `
         <div class="mq ${rev ? 'mq-rev' : ''}"><div class="mq-track">
           ${[0, 1].map((k) => items.map(([b, s]) => `<div class="iq"${k ? ' aria-hidden="true"' : ''}><b>${b}</b><span>${s}</span></div>`).join('')).join('')}
         </div></div>`;
+
+export const vband = (words, dir = 1) => `
+<div class="vband" data-vband data-dir="${dir}" data-nofx aria-hidden="true"><div class="vband-t">${[0, 1].map(() => words.map((w, i) => `<span class="${i % 2 ? 'o' : ''}">${w}</span><i>✦</i>`).join('')).join('')}</div></div>`;
+
+
+// «Роли»: в версии с устройствами — три устройства по очереди (без карточки), в «Нити» — вкладки
+const rolesShow = (t) => `    <ol class="rshow" data-rshow>
+      ${t.roles.show.map((r, i) => `<li class="rs" data-rs>
+        <div class="rs-cap">
+          <span class="rs-n">${pad(i + 1)} <i>/ ${pad(t.roles.show.length)}</i></span>
+          <h3>${r.k}</h3>
+          <p>${r.t}</p>
+          <div class="rs-who">${r.who.map((w) => `<span>${w}</span>`).join('')}</div>
+        </div>
+        <figure class="rs-fb d-${r.img}${r.img === 'mobile' ? ' ph' : ''}"><img src="/src/assets/shots/${r.img}.webp" alt="${r.k}" loading="lazy" width="${r.img === 'mobile' ? 1170 : 3072}" height="${r.img === 'mobile' ? 2532 : 1920}" /></figure>
+      </li>`).join('\n      ')}
+    </ol>`;
+const rolesTabs = (t) => `    <div class="roles" data-r>
+      <div class="role-tabs" role="tablist" aria-label="${t.roles.aria}">
+        ${t.roles.items.map((r, i) => `<button type="button" role="tab" id="rt${i}" aria-controls="rp${i}" aria-selected="${!i}" tabindex="${i ? -1 : 0}" class="role-tab${i ? '' : ' on'}" data-role="${i}"><i>${pad(i + 1)}</i>${r.name}</button>`).join('\n        ')}
+      </div>
+      <div class="role-panels">
+        ${t.roles.items.map((r, i) => `<article class="card role-p${i ? '' : ' on'}" role="tabpanel" id="rp${i}" aria-labelledby="rt${i}"${i ? ' hidden' : ''}>
+          <span class="mini">${t.roles.roleWord} · ${r.name}</span>
+          <h3>${r.title}</h3>
+          <p>${r.text}</p>
+          <ul>${r.list.map((x) => `<li>${x}</li>`).join('')}</ul>
+          <div class="role-acc"><span>${t.roles.access}</span><b>${r.access}</b></div>
+        </article>`).join('\n        ')}
+      </div>
+    </div>`;
 
 export function render(t) {
   const B = t.base;
@@ -49,22 +80,50 @@ export function render(t) {
 <meta property="og:url" content="https://marjon.tech${t.path}" />
 <meta property="og:image" content="https://marjon.tech/og-image.png" />
 <meta name="twitter:card" content="summary_large_image" />
-<script>document.documentElement.classList.replace('no-js','js');</script>
+<script>document.documentElement.classList.replace('no-js','js');try{if(sessionStorage.getItem('mj-ls'))document.documentElement.classList.add('ls')}catch(e){}</script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Marjon","applicationCategory":"BusinessApplication","operatingSystem":"Web, Windows, Android, iOS","url":"https://marjon.tech${t.path}","description":"${t.desc}","inLanguage":["ru","uz","en"],"publisher":{"@type":"Organization","name":"Marjon","url":"https://marjon.tech/"}}
 </script>
+<script>document.documentElement.dataset.loader = (new URLSearchParams(location.search).get('loader') || '2').replace(/[^123]/g, '') || '2';</script>
 <script type="module" src="/src/main.js"></script>
 </head>
 <body>
 <a class="skip" href="#main">${t.skip}</a>
 
 <div class="loader" id="loader" aria-hidden="true">
-  <div class="ld-cols">${'<i></i>'.repeat(5)}</div>
-  <div class="ld-glow"></div>
+  <!-- фон: 1 — занавес колонками, 2 — маска с буквами-окнами, 3 — жалюзи -->
+  <div class="ld-v ld-v1"><div class="ld-cols">${'<i></i>'.repeat(5)}</div><div class="ld-glow"></div></div>
+  <div class="ld-v ld-v2">
+    <svg class="ld2" data-ld2 width="100%" height="100%" aria-hidden="true">
+      <defs>
+        <mask id="ld2-hole" maskUnits="userSpaceOnUse" x="-10000" y="-10000" width="20000" height="20000"><rect x="-10000" y="-10000" width="20000" height="20000" fill="#fff" /><text class="ld2-t" data-ld2-hole x="50%" y="50%" fill="#fff">Marjon</text></mask>
+        <clipPath id="ld2-clip"><text class="ld2-t" x="50%" y="50%">Marjon</text></clipPath>
+        <radialGradient id="ld2-glow" cx="50%" cy="50%" r="55%"><stop offset="0" stop-color="#3fe3c4" stop-opacity=".16" /><stop offset="1" stop-color="#3fe3c4" stop-opacity="0" /></radialGradient>
+        <linearGradient id="ld2-liq" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8ff7e2" /><stop offset=".35" stop-color="#3fe3c4" /><stop offset="1" stop-color="#12a88d" /></linearGradient>
+      </defs>
+      <g mask="url(#ld2-hole)"><rect width="100%" height="100%" fill="#0a0b0c" /><rect data-ld2-glow width="100%" height="100%" fill="url(#ld2-glow)" /></g>
+      <g data-ld2-ink>
+        <g clip-path="url(#ld2-clip)">
+          <path data-ld2-w2 fill="#1c8f7b" opacity=".75" />
+          <path data-ld2-w1 fill="url(#ld2-liq)" />
+          <g data-ld2-bub fill="#d9fff6" opacity=".7"></g>
+        </g>
+        <text class="ld2-t ld2-out" data-ld2-out x="50%" y="50%">Marjon</text>
+      </g>
+    </svg>
+  </div>
+  <div class="ld-v ld-v3">
+    <div class="ld3-strips">${'<i></i>'.repeat(8)}</div>
+    <div class="ld3-mq">${[0, 1, 2].map((r) => `<p style="--dir:${r % 2 ? 1 : -1}"><span>${[...t.loaderBeads, ...t.loaderBeads, ...t.loaderBeads].map((n) => `${n} ·`).join(' ')}</span></p>`).join('')}</div>
+  </div>
+
   <div class="ld-top"><span class="ld-status"><i></i><b data-ld-status data-done="${t.loaderDone}">${t.loader}</b></span><span class="ld-clock" data-ld-clock>00:00:00</span></div>
-  <div class="ld-word">
-    <span class="ld-w ld-w-out">${[...'Marjon'].map((c) => `<span>${c}</span>`).join('')}</span>
-    <span class="ld-w ld-w-fill" data-ld-fill>${[...'Marjon'].map((c) => `<span>${c}</span>`).join('')}</span>
+  <div class="ld-mid">
+    <div class="ld-word ld-v ld-v1">
+      <span class="ld-w ld-w-out">${[...'Marjon'].map((c) => `<span>${c}</span>`).join('')}</span>
+      <span class="ld-w ld-w-fill" data-ld-fill>${[...'Marjon'].map((c) => `<span>${c}</span>`).join('')}</span>
+    </div>
+    <div class="ld3-word ld-v ld-v3" data-ld3>${Array.from({ length: 9 }, (_, i) => `<div class="ld3-s" style="--i:${i}"><span class="ld3-o">Marjon</span><span class="ld3-f">Marjon</span></div>`).join('')}</div>
   </div>
   <div class="ld-bot">
     <ul class="ld-list">${t.loaderBeads.map((n) => `<li data-ld-li><i></i>${n}</li>`).join('')}</ul>
@@ -94,7 +153,7 @@ export function render(t) {
         <a href="${isRu ? 'uz/' : './'}" hreflang="uz" lang="uz"${!isRu ? ' class="on" aria-current="page"' : ''}>UZ</a>
       </div>
       <a class="nav-login" href="https://admin.marjon.tech/login">${t.nav.login}</a>
-      <a class="btn btn-mint btn-sm" href="#contact">${t.nav.cta}${arrow}</a>
+      <a class="btn btn-mint btn-sm" href="#contact" data-lead>${t.nav.cta}${arrow}</a>
     </div>
     <button class="burger" type="button" aria-label="${t.nav.menuOpen}" aria-expanded="false" aria-controls="menu" data-open="${t.nav.menuOpen}" data-close="${t.nav.menuClose}"><span></span><span></span></button>
   </nav>
@@ -105,7 +164,7 @@ export function render(t) {
     ${t.nav.links.map(([href, l], i) => `<a href="${href}"><i>${pad(i + 1)}</i>${l}</a>`).join('\n    ')}
   </div>
   <div class="menu-foot">
-    <a class="btn btn-mint" href="#contact">${t.hero.cta}${arrow}</a>
+    <a class="btn btn-mint" href="#contact" data-lead>${t.hero.cta}${arrow}</a>
     <a class="btn btn-line" href="https://admin.marjon.tech/login">${t.nav.login}</a>
   </div>
 </div>
@@ -130,20 +189,10 @@ export function render(t) {
         <p class="hero-note" data-r>${t.hero.note}</p>
       </div>
       <div class="btns" data-r>
-        <a class="btn btn-mint" href="#contact">${t.hero.cta}${arrow}</a>
+        <a class="btn btn-mint" href="#contact" data-lead>${t.hero.cta}${arrow}</a>
         <a class="btn btn-line" href="#modules">${t.hero.cta2}${right}</a>
       </div>
     </div>
-  </div>
-  <div class="chip chip-a" data-float="1" data-r>
-    <span class="chip-top"><i class="dot"></i>${t.hero.chipA.top}</span>
-    <span class="chip-big">${t.hero.chipA.sum} <small>${t.hero.chipA.cur}</small></span>
-    <span class="chip-foot">${t.hero.chipA.foot}</span>
-  </div>
-  <div class="chip chip-b" data-float="-1" data-r>
-    <span class="chip-top"><i class="dot dot-coral"></i>${t.hero.chipB.top}</span>
-    <span class="chip-big" data-timer="42">${t.hero.chipB.time}</span>
-    <span class="chip-foot">${t.hero.chipB.foot}</span>
   </div>
   <div class="wrap hud" data-r>
     <span><i class="dot"></i>${t.hero.hud[0]}</span>
@@ -171,6 +220,14 @@ export function render(t) {
 </section>
 
 <!-- 2 · MODULES (pin) -->
+<section class="mani" id="mani" data-nofx>
+  <div class="wrap">
+    <p class="mini mani-k"><i class="dot"></i>${t.mani.k}</p>
+    <p class="mani-t" data-mani>${t.mani.t}</p>
+  </div>
+</section>
+${vband(t.band, 1)}
+
 <section class="ch ch-modules" id="modules" data-ch="2">
   <div class="mod-pin">
     <div class="wrap mod-grid">
@@ -209,7 +266,7 @@ export function render(t) {
         <div class="rc-head"><b>${t.live.receipt.head}</b><span>${t.live.receipt.no}</span></div>
         <p class="rc-meta">${t.live.receipt.meta}</p>
         <ul>${t.live.receipt.rows.map(([a, b, c]) => `<li data-row><span>${a}</span><i>${b}</i><b>${c}</b></li>`).join('')}</ul>
-        <div class="rc-total"><span>${t.live.receipt.total}</span><b><span data-count="214000" data-dec="0">214 000</span> UZS</b></div>
+        <div class="rc-total"><span>${t.live.receipt.total}</span><b><span data-count="214000" data-dec="0">214 000</span> ${t.demo.cur}</b></div>
         <p class="rc-paid"><i class="dot"></i>${t.live.receipt.paid}</p>
         <p class="rc-ofd">${t.live.receipt.ofd}</p>
       </article>
@@ -231,20 +288,7 @@ export function render(t) {
 <section class="ch ch-roles" id="roles" data-ch="4">
   <div class="wrap">
     ${head(t.roles)}
-    <div class="roles" data-r>
-      <div class="role-tabs" role="tablist" aria-label="${t.roles.aria}">
-        ${t.roles.items.map((r, i) => `<button type="button" role="tab" id="rt${i}" aria-controls="rp${i}" aria-selected="${!i}" tabindex="${i ? -1 : 0}" class="role-tab${i ? '' : ' on'}" data-role="${i}"><i>${pad(i + 1)}</i>${r.name}</button>`).join('\n        ')}
-      </div>
-      <div class="role-panels">
-        ${t.roles.items.map((r, i) => `<article class="card role-p${i ? '' : ' on'}" role="tabpanel" id="rp${i}" aria-labelledby="rt${i}"${i ? ' hidden' : ''}>
-          <span class="mini">${t.roles.roleWord} · ${r.name}</span>
-          <h3>${r.title}</h3>
-          <p>${r.text}</p>
-          <ul>${r.list.map((x) => `<li>${x}</li>`).join('')}</ul>
-          <div class="role-acc"><span>${t.roles.access}</span><b>${r.access}</b></div>
-        </article>`).join('\n        ')}
-      </div>
-    </div>
+${t.ah ? rolesShow(t) : rolesTabs(t)}
   </div>
 </section>
 
@@ -255,8 +299,26 @@ export function render(t) {
     <div class="stats">
       ${t.uz.stats.map((s) => `<div class="stat" data-r><p class="stat-n">${s.pre ? `<i>${s.pre}</i>` : ''}<b data-count="${s.n}" data-dec="0">${s.n}</b>${s.suf ? `<small>${s.suf}</small>` : ''}</p><span>${s.label}</span></div>`).join('\n      ')}
     </div>
-    <div class="feats">
-      ${t.uz.feats.map(([a, b], i) => `<div class="feat" data-r><i>${pad(i + 1)}</i><h3>${a}</h3><p>${b}</p></div>`).join('\n      ')}
+    <div class="tiles">
+      <article class="tile tile-lang" data-r>
+        <span class="mini"><i class="dot"></i>${t.uz.tiles.lang.k}</span>
+        <div class="tl-words" aria-hidden="true">${t.uz.tiles.lang.words.map((w, i) => `<b style="--i:${i}">${w}</b>`).join('')}</div>
+        <div class="tl-pills" aria-hidden="true"><span>RU</span><span>UZ</span><span>EN</span></div>
+        <p>${t.uz.tiles.lang.t}</p>
+      </article>
+      <article class="tile tile-money" data-r>
+        <span class="mini"><i class="dot"></i>${t.uz.tiles.money.k}</span>
+        <p class="tm-big"><b data-count="214000" data-dec="0">${t.uz.tiles.money.big}</b><small>${t.uz.tiles.money.cur}</small></p>
+        <p>${t.uz.tiles.money.t}</p>
+      </article>
+      <article class="tile tile-off" data-r>
+        <span class="mini"><i class="dot"></i>${t.uz.tiles.off.k}</span>
+        <div class="to-net" aria-hidden="true">
+          <div class="to-bars"><i></i><i></i><i></i><i></i></div>
+          <div class="to-state"><span class="to-on">${t.uz.tiles.off.on}</span><span class="to-wait">${t.uz.tiles.off.wait}</span></div>
+        </div>
+        <p>${t.uz.tiles.off.t}</p>
+      </article>
     </div>
   </div>
 </section>
@@ -266,17 +328,22 @@ ${demo(t)}
 
 <!-- PAPER -->
 <div class="paper" id="paper">
-  <section class="sec sec-integ" id="integrations">
-    <div class="wrap">${head(t.integ)}</div>
-    <div class="mq-wrap" data-r>${marquee(t.integ.a)}${marquee(t.integ.b, true)}
+  <section class="sec sec-shift" id="shift">
+    <div class="wrap">
+      ${head(t.shift)}
+      <div class="shift">
+        <div class="sh-head" aria-hidden="true"><span></span><span>${t.shift.was}</span><span>${t.shift.now}</span></div>
+        ${t.shift.rows.map(([k, a, b]) => `<div class="sh-row" data-r><span class="sh-k">${k}</span><p class="sh-was"><span class="vh">${t.shift.was}: </span>${a}</p><p class="sh-now"><span class="vh">${t.shift.now}: </span>${right}<b>${b}</b></p></div>`).join('\n        ')}
+      </div>
     </div>
   </section>
 
   <section class="sec" id="launch">
     <div class="wrap">
       ${head(t.launch)}
-      <ol class="steps">
-        ${t.launch.steps.map(([a, b], i) => `<li class="step" data-r><span class="step-n">${pad(i + 1)}</span><h3>${a}</h3><p>${b}</p></li>`).join('\n        ')}
+      <ol class="route">
+        ${t.launch.steps.map(([a, b], i) => `<li class="rt" style="--i:${i}" data-r><span class="rt-n">${pad(i + 1)}</span><h3>${a}</h3><p>${b}</p></li>`).join('\n        ')}
+        <li class="rt-line" aria-hidden="true"><i></i></li>
       </ol>
     </div>
   </section>
@@ -285,7 +352,7 @@ ${demo(t)}
     <div class="wrap faq-grid">
       <div>
         ${head(t.faq)}
-        <a class="mail" href="mailto:support@marjon.tech" data-r>${right}support@marjon.tech</a>
+        <a class="mail" href="#contact" data-lead data-r>${right}${t.form.send}</a>
       </div>
       <div class="faq" data-r>
         ${t.faq.items.map(([q, a]) => `<details><summary>${q}<i aria-hidden="true"></i></summary><p>${a}</p></details>`).join('\n        ')}
@@ -296,12 +363,13 @@ ${demo(t)}
 
 <!-- 6 · FINALE -->
 <section class="ch ch-cta" id="contact" data-ch="6">
+  <div class="cta-veil" aria-hidden="true"></div>
   <div class="wrap cta-in">
     ${h(t.cta.h2, 'h-cta')}
     <p class="lede" data-r>${t.cta.lede}</p>
     <div class="btns" data-r>
-      <a class="btn btn-mint btn-lg" href="mailto:support@marjon.tech?subject=${encodeURIComponent(t.cta.aSubj)}">${t.cta.a}${arrow}</a>
-      <a class="btn btn-line btn-lg" href="mailto:support@marjon.tech?subject=${encodeURIComponent(t.cta.bSubj)}">${t.cta.b}${right}</a>
+      <a class="btn btn-mint btn-lg" href="mailto:support@marjon.tech?subject=${encodeURIComponent(t.cta.aSubj)}" data-lead>${t.cta.a}${arrow}</a>
+      <a class="btn btn-line btn-lg" href="https://www.instagram.com/marjon_tech" target="_blank" rel="noopener">${t.cta.b}${right}</a>
     </div>
     <p class="cta-note" data-r><i class="dot"></i>${t.cta.note}</p>
   </div>
@@ -323,6 +391,74 @@ ${demo(t)}
     <div class="foot-bottom"><span>© <span data-year>2026</span> ${t.foot.rights}</span><span>${t.foot.made}</span></div>
   </div>
 </footer>
+
+<!-- ЗАЯВКА: большое белое окно -->
+<div class="lead" id="lead" hidden data-lenis-prevent>
+  <div class="lead-bg" data-lead-close></div>
+  <div class="lead-box" role="dialog" aria-modal="true" aria-labelledby="lead-t" tabindex="-1">
+    <button class="lead-x" type="button" data-lead-close aria-label="${t.form.x}"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    <div class="lead-side">
+      <span class="lead-brand">${mark}<b>Marjon</b></span>
+      <span class="lead-pearl" aria-hidden="true"><i></i><svg viewBox="0 0 200 200">
+        <defs>
+          <radialGradient id="lp-body" cx="41%" cy="35%" r="72%"><stop offset="0" stop-color="#fffefb"/><stop offset=".28" stop-color="#f6f0e6"/><stop offset=".55" stop-color="#ddd4c6"/><stop offset=".8" stop-color="#a69d8e"/><stop offset="1" stop-color="#5a554d"/></radialGradient>
+          <radialGradient id="lp-shade" cx="30%" cy="26%" r="92%"><stop offset=".38" stop-color="#1a1611" stop-opacity="0"/><stop offset=".74" stop-color="#1a1611" stop-opacity=".46"/><stop offset="1" stop-color="#0c0a08" stop-opacity=".86"/></radialGradient>
+          <radialGradient id="lp-bounce" cx="68%" cy="86%" r="38%"><stop offset="0" stop-color="#bff5e9" stop-opacity=".75"/><stop offset="1" stop-color="#bff5e9" stop-opacity="0"/></radialGradient>
+          <linearGradient id="lp-rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset=".8" stop-color="#9ff0df" stop-opacity="0"/><stop offset="1" stop-color="#9ff0df" stop-opacity=".8"/></linearGradient>
+          <clipPath id="lp-clip"><circle cx="100" cy="100" r="92"/></clipPath>
+          <filter id="lp-b18" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="18"/></filter>
+          <filter id="lp-b9" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9"/></filter>
+          <filter id="lp-b3" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.6"/></filter>
+          <filter id="lp-nacre" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".012 .05" numOctaves="3" seed="7"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  .9 .5 0 0 -.45"/><feGaussianBlur stdDeviation="1.2"/></filter>
+        </defs>
+        <g clip-path="url(#lp-clip)">
+          <circle cx="100" cy="100" r="92" fill="url(#lp-body)"/>
+          <!-- перламутр: розовый, мятный и голубой отливы -->
+          <g style="mix-blend-mode:soft-light">
+            <ellipse cx="138" cy="70" rx="46" ry="40" fill="#ff9fc4" filter="url(#lp-b18)" opacity=".85"/>
+            <ellipse cx="66" cy="140" rx="50" ry="40" fill="#58e6c9" filter="url(#lp-b18)" opacity=".9"/>
+            <ellipse cx="120" cy="150" rx="40" ry="28" fill="#8fb8ff" filter="url(#lp-b18)" opacity=".7"/>
+          </g>
+          <rect width="200" height="200" filter="url(#lp-nacre)" opacity=".16" style="mix-blend-mode:overlay"/>
+          <circle cx="100" cy="100" r="92" fill="url(#lp-shade)"/>
+          <circle cx="100" cy="100" r="92" fill="url(#lp-bounce)"/>
+          <!-- блики: мягкое «окно» и резкая точка -->
+          <ellipse cx="70" cy="58" rx="36" ry="25" fill="#fff" opacity=".8" filter="url(#lp-b9)" transform="rotate(-28 70 58)"/>
+          <ellipse cx="63" cy="52" rx="15" ry="9" fill="#fff" opacity=".95" filter="url(#lp-b3)" transform="rotate(-28 63 52)"/>
+          <ellipse cx="61" cy="50" rx="8.5" ry="4.6" fill="#fff" transform="rotate(-28 61 50)"/>
+          <circle cx="84" cy="43" r="2.2" fill="#fff" opacity=".9"/>
+          <circle cx="100" cy="100" r="90" fill="none" stroke="url(#lp-rim)" stroke-width="3.5" filter="url(#lp-b3)"/>
+        </g>
+      </svg></span>
+      <h2 id="lead-t">${t.form.title.join(' ')}</h2>
+      <div class="lead-set">
+        <p class="lead-sum"><b data-lead-type>${t.form.types[0]}</b> · <b data-lead-count>1</b> <span data-lead-pts data-w="${t.form.pts.join('|')}">${t.form.pts[0]}</span></p>
+        <p class="lead-set-k">${t.form.set}</p>
+        <ul data-lead-set>${t.modules.items.map((m, i) => `<li data-i="${i}">${m.name}</li>`).join('')}</ul>
+      </div>
+    </div>
+    <form class="lead-form" novalidate data-lead-form data-subj="${t.form.subj}" data-err="${t.form.err}">
+      <fieldset><legend>${t.form.type}</legend><div class="lead-opts">${t.form.types.map((x, i) => `<label><input type="radio" name="type" value="${x}" data-k="${i}"${i ? '' : ' checked'} /><span>${x}</span></label>`).join('')}</div></fieldset>
+      <fieldset><legend>${t.form.count}</legend><div class="lead-opts">${t.form.counts.map((x, i) => `<label><input type="radio" name="count" value="${x}" data-k="${i}"${i ? '' : ' checked'} /><span>${x}</span></label>`).join('')}</div></fieldset>
+      <div class="lead-row">
+        <label class="lead-f"><input name="name" type="text" autocomplete="name" placeholder=" " required /><span>${t.form.name}</span></label>
+        <label class="lead-f"><input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder=" " required /><span>${t.form.phone}</span></label>
+      </div>
+      <label class="lead-f"><input name="venue" type="text" autocomplete="organization" placeholder=" " /><span>${t.form.venue}</span></label>
+      <p class="lead-err" role="alert" data-lead-err></p>
+      <div class="lead-end">
+        <button class="lead-send" type="submit" data-sending="${t.form.sending || ''}"><span data-send-l>${t.form.send}</span>${arrow}</button>
+        <small>${t.form.agree}</small>
+      </div>
+    </form>
+    <div class="lead-done" data-lead-done hidden>
+      <ol class="ld-steps">
+        ${t.form.doneSteps.map(([a, b], i) => `<li class="${['ok', 'now', ''][i]}" style="--i:${i}"${t.form.doneOk?.[i] ? ` data-ok-h="${t.form.doneOk[i][0]}" data-ok-p="${t.form.doneOk[i][1]}"` : ''}><i aria-hidden="true">${i ? i + 1 : '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M5 12.5 10 17.5 19.5 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'}</i><div><h3>${a}</h3>${i ? `<p>${b}</p>` : '<p class="ld-sum" data-lead-sum></p>'}${i === 1 ? `<div class="ld-act"><button class="lead-send" type="button" data-lead-again>${t.form.again}${arrow}</button><button class="lead-ghost" type="button" data-lead-copy data-ok="${t.form.copied}">${t.form.copy}</button></div><small>${t.form.noMail}</small>` : ''}</div></li>`).join('\n        ')}
+      </ol>
+      <button class="lead-back" type="button" data-lead-close>${right}${t.form.close}</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
 `;
