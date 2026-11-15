@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import {
-  ArrowLeft, Printer, Banknote, CreditCard, CheckCircle, X,
+  ArrowLeft, Printer, Banknote, CreditCard, CheckCircle, Crown, Delete, X,
   Phone, MapPin, Wallet, Undo2,
 } from 'lucide-react'
 import { t } from '../shared/i18n'
@@ -8,6 +8,7 @@ import { formatPhone, extractPhoneDigits, fullPhone } from '../shared/phone'
 import { formatQty } from '../shared/qty'
 import { sanitizeDecimal, parseNum } from '../shared/numeric'
 import { parseApiDate } from '../shared/time'
+import { finance as financeApi, payments } from '../shared/api'
 import { toast } from './Toast'
 import WaiterPicker from './WaiterPicker'
 import logoUrl from '../assets/logo-mark.png'
@@ -26,7 +27,6 @@ import logoUrl from '../assets/logo-mark.png'
  * props:
  *   order — заказ ({ order_number, table_number, items[], total_amount, waiter_id, created_at })
  *   staff — сотрудники (для «кто добавил» и смены официанта стола)
- *   paymentMethods — дополнительные способы оплаты из веб-админки ([{ id, name }])
  *   paidBefore — сколько уже оплачено до повторного закрытия
  *   canDebt — можно ли закрывать в долг
  *   onPrint(order) — печать чека
@@ -36,6 +36,12 @@ import logoUrl from '../assets/logo-mark.png'
  *   onRefreshOrder(order) — живой пересчёт заказа
  *   onClose() — назад к залу/заказу
  */
+function formatAmountInput(value) {
+  const [integer, fraction] = value.split('.')
+  const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+  return fraction === undefined ? grouped : `${grouped},${fraction}`
+}
+
 function fmt(n) { return Number(n || 0).toLocaleString('ru-RU') }
 // Формат печатного чека: 26.10.26 15:36.
 function fmtReceiptDateTime(iso) {
@@ -64,15 +70,14 @@ function PayHead({ title, onBack }) {
         </button>
       </div>
       <h3>{title}</h3>
-      <span aria-hidden="true" />
     </header>
   )
 }
 
 export default function PaymentScreen({
-  order, onPrint, onComplete, onCancel, onReassign, onClose, canClose = true, staff = [],
+  order, onPrint, onComplete, onResetPayments, onCancel, onReassign, onClose, canClose = true, staff = [],
   onSetWaiter, onApplyDiscount, onRefreshOrder,
-  paymentMethods = [], paidBefore = 0, canDebt = false,
+  paidBefore = 0, canDebt = false,
 }) {
   const [method, setMethod] = useState('cash')
   const [busy, setBusy] = useState(false)
@@ -84,8 +89,23 @@ export default function PaymentScreen({
   const [debtorPhone, setDebtorPhone] = useState('')
   // Выбор способа оплаты — шаг внутри «Закрыть заказ», а не поле в колонке.
   const [askPay, setAskPay] = useState(false)
+  const [paymentMethods, setPaymentMethods] = useState([])
+  const [methodsStatus, setMethodsStatus] = useState('loading')
+  const [recordedPayments, setRecordedPayments] = useState([])
+  const [confirmation, setConfirmation] = useState(null)
+  const [resetOpen, setResetOpen] = useState(false)
+  // Способ, отмеченный на экране. Пока он не выбран, «Закрыть заказ» недоступна.
+  const [selected, setSelected] = useState(null)
+  // Куда идут цифры с панели: в сумму оплаты или в скидку (после нажатия на поле скидки).
+  const [padTarget, setPadTarget] = useState('amount')
+  const prefilledAmount = useRef(false)
+  const amountOpened = useRef(false)
+  const methodListRef = useRef(null)
   // Сумма, которую дал гость. Строкой: пустое поле ≠ 0, это «ровно к оплате».
   const [amount, setAmount] = useState('')
+  const [editingAmount, setEditingAmount] = useState(false)
+  const amountInputRef = useRef(null)
+  const amountTriggerRef = useRef(null)
 
   const total = Number(order?.total_amount || 0)
   const items = (order?.items || []).filter((item) => item.status !== 'cancelled')
@@ -95,10 +115,9 @@ export default function PaymentScreen({
   const servicePct = subtotal > 0 ? Math.round(Number(order?.service_fee || 0) / subtotal * 100) : 0
 
   // Кастомные способы (Uzum, Yandex…).
-  const customMethods = (paymentMethods || []).filter((m) => m && m.name)
-  const reopening = Number(paidBefore || 0) > 0
-  const refundDue = Math.max(0, Number(paidBefore || 0) - total)
-  const dueNow = Math.max(0, total - (reopening ? Number(paidBefore || 0) : 0))
+  const reopening = Boolean(order?.reopened_at)
+  const refundDue = reopening ? Math.max(0, Number(paidBefore || 0) - total) : 0
+  const dueNow = Math.max(0, Math.round((total - Number(paidBefore || 0)) * 100) / 100)
   const debtAllowed = canDebt && !reopening
 
   // ── Введённая сумма ──────────────────────────────────────────────────
@@ -107,7 +126,7 @@ export default function PaymentScreen({
   const paid = entered > 0 ? entered : dueNow
   const change = Math.max(0, paid - dueNow)
   const short = Math.max(0, dueNow - paid)
-  const canComplete = canClose && !busy && short === 0
+  const canComplete = canClose && !busy
 
   // Живой пересчёт итога
   const refreshTimer = useRef(null)
@@ -119,17 +138,40 @@ export default function PaymentScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order?.total_amount, order?.discount_amount])
 
+  useEffect(() => {
+    const request = new AbortController()
+    Promise.all([financeApi.paymentTypes(request.signal), payments.forOrder(order.id)])
+      .then(([rows, recorded]) => {
+        if (request.signal.aborted) return
+        setPaymentMethods(rows)
+        setRecordedPayments(recorded.filter((payment) => payment.status === 'completed'))
+        setMethodsStatus('ready')
+      })
+      .catch(() => {
+        if (!request.signal.aborted) setMethodsStatus('error')
+      })
+    return () => request.abort()
+  }, [order?.id])
+
   // Модалки выбора способа и долга закрываются по Escape и тапом по подложке.
   useEffect(() => {
-    if (!askPay && debtStep !== 'form') return
+    if (!askPay && debtStep !== 'form' && !confirmation && !resetOpen) return
     function onKey(e) {
-      if (e.key !== 'Escape') return
+      if (e.key !== 'Escape' || busy) return
+      if (resetOpen) { setResetOpen(false); return }
+      if (confirmation) { setConfirmation(null); setAskPay(true); return }
+      if (editingAmount && askPay) {
+        setEditingAmount(false)
+        setAmount('')
+        amountTriggerRef.current?.focus()
+        return
+      }
       setAskPay(false)
       if (debtStep === 'form') setDebtStep('none')
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [askPay, debtStep])
+  }, [askPay, busy, debtStep, editingAmount, confirmation, resetOpen])
 
   /**
    * Тап по сумме к оплате подставляет полную сумму в поле «Получено».
@@ -162,24 +204,83 @@ export default function PaymentScreen({
     const p = Math.min(100, Math.max(0, Number(discPct) || 0))
     if (!p) return
     const sum = Math.round(subtotal * p / 100)
+    // После частичной оплаты скидка не должна опустить итог ниже уже принятого.
+    if (paidBefore > 0 && !reopening && sum * (1 + servicePct / 100) > dueNow) {
+      toast(t('discount_exceeds_due'), 'error')
+      return
+    }
     await run('discount', async () => {
       try {
         await onApplyDiscount(order, sum)
         setDiscPct('')
+        setPadTarget('amount')
       } catch { toast(t('create_order_error')) }
     })
   }
 
   function openPay() {
     if (!canComplete) return
+    amountOpened.current = false
+    setPaymentMethods([])
+    setMethodsStatus('loading')
     setAskPay(true)
   }
 
+  function closePaymentMethods() {
+    if (busy) return
+    if (editingAmount) setAmount('')
+    setEditingAmount(false)
+    setAskPay(false)
+  }
+
+  function updateAmountInput(value, caret) {
+    const next = sanitizeDecimal(value, 2)
+    const rawCaret = sanitizeDecimal(value.slice(0, caret), 2).length
+    setAmount(next)
+    requestAnimationFrame(() => {
+      const field = amountInputRef.current
+      if (!field || document.activeElement !== field) return
+      let offset = 0
+      let digits = 0
+      for (const char of field.value) {
+        if (digits === rawCaret) break
+        offset++
+        if (char !== ' ') digits++
+      }
+      field.setSelectionRange(offset, offset)
+    })
+  }
+
+  function pressAmountKey(key) {
+    const field = amountInputRef.current
+    if (!field || busy) return
+    const start = sanitizeDecimal(field.value.slice(0, field.selectionStart), 2).length
+    const end = sanitizeDecimal(field.value.slice(0, field.selectionEnd), 2).length
+    const remove = key === 'delete'
+    const from = remove && start === end ? Math.max(0, start - 1) : start
+    const replace = prefilledAmount.current && !remove
+    prefilledAmount.current = false
+    const before = (replace ? '' : amount.slice(0, from)) + (remove ? '' : key)
+    updateAmountInput(before + (replace ? '' : amount.slice(end)), before.length)
+  }
+
+  // Цифра с панели: в скидку (целые проценты, до 100) или в сумму оплаты.
+  function pressPadKey(key) {
+    if (padTarget !== 'discount') { pressAmountKey(key); return }
+    if (act === 'discount') return
+    if (key === 'delete') { setDiscPct((v) => v.slice(0, -1)); return }
+    if (!/^[0-9]$/.test(key)) return
+    setDiscPct((v) => {
+      const next = (v + key).replace(/^0+(?=\d)/, '').slice(0, 3)
+      return Number(next) > 100 ? '100' : next
+    })
+  }
+
   async function completeWithMethod(nextMethod) {
-    if (busy || short > 0) return
+    if (busy) return
     if (nextMethod === 'debt') {
       if (!debtAllowed || dueNow <= 0) return
-      setAskPay(false)
+      closePaymentMethods()
       setDebtStep('form')
       return
     }
@@ -188,39 +289,125 @@ export default function PaymentScreen({
       toast(t('payment_card_over_total'), 'error')
       return
     }
-    setAskPay(false)
+    const moneyMethod = nextMethod === 'cash' || nextMethod === 'card'
+    const paymentAmount = moneyMethod ? Math.min(entered || dueNow, dueNow) : dueNow
+    const partial = !reopening && moneyMethod && (paidBefore > 0 || paymentAmount < dueNow)
+    if (paidBefore > 0 && !reopening && !moneyMethod && nextMethod !== 'VIP') return
+    if (partial && paymentAmount <= 0) return
+    if (!reopening && paidBefore > 0 && paymentAmount >= dueNow) {
+      setConfirmation({ method: nextMethod, amount: paymentAmount,
+        detail: partial ? { partialAmount: paymentAmount, [nextMethod]: entered || paymentAmount }
+          : entered > 0 && moneyMethod ? { [nextMethod]: entered } : undefined })
+      return
+    }
+    if (partial && paymentAmount < dueNow) animateAmount(nextMethod, paymentAmount)
     setMethod(nextMethod)
     setBusy(true)
-    // detail несём только когда кассир реально ввёл сумму. Пустое поле — оплата
-    // ровно на итог: backend (buildOrderPayment) сам подставит полную сумму.
-    const detail = entered > 0 && (nextMethod === 'cash' || nextMethod === 'card')
-      ? { [nextMethod]: entered }
-      : undefined
+    const detail = partial
+      ? { partialAmount: paymentAmount, [nextMethod]: entered || paymentAmount }
+      : entered > 0 && moneyMethod ? { [nextMethod]: entered } : undefined
     try {
-      await onComplete(order, nextMethod, detail)
-    } finally { setBusy(false) }
+      const result = await onComplete(order, nextMethod, detail)
+      if (result?.partial) {
+        setRecordedPayments((rows) => [...rows, result.payment])
+        prefilledAmount.current = false
+        setAmount('')
+        setSelected(null)
+      }
+    } catch { /* The checkout owner displays the server error. */ }
+    finally { setBusy(false) }
   }
 
   async function doDebtComplete() {
     if (busy) return
-    setBusy(true)
-    const detail = {
-      debt: dueNow,
-      client_name: debtorName.trim() || undefined,
-      client_phone: fullPhone(debtorPhone) || undefined,
+    const detail = { debt: dueNow, client_name: debtorName.trim() || undefined,
+      client_phone: fullPhone(debtorPhone) || undefined }
+    if (paidBefore > 0) {
+      setConfirmation({ method: 'debt', amount: dueNow, detail })
+      setDebtStep('none')
+      return
     }
-    try { await onComplete(order, 'debt', detail) } finally { setBusy(false) }
+    setBusy(true)
+    try {
+      await onComplete(order, 'debt', detail)
+    } catch { /* The checkout owner displays the server error. */ }
+    finally { setBusy(false) }
   }
+
+  function animateAmount(method, value) {
+    const source = amountInputRef.current?.getBoundingClientRect()
+    const target = [...(methodListRef.current?.querySelectorAll('[data-method]') || [])]
+      .find((element) => element.dataset.method === method)?.getBoundingClientRect()
+    if (!source || !target || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const chip = document.createElement('span')
+    chip.className = 'pay-amount-transfer'
+    chip.textContent = fmt(value)
+    Object.assign(chip.style, { left: source.left + 'px', top: source.top + 'px', width: source.width + 'px' })
+    document.body.append(chip)
+    const animation = chip.animate([
+      { transform: 'translate(0, 0)', opacity: 1 },
+      { transform: `translate(${target.right - source.right - 16}px, ${target.top - source.top + 16}px)`, opacity: 1 },
+    ], { duration: 260, easing: 'cubic-bezier(.2,.7,.2,1)' })
+    animation.finished.then(() => chip.remove(), () => chip.remove())
+  }
+
+  async function confirmPayment() {
+    if (!confirmation || busy) return
+    setBusy(true)
+    try {
+      await onComplete(order, confirmation.method, confirmation.detail)
+    } catch { /* Keep the confirmation available for a safe retry. */ }
+    finally { setBusy(false) }
+  }
+
+  async function resetPayments() {
+    if (busy) return
+    setBusy(true)
+    try {
+      await onResetPayments(order, recordedPayments.map((payment) => payment.id))
+      setRecordedPayments([])
+      setAmount('')
+      setEditingAmount(false)
+      setResetOpen(false)
+    } catch (error) {
+      toast(error?.response?.data?.detail || t('payment_reset_failed'), 'error')
+    } finally { setBusy(false) }
+  }
+
+  function paymentLabel(method) {
+    if (method === 'cash' || method === 'card' || method === 'debt') return t(method)
+    return method
+  }
+
+  const allocated = new Map()
+  for (const payment of recordedPayments) {
+    allocated.set(payment.method, (allocated.get(payment.method) || 0) + Number(payment.amount))
+  }
+  const summary = new Map(allocated)
+  if (confirmation) summary.set(confirmation.method, (summary.get(confirmation.method) || 0) + confirmation.amount)
 
   function closeDebt() { setDebtStep('none') }
   const spin = <span className="btn-spinner" aria-hidden="true" />
 
-  const methodOptions = [
-    { value: 'cash', label: t('cash'), icon: <Banknote size={18} /> },
-    { value: 'card', label: t('card'), icon: <CreditCard size={18} /> },
-    ...customMethods.map((m) => ({ value: m.name, label: m.name, icon: <Wallet size={18} /> })),
-    ...(debtAllowed ? [{ value: 'debt', label: t('debt'), icon: <Wallet size={18} /> }] : []),
-  ]
+  const icons = { cash: Banknote, card: CreditCard, vip: Crown }
+  const reservedNames = new Set(['cash', 'card', 'debt', 'vip', 'mixed', 'наличные', 'наличными', 'карта', 'в долг', 'смешанный'])
+  const methodOptions = paymentMethods.flatMap((row) => {
+    const builtIn = ['cash', 'card', 'vip', 'debt'].includes(row.type) &&
+      (row.is_system || /^fef15000-0000-4000-8000-00000000000[1-4]$/.test(row.id))
+    if (!builtIn && reservedNames.has(row.name.trim().toLowerCase())) return []
+    if (builtIn && row.type === 'debt' && !debtAllowed) return []
+    const isVip = builtIn && row.type === 'vip'
+    const moneyMethod = builtIn && ['cash', 'card'].includes(row.type)
+    const blocked = isVip && reopening
+      ? t('payment_vip_unpaid_only')
+      : paidBefore > 0 && !reopening && !builtIn ? t('payment_method_after_partial') : ''
+    const MethodIcon = (builtIn && icons[row.type]) || Wallet
+    return [{
+      value: builtIn ? (isVip ? 'VIP' : row.type) : row.name,
+      label: row.name, icon: <MethodIcon size={18} />, blocked,
+      disabled: Boolean(blocked),
+    }]
+  })
 
   return (
     <div className="pay-screen">
@@ -311,11 +498,67 @@ export default function PaymentScreen({
         </div>
 
         <div className="pay-screen__side">
+          {/* Официант, смена стола, отмена заказа и скидка (в правом углу) — одной строкой под шапкой */}
+          <div className="pay-screen__toolbar">
+            {onSetWaiter && staff.length > 0 && (
+              <div className="pay-screen__control">
+                <WaiterPicker
+                  value={order?.waiter_id || ''}
+                  staff={staff}
+                  label={t('change_waiter')}
+                  hideLabel
+                  disabled={act === 'waiter'}
+                  onChange={(waiterId) => run('waiter', () => onSetWaiter(order, waiterId || null))}
+                />
+                {act === 'waiter' && spin}
+              </div>
+            )}
+
+            {onReassign && order?.table_number && (
+              <button className="btn btn--outline pay-screen__reassign" onClick={() => onReassign(order)}>
+                {t('move_table')}
+              </button>
+            )}
+
+            {onApplyDiscount && (
+              <div className="pay-screen__control">
+                <label className="pay-dialog__disc">
+                  <span className="pay-dialog__disc-label">{t('discount_word')}</span>
+                  <div className="pay-dialog__disc-row">
+                    <input
+                      type="text" inputMode="none" data-keyboard="off"
+                      className="pay-dialog__disc-input"
+                      value={discPct} disabled={act === 'discount'} placeholder="0"
+                      onFocus={() => setPadTarget('discount')}
+                      onPointerDown={() => setPadTarget('discount')}
+                      onChange={(e) => setDiscPct(sanitizeDecimal(e.target.value, 0).slice(0, 3))}
+                    />
+                    <span className="pay-dialog__disc-unit">%</span>
+                    <button
+                      type="button" className="btn btn--sm"
+                      disabled={act === 'discount' || !discPct}
+                      onClick={applyDiscount}
+                    >
+                      {act === 'discount' ? spin : t('apply')}
+                    </button>
+                  </div>
+                </label>
+              </div>
+            )}
+
+            {/* «Отменить заказ» стоит сразу под полем «Получено»: это редкое
+                действие, и в паре с «Закрыть заказ» её легко нажать по ошибке. */}
+            {onCancel && (
+              <button className="btn btn--outline pay-order__cancel" onClick={() => onCancel(order)}>
+                {t('cancel_order')}
+              </button>
+            )}
+          </div>
           {/* Прокручиваются только поля оплаты: кнопки печати и закрытия стоят
               вне скролл-контейнера, иначе он обрезал их мягкую тень по краям. */}
-          <div className="pay-screen__controls">
           {/* Возврат в закрытый заказ */}
           {reopening && (
+          <div className="pay-screen__controls">
             <div className="pay-order__reopen">
               <div className="pay-order__change"><span>{t('paid_before')}</span><strong>{fmt(paidBefore)} {t('currency')}</strong></div>
               {refundDue > 0 && (
@@ -329,136 +572,141 @@ export default function PaymentScreen({
                 </div>
               )}
             </div>
+          </div>
           )}
 
-          {onSetWaiter && staff.length > 0 && (
-            <div className="pay-screen__control">
-              <WaiterPicker
-                value={order?.waiter_id || ''}
-                staff={staff}
-                label={t('change_waiter')}
-                disabled={act === 'waiter'}
-                onChange={(waiterId) => run('waiter', () => onSetWaiter(order, waiterId || null))}
-              />
-              {act === 'waiter' && spin}
-            </div>
-          )}
-
-          {onReassign && order?.table_number && (
-            <button className="btn btn--outline pay-screen__reassign" onClick={() => onReassign(order)}>
-              {t('move_table')}
-            </button>
-          )}
-
-          {onApplyDiscount && (
-            <div className="pay-screen__control">
-              <label className="pay-dialog__disc">
-                <span className="pay-dialog__disc-label">{t('discount_word')}</span>
-                <div className="pay-dialog__disc-row">
-                  <input
-                    type="text" inputMode="numeric" data-keyboard="num"
-                    className="pay-dialog__disc-input"
-                    value={discPct} disabled={act === 'discount'} placeholder="0"
-                    onChange={(e) => setDiscPct(sanitizeDecimal(e.target.value, 0).slice(0, 3))}
-                  />
-                  <span className="pay-dialog__disc-unit">%</span>
-                  <button
-                    type="button" className="btn btn--sm"
-                    disabled={act === 'discount' || !discPct}
-                    onClick={applyDiscount}
-                  >
-                    {act === 'discount' ? spin : t('apply')}
+          {/* Способы оплаты и цифровая панель — прямо на экране, без всплывающего окна. */}
+          <div className={`pay-screen__pay${reopening ? ' pay-screen__pay--single' : ''}`}>
+            <div className="pay-method__card">
+              <div className="pay-method__head">
+                <span className="pay-method__title">{t('choose_payment')}</span>
+                {!reopening && paidBefore > 0 && recordedPayments.length > 0 && onResetPayments && (
+                  <button type="button" className="pay-method__reset" disabled={busy} onClick={() => setResetOpen(true)}>
+                    {t('payment_reset')}
                   </button>
-                </div>
-              </label>
+                )}
+              </div>
+              <button type="button" className="pay-method__sum" ref={amountTriggerRef}
+                disabled={busy || reopening}
+                onClick={() => { prefilledAmount.current = true; setAmount(String(dueNow)) }}>
+                <span>{t('to_pay')}</span>
+                <strong>{fmt(dueNow)} {t('currency')}</strong>
+              </button>
+              <div className="pay-method__list" ref={methodListRef}>
+                {methodsStatus !== 'ready' ? (
+                  <p className="pay-method__notice" role={methodsStatus === 'error' ? 'alert' : 'status'}>
+                    {t(methodsStatus === 'error' ? 'payment_methods_load_error' : 'loading')}
+                  </p>
+                ) : methodOptions.length === 0 ? (
+                  <p className="pay-method__notice" role="status">{t('payment_methods_empty')}</p>
+                ) : methodOptions.map((option) => (
+                  <button
+                    key={option.value} type="button" data-method={option.value}
+                        className={`pay-method__opt${option.blocked ? ' pay-method__opt--blocked' : ''}${busy && method === option.value ? ' is-selected' : ''}`}
+                    disabled={busy || option.disabled}
+                    onClick={() => { setPadTarget('amount'); setSelected(option.value); completeWithMethod(option.value) }}
+                  >
+                    <span className="pay-method__ico">{option.icon}</span>
+                    <span className="pay-method__label">
+                      <span className="pay-method__name">{option.label}</span>
+                      {option.blocked && <span className="pay-method__reason">{option.blocked}</span>}
+                    </span>
+                    {allocated.has(option.value) && <strong className="pay-method__allocated" key={allocated.get(option.value)}>
+                      {fmt(allocated.get(option.value))}
+                    </strong>}
+                    {busy && method === option.value && spin}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
-
-          {method !== 'debt' && !reopening && (
-            <div className="pay-screen__control">
-              <div className="pay-amount pay-amount--inline">
-                <label className="pay-dialog__disc pay-amount__field" htmlFor="pay-amount-input">
-                  <span className="pay-dialog__disc-label">
-                    {method === 'card' ? t('card_amount') : t('cash_received')}
-                  </span>
-                  <div className="pay-dialog__disc-row">
-                    <input
-                      id="pay-amount-input"
-                      type="text" inputMode="decimal" data-keyboard="num"
-                      className="pay-dialog__disc-input pay-amount__input"
-                      value={amount}
-                      disabled={busy}
-                      placeholder={String(Math.round(dueNow))}
-                      onClick={fillDue}
-                      onChange={(e) => setAmount(sanitizeDecimal(e.target.value, 2))}
-                    />
-                    <span className="pay-dialog__disc-unit">{t('currency')}</span>
-                  </div>
-                </label>
-                {(change > 0 || short > 0) && (
+            {!reopening && (
+              <div id="payment-amount-pad" className="pay-amount-pad" role="group" aria-label={t('payment_amount')}>
+                <label className="pay-amount-pad__label" htmlFor="payment-partial-amount">{padTarget === 'discount' ? t('discount_word') : t('payment_amount')}</label>
+                <div className="pay-amount-pad__field">
+                  <input id="payment-partial-amount" ref={amountInputRef} inputMode="none" data-keyboard="off"
+                    readOnly={busy || padTarget === 'discount'}
+                    value={padTarget === 'discount' ? discPct : formatAmountInput(amount)}
+                    onPointerDown={() => { prefilledAmount.current = false; setPadTarget('amount') }}
+                    onChange={(event) => updateAmountInput(event.target.value, event.target.selectionStart)}
+                    onKeyDown={(event) => {
+                      const field = event.currentTarget
+                      const caret = field.selectionStart
+                      if (prefilledAmount.current && /^[0-9.,]$/.test(event.key) && !event.ctrlKey && !event.metaKey) {
+                        event.preventDefault()
+                        pressAmountKey(event.key)
+                      } else if (event.key === 'Backspace' && caret === field.selectionEnd && field.value[caret - 1] === ' ') {
+                        event.preventDefault()
+                        pressAmountKey('delete')
+                      }
+                    }} />
+                  <span aria-hidden="true">{padTarget === 'discount' ? '%' : t('currency')}</span>
+                </div>
+                {padTarget !== 'discount' && (change > 0 || short > 0) && (
                   <div className="pay-amount__hint">
                     {change > 0 && <span className="pay-amount__hint--change">{t('change')}: {fmt(change)} {t('currency')}</span>}
                     {short > 0 && <span className="pay-amount__hint--short">{t('not_enough')}: {fmt(short)} {t('currency')}</span>}
                   </div>
                 )}
+                <div className="pay-amount-pad__keys">
+                  {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'delete'].map((key) => (
+                    <button key={key} type="button" className={`vkb__key${key === 'delete' ? ' vkb__key--medium' : ''}`}
+                      disabled={busy} aria-label={key === 'delete' ? t('payment_delete_digit') : undefined}
+                      onMouseDown={(event) => event.preventDefault()} onClick={() => pressPadKey(key)}>
+                      {key === 'delete' ? <Delete size={20} /> : key === '.' ? ',' : key}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-
-          {/* «Отменить заказ» стоит сразу под полем «Получено»: это редкое
-              действие, и в паре с «Закрыть заказ» её легко нажать по ошибке. */}
-          {onCancel && (
-            <button className="btn btn--outline pay-order__cancel" onClick={() => onCancel(order)}>
-              {t('cancel_order')}
-            </button>
-          )}
+            )}
           </div>
 
-          {/* Печать и закрытие — столбцом, прижаты к низу колонки. */}
+          {/* Печать и закрытие — прижаты к низу колонки. */}
           <div className="pay-screen__actions">
             <button className={`btn btn--outline btn--eq ${printed ? 'is-done' : ''}`} disabled={act === 'print'} onClick={doPrint}>
               {act === 'print' ? spin : printed ? <CheckCircle size={18} /> : <Printer size={18} />} {t('print_receipt')}
             </button>
-            <button className="btn btn--primary btn--lg pay-order__close btn--eq" disabled={!canComplete} onClick={openPay}>
+            <button className="btn btn--primary btn--lg pay-order__close btn--eq" disabled={!canComplete || !selected}
+              title={!selected ? t('choose_payment') : undefined}
+              onClick={() => completeWithMethod(selected)}>
               {busy ? spin : <CheckCircle size={20} />} {t('complete_order')}
             </button>
           </div>
         </div>
       </div>
 
-      {/* «Закрыть заказ» сначала спрашивает способ оплаты — отдельного
-          селектора в правой колонке больше нет. */}
-      {askPay && (
-        <div
-          className="pay-method"
-          role="dialog" aria-modal="true" aria-label={t('choose_payment')}
-          onMouseDown={(e) => { if (e.target === e.currentTarget) setAskPay(false) }}
-        >
+      {resetOpen && (
+        <div className="pay-confirm" role="dialog" aria-modal="true" aria-label={t('payment_reset')}>
           <div className="pay-method__card">
             <div className="pay-method__head">
-              <span className="pay-method__title">{t('choose_payment')}</span>
-              <button className="icon-btn" onClick={() => setAskPay(false)} title={t('back')} aria-label={t('back')}>
+              <button className="icon-btn pay-reset__close" disabled={busy} aria-label={t('back')} onClick={() => setResetOpen(false)}>
                 <X size={20} />
               </button>
             </div>
-            <div className="pay-method__sum">
-              <span>{t('to_pay_label')}</span>
-              <strong>{fmt(dueNow)} {t('currency')}</strong>
+            <button type="button" className="pay-method__reset pay-reset__submit" disabled={busy} onClick={resetPayments}>
+              {busy ? spin : t('payment_reset')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {confirmation && (
+        <div className="pay-confirm" role="dialog" aria-modal="true" aria-label={t('payment_confirm_title')}>
+          <div className="pay-method__card">
+            <div className="pay-method__head">
+              <span className="pay-method__title">{t('payment_confirm_title')}</span>
+              <button className="icon-btn" disabled={busy} aria-label={t('back')} onClick={() => {
+                setConfirmation(null)
+                setAskPay(true)
+              }}><X size={20} /></button>
             </div>
-            <div className="pay-method__list">
-              {methodOptions.map((option) => (
-                <button
-                  key={option.value} type="button"
-                  className="pay-method__opt"
-                  disabled={busy}
-                  onClick={() => completeWithMethod(option.value)}
-                >
-                  <span className="pay-method__ico">{option.icon}</span>
-                  <span className="pay-method__name">{option.label}</span>
-                  {busy && method === option.value && spin}
-                </button>
-              ))}
+            <div className="pay-confirm__rows">
+              {[...summary].map(([method, value]) => <div key={method}>
+                <span>{paymentLabel(method)}</span><strong>{fmt(value)} {t('currency')}</strong>
+              </div>)}
             </div>
+            <button className="btn btn--primary" disabled={busy} onClick={confirmPayment}>
+              {busy ? spin : t('pin_confirm')}
+            </button>
           </div>
         </div>
       )}

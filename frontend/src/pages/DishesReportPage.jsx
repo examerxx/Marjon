@@ -520,7 +520,7 @@ export default function DishesReportPage() {
             }}>
               <td>{index + 1}</td>
               <td><ReportDishPhoto row={row} onOpen={() => setPhoto(row)} /></td>
-              <td className="dish-report-name">{row.name}</td><td>{row.unit}</td><td>{row.quantity}</td><td>{row.price}</td><td>{row.amount}</td>
+              <td><strong>{row.name}</strong></td><td>{row.unit}</td><td>{row.quantity}</td><td>{row.price}</td><td>{row.amount}</td>
             </tr>)}
             {!filteredRows.length ? <tr className="report-empty-row"><td colSpan={7}><ReportEmptyState title={t("pages.dishesreportpage.blyud_ne_naydeno")} loading={loading} /></td></tr> : null}</tbody>
             {filteredRows.length ? <tfoot><tr className="report-total-row"><td colSpan={4}>{t("pages.dishesreportpage.itogo")}</td><td>{totalRow.quantity}</td><td>—</td><td>{totalRow.amount}</td></tr></tfoot> : null}

@@ -34,6 +34,7 @@ export default function StaffProfileModal({
   const [confirming, setConfirming] = useState(false)
   const [closingCash, setClosingCash] = useState('')
   const [closing, setClosing] = useState(false)
+  const [opening, setOpening] = useState(false)
 
   const role = user.role_slug || (user.role_slugs && user.role_slugs[0])
 
@@ -60,6 +61,21 @@ export default function StaffProfileModal({
   const workedSeconds = Number(data?.worked_seconds) > 0
     ? data.worked_seconds
     : (shift ? data?.shift_seconds : 0)
+
+  // Смена личная: если своей нет, её можно открыть прямо из профиля.
+  const openShift = async () => {
+    if (opening || !branchId) return
+    setOpening(true)
+    setError('')
+    try {
+      await shifts.open(branchId, 0)
+      load()
+    } catch (e) {
+      setError(errorMessage(e, t('shift_open_err')))
+    } finally {
+      setOpening(false)
+    }
+  }
 
   const closeShift = async () => {
     if (closing) return
@@ -169,6 +185,11 @@ export default function StaffProfileModal({
             )}
 
             {!loading && !shift && <p className="profile__hint">{t('shift_not_open')}</p>}
+            {!loading && !shift && branchId && (
+              <button className="btn btn--primary profile__close" onClick={openShift} disabled={opening || closing}>
+                {opening ? t('loading') : t('open_shift')}
+              </button>
+            )}
 
             <button className="btn-ghost profile__switch" onClick={onSwitchStaff} disabled={closing}>
               <LogOut size={18} /> {t('switch_staff')}

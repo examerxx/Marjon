@@ -1,6 +1,3 @@
-import OrderReceiptDialog from "../../dashboard/OrderReceiptDialog";
-import OrderStatus from "../../reports/OrderStatus";
-import { formatMoney } from "../../reports/reportMoney";
 import { t } from "../../../i18n/t";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { financeService } from "../../../api/finance";
@@ -76,31 +73,6 @@ export function turnover(items) {
   return { income, expense, count: (items || []).length };
 }
 
-export function normalizeClientOrder(item) {
-  return {
-    id: String(item?.order_id ?? ""),
-    orderNumber: String(item?.order_number ?? ""),
-    createdAt: item?.created_at || null,
-    status: item?.status || "",
-    itemsCount: Number(item?.items_count ?? 0),
-    totalAmount: toTxNumber(item?.total_amount),
-    paidAmount: toTxNumber(item?.paid_amount),
-    debtAmount: toTxNumber(item?.debt_amount),
-    paymentMethods: Array.isArray(item?.payment_methods) ? item.payment_methods.map(String) : [],
-    waiterName: item?.waiter_name || "",
-  };
-}
-
-function formatOrderMoment(value) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
-  return webFormat(value, {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-  });
-}
-
 function defaultPeriod() {
   const now = webCalendarToday();
   const pad = (value) => String(value).padStart(2, "0");
@@ -158,62 +130,10 @@ function useCounterpartyHistory(counterpartyId, period) {
   return { items, total, loading, error, mode, setMode, reload: () => load(period) };
 }
 
-function useCounterpartyOrders(counterpartyId, period, enabled) {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(Boolean(enabled));
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!enabled || !counterpartyId) {
-      setOrders([]);
-      setLoading(false);
-      setError("");
-      return undefined;
-    }
-    let active = true;
-    const controller = new AbortController();
-    setLoading(true);
-    setError("");
-    financeService
-      .listCounterpartyOrders(counterpartyId, {
-        dateFrom: toApiDate(period?.start),
-        dateTo: toApiDate(period?.end),
-        signal: controller.signal,
-      })
-      .then(({ data }) => {
-        if (!active) return;
-        setOrders((Array.isArray(data) ? data : []).map(normalizeClientOrder));
-      })
-      .catch((err) => {
-        if (!active || isAbortError(err)) return;
-        setError(err?.response?.data?.detail || "Не удалось загрузить заказы клиента.");
-        setOrders([]);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [counterpartyId, enabled, period?.start, period?.end]);
-
-  return { orders, loading, error };
-}
-
 export function CounterpartyStatementView({ row }) {
   const [period, setPeriod] = useState(() => defaultPeriod());
   const history = useCounterpartyHistory(row?.id, period);
   const { items, loading, error, mode, setMode } = history;
-  const isClient = row?.type === "clients";
-  const { orders, loading: ordersLoading, error: ordersError } = useCounterpartyOrders(row?.id, period, isClient);
-  const [receiptOrder, setReceiptOrder] = useState(null);
-  const orderSums = useMemo(() => orders.reduce((acc, order) => ({
-    total: acc.total + order.totalAmount,
-    paid: acc.paid + order.paidAmount,
-    debt: acc.debt + order.debtAmount,
-  }), { total: 0, paid: 0, debt: 0 }), [orders]);
-
   const sums = useMemo(() => turnover(items), [items]);
   const daily = useMemo(() => (mode === "simple" ? aggregateByDay(items) : []), [items, mode]);
 
@@ -292,10 +212,6 @@ export function CounterpartyStatementView({ row }) {
   // No local back button here by design (Clients V10): the global/topbar Back
   // returns to the Clients directory and restores the source tab via
   // ?tab=…&history=… navigation state owned by SettingsResourcePage.
-  function openReceipt(order) {
-    setReceiptOrder({ id: order.id, number: order.orderNumber });
-  }
-
   return (
     <div className="settings-page settings-owner-view clients-directory-page client-statement-page">
       <section className="settings-card">
@@ -336,66 +252,10 @@ export function CounterpartyStatementView({ row }) {
         <div className="staff-table-wrapper client-statement-table-region">
           {loading ? <div className="settings-empty-state">{t("pages.settings.clients.counterpartyhistory.zagruzka")}</div> : null}
           {!loading && error ? <div className="settings-empty-state" role="alert">{error}</div> : null}
-          {!loading && !error && !items.length && !orders.length && !ordersLoading && !ordersError ? (
+          {!loading && !error && !items.length ? (
             <div className="client-statement-empty">
-              <ReportEmptyState
-                title={isClient
-                  ? t("pages.settings.clients.counterpartyhistory.net_zakazov_za_period")
-                  : t("pages.settings.clients.counterpartyhistory.net_tranzaktsiy_za_vybrannyy_period")}
-              />
+              <ReportEmptyState title={t("pages.settings.clients.counterpartyhistory.net_tranzaktsiy_za_vybrannyy_period")} />
             </div>
-          ) : null}
-
-          {ordersLoading ? <div className="settings-empty-state">{t("admin.admincatalog.zagruzka_zakazov")}</div> : null}
-          {ordersError ? <div className="settings-empty-state" role="alert">{ordersError}</div> : null}
-          {!ordersLoading && !ordersError && isClient && orders.length > 0 ? (
-            <>
-              <table className="staff-table client-statement-table client-orders-table">
-                <thead>
-                  <tr>
-                    <th>{t("pages.settings.clients.counterpartyhistory.nomer_zakaza")}</th>
-                    <th>{t("pages.settings.clients.counterpartyhistory.data")}</th>
-                    <th>{t("pages.settings.clients.counterpartyhistory.summa")}</th>
-                    <th>{t("pages.settings.clients.counterpartyhistory.oplacheno")}</th>
-                    <th>{t("pages.settings.clients.counterpartyhistory.dolg")}</th>
-                    <th>{t("pages.settings.clients.counterpartyhistory.status")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((order) => (
-                    <tr
-                      key={order.id}
-                      className="client-statement-order-row"
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`${t("pages.settings.clients.counterpartyhistory.otkryt_chek")} ${order.orderNumber}`}
-                      onClick={() => openReceipt(order)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          openReceipt(order);
-                        }
-                      }}
-                    >
-                      <td><strong>{order.orderNumber}</strong></td>
-                      <td>{formatOrderMoment(order.createdAt)}</td>
-                      <td className="client-statement-money">{formatMoney(order.totalAmount)}</td>
-                      <td>{formatMoney(order.paidAmount)}</td>
-                      <td className={order.debtAmount > 0 ? "client-statement-debt is-debt" : "client-statement-debt"}>
-                        {order.debtAmount > 0 ? formatMoney(order.debtAmount) : "—"}
-                      </td>
-                      <td><OrderStatus value={order.status} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="client-statement-summary">
-                <span>{t("pages.settings.clients.counterpartyhistory.zakazov")} {orders.length}</span>
-                <span>{t("pages.settings.clients.counterpartyhistory.summa")} {formatMoney(orderSums.total)}</span>
-                <span>{t("pages.settings.clients.counterpartyhistory.oplacheno")} {formatMoney(orderSums.paid)}</span>
-                <span>{t("pages.settings.clients.counterpartyhistory.dolg")} {formatMoney(orderSums.debt)}</span>
-              </div>
-            </>
           ) : null}
 
           {!loading && !error && items.length > 0 ? (
@@ -437,13 +297,6 @@ export function CounterpartyStatementView({ row }) {
           ) : null}
         </div>
       </section>
-      {receiptOrder ? (
-        <OrderReceiptDialog
-          orderId={receiptOrder.id}
-          orderNumber={receiptOrder.number}
-          onClose={() => setReceiptOrder(null)}
-        />
-      ) : null}
     </div>
   );
 }

@@ -104,3 +104,27 @@ test('custom payment method name is capped to the 30-char payments.method column
 test('debt is never submitted as a full payment', () => {
   assert.throws(() => buildOrderPayment(order, 'debt', { cash: 46000 }), error => Boolean(error.paymentErrorKey))
 })
+
+test('VIP closes a complimentary order with no money received', async () => {
+  const h = harness(async () => ({
+    data: { id: 'vip', order_id: order.id, status: 'complimentary', amount: '0.00' },
+  }))
+  const result = await submitOrderPayment({ ...h.options, method: 'VIP' })
+  assert.equal(result.status, 'complimentary')
+  assert.deepEqual(h.calls[0][1], { order_id: order.id, method: 'VIP', amount: '46000.00' })
+  assert.equal(h.store.data.size, 0)
+})
+
+test('partial card payment sends only the entered amount and confirms the server balance', async () => {
+  const h = harness(async () => ({
+    data: { id: 'part', order_id: order.id, status: 'completed', amount: '20000.00', remaining_amount: '26000.00' },
+  }))
+  const result = await submitOrderPayment({
+    ...h.options, method: 'card', detail: { partialAmount: 20000 },
+  })
+  assert.equal(result.remaining_amount, '26000.00')
+  assert.deepEqual(h.calls[0][1], {
+    order_id: order.id, method: 'card', amount: '20000.00', partial: true,
+    cash_received: null, cash_amount: '0.00', card_amount: '20000.00',
+  })
+})

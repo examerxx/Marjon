@@ -13,6 +13,7 @@ class PaymentCreate(BaseSchema):
     # Колонка payments.method — String(30), поэтому длину ограничиваем здесь,
     # а не ловим ошибку БД.
     method: str = Field(min_length=1, max_length=30)
+    partial: bool = False
     cash_received: Decimal | None = None
     cash_amount: Decimal | None = Field(None, ge=0)
     card_amount: Decimal | None = Field(None, ge=0)
@@ -61,6 +62,8 @@ class PaymentCreate(BaseSchema):
             payload.pop("offline_import", None)
         if payload.get("client_created_at") is None:
             payload.pop("client_created_at", None)
+        if not self.partial:
+            payload.pop("partial", None)
         return payload
 
 
@@ -74,6 +77,7 @@ class PaymentResponse(BaseResponseSchema):
     cash_received: Decimal | None
     change_given: Decimal | None
     fiscal_code: str | None
+    remaining_amount: Decimal | None = None
 
 
 # ── Payment gateway settings (per-company) ────────────────────────────────────

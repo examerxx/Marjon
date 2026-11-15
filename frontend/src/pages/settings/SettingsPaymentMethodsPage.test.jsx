@@ -69,10 +69,10 @@ describe("payment-method helpers (canonical contract)", () => {
 
   it("maps a backend row reading sort/status (and their owner-app mirrors)", () => {
     expect(mapRow({ id: "1", name: "Карта", type: "card", sort: 2, status: false })).toEqual({
-      id: "1", name: "Карта", type: "card", sort: 2, active: false,
+      id: "1", name: "Карта", type: "card", sort: 2, active: false, isSystem: false,
     });
     expect(mapRow({ id: "2", name: "Наличные", type: "cash", sort_order: 5, is_active: true })).toEqual({
-      id: "2", name: "Наличные", type: "cash", sort: 5, active: true,
+      id: "2", name: "Наличные", type: "cash", sort: 5, active: true, isSystem: false,
     });
   });
 
@@ -150,7 +150,7 @@ describe("SettingsPaymentMethodsPage — states", () => {
 describe("SettingsPaymentMethodsPage — table & type/status presentation", () => {
   beforeEach(() => mockList(METHODS));
 
-  it("renders columns Сорт | Название | Тип | Статус | Действия as plain text (sort is not an input)", async () => {
+  it("renders columns Сорт | Название | Статус | Действия as plain text (sort is not an input)", async () => {
     renderPage();
     const cashName = await screen.findByText("Касса");
     const row = cashName.closest("tr");
@@ -162,15 +162,18 @@ describe("SettingsPaymentMethodsPage — table & type/status presentation", () =
     expect(within(row).getByRole("button", { name: /Удалить/ })).toBeInTheDocument();
   });
 
-  it("maps canonical type codes to Russian and shows a legacy code raw", async () => {
+  it("shows no type column and lets a default method change status without deletion", async () => {
+    mockList([{ id: "builtin", name: "Наличными", type: "cash", sort: 1, status: true, is_system: true }]);
+    settingsService.updateResource.mockResolvedValueOnce({
+      data: { id: "company-copy", name: "Наличными", sort: 1, type: "cash", status: false, is_system: true },
+    });
     renderPage();
-    await screen.findByText("Старый VIP");
-    // cash → Наличные in the card's type cell (row name is "Касса").
-    const cashRow = screen.getByText("Касса").closest("tr");
-    expect(within(cashRow).getByText("Наличные")).toBeInTheDocument();
-    // Legacy/unknown type displays its raw stored value, not a crash or blank.
-    const legacyRow = screen.getByText("Старый VIP").closest("tr");
-    expect(within(legacyRow).getByText("vip_legacy")).toBeInTheDocument();
+    const toggle = await screen.findByRole("switch", { name: "Наличными" });
+    expect(screen.queryByRole("columnheader", { name: "Тип" })).toBeNull();
+    expect(within(toggle.closest("tr")).queryByRole("button", { name: /Удалить/ })).toBeNull();
+    fireEvent.click(toggle);
+    await waitFor(() => expect(screen.getByRole("switch", { name: "Наличными" })).not.toBeChecked());
+    expect(settingsService.updateResource).toHaveBeenCalledWith("paymentMethods", "builtin", { status: false });
   });
 
   it("shows Активен / Неактивен status badges (text, not colour alone)", async () => {
@@ -213,61 +216,17 @@ describe("SettingsPaymentMethodsPage — create & edit", () => {
     expect(settingsService.createResource).not.toHaveBeenCalled();
   });
 
-  it("creates a method sending the canonical code, not the Russian label", async () => {
+  it("creates a method without a visible type field", async () => {
     renderPage();
     await screen.findByText("Касса");
     fireEvent.click(screen.getByRole("button", { name: "Добавить способ оплаты" }));
+    expect(screen.queryByRole("combobox", { name: "Тип" })).toBeNull();
     fireEvent.change(screen.getByLabelText("Сорт"), { target: { value: "7" } });
     fireEvent.change(screen.getByLabelText("Название"), { target: { value: "Терминал" } });
-    fireEvent.click(screen.getByRole("combobox", { name: "Тип" }));
-    fireEvent.click(screen.getByRole("option", { name: "Карта" }));
     fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
-    await waitFor(() => expect(settingsService.createResource).toHaveBeenCalled());
-    expect(settingsService.createResource).toHaveBeenCalledWith("paymentMethods", {
-      name: "Терминал", sort: 7, type: "card", status: true,
-    });
-    // Never sends the Russian presentation label.
-    const [, payload] = settingsService.createResource.mock.calls[0];
-    expect(payload.type).not.toBe("Карта");
-  });
-
-  it("offers Наличные, Карта and Другое in the type dropdown (no empty '-' option)", async () => {
-    renderPage();
-    await screen.findByText("Касса");
-    fireEvent.click(screen.getByRole("button", { name: "Добавить способ оплаты" }));
-    const combo = screen.getByRole("combobox", { name: "Тип" });
-    fireEvent.click(combo);
-    expect(screen.getAllByRole("option").map((o) => o.textContent.trim())).toEqual([
-      "Наличные", "Карта", "Другое (Uzum, Yandex…)",
-    ]);
-    expect(screen.queryByRole("option", { name: "—" })).toBeNull();
-    // Chevron rotation is driven by the is-open state on the select root.
-    expect(combo.closest(".settings-select")).toHaveClass("is-open");
-  });
-
-  it("normal edit dropdown offers exactly [Наличные, Карта, Другое]", async () => {
-    renderPage();
-    await screen.findByText("Касса");
-    const cardRow = screen.getByText("Банк-карта").closest("tr");
-    fireEvent.click(within(cardRow).getByRole("button", { name: /Редактировать/ }));
-    fireEvent.click(screen.getByRole("combobox", { name: "Тип" }));
-    expect(screen.getAllByRole("option").map((o) => o.textContent.trim())).toEqual([
-      "Наличные", "Карта", "Другое (Uzum, Yandex…)",
-    ]);
-  });
-
-  it("legacy edit: dropdown shows the canonical options, raw value is a note not an option", async () => {
-    renderPage();
-    await screen.findByText("Касса");
-    const legacyRow = screen.getByText("Старый VIP").closest("tr");
-    fireEvent.click(within(legacyRow).getByRole("button", { name: /Редактировать/ }));
-    // The unsupported stored type is surfaced as neutral info, never as an option.
-    expect(screen.getByText("Текущий тип: vip_legacy")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("combobox", { name: "Тип" }));
-    expect(screen.getAllByRole("option").map((o) => o.textContent.trim())).toEqual([
-      "Наличные", "Карта", "Другое (Uzum, Yandex…)",
-    ]);
-    expect(screen.queryByRole("option", { name: "vip_legacy" })).toBeNull();
+    await waitFor(() => expect(settingsService.createResource).toHaveBeenCalledWith("paymentMethods", {
+      name: "Терминал", sort: 7, type: null, status: true,
+    }));
   });
 
   it("legacy edit saved WITHOUT touching type preserves the original raw value", async () => {
@@ -279,21 +238,6 @@ describe("SettingsPaymentMethodsPage — create & edit", () => {
     await waitFor(() => expect(settingsService.updateResource).toHaveBeenCalled());
     expect(settingsService.updateResource).toHaveBeenCalledWith("paymentMethods", "m-legacy", {
       name: "Старый VIP", sort: 4, type: "vip_legacy", status: true,
-    });
-  });
-
-  it("legacy edit: explicitly choosing Наличные sends canonical cash", async () => {
-    renderPage();
-    await screen.findByText("Касса");
-    const legacyRow = screen.getByText("Старый VIP").closest("tr");
-    fireEvent.click(within(legacyRow).getByRole("button", { name: /Редактировать/ }));
-    fireEvent.click(screen.getByRole("combobox", { name: "Тип" }));
-    fireEvent.click(screen.getByRole("option", { name: "Наличные" }));
-    expect(screen.queryByText(/Текущий тип:/)).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
-    await waitFor(() => expect(settingsService.updateResource).toHaveBeenCalled());
-    expect(settingsService.updateResource).toHaveBeenCalledWith("paymentMethods", "m-legacy", {
-      name: "Старый VIP", sort: 4, type: "cash", status: true,
     });
   });
 
@@ -418,7 +362,7 @@ describe("SettingsPaymentMethodsPage - session cache (stale-while-revalidate)", 
     expect(screen.getByText("Сорт")).toBeInTheDocument();
     const emptyCell = document.querySelector("td.pm-empty-cell");
     expect(emptyCell).not.toBeNull();
-    expect(emptyCell.getAttribute("colspan")).toBe("5");
+    expect(emptyCell.getAttribute("colspan")).toBe("4");
     resolveGet({ items: [] });
     await waitFor(() => expect(settingsService.listResource).toHaveBeenCalledTimes(2));
     expect(screen.getByText("Способов оплаты пока нет")).toBeInTheDocument();

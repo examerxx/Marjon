@@ -1,7 +1,7 @@
 """offline01_order_sync
 
 Revision ID: offline01
-Revises: display01
+Revises: vipfinance01
 Create Date: 2026-11-13
 
 Офлайн-заказы кассы: клиентский UUID для идемпотентного повтора, локальный
@@ -15,7 +15,7 @@ import sqlalchemy as sa
 
 
 revision: str = "offline01"
-down_revision: Union[str, None] = "display01"
+down_revision: Union[str, None] = "vipfinance01"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -210,6 +210,91 @@ body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar.is-co
   padding: 0;
   justify-content: center;
 }
+/* Preview-only wordmark, concept 08: high-contrast serif, without bead dots. */
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .sidebar-brand__identity {
+  display: flex;
+  position: static;
+  width: 100%;
+  justify-content: flex-start;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark {
+  display: inline-flex;
+  /* Anchor the symbol to the brand row, not its shrinking text wrapper. */
+  position: absolute;
+  inset: 6px auto auto 8px;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  gap: 0;
+  width: 202px;
+  transition: width 180ms ease;
+  color: #082544;
+  font-family: "Bodoni MT", "Bodoni Bd BT", "Times New Roman", serif;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.25px;
+  cursor: pointer;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark:is(:hover, :focus, :focus-visible, :active) {
+  outline: none;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-brand-symbol {
+  display: block;
+  width: 54px;
+  height: 40px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark__full {
+  display: block;
+  width: 138px;
+  min-width: 0;
+  max-width: 138px;
+  margin-left: 10px;
+  flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  transition: width 250ms ease, max-width 250ms ease, margin 250ms ease,
+    opacity 180ms ease, transform 250ms ease, visibility 180ms ease;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark__full img {
+  display: block;
+  width: 138px;
+  max-width: none;
+  height: 30px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar.is-collapsed .preview-serif-wordmark {
+  width: 54px;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar.is-collapsed .preview-serif-wordmark__full {
+  width: 0;
+  max-width: 0;
+  margin-left: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-10px);
+}
+@media (max-width: 1000px) {
+  body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark { width: 54px; }
+  body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark__full {
+    width: 0; max-width: 0; margin-left: 0; opacity: 0; visibility: hidden;
+  }
+}
 body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-search {
   flex: 0 0 42px;
   height: 42px;
@@ -722,6 +807,13 @@ body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .side
 }
 body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .sidebar-submenu__link.is-active {
   --dark-shell-nav-icon: #0b6570;
+}
+
+/* Keep the compact rail and full menu on the same icon axis. */
+@media (min-width: 1024px) {
+  body.marjon-dark-shell.dashboard-body .dashboard-shell > #dashboardSidebar .preview-serif-wordmark {
+    inset-inline-start: 8px;
+  }
 }
 
 /* Resize the decorative art inside its existing card slot. */

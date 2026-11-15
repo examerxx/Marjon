@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import aliased
 from sqlalchemy.types import Uuid
 
+from app.modules.finance.defaults import DEFAULT_PAYMENT_IDS
 from app.modules.finance.models import (
     Counterparty,
     FinanceTemplate,
@@ -239,6 +240,8 @@ class FinanceDictionaryService(Generic[M]):
         payload.pop("company_id", None)
         payload.pop("organization_id", None)
         source_id = payload.get("source_template_id")
+        if self.model is PaymentType and source_id in DEFAULT_PAYMENT_IDS:
+            raise ForbiddenError("Default payment methods already exist")
         source = await self._validate_source(source_id)
         await self._validate_category_parent(
             payload.get("parent_id"), scope, source=source
@@ -261,10 +264,32 @@ class FinanceDictionaryService(Generic[M]):
         return row
 
     async def update(self, resource_id: UUID, data: Any, scope: FinanceScope) -> M:
-        row = await self._get_owned(resource_id, scope)
         payload = data.model_dump(exclude_unset=True) if hasattr(data, "model_dump") else dict(data)
         for protected in ("scope_kind", "company_id", "organization_id", "source_template_id"):
             payload.pop(protected, None)
+        if self.model is PaymentType and resource_id in DEFAULT_PAYMENT_IDS:
+            if scope.kind != SCOPE_COMPANY or set(payload) != {"status"} or not isinstance(payload["status"], bool):
+                raise ForbiddenError("Only the status of a default payment method may change")
+            source = (await self.db.execute(select(PaymentType).where(
+                PaymentType.id == resource_id, PaymentType.scope_kind == SCOPE_SYSTEM,
+            ).with_for_update())).scalar_one_or_none()
+            if source is None:
+                raise NotFoundError("Default payment method not found")
+            row = (await self.db.execute(select(PaymentType).where(
+                _tenant_predicate(PaymentType, scope), PaymentType.source_template_id == source.id,
+            ))).scalar_one_or_none()
+            if row is None:
+                row = PaymentType(
+                    name=source.name, type=source.type, sort=source.sort,
+                    scope_kind=SCOPE_COMPANY, company_id=scope.tenant_id,
+                    source_template_id=source.id,
+                )
+                self.db.add(row)
+        else:
+            row = await self._get_owned(resource_id, scope)
+            if self.model is PaymentType and row.source_template_id in DEFAULT_PAYMENT_IDS:
+                if set(payload) != {"status"} or not isinstance(payload["status"], bool):
+                    raise ForbiddenError("Only the status of a default payment method may change")
         if self.model is TransactionCategory and "parent_id" in payload:
             source = await self._validate_source(row.source_template_id)
             await self._validate_category_parent(
@@ -278,6 +303,8 @@ class FinanceDictionaryService(Generic[M]):
 
     async def delete(self, resource_id: UUID, scope: FinanceScope) -> None:
         row = await self._get_owned(resource_id, scope)
+        if self.model is PaymentType and row.source_template_id in DEFAULT_PAYMENT_IDS:
+            raise ForbiddenError("Default payment methods cannot be deleted")
         if hasattr(row, "deleted_at"):
             from datetime import datetime, timezone
             row.deleted_at = datetime.now(timezone.utc)

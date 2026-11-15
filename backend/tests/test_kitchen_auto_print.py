@@ -171,7 +171,7 @@ async def test_bulk_add_prints_one_ticket_with_all_new_dishes(client, monkeypatc
     assert len(first_jobs) == 1, first_jobs
 
     added = await client.post(
-        f"/pos/orders/{order_id}/items/bulk", headers=headers,
+        f"/pos/orders/{order_id}/items/bulk", headers={**headers, "Idempotency-Key": f"append-{order_id}"},
         json={"items": [
             {"product_id": second_ids[0], "quantity": "1"},
             {"product_id": second_ids[1], "quantity": "2"},
@@ -187,6 +187,20 @@ async def test_bulk_add_prints_one_ticket_with_all_new_dishes(client, monkeypatc
     assert "Латте" in delta_text
     assert "Чизкейк" in delta_text
     assert "Хот дог" not in delta_text
+
+
+    replay = await client.post(
+        f"/pos/orders/{order_id}/items/bulk",
+        headers={**headers, "Idempotency-Key": f"append-{order_id}"},
+        json={"items": [
+            {"product_id": second_ids[0], "quantity": "1"},
+            {"product_id": second_ids[1], "quantity": "2"},
+        ]},
+    )
+    assert replay.status_code == 201, replay.text
+    assert len(replay.json()["items"]) == 3
+    replay_jobs = (await client.get(f"/printers/{printer_id}/jobs/pending", headers=headers)).json()
+    assert len(replay_jobs) == 2
 
 
 async def test_server_printed_ticket_is_not_left_pending(client, db_engine, monkeypatch):

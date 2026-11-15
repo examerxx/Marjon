@@ -21,7 +21,10 @@ import { t } from "../i18n/t";
 function formatDate(value) {
   if (!value) return "—";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? String(value) : webFormat(value, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
+  if (Number.isNaN(date.getTime())) return String(value);
+  const day = webFormat(value, { day: "2-digit", month: "2-digit", year: "numeric" });
+  const time = webFormat(value, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  return `${day}\u00a0/\u00a0${time}`;
 }
 
 const initialFilters = {
@@ -129,6 +132,12 @@ function joinPaymentMethods(methods) {
 //   table only-> "стол 12"
 //   neither   -> "" (callers apply the report's own empty convention, e.g. "—")
 // Never reconstructs place from live Hall/Table frontend data.
+function formatOrderPlace({ orderType, hallName, tableNumber }) {
+  if (orderType === "delivery" || orderType === "delivery_app") return "Доставка";
+  if (orderType === "takeaway" || orderType === "pickup") return "С собой";
+  return formatPlace(hallName, tableNumber);
+}
+
 export function formatPlace(hallName, tableNumber) {
   const hall = String(hallName ?? "").trim();
   const table = String(tableNumber ?? "").trim();
@@ -300,6 +309,21 @@ export default function OrdersReportPage() {
   const [filterOptions, setFilterOptions] = useState(emptyFilterOptions);
   const [filterOptionsLoading, setFilterOptionsLoading] = useState(true);
   const [rows, setRows] = useState([]);
+  const [pageSize, setPageSize] = useState(50);
+  const [page, setPage] = useState(0);
+  // Новые данные/фильтры — снова с первой страницы.
+  useEffect(() => { setPage(0); }, [rows]);
+  // Кастомный выпадающий список «Строк на странице».
+  const [pageSizeOpen, setPageSizeOpen] = useState(false);
+  const pageSizeRef = useRef(null);
+  useEffect(() => {
+    if (!pageSizeOpen) return undefined;
+    const onDown = (event) => { if (!pageSizeRef.current?.contains(event.target)) setPageSizeOpen(false); };
+    const onKey = (event) => { if (event.key === "Escape") setPageSizeOpen(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
+  }, [pageSizeOpen]);
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedOrder = rows.find(row => row.id === searchParams.get("order"));
   function openOrder(row) {
@@ -364,7 +388,7 @@ export default function OrdersReportPage() {
     } else {
       setLoading(true);
     }
-    reportsService.listOrders(dateFrom, dateTo, { filters: appliedFilters, signal: request.signal })
+    reportsService.listOrders(dateFrom, dateTo, { filters: appliedFilters, dateBasis: "closed", signal: request.signal })
       .then(({ data }) => {
         if (!request.isCurrent()) return;
         if (!Array.isArray(data)) throw new Error("Invalid orders report response");
@@ -377,7 +401,7 @@ export default function OrdersReportPage() {
           id: String(item.order_id),
           publicId: item.public_id,
           orderNumber: String(item.order_number),
-          createdAt: item.created_at,
+          closedAt: item.report_date,
           status: item.status,
           tableNumber: item.table_number,
           // Canonical historical place snapshot from the backend — never
@@ -419,6 +443,15 @@ export default function OrdersReportPage() {
   ]);
 
   const visibleRows = rows;
+  // Таблица показывает страницу строк (выбор «строк на странице» внизу), а Excel
+  // выгружает ВСЕ строки результата — visibleRows, а не срез страницы.
+  const pageSizeLabel = (value) => (value === 0 ? "Все" : String(value));
+  const totalRows = visibleRows.length;
+  const effectiveSize = pageSize === 0 ? Math.max(totalRows, 1) : pageSize;
+  const pageCount = Math.max(1, Math.ceil(totalRows / effectiveSize));
+  const safePage = Math.min(page, pageCount - 1);
+  const pageStart = safePage * effectiveSize;
+  const displayRows = pageSize === 0 ? visibleRows : visibleRows.slice(pageStart, pageStart + effectiveSize);
   const activeFilterEntries = Object.entries(appliedFilters).filter(([, value]) => isFilterActive(value));
 
   function updateFilter(key, value) {
@@ -512,9 +545,9 @@ export default function OrdersReportPage() {
         // family as the UI so the two surfaces cannot diverge.
         id: row.publicId,
         orderNumber: row.orderNumber,
-        createdAt: row.createdAt,
+        closedAt: row.closedAt,
         orderType: orderTypeLabel(row.orderType),
-        place: formatPlace(row.hallName, row.tableNumber),
+        place: formatOrderPlace(row),
         waiterName: row.waiterName ?? "",
         cashiers: cashierDisplay === "—" ? "" : cashierDisplay,
         serviceFee: row.serviceFee,
@@ -528,7 +561,7 @@ export default function OrdersReportPage() {
     exportToExcel(exportRows, [
       { key: "id", label: "ID", width: 14 },
       { key: "orderNumber", label: t("pages.ordersreportpage.nomer_zakaza"), width: 16 },
-      { key: "createdAt", label: t("pages.ordersreportpage.data"), type: "date", format: "dd.mm.yyyy hh:mm", width: 18 },
+      { key: "closedAt", label: t("pages.ordersreportpage.data_zakrytiya"), type: "date", format: "dd.mm.yyyy hh:mm", width: 18 },
       { key: "orderType", label: t("pages.ordersreportpage.tip"), width: 13 },
       { key: "place", label: t("pages.ordersreportpage.mesto"), width: 22 },
       { key: "waiterName", label: t("pages.ordersreportpage.ofitsiant"), width: 18 },
@@ -617,9 +650,20 @@ export default function OrdersReportPage() {
 
         <div className="report-table-wrapper owner-report-table-scroll" aria-busy={loading ? "true" : "false"}>
           <table className="report-table owner-report-table" aria-label={t("pages.ordersreportpage.otchet_po_zakazam")}>
-            <thead><tr><th>{t("pages.ordersreportpage.nomer_zakaza")}</th><th>{t("pages.ordersreportpage.tip")}</th><th>{t("pages.ordersreportpage.data")}</th><th>{t("pages.ordersreportpage.mesto")}</th><th>{t("pages.ordersreportpage.tsena_vsego")}</th><th>{t("pages.ordersreportpage.tip_oplaty")}</th><th>{t("pages.ordersreportpage.ofitsiant")}</th><th>{t("pages.ordersreportpage.kassir")}</th><th>{t("pages.ordersreportpage.status")}</th></tr></thead>
+            <colgroup>
+              <col style={{ width: "5%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "15%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "11%" }} />
+            </colgroup>
+            <thead><tr><th>№</th><th>{t("pages.ordersreportpage.tip")}</th><th>{t("pages.ordersreportpage.data_zakrytiya")}</th><th>{t("pages.ordersreportpage.mesto")}</th><th>{t("pages.ordersreportpage.tsena_vsego")}</th><th>{t("pages.ordersreportpage.tip_oplaty")}</th><th>{t("pages.ordersreportpage.ofitsiant")}</th><th>{t("pages.ordersreportpage.kassir")}</th><th>{t("pages.ordersreportpage.status")}</th></tr></thead>
             <tbody>
-              {visibleRows.map((row) => (
+              {displayRows.map((row) => (
                 <tr
                   key={row.id}
                   className="owner-report-row-click"
@@ -634,12 +678,55 @@ export default function OrdersReportPage() {
                     }
                   }}
                 >
-                  <td><strong>{row.orderNumber}</strong></td><td>{orderTypeLabel(row.orderType)}</td><td>{formatDate(row.createdAt)}</td><td>{formatPlace(row.hallName, row.tableNumber) || "—"}</td><td className="report-total-price">{formatMoney(row.totalAmount)}</td><td>{joinPaymentMethods(row.paymentMethods) || "—"}</td><td>{row.waiterName ?? "—"}</td><td>{formatCashierNames(row.cashierNames)}</td><td><OrderStatus value={row.status} /></td>
+                  <td><strong>{row.orderNumber}</strong></td><td>{orderTypeLabel(row.orderType)}</td><td>{formatDate(row.closedAt)}</td><td>{formatOrderPlace(row) || "—"}</td><td className="report-total-price">{formatMoney(row.totalAmount)}</td><td>{joinPaymentMethods(row.paymentMethods) || "—"}</td><td>{row.waiterName ?? "—"}</td><td>{formatCashierNames(row.cashierNames)}</td><td><OrderStatus value={row.status} /></td>
                 </tr>
               ))}
               {!visibleRows.length ? <tr className="report-empty-row"><td colSpan={9}><ReportEmptyState title={t("pages.ordersreportpage.zakazov_ne_naydeno")} loading={loading} /></td></tr> : null}
             </tbody>
           </table>
+        </div>
+
+        <div className="orders-report-pager" aria-label="Постраничный вывод">
+          <div className="orders-report-pager__size" ref={pageSizeRef}>
+            <div className={`pager-select${pageSizeOpen ? " is-open" : ""}`}>
+              <button
+                type="button"
+                className="pager-select__trigger"
+                aria-haspopup="listbox"
+                aria-expanded={pageSizeOpen}
+                aria-label="Количество строк на странице"
+                onClick={() => setPageSizeOpen((open) => !open)}
+              >
+                <span>{pageSizeLabel(pageSize)}</span>
+                <svg className="pager-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+              </button>
+              {pageSizeOpen ? (
+                <ul className="pager-select__menu" role="listbox" aria-label="Количество строк на странице">
+                  {[10, 25, 50, 100, 0].map((value) => (
+                    <li key={value} role="presentation">
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={value === pageSize}
+                        className={`pager-select__option${value === pageSize ? " is-selected" : ""}`}
+                        onClick={() => { setPageSize(value); setPage(0); setPageSizeOpen(false); }}
+                      >
+                        {pageSizeLabel(value)}
+                        {value === pageSize ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10" /></svg> : null}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          </div>
+          <span className="orders-report-pager__range">
+            {totalRows ? `${pageStart + 1}–${Math.min(pageStart + effectiveSize, totalRows)} из ${totalRows}` : "0 из 0"}
+          </span>
+          <div className="orders-report-pager__nav">
+            <button type="button" aria-label="Предыдущая страница" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>‹</button>
+            <button type="button" aria-label="Следующая страница" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}>›</button>
+          </div>
         </div>
       </article>
 

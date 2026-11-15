@@ -1,4 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="55 370 430 290" fill="none">
+  <style>
+    @media (prefers-color-scheme: dark) {
+      .terminal-mark { fill: #fff; }
+    }
+  </style>
   <defs>
     <linearGradient id="teal1" x1="92" y1="610" x2="302" y2="402" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#14B8A6"/>
@@ -32,5 +37,5 @@
            C386 589 390 580 398 571
            L439 530
            C445 524 453 522 461 525Z"
-        fill="url(#navy)"/>
+        class="terminal-mark" fill="url(#navy)"/>
 </svg>

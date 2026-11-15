@@ -151,3 +151,166 @@ async def test_http_checkout_header_replay_and_dashboard(client, db_engine):
     assert report.json()["today_orders"] == 1
     assert Decimal(report.json()["income_total"]) == 220
     assert Decimal(report.json()["today_revenue"]) == 180
+
+@pytest.mark.asyncio
+async def test_vip_checkout_records_one_expense_and_keeps_dashboard_unchanged(report_engine):
+    from app.modules.finance.defaults import VIP_EXPENSE_CATEGORY_ID, VIP_PAYMENT_TYPE_ID
+    from app.modules.finance.models import FinTransaction, PaymentType, TransactionCategory
+
+    async with AsyncSession(report_engine, expire_on_commit=False) as db:
+        company, branch, product, warehouse, ingredient = await seed(db)
+        user = User(company_id=company.id, email=f"{uuid4().hex}@test.example", password_hash="unused")
+        db.add_all([
+            user,
+            PaymentType(id=VIP_PAYMENT_TYPE_ID, name="VIP", type="vip", scope_kind="system"),
+            TransactionCategory(id=VIP_EXPENSE_CATEGORY_ID, name="VIP", kind="expense", scope_kind="system"),
+            StockItem(company_id=company.id, warehouse_id=warehouse.id, ingredient_id=ingredient.id,
+                      quantity=10, cost_price=20, unit="кг"),
+            ProductIngredient(product_id=product.id, ingredient_id=ingredient.id, quantity=1,
+                              warehouse_id=warehouse.id),
+        ])
+        order = await add_order(db, company, branch, product, status="new", payments=())
+        await db.commit()
+
+        day = datetime.now(ZoneInfo("Asia/Tashkent")).date()
+        before = await owner_financials(db, company.id, day, day, web_timezone="Asia/Tashkent")
+        data = PaymentCreate(order_id=order.id, amount="220.00", method="VIP")
+        key = f"vip-test-{uuid4()}"
+        service = PaymentService(db)
+        payment = await service.process(company.id, user.id, data, key)
+        replay = await service.process(company.id, user.id, data, key)
+
+        assert replay.id == payment.id
+        assert payment.status == "complimentary"
+        assert payment.amount == 0
+        assert (await db.get(Order, order.id)).status == "completed"
+        expense = (await db.execute(select(FinTransaction).where(
+            FinTransaction.company_id == company.id,
+        ))).scalar_one()
+        assert (expense.direction, expense.amount) == ("expense", Decimal(220))
+        assert expense.payment_type_id == VIP_PAYMENT_TYPE_ID
+        assert expense.category_id == VIP_EXPENSE_CATEGORY_ID
+        assert await db.scalar(select(StockItem.quantity).where(
+            StockItem.warehouse_id == warehouse.id,
+            StockItem.ingredient_id == ingredient.id,
+        )) == Decimal(8)
+        after = await owner_financials(db, company.id, day, day, web_timezone="Asia/Tashkent")
+        for metric in ("income_total", "today_revenue", "today_orders", "avg_check"):
+            assert after[metric] == before[metric]
+        assert after["active_orders"] == before["active_orders"] - 1
+
+@pytest.mark.asyncio
+async def test_default_payment_status_is_tenant_scoped_and_protected(report_engine):
+    from app.modules.finance.defaults import VIP_PAYMENT_TYPE_ID
+    from app.modules.finance.models import PaymentType
+    from app.modules.finance.ownership import FinanceDictionaryService, FinanceScope
+    from app.shared.exceptions import ForbiddenError
+    from app.shared.pagination import PageParams
+
+    async with AsyncSession(report_engine, expire_on_commit=False) as db:
+        company, *_ = await seed(db)
+        other_company, *_ = await seed(db)
+        db.add(PaymentType(id=VIP_PAYMENT_TYPE_ID, name="VIP", type="vip", scope_kind="system", sort=3))
+        await db.commit()
+
+        service = FinanceDictionaryService(PaymentType, db, system_enabled=True)
+        scope = FinanceScope("company", company.id)
+        inactive = await service.update(VIP_PAYMENT_TYPE_ID, {"status": False}, scope)
+        assert inactive.source_template_id == VIP_PAYMENT_TYPE_ID
+        assert inactive.status is False
+        rows, _ = await service.list(scope, PageParams(page=1, size=20))
+        assert [row.id for row in rows] == [inactive.id]
+        other_scope = FinanceScope("company", other_company.id)
+        rows, _ = await service.list(other_scope, PageParams(page=1, size=20))
+        assert [(row.id, row.status) for row in rows] == [(VIP_PAYMENT_TYPE_ID, True)]
+        with pytest.raises(ForbiddenError):
+            await service.delete(inactive.id, scope)
+        with pytest.raises(ForbiddenError):
+            await service.update(inactive.id, {"name": "Other"}, scope)
+        active = await service.update(inactive.id, {"status": True}, scope)
+        assert active.status is True
+
+@pytest.mark.asyncio
+async def test_split_card_cash_and_debt_closes_only_the_remaining_balance(report_engine):
+    from app.modules.finance.models import Counterparty
+    from app.modules.pos.schemas import OrderStatusUpdate
+    from app.modules.pos.service import OrderService
+
+    async with AsyncSession(report_engine, expire_on_commit=False) as db:
+        company, branch, product, warehouse, ingredient = await seed(db)
+        user = User(company_id=company.id, email=f"{uuid4().hex}@test.example", password_hash="unused")
+        db.add_all([
+            user,
+            StockItem(company_id=company.id, warehouse_id=warehouse.id, ingredient_id=ingredient.id,
+                      quantity=10, cost_price=20, unit="kg"),
+            ProductIngredient(product_id=product.id, ingredient_id=ingredient.id,
+                              quantity=1, warehouse_id=warehouse.id),
+        ])
+        order = await add_order(db, company, branch, product, status="new", payments=())
+        order.total_amount = Decimal("177480")
+        await db.commit()
+        service = PaymentService(db)
+        card = PaymentCreate(order_id=order.id, amount="100000", method="card", partial=True)
+        key = f"partial-{uuid4()}"
+        first = await service.process(company.id, user.id, card, key)
+        assert (await service.process(company.id, user.id, card, key)).id == first.id
+        await service.process(company.id, user.id, PaymentCreate(
+            order_id=order.id, amount="50000", method="cash", partial=True, cash_received="50000",
+        ), f"partial-{uuid4()}")
+        assert (await db.get(Order, order.id)).status == "new"
+        assert await db.scalar(select(func.count()).select_from(StockMovement).where(
+            StockMovement.ref_id == order.id,
+        )) == 0
+        closed = await OrderService(db).update_status(company.id, order.id, OrderStatusUpdate(
+            status="completed", client_name="Test debtor",
+        ), actor_id=user.id, user=user)
+        assert closed.status == "completed"
+        assert await db.scalar(select(func.sum(Payment.amount)).where(
+            Payment.order_id == order.id, Payment.status == "completed",
+        )) == Decimal("150000")
+        assert await db.scalar(select(Counterparty.balance).where(
+            Counterparty.company_id == company.id,
+        )) == Decimal("27480")
+        assert await db.scalar(select(StockItem.quantity).where(
+            StockItem.warehouse_id == warehouse.id, StockItem.ingredient_id == ingredient.id,
+        )) == Decimal(8)
+
+
+@pytest.mark.asyncio
+async def test_vip_closes_only_the_remaining_balance_after_a_partial_payment(report_engine):
+    from app.modules.finance.defaults import VIP_EXPENSE_CATEGORY_ID, VIP_PAYMENT_TYPE_ID
+    from app.modules.finance.models import FinTransaction, PaymentType, TransactionCategory
+
+    async with AsyncSession(report_engine, expire_on_commit=False) as db:
+        company, branch, product, warehouse, ingredient = await seed(db)
+        user = User(company_id=company.id, email=f"{uuid4().hex}@test.example", password_hash="unused")
+        db.add_all([
+            user,
+            PaymentType(id=VIP_PAYMENT_TYPE_ID, name="VIP", type="vip", scope_kind="system"),
+            TransactionCategory(id=VIP_EXPENSE_CATEGORY_ID, name="VIP", kind="expense", scope_kind="system"),
+            StockItem(company_id=company.id, warehouse_id=warehouse.id, ingredient_id=ingredient.id,
+                      quantity=10, cost_price=20, unit="kg"),
+            ProductIngredient(product_id=product.id, ingredient_id=ingredient.id, quantity=1,
+                              warehouse_id=warehouse.id),
+        ])
+        order = await add_order(db, company, branch, product, status="new", payments=())
+        order.total_amount = Decimal("220.00")
+        await db.commit()
+
+        service = PaymentService(db)
+        cash = await service.process(company.id, user.id, PaymentCreate(
+            order_id=order.id, amount="200.00", method="cash", partial=True, cash_received="200.00",
+        ), f"partial-{uuid4()}")
+        assert (await db.get(Order, order.id)).status == "new"
+        vip = await service.process(company.id, user.id, PaymentCreate(
+            order_id=order.id, amount="220.00", method="VIP",
+        ), f"vip-{uuid4()}")
+
+        assert (vip.status, vip.amount) == ("complimentary", 0)
+        assert (await db.get(Order, order.id)).status == "completed"
+        await db.refresh(cash)
+        assert (cash.status, cash.amount) == ("completed", Decimal("200.00"))
+        expense = (await db.execute(select(FinTransaction).where(
+            FinTransaction.company_id == company.id,
+        ))).scalar_one()
+        assert (expense.direction, expense.amount) == ("expense", Decimal("20.00"))

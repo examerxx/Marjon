@@ -38,7 +38,10 @@ VERSIONS_DIR = BACKEND_ROOT / "migrations" / "versions"
 # mg03merge. Здесь org01 перевешен на mg03merge (см. её down_revision), иначе
 # у графа было бы две головы, а на сервере, чья БД уже стояла на tz01,
 # миграции att01ip/un03sort01 так и остались бы непримененными.
-EXPECTED_HEAD = "layout01"
+# OFFLINE-SYNC-01 (2026-11-14): offline01 поднялась с display01 — то есть
+# второй головой рядом с vipfinance01. Перевешена на vipfinance01 (см. её
+# down_revision), чтобы граф остался линейным и прод-БД дошла до обеих.
+EXPECTED_HEAD = "offline01"
 # Считается по статическому списку _COLUMNS в файлах миграций *bi02* (см.
 # _bi02_nullable_columns), а не по текущей схеме — новые миграции его не меняют.
 EXPECTED_NULLABLE_COLUMN_COUNT = 262
@@ -185,8 +188,10 @@ def test_revision_graph_is_complete_and_has_one_head() -> None:
     # un03sort01 (порядок единиц) и att01ip (IP смен), сведённые mg03merge,
     # затем org01 (ORG-BRIDGE-01: organizations.company_id) и tz01 (TZ-01:
     # backfill companies.timezone с дефолтного "UTC" на Asia/Tashkent).
-    # Остальные линии и layout01 (схема зала: tables.x/y).
-    assert len(revisions) == 98
+    # Остальные линии, layout01 (схема зала: tables.x/y) и vipfinance01
+    # (дефолтные способы оплаты), после которого идёт offline01 (поля
+    # офлайн-заказа: client_id/client_number/created_offline_at).
+    assert len(revisions) == 102
 
     nullable_columns = _bi02_nullable_columns()
     assert len(nullable_columns) == EXPECTED_NULLABLE_COLUMN_COUNT

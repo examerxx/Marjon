@@ -529,6 +529,16 @@ class OrderService:
             for item in order.items:
                 if item.status in ("pending", "cooking"):
                     item.status = "ready"
+        if target == "completed":
+            # Долг после частичной оплаты: сырьё списываем при закрытии счёта
+            # (полностью оплаченный заказ списывается в PaymentService).
+            paid_total = await self._paid_total(company_id, order.id)
+            if order.reopened_at is None and 0 < paid_total < order.total_amount:
+                from app.modules.inventory.service import StockService
+
+                await StockService(self.db).deduct_for_order(
+                    company_id, order.id, created_by=actor_id,
+                )
         # Financial completion leaves kitchen readiness and handoff unchanged.
         await self.repo.save(order)
         updated_order = await self.get(company_id, order_id)
@@ -690,6 +700,16 @@ class OrderService:
             raise ValidationError(
                 "Вернуть в работу можно только закрытый заказ"
             )
+        from app.modules.payments.models import Payment
+
+        vip_payment = await self.db.scalar(select(Payment.id).where(
+            Payment.company_id == company_id,
+            Payment.order_id == order.id,
+            Payment.status == "complimentary",
+        ))
+        if vip_payment is not None:
+            raise ValidationError("VIP-заказ уже списан и не может быть открыт повторно")
+
         order.status = "accepted"
         order.reopened_at = _utcnow()
         order.reopened_by_id = user.id if user else None
@@ -722,6 +742,8 @@ class OrderService:
         order = await self.get(company_id, order_id, for_update=True)
         if order.status in ("completed", "cancelled"):
             raise ValidationError(f"Невозможно отменить заказ в статусе '{order.status}'")
+        if order.reopened_at is None and await self._paid_total(company_id, order.id) > 0:
+            raise ValidationError("Нельзя отменить заказ с проведённой оплатой")
         # Опциональное подтверждение: срабатывает ТОЛЬКО если у компании задан
         # cancel_password. На компаниях без него (в т.ч. тестовых) — инертно, по
         # роли НИКОГДА не отказываем (Phase 1A: официант отменяет без пароля).
@@ -818,9 +840,24 @@ class OrderService:
 
     async def add_items(
         self, company_id: UUID, order_id: UUID, items_data: list[OrderItemCreate],
-        user: User | None = None,
+        user: User | None = None, idempotency_key: str | None = None,
     ) -> Order:
+        from app.modules.finance.idempotency import FinancialOperationService, request_fingerprint_v2
+        from app.modules.printers.service import PrinterService
+
         order = await self.get(company_id, order_id, for_update=True)
+        operation = None
+        if idempotency_key is not None:
+            claim = await FinancialOperationService(self.db).claim(
+                scope_kind="company", scope_id=company_id, operation_type="pos.order_items_add",
+                idempotency_key=idempotency_key,
+                fingerprint=request_fingerprint_v2({"order_id": str(order_id),
+                    "items": [item.model_dump(mode="json") for item in items_data]}),
+            )
+            if not claim.is_new:
+                await self.db.commit()
+                return await self.get(company_id, order_id)
+            operation = claim.operation
         if order.status in ("completed", "cancelled"):
             raise ValidationError("Нельзя добавить позицию к завершённому или отменённому заказу")
 
@@ -882,6 +919,12 @@ class OrderService:
             service_base=await self._service_base_q(order.id),
             tax_rate=await self._vat_rate(order),
         )
+        printer_service = PrinterService(self.db)
+        jobs = await printer_service.queue_kitchen_additions(
+            company_id, order.id, [item.id for item in created],
+        )
+        if operation is not None:
+            FinancialOperationService.complete(operation, {"item_ids": [str(item.id) for item in created]})
         await self.db.commit()
         # Дозаказ обязан появиться на кухонном экране сразу. create() шлёт
         # new_order, а add_items раньше молчал: блюда приезжали только со
@@ -894,20 +937,7 @@ class OrderService:
             )
         except Exception:
             pass
-        # Дозаказ: кухня должна получить тикет ТОЛЬКО с новыми позициями —
-        # остальные блюда повар уже видел. Пакетный дозаказ печатает один
-        # тикет на все добавленные строки. Чек кассира по-прежнему содержит
-        # весь состав заказа.
-        try:
-            from app.modules.printers.service import PrinterService
-            await PrinterService(self.db).auto_print_kitchen(
-                company_id, order.id, item_ids=[item.id for item in created]
-            )
-        except Exception:
-            logger.warning(
-                "auto_print_kitchen failed for order %s (branch=%s)",
-                order.id, order.branch_id, exc_info=True,
-            )
+        await printer_service.notify_kitchen_additions(company_id, jobs)
         return await self.get(company_id, order_id)
 
     # ── Remove item from order ────────────────────────────────────────────────
@@ -915,6 +945,7 @@ class OrderService:
     async def remove_item(
         self, company_id: UUID, order_id: UUID, item_id: UUID,
         reason: str | None = None, user: User | None = None, pin: str | None = None,
+        commit: bool = True,
     ) -> Order:
         order = await self.get(company_id, order_id, for_update=True)
         if order.status in ("completed", "cancelled"):
@@ -945,6 +976,10 @@ class OrderService:
             tax_rate=await self._vat_rate(order),
         )
         await self.sync_readiness(order)
+        if not commit:
+            # Пакетная правка (adjust_items): коммит и аудит делает вызывающий.
+            await self.db.flush()
+            return order
         await self.db.commit()
         try:
             await kitchen_manager.broadcast(
@@ -966,7 +1001,8 @@ class OrderService:
 
     async def set_item_quantity(
         self, company_id: UUID, order_id: UUID, item_id: UUID,
-        quantity: Decimal, user: User | None = None,
+        quantity: Decimal, user: User | None = None, *, price: Decimal | None = None,
+        commit: bool = True,
     ) -> Order:
         """Плюс/минус на УЖЕ внесённой позиции (касса правит количество).
 
@@ -979,13 +1015,22 @@ class OrderService:
         if order.status in ("completed", "cancelled"):
             raise ValidationError("Нельзя изменить позицию завершённого или отменённого заказа")
 
+        if (await _role_slugs_of(self.db, user)) & DEBT_FORBIDDEN_ROLE_SLUGS:
+            raise ForbiddenError("Официант не может менять отправленную позицию")
+        if getattr(order, "reopened_at", None) is None and await self._paid_total(company_id, order.id) > 0:
+            raise ValidationError("Нельзя изменить позицию после частичной оплаты")
+
         item = await self._get_order_item(order, item_id)
+        if item.status == "cancelled":
+            raise ValidationError("Нельзя изменить отменённую позицию")
+        old_price = item.price
+        new_price = old_price if price is None else _quantize(price)
         new_qty = self._as_decimal(quantity)
         old_qty = self._as_decimal(item.quantity)
         if new_qty <= 0:
             raise ValidationError("Количество должно быть больше нуля")
         delta = new_qty - old_qty
-        if delta == 0:
+        if delta == 0 and new_price == old_price:
             return await self.get(company_id, order_id)
 
         # Товар ищем без фильтра is_active: блюдо могло само уйти в стоп по
@@ -1004,6 +1049,7 @@ class OrderService:
         old_total = item.total
         modifiers_delta = _modifiers_delta(item.modifiers)
         item_discount = _quantize(item.discount) if item.discount else Decimal("0")
+        item.price = new_price
         gross = _quantize((item.price + modifiers_delta) * new_qty)
         item.quantity = new_qty
         item.total = max(gross - item_discount, Decimal("0"))
@@ -1012,7 +1058,7 @@ class OrderService:
         try:
             if delta > 0:
                 self._apply_sale_to_limit(product, delta)
-            else:
+            elif delta < 0:
                 await self._restore_to_limit(company_id, item.product_id, -delta)
         except Exception:
             pass
@@ -1026,6 +1072,10 @@ class OrderService:
         if delta > 0 and item.status in ("ready", "served"):
             item.status = "cooking"
         await self.sync_readiness(order)
+        if not commit:
+            # Пакетная правка (adjust_items): коммит и аудит делает вызывающий.
+            await self.db.flush()
+            return order
         await self.db.commit()
         try:
             await kitchen_manager.broadcast(
@@ -1037,8 +1087,83 @@ class OrderService:
         try:
             await AuditService(self.db).log(
                 company_id, user.id if user else None, "order.set_item_quantity", "order_item",
-                entity_id=item_id, new_data={"quantity": str(new_qty), "was": str(old_qty)},
+                entity_id=item_id, new_data={"quantity": str(new_qty), "was": str(old_qty),
+                                              "price": str(new_price), "old_price": str(old_price)},
             )
+        except Exception:
+            pass
+        return await self.get(company_id, order_id)
+
+    async def adjust_items(
+        self, company_id: UUID, order_id: UUID, changes: list[tuple[UUID, Decimal]],
+        user: User | None = None, *, pin: str | None = None, reason: str | None = None,
+    ) -> Order:
+        """Плюс/минус на нескольких уже внесённых позициях одной командой.
+
+        Уменьшение количества — это отмена части блюда: требует подтверждения
+        (тот же пароль, что у отмены блюда/заказа; инертно, если у компании он
+        не задан), причина необязательна. Кухня получает до двух тикетов:
+        «ОТМЕНА БЛЮДА» с отменённой частью и обычный тикет с добавленной.
+        Всё применяется в одной транзакции — либо все правки, либо ни одной.
+        """
+        from app.modules.printers.service import PrinterService
+
+        await self.db.execute(select(Order.id).where(
+            Order.id == order_id, Order.company_id == company_id,
+        ).with_for_update())
+        order = await self.get(company_id, order_id)
+        by_id = {item.id: item for item in order.items}
+
+        cancelled: dict[UUID, Decimal] = {}
+        added: dict[UUID, Decimal] = {}
+        applied: list[tuple[UUID, Decimal, Decimal]] = []
+        for item_id, quantity in changes:
+            item = by_id.get(item_id)
+            if item is None or item.status == "cancelled":
+                raise ValidationError("Позиция не найдена или уже отменена")
+            new_qty = self._as_decimal(quantity)
+            old_qty = self._as_decimal(item.quantity)
+            delta = new_qty - old_qty
+            if delta < 0:
+                cancelled[item_id] = -delta
+            elif delta > 0:
+                added[item_id] = delta
+            if delta != 0:
+                applied.append((item_id, old_qty, new_qty))
+
+        if cancelled:
+            await self._verify_order_secret(company_id, user, pin)
+
+        for item_id, _old, new_qty in applied:
+            if new_qty == 0:
+                # Ноль — полная отмена блюда, как «Отменить блюдо» в карточке.
+                await self.remove_item(
+                    company_id, order_id, item_id, reason, user, pin, commit=False,
+                )
+            else:
+                await self.set_item_quantity(
+                    company_id, order_id, item_id, new_qty, user, commit=False,
+                )
+
+        printer_service = PrinterService(self.db)
+        jobs = []
+        if cancelled:
+            jobs += await printer_service.queue_kitchen_quantity_changes(
+                company_id, order_id, cancelled, cancel=True,
+            )
+        if added:
+            jobs += await printer_service.queue_kitchen_quantity_changes(
+                company_id, order_id, added, cancel=False,
+            )
+        await self.db.commit()
+        await printer_service.notify_kitchen_additions(company_id, jobs)
+        try:
+            for item_id, old_qty, new_qty in applied:
+                await AuditService(self.db).log(
+                    company_id, user.id if user else None, "order.adjust_item_quantity", "order_item",
+                    entity_id=item_id, new_data={"quantity": str(new_qty), "was": str(old_qty),
+                                                  **({"reason": reason} if reason else {})},
+                )
         except Exception:
             pass
         return await self.get(company_id, order_id)

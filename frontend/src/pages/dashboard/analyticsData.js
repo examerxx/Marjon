@@ -109,6 +109,7 @@ export function paymentMethodLabel(value) {
     paymego: "Pay me",
     uzum: "Uzum Bank",
     loyalty: "Лояльность",
+    vip: "VIP",
     mixed: "Смешанная оплата",
     // Исторические заказы, закрытые до включения учёта оплат (счёт закрыт
     // старой версией приложения, записи в payments не было). Способ оплаты

@@ -327,6 +327,73 @@ class PrinterService:
             jobs.append(job)
         return jobs
 
+    async def queue_kitchen_additions(
+        self, company_id: UUID, order_id: UUID, item_ids: list[UUID],
+    ) -> list[tuple[PrintJob, Printer]]:
+        """Prepare durable kitchen jobs in the caller's order transaction."""
+        order = await self._get_order(company_id, order_id)
+        printers = await self.repo.get_by_type(company_id, order.branch_id, "kitchen")
+        _, template = await self._get_receipt_templates(company_id)
+        ticket = await self._build_kitchen_data(company_id, order, item_ids=item_ids)
+        jobs = []
+        if not ticket.items:
+            return jobs
+        for printer in printers:
+            raw = self._render_kitchen_ticket(printer, ticket, template)
+            job = PrintJob(
+                company_id=company_id, printer_id=printer.id, job_type="kitchen",
+                ref_id=order_id, payload=base64.b64encode(raw).decode(),
+                copies=1, status="pending",
+            )
+            self.db.add(job)
+            jobs.append((job, printer))
+        await self.db.flush()
+        return jobs
+
+    async def queue_kitchen_quantity_changes(
+        self, company_id: UUID, order_id: UUID, deltas: dict[UUID, Decimal], *, cancel: bool,
+    ) -> list[tuple[PrintJob, Printer]]:
+        """Кухонный тикет на изменение количества уже внесённых позиций.
+
+        deltas — {item_id: положительная дельта}. cancel=False — «добавили ещё»
+        (обычный тикет с дельтой), cancel=True — «ОТМЕНА БЛЮДА» с отменённой
+        частью. Задания ставятся в транзакцию вызывающего (как у дозаказа).
+        """
+        if not deltas:
+            return []
+        order = await self._get_order(company_id, order_id)
+        printers = await self.repo.get_by_type(company_id, order.branch_id, "kitchen")
+        _, template = await self._get_receipt_templates(company_id)
+        ticket = await self._build_kitchen_data(
+            company_id, order, item_ids=list(deltas), qty_overrides=deltas,
+            kind="item_cancel" if cancel else "new", include_cancelled=cancel,
+        )
+        jobs: list[tuple[PrintJob, Printer]] = []
+        if not ticket.items:
+            return jobs
+        for printer in printers:
+            raw = self._render_kitchen_ticket(printer, ticket, template)
+            job = PrintJob(
+                company_id=company_id, printer_id=printer.id, job_type="kitchen",
+                ref_id=order_id, payload=base64.b64encode(raw).decode(),
+                copies=1, status="pending",
+            )
+            self.db.add(job)
+            jobs.append((job, printer))
+        await self.db.flush()
+        return jobs
+
+    async def notify_kitchen_additions(self, company_id: UUID, jobs: list[tuple[PrintJob, Printer]]) -> None:
+        for job, printer in jobs:
+            try:
+                await printer_ws_manager.broadcast(company_id, printer.branch_id, {
+                    "event": "print_job", "job_id": str(job.id), "printer_id": str(printer.id),
+                    "payload": job.payload, "copies": job.copies, "job_type": job.job_type,
+                    "ip_address": printer.ip_address, "port": printer.port,
+                })
+            except Exception:
+                logger.warning("Kitchen notification failed; pending job %s remains queued", job.id)
+
     # ── Job queue (for POS terminals that print locally) ─────────────────────
 
     async def get_pending_jobs(
@@ -673,14 +740,18 @@ class PrinterService:
 
     async def _build_kitchen_data(
         self, company_id: UUID, order: Order, item_ids: list[UUID] | None = None,
+        qty_overrides: dict[UUID, Decimal] | None = None, kind: str = "new", include_cancelled: bool = False,
     ) -> KitchenTicketData:
         # Дозаказ печатается по-позиционно: item_ids ограничивает тикет
         # только новыми блюдами, а не всем составом стола.
+        # qty_overrides — тикет на ИЗМЕНЕНИЕ количества (плюс/минус на уже
+        # внесённой позиции): печатаем дельту, а не итоговое количество.
         wanted = set(item_ids) if item_ids is not None else None
+        overrides = qty_overrides or {}
         items = [
             KitchenItem(
                 name=item.name,
-                qty=format_quantity(item.quantity),
+                qty=format_quantity(overrides.get(item.id, item.quantity)),
                 note=item.note,
                 modifiers=[m.get("name", "") for m in (item.modifiers or [])],
                 course=item.course,
@@ -690,7 +761,7 @@ class PrinterService:
             )
             for item in order.items
             if (wanted is None or item.id in wanted)
-            and item.status not in ("cancelled", "served")
+            and (include_cancelled or item.status != "cancelled") and item.status != "served"
         ]
         waiter_name = await self._resolve_waiter_name(company_id, order)
         # Match the order timestamp in the preview, including stable reprints.
@@ -709,4 +780,5 @@ class PrinterService:
             status=order.status,
             printed_at=order_local_time,
             staff_label=await self._resolve_staff_label(company_id, order),
+            kind=kind,
         )

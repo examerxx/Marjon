@@ -1,3 +1,4 @@
+import { appendOrderItems } from './orderItems.mjs'
 import axios from 'axios'
 import { DEFAULT_SERVER_URL, normalizeServerUrl } from './config'
 import { submitOrderPayment, clearPaymentAttempt } from './orderPayments.mjs'
@@ -177,12 +178,12 @@ async function orderMutation(orderId, request, run) {
   const bridge = offlineBridge()
   const local = await localOrder(orderId)
   const pending = local && local.sync_state !== 'synced'
-  if (bridge && pending) return run(bridge)
+  if (bridge && pending) return run(bridge, local)
   try {
     return await request()
   } catch (e) {
     if (e?.response || !bridge || !local) throw e
-    return run(bridge)
+    return run(bridge, local)
   }
 }
 
@@ -607,6 +608,25 @@ export const orders = {
       (bridge) => bridge.addItems(orderId, [data]),
     ),
   // Пакетный дозаказ: одна команда — один кухонный тикет на все новые блюда.
+  appendDraftItems: async (orderId, lines) => {
+    try {
+      return await appendOrderItems({
+        api, storage: localStorage, server: baseURL(), orderId, lines,
+      })
+    } catch (e) {
+      const bridge = offlineBridge()
+      if (e?.response || !bridge) throw e
+      // Связь оборвалась: дозаказ уходит в локальную очередь. Слот попытки
+      // снимаем, иначе после переподключения пакет ушёл бы повторно.
+      localStorage.removeItem(`marjon_order_append:${encodeURIComponent(baseURL())}:${orderId}`)
+      const order = await bridge.addItems(orderId, lines.map((line) => ({
+        product_id: line.product.id, quantity: line.qty, note: line.note || null,
+        takeaway: !!line.takeaway, modifiers: line.modifiers || [],
+      })))
+      if (!order) throw e
+      return { order, sentIds: lines.map((line) => line.lineId) }
+    }
+  },
   addItems: (orderId, items) =>
     orderMutation(
       orderId,
@@ -625,16 +645,42 @@ export const orders = {
   moveItem: (orderId, itemId, table) => api.post(`/pos/orders/${orderId}/items/${itemId}/move`, null, { params: { table } }).then((r) => r.data),
   // Плюс/минус на уже внесённой позиции: количество меняется до оплаты,
   // поэтому склад не задет (сток списывается в /payments).
-  setItemQuantity: (orderId, itemId, quantity) =>
+  // price (если передан) — цена позиции на момент правки. Локальный движок
+  // пересчитывает сумму из сохранённой цены, поэтому новую цену без связи
+  // принять нельзя: иначе чек разойдётся с тем, что увидел кассир.
+  setItemQuantity: (orderId, itemId, quantity, price) =>
     orderMutation(
       orderId,
-      () => api.patch(`/pos/orders/${orderId}/items/${itemId}`, { quantity }).then((r) => r.data),
-      (bridge) => bridge.setItemQty(orderId, itemId, quantity),
+      () => api.patch(
+        `/pos/orders/${orderId}/items/${itemId}`,
+        price === undefined ? { quantity } : { quantity, price },
+      ).then((r) => r.data),
+      (bridge, local) => {
+        if (price !== undefined) {
+          const item = (local?.items || []).find((row) => String(row.id) === String(itemId))
+          const next = Math.round(Number(price) * 100)
+          const current = Math.round(Number(item?.price) * 100)
+          if (item && Number.isFinite(next) && Number.isFinite(current) && next !== current) {
+            throw new Error('Цену позиции нельзя изменить без связи с сервером')
+          }
+        }
+        return bridge.setItemQty(orderId, itemId, quantity)
+      },
     ),
+  // «Сохранить» в заказе: плюс/минус на нескольких внесённых позициях разом.
+  // changes: [{ itemId, quantity }] — НОВОЕ итоговое количество. Уменьшение
+  // подтверждается паролем (pin), reason необязателен; кухню печатает бэкенд.
+  // Только онлайн: офлайн-правки идут по одной через setItemQuantity.
+  adjustItems: (orderId, changes, { pin, reason } = {}) =>
+    api.post(`/pos/orders/${orderId}/items/adjust`, {
+      changes: changes.map((c) => ({ item_id: c.itemId, quantity: c.quantity })),
+      pin: pin || undefined,
+      reason: reason || undefined,
+    }).then((r) => r.data),
   // Смена ответственного официанта у ОДНОЙ позиции (кассир исправляет путаницу: доля обслуги идёт по ответственному)
-  setItemWaiter: (orderId, itemId, waiterId, reason) =>
+  setItemWaiter: (orderId, itemId, waiterId, reason, actionPin) =>
     api.patch(`/pos/orders/${orderId}/items/${itemId}/waiter`, {
-      waiter_id: waiterId, ...(reason ? { reason } : {}),
+      waiter_id: waiterId, reason, action_pin: actionPin,
     }).then((r) => r.data),
   // extra — дополнительные поля статуса: сейчас это должник при закрытии
   // «в долг» (client_name/client_phone), по ним бэкенд заводит клиента.
@@ -681,9 +727,13 @@ export const payments = {
   confirmOrder: async (order, method, detail) => {
     const bridge = offlineBridge()
     const local = await localOrder(order?.id)
+    // Частичная оплата живёт только на сервере: локальное ядро закрывает заказ
+    // целиком наличными, поэтому без связи не подменяем её полной оплатой.
+    const partial = detail?.partialAmount !== undefined
     // Заказ, которого сервер ещё не видел, платим только наличными локально —
     // проводка уйдёт вместе с заказом при восстановлении связи.
     if (bridge && local && local.sync_state !== 'synced') {
+      if (partial) throw new Error('Частичная оплата недоступна без связи с сервером')
       return bridge.payOrder(order.id, offlineCashPayment(order, detail))
     }
     try {
@@ -694,7 +744,7 @@ export const payments = {
       // Связь оборвалась посреди оплаты: серверная попытка не подтверждена.
       // Снимаем её ключ (иначе повтор создал бы дубль) и фиксируем оплату
       // в локальной базе — ядро досылает её с Idempotency-Key.
-      if (e?.response || !bridge || !local || method !== 'cash') throw e
+      if (e?.response || !bridge || !local || method !== 'cash' || partial) throw e
       clearPaymentAttempt({ storage: localStorage, server: baseURL(), orderId: order.id })
       return bridge.payOrder(order.id, offlineCashPayment(order, detail))
     }
@@ -703,6 +753,7 @@ export const payments = {
     api.post('/payments', data, {
       headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
     }).then((r) => r.data),
+  resetPartial: (orderId, paymentIds) => api.post(`/payments/order/${orderId}/reset-partial`, { payment_ids: paymentIds }),
   forOrder: async (orderId) => {
     const bridge = offlineBridge()
     const local = await localOrder(orderId)
@@ -880,7 +931,7 @@ export const finance = {
   // Способы оплаты из веб-админки (Настройки → «Способ оплаты»): владелец вводит
   // Uzum, Yandex и т.п. руками — интеграции нет, но на кассе их можно выбрать,
   // и в отчётах видно, через что клиент заплатил.
-  paymentTypes: () => api.get('/finance/payment-types', { params: { size: 200 } })
+  paymentTypes: (signal) => api.get('/settings/payment-methods', { signal })
     .then((r) => {
       const data = r.data
       const list = Array.isArray(data) ? data : (data?.items || data?.results || [])

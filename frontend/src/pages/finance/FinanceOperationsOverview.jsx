@@ -46,11 +46,11 @@ function ExpenseRing({ rows, active, setActive, totalLabel }) {
       amount.style.fontSize = low + "px";
     };
     fit();
-    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(fit) : null;
-    observer?.observe(center);
+    const observer = new ResizeObserver(fit);
+    observer.observe(center);
     document.fonts?.addEventListener("loadingdone", fit);
     return () => {
-      observer?.disconnect();
+      observer.disconnect();
       document.fonts?.removeEventListener("loadingdone", fit);
     };
   }, [amountLabel]);
@@ -90,7 +90,7 @@ function MovementChart({ days, text }) {
     if (!element || typeof ResizeObserver === "undefined") return undefined;
     const observer = new ResizeObserver(([entry]) => setWidth(Math.round(entry.contentRect.width)));
     observer.observe(element);
-    return () => observer?.disconnect();
+    return () => observer.disconnect();
   }, []);
   // Chart units are CSS pixels: axis text keeps its size on every viewport width.
   const w = Math.max(320, width || 680);
@@ -190,6 +190,7 @@ export default function FinanceOperationsOverview() {
       counterpartyId: row.counterpartyId,
       categoryId: row.categoryId,
       comment: row.comment,
+      staffService: row.staffService,
       operationDateTime: webDateTimeInput(row.date),
     });
   };
@@ -208,6 +209,8 @@ export default function FinanceOperationsOverview() {
     if (!editingRow || form.operationDateTime !== webDateTimeInput(editingRow.date)) {
       payload.date = date.toISOString();
     }
+    if (form.staffService) payload.staff_service = true;
+    else if (editingRow?.staffService) payload.staff_service = false;
     if (form.categoryId) payload.category_id = form.categoryId;
     try {
       let response;
@@ -331,9 +334,9 @@ export default function FinanceOperationsOverview() {
     </div>
     <div className={expanded ? "fo-bottom fo-bottom--expanded" : "fo-bottom"}>
       <section className="fo-panel fo-recent"><header><h2>{text.recent}</h2><button type="button" className="fo-details" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? "Свернуть" : "Подробнее"}<Icon name={expanded ? "bi-chevron-up" : "bi-chevron-right"} size={15} /></button></header>
-        <div className="fo-table-scroll finance-catalog-scroll" ref={tableRef} tabIndex={0} aria-label={text.recent}><table><thead><tr><th>{text.operationDate}</th><th>{text.registrationDate}</th><th>{text.amount}</th><th>{text.counterparty}</th><th>{text.category}</th><th>{text.payment}</th><th aria-label={text.actions} /></tr></thead><tbody>
-          {recent.map(row => <tr key={row.id}><td>{formatDate(row.date)}</td><td>{formatDate(row.createdAt)}</td><td className={`fo-amount--${row.type}`}>{row.amount > 0 ? (row.type === "income" ? "+" : "−") : ""}{formatMoney(row.amount)}</td><td>{row.counterparty}</td><td>{row.categoryId ? row.category : text.uncategorized}</td><td>{row.paymentTypeId ? row.paymentType : text.unspecified}</td><td className="fo-operation-actions"><button type="button" className="finance-action-edit" aria-label={text.editOperation} onClick={() => openEdit(row)}><Icon name="bi-pencil" size={15} /></button></td></tr>)}
-          {(loading || error || !recent.length) && <tr><td colSpan={7} className="fo-table-empty">{loading ? text.loading : error ? text.unavailable : text.empty}</td></tr>}
+        <div className="fo-table-scroll finance-catalog-scroll" ref={tableRef} tabIndex={0} aria-label={text.recent}><table><thead><tr><th>{text.operationDate}</th><th>{text.registrationDate}</th><th>{text.amount}</th><th>{text.counterparty}</th><th>{text.category}</th><th>{text.payment}</th><th>{text.comment}</th><th aria-label={text.actions} /></tr></thead><tbody>
+          {recent.map(row => <tr key={row.id}><td>{formatDate(row.date)}</td><td>{formatDate(row.createdAt)}</td><td className={row.isVip ? "finance-vip-text" : `fo-amount--${row.type}`}>{row.amount > 0 ? (row.type === "income" ? "+" : "−") : ""}{formatMoney(row.amount)}</td><td>{row.counterparty}</td><td className={row.isVip ? "finance-vip-text" : undefined}>{row.categoryId ? row.category : text.uncategorized}</td><td>{row.paymentTypeId ? row.paymentType : text.unspecified}</td><td className="fo-operation-comment">{row.comment?.trim() || "—"}</td><td className="fo-operation-actions"><button type="button" className="finance-action-edit" aria-label={text.editOperation} onClick={() => openEdit(row)}><Icon name="bi-pencil" size={15} /></button></td></tr>)}
+          {(loading || error || !recent.length) && <tr><td colSpan={8} className="fo-table-empty">{loading ? text.loading : error ? text.unavailable : text.empty}</td></tr>}
         </tbody></table></div>
       </section>
     </div>
