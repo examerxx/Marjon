@@ -1,0 +1,59 @@
+// Общие эффекты: «умный» блюр (зависит от места блока на экране и скорости скролла),
+// инерция блоков при прокрутке, прогрессивный блюр у кромок экрана, шапка-инверсия
+import './fx.css';
+
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches && !new URLSearchParams(location.search).has('motion');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const init = () => {
+  const html = document.documentElement;
+  html.classList.add('fx'); // шапка
+  if (reduced) return;
+
+  // блюр у кромок: сверху и снизу
+  const edge = (cls) => { const el = document.createElement('div'); el.className = 'fx-edge ' + cls; el.setAttribute('aria-hidden', 'true'); el.innerHTML = '<i></i><i></i><i></i><i></i>'; document.body.appendChild(el); return el; };
+  const top = edge('is-top'), bottom = edge('is-bottom');
+
+  // блоки: «листовые» элементы; закреплённые сцены пропускаем (там своя анимация)
+  const SEL = 'h1, h2, h3, h4, p, li, figure, blockquote, dl, table, .btn, [class*="card"], [class*="stat"], [class*="tile"]';
+  const SKIP = '.nav, .menu, #loader, .demo-pin, .mod-pin, .stage, .fx-edge, [data-nofx]';
+  const all = [...document.querySelectorAll(SEL)].filter((el) => !el.closest(SKIP));
+  const set = new Set(all);
+  const items = all.filter((el) => { for (let p = el.parentElement; p; p = p.parentElement) if (set.has(p)) return false; return true; })
+    .map((el, i) => ({ el, depth: 0.35 + ((i * 0.618034) % 1) * 0.65, y: 0, b: 0, on: false }));
+  const byEl = new Map(items.map((it) => [it.el, it]));
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((es) => { for (const e of es) { const it = byEl.get(e.target); it.on = e.isIntersecting; if (!it.on) reset(it); } }, { rootMargin: '12% 0px 12% 0px' });
+    for (const it of items) { it.el.classList.add('fx-b'); io.observe(it.el); }
+  }
+  const reset = (it) => { if (it.b) { it.el.style.filter = ''; it.b = 0; } if (it.y) { it.el.style.translate = ''; it.y = 0; } };
+
+  let lastY = scrollY, lastT = performance.now(), vel = 0, raf = 0, idle = 0;
+  const frame = (now) => {
+    const dt = Math.max(now - lastT, 1); lastT = now;
+    const y = scrollY, vh = innerHeight, max = html.scrollHeight - vh;
+    const raw = clamp((y - lastY) / dt, -6, 6); lastY = y; // px/мс
+    vel += (raw - vel) * (1 - Math.exp(-dt / 110));
+    const speed = Math.min(Math.abs(vel) / 3, 1);
+    // у самого верха и самого низа страницы кромки «отпускают» — первый экран и футер остаются резкими
+    const kTop = clamp(y / 260, 0, 1), kBot = clamp((max - y) / 260, 0, 1);
+    top.classList.toggle('off', y < 60); bottom.classList.toggle('off', y < vh * 0.35 || max - y < 80);
+    for (const it of items) {
+      if (!it.on) continue;
+      const r = it.el.getBoundingClientRect(), t0 = r.top - it.y, b0 = r.bottom - it.y;
+      // 0 в зоне фокуса, 1 — у кромки экрана
+      const fb = (1 - clamp((vh - t0) / (vh * 0.24), 0, 1)) * kBot * clamp(y / 260, 0, 1);
+      const ft = (1 - clamp(b0 / (vh * 0.2), 0, 1)) * kTop;
+      const blur = Math.pow(Math.max(fb, ft), 1.35) * 12 + speed * speed * 2.2 * it.depth;
+      if (Math.abs(blur - it.b) > 0.12) { it.b = blur < 0.2 ? 0 : blur; it.el.style.filter = it.b ? `blur(${it.b.toFixed(2)}px)` : ''; }
+      // инерция: блоки чуть отстают от скролла, каждый на свою «глубину» (то, что ведёт GSAP, не трогаем)
+      const ty = it.el._gsap ? 0 : clamp(vel * it.depth * 22, -48, 48);
+      if (Math.abs(ty - it.y) > 0.1) { it.y = Math.abs(ty) < 0.15 ? 0 : ty; it.el.style.translate = it.y ? `0 ${it.y.toFixed(1)}px` : ''; }
+    }
+    idle = Math.abs(vel) < 0.004 && raw === 0 ? idle + 1 : 0;
+    raf = idle > 20 ? 0 : requestAnimationFrame(frame);
+  };
+  const wake = () => { if (!raf) { idle = 0; lastT = performance.now(); lastY = scrollY; raf = requestAnimationFrame(frame); } };
+  addEventListener('scroll', wake, { passive: true }); addEventListener('resize', wake);
+  wake();
+};
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
