@@ -2,7 +2,7 @@
 // инерция блоков при прокрутке, прогрессивный блюр у кромок экрана, шапка-инверсия
 import './fx.css';
 
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches && !new URLSearchParams(location.search).has('motion');
+const reduced = new URLSearchParams(location.search).get('motion') === '0'; // анимация всегда, prefers-reduced-motion игнорируем по просьбе владельца
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const init = () => {
   const html = document.documentElement;

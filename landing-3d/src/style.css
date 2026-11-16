@@ -360,7 +360,7 @@ main { position: relative; } /* без z-index: иначе mix-blend у H1 не 
 .foot-col h3 { font: 500 .72rem var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 6px; }
 .foot-col a { color: var(--muted); transition: color .3s; padding: 2px 0; }
 .foot-col a:hover { color: var(--text); }
-.foot-word { font-family: var(--display); font-weight: 700; font-size: 15.6vw; line-height: .8; letter-spacing: -.06em; margin: clamp(40px, 8vh, 90px) 0 0 -.04em; white-space: nowrap; color: var(--paper); user-select: none; }
+.foot-word { font-family: var(--display); font-weight: 700; font-size: min(15.6vw, 280px); line-height: .8; letter-spacing: -.055em; margin: clamp(40px, 8vh, 90px) 0 0; white-space: nowrap; text-align: center; color: var(--paper); user-select: none; }
 .foot-bottom { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 24px; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line); font-size: .78rem; color: var(--faint); }
 
 /* ---------- responsive ---------- */
@@ -456,7 +456,7 @@ html { scrollbar-width: none; -ms-overflow-style: none; }
 html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; height: 0; }
 
 /* версия «Нить и техника»: заголовок первого экрана уже, справа — устройства */
-@media (min-width: 1000px) { .v-ah #top .h-hero { font-size: clamp(2.6rem, 6.5vw, 8rem); max-width: 6.4em; } }
+@media (min-width: 1000px) { .v-ah #top .h-hero { font-size: clamp(2.6rem, 6.5vw, 8rem); max-width: none; } .ch-hero .hero-in { padding-bottom: clamp(80px, 14vh, 168px); } }
 
 /* ================= правки: роли по очереди, плитки, «было и стало», финал ================= */
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -466,11 +466,11 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; heig
 .rshow { list-style: none; padding: 0; margin: 0; }
 .rs { min-height: 92svh; display: flex; align-items: center; }
 .rs:first-child { min-height: 78svh; }
-.rs-cap { display: grid; gap: 16px; max-width: min(430px, 36vw); }
-.rs-n { font-family: var(--display); font-weight: 600; font-size: clamp(3rem, 6vw, 6rem); line-height: .9; letter-spacing: -.05em; color: var(--mint); }
+.rs-cap { display: grid; gap: 20px; max-width: min(560px, 44vw); }
+.rs-n { font-family: var(--display); font-weight: 600; font-size: clamp(3.4rem, 7.4vw, 7.2rem); line-height: .9; letter-spacing: -.05em; color: var(--mint); }
 .rs-n i { font-style: normal; font-size: .28em; font-weight: 500; letter-spacing: 0; color: var(--faint); }
-.rs-cap h3 { font-family: var(--display); font-weight: 500; font-size: clamp(1.5rem, 2.6vw, 2.6rem); line-height: 1.05; letter-spacing: -.04em; }
-.rs-cap p { color: var(--muted); font-size: 1.08rem; text-shadow: 0 1px 18px rgba(10, 11, 12, .8); }
+.rs-cap h3 { font-family: var(--display); font-weight: 500; font-size: clamp(1.9rem, 3.3vw, 3.2rem); line-height: 1.05; letter-spacing: -.04em; }
+.rs-cap p { color: var(--muted); font-size: 1.16rem; text-shadow: 0 1px 18px rgba(10, 11, 12, .8); }
 .rs-who { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .rs-who span { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(17, 19, 21, .5); backdrop-filter: blur(10px); font-size: .9rem; }
 .rs-fb { display: none; margin: 0; }

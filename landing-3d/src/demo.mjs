@@ -15,7 +15,7 @@ export function demo(t, attrs = '') {
             <h2 class="cap-h">${sc.h2.join(' ')}</h2>
             <p class="cap-t">${sc.text}</p>
             ${i === 3 ? `<p class="cap-kpi"><span>${d.income}</span><b><i data-kpi>118 024 000</i> ${d.cur}</b></p>` : `<ul class="ticks">${sc.list.slice(0, 2).map((x) => `<li>${x}</li>`).join('')}</ul>`}
-            ${img ? `<figure class="cap-fb${ph ? ' ph' : ''}"><img src="/src/assets/shots/${img}.webp" alt="${a}" loading="lazy" width="${ph ? 1170 : 3072}" height="${ph ? 2532 : 1920}" /></figure>` : ''}
+            ${img ? `<figure class="cap-fb${ph ? ' ph' : ''}"><img src="/src/assets/shots/${img}.webp" alt="${a}" loading="eager" decoding="async" width="${ph ? 1170 : 3072}" height="${ph ? 2532 : 1920}" /></figure>` : ''}
           </article>`).join('')}
         </div>
         <div class="demo-bar" aria-hidden="true"><i data-bar></i></div>

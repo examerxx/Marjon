@@ -36,7 +36,7 @@ const rolesShow = (t) => `    <ol class="rshow" data-rshow>
           <p>${r.t}</p>
           <div class="rs-who">${r.who.map((w) => `<span>${w}</span>`).join('')}</div>
         </div>
-        <figure class="rs-fb d-${r.img}${r.img === 'mobile' ? ' ph' : ''}"><img src="/src/assets/shots/${r.img}.webp" alt="${r.k}" loading="lazy" width="${r.img === 'mobile' ? 1170 : 3072}" height="${r.img === 'mobile' ? 2532 : 1920}" /></figure>
+        <figure class="rs-fb d-${r.img}${r.img === 'mobile' ? ' ph' : ''}"><img src="/src/assets/shots/${r.img}.webp" alt="${r.k}" loading="eager" decoding="async" width="${r.img === 'mobile' ? 1170 : 3072}" height="${r.img === 'mobile' ? 2532 : 1920}" /></figure>
       </li>`).join('\n      ')}
     </ol>`;
 const rolesTabs = (t) => `    <div class="roles" data-r>
