@@ -14,6 +14,7 @@ from app.modules.auth.dependencies import (
 )
 from app.modules.auth.models import User
 from app.modules.pos.schemas import (
+    OfflineTotals,
     OrderCreate, OrderItemCreate, OrderItemQuantityUpdate, OrderItemWaiterUpdate, OrderItemsAdd, OrderItemsAdjust,
     OrderResponse, OrderReopen, OrderStatusUpdate, OrderUpdate,
     TerminalCreate, TerminalResponse,
@@ -119,7 +120,27 @@ async def add_item(order_id: UUID, data: OrderItemCreate, user: User = Depends(r
 @router.post("/orders/{order_id}/items/bulk", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
 async def add_items(order_id: UUID, data: OrderItemsAdd, idempotency_key: str | None = Header(None, alias="Idempotency-Key"), user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
     """Дозаказ пачкой: новые блюда уходят повару одним кухонным тикетом."""
-    return await OrderService(db, branch_scope=effective_branch_filter(user)).add_items(user.company_id, order_id, data.items, user, idempotency_key)
+    return await OrderService(db, branch_scope=effective_branch_filter(user)).add_items(
+        user.company_id, order_id, data.items, user, idempotency_key,
+        price_snapshot=data.price_snapshot, offline_import=data.offline_import,
+    )
+
+
+@router.post("/orders/{order_id}/offline-totals", response_model=OrderResponse)
+async def set_offline_totals(
+    order_id: UUID, data: OfflineTotals,
+    user: User = Depends(require_company_app_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Итоги, посчитанные терминалом в офлайне, после правки строк.
+
+    Офлайн-чек уже напечатан по этим суммам; сервер обязан сохранить их, иначе
+    следующая оплата придёт с суммой, не совпадающей с его пересчётом.
+    Метод сам сверяет арифметику с текущими строками заказа.
+    """
+    return await OrderService(db, branch_scope=effective_branch_filter(user)).set_offline_totals(
+        user.company_id, order_id, data, user,
+    )
 
 
 @router.post("/orders/{order_id}/items/adjust", response_model=OrderResponse)

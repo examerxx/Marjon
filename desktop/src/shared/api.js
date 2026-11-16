@@ -65,6 +65,16 @@ if (typeof window !== 'undefined') {
   syncBridgeConfig()
   window.addEventListener('online', () => { syncBridgeConfig(); offlineBridge()?.flush?.().catch?.(() => {}) })
   window.addEventListener('marjon:offline-sync', () => offlineBridge()?.syncNow?.().catch?.(() => {}))
+  // Движок синхронизации получает 401/403, когда access-токен истёк (живёт
+  // 15 минут), и сам обновить его не может — refresh лежит в рендерере.
+  // Без этого очередь навсегда оставалась «мёртвой» до ручного перезахода.
+  offlineBridge()?.onAuthRequired?.(async () => {
+    try {
+      await refreshStaffToken()
+      syncBridgeConfig()
+      offlineBridge()?.flush?.().catch?.(() => {})
+    } catch { /* refresh не сработал — пользователя выведет обычный 401-перехват */ }
+  })
 }
 
 api.interceptors.request.use((config) => {
@@ -731,9 +741,11 @@ export const payments = {
     // целиком наличными, поэтому без связи не подменяем её полной оплатой.
     const partial = detail?.partialAmount !== undefined
     // Заказ, которого сервер ещё не видел, платим только наличными локально —
-    // проводка уйдёт вместе с заказом при восстановлении связи.
+    // проводка уйдёт вместе с заказом при восстановлении связи. Карту/долг
+    // подменить наличными нельзя: в отчёте это была бы выдуманная оплата.
     if (bridge && local && local.sync_state !== 'synced') {
       if (partial) throw new Error('Частичная оплата недоступна без связи с сервером')
+      if (method !== 'cash') throw new Error('Без связи доступна только оплата наличными')
       return bridge.payOrder(order.id, offlineCashPayment(order, detail))
     }
     try {
@@ -930,13 +942,25 @@ export const finance = {
   addExpense: (data) => api.post('/finance/transactions', { ...data, direction: 'expense' }).then((r) => r.data),
   // Способы оплаты из веб-админки (Настройки → «Способ оплаты»): владелец вводит
   // Uzum, Yandex и т.п. руками — интеграции нет, но на кассе их можно выбрать,
-  // и в отчётах видно, через что клиент заплатил.
-  paymentTypes: (signal) => api.get('/settings/payment-methods', { signal })
-    .then((r) => {
-      const data = r.data
-      const list = Array.isArray(data) ? data : (data?.items || data?.results || [])
-      return list.filter((p) => p && p.status !== false && p.is_active !== false && p.name)
-    }),
+  // и в отчётах видно, через что клиент заплатил. Список кешируется в SQLite:
+  // офлайн модалка оплаты обязана открыться с тем же набором кнопок.
+  paymentTypes: (signal) => cached(
+    'payment_methods',
+    api.get('/settings/payment-methods', { signal }).then((r) => paymentTypeList(r.data)),
+    {
+      bridgeKey: 'payment_methods',
+      offline: async (bridge) => {
+        const local = await bridge.cacheGet('payment_methods')
+        const list = paymentTypeList(local)
+        return list.length ? list : null
+      },
+    },
+  ),
+}
+
+function paymentTypeList(data) {
+  const list = Array.isArray(data) ? data : (data?.items || data?.results || [])
+  return list.filter((p) => p && p.status !== false && p.is_active !== false && p.name)
 }
 
 // Клиенты (автокомплит по номеру в доставке)

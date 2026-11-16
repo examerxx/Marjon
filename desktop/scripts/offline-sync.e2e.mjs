@@ -302,6 +302,65 @@ try {
     assert.equal(String(syncedOrder.waiter_id), String(waiter.id), 'официант не сохранился на сервере')
   })
 
+  // ── Дозаказ и правки уже синхронизированного заказа без сети ──────────────
+  await step('дозаказ и правки без сети сходятся с сервером', async () => {
+    const created = await call('offline:order-create', {
+      branch_id: branchId,
+      order_type: 'dine_in',
+      items: [{ product_id: dishA.id, quantity: 1 }],
+    })
+    const localId = created.local_id || created.id
+    await waitFor('первую отправку заказа', async () => {
+      await call('offline:flush')
+      const dto = await call('offline:order-get', localId)
+      return dto.sync_state === 'synced'
+    })
+    const base = await call('offline:order-get', localId)
+
+    // Сеть снова «пропадает»: правки должны уйти одной пачкой при возврате.
+    await call('offline:configure', { apiBase: DEAD_API })
+    const added = await call('offline:order-add-items', base.id, [
+      { product_id: dishB.id, quantity: 1 },
+    ])
+    const dishItem = added.items.find((item) => String(item.product_id) === String(dishB.id))
+    assert.ok(dishItem, 'дозаказ не появился в локальном заказе')
+    const doubled = await call('offline:order-set-qty', base.id, dishItem.id, 2)
+    assert.equal(
+      Number(doubled.items.find((item) => String(item.id) === String(dishItem.id)).quantity), 2,
+      'количество добавленного офлайн блюда не изменилось',
+    )
+    const discounted = await call('offline:order-update', base.id, { discount_amount: '1.00' })
+    assert.equal(Number(discounted.discount_amount), 1)
+    await call('offline:order-pay', base.id, {
+      method: 'cash', amount: discounted.total_amount,
+    })
+
+    await call('offline:configure', { apiBase: API })
+    await waitFor('очередь дозаказа', async () => (await call('offline:status')).pending === 0)
+    const synced = await call('offline:order-get', localId)
+    assert.equal(synced.sync_state, 'synced')
+    assert.equal(Number(synced.discount_amount), 1, 'скидка не доехала до сервера')
+    assert.equal(synced.items.filter((item) => item.status !== 'cancelled').length, 2)
+
+    const db = new Database(SERVER_DB, { readonly: true })
+    try {
+      const row = db.prepare('SELECT id, total_amount, status FROM orders WHERE client_id = ?')
+        .get(base.client_id)
+      assert.ok(row, 'дозаказ не создал заказ на сервере')
+      assert.equal(row.status, 'completed')
+      assert.equal(Number(row.total_amount), Number(synced.total_amount), 'итог сервера разошёлся с локальным')
+      const pays = db.prepare("SELECT COUNT(*) AS n FROM payments WHERE replace(order_id, '-', '') = ?")
+        .get(String(row.id).replace(/-/g, ''))
+      assert.equal(pays.n, 1, `на сервере ${pays.n} оплат по заказу с дозаказом`)
+      const items = db.prepare(
+        "SELECT COUNT(*) AS n FROM order_items WHERE replace(order_id, '-', '') = ? AND status <> 'cancelled'"
+      ).get(String(row.id).replace(/-/g, ''))
+      assert.equal(items.n, 2, `на сервере ${items.n} позиций вместо двух`)
+    } finally {
+      db.close()
+    }
+  })
+
   // ── Отмена: локальная и серверная ─────────────────────────────────────────
   await step('заказ, не ушедший на сервер, отменяется без сети', async () => {
     await call('offline:configure', { apiBase: DEAD_API })

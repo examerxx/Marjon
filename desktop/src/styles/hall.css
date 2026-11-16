@@ -139,7 +139,12 @@
   font-weight: 700;
   letter-spacing: 0.01em;
   white-space: nowrap;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
 }
+.topbar__sync:hover { filter: brightness(0.97); }
+.topbar__sync:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
 .topbar__sync-dot {
   width: 8px;
   height: 8px;
@@ -150,6 +155,87 @@
 .topbar__sync--offline .topbar__sync-dot { background: #e0a53a; }
 .topbar__sync--failed { background: #fdeaea; color: #a3302b; }
 .topbar__sync--failed .topbar__sync-dot { background: #d2483f; }
+/* Панель синхронизации (клик по пилюле): состояние ядра, неотправленные
+   операции и неудачная печать с точечным повтором. */
+.sync-panel {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(8, 20, 34, 0.42);
+  backdrop-filter: blur(6px);
+}
+.sync-panel__card {
+  width: min(560px, 100%);
+  max-height: 82vh;
+  overflow-y: auto;
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(9, 24, 42, 0.3);
+}
+.sync-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sync-panel__title { font-size: 17px; font-weight: 800; color: var(--color-text-primary); }
+.sync-panel__rows { display: grid; gap: 8px; }
+.sync-panel__rows > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+.sync-panel__rows strong { color: var(--color-text-primary); font-weight: 700; }
+.sync-panel__rows strong.is-ok { color: #0f8f6f; }
+.sync-panel__rows strong.is-bad { color: #b23a33; }
+.sync-panel__error {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #fdeaea;
+  color: #a3302b;
+  font-size: 13px;
+}
+.sync-panel__actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.sync-panel__section h4 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.sync-panel__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sync-panel__list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--color-surface-hover);
+}
+.sync-panel__item-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.sync-panel__item-text strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-primary);
+}
+.sync-panel__item-text em { font-style: normal; color: #a3302b; overflow-wrap: anywhere; }
 /* Блокировка — слева от карточки времени, как в прежней шапке. */
 .topbar__lock {
   display: grid;

@@ -104,6 +104,9 @@ export default function PaymentScreen({
   // Сумма, которую дал гость. Строкой: пустое поле ≠ 0, это «ровно к оплате».
   const [amount, setAmount] = useState('')
   const [editingAmount, setEditingAmount] = useState(false)
+  // Связь нужна, чтобы не рисовать доступную карту/долг там, где сервер
+  // физически недоступен: без сети ядро принимает только наличные.
+  const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine))
   const amountInputRef = useRef(null)
   const amountTriggerRef = useRef(null)
 
@@ -116,6 +119,10 @@ export default function PaymentScreen({
 
   // Кастомные способы (Uzum, Yandex…).
   const reopening = Boolean(order?.reopened_at)
+  // Заказ, которого сервер ещё не видел (или в нём есть неотправленные
+  // правки): закрыть его можно только наличными — проводка уйдёт из очереди.
+  const pendingLocal = Boolean(order?.sync_state && order.sync_state !== 'synced')
+  const cashOnly = pendingLocal || !online
   const refundDue = reopening ? Math.max(0, Number(paidBefore || 0) - total) : 0
   const dueNow = Math.max(0, Math.round((total - Number(paidBefore || 0)) * 100) / 100)
   const debtAllowed = canDebt && !reopening
@@ -126,7 +133,9 @@ export default function PaymentScreen({
   const paid = entered > 0 ? entered : dueNow
   const change = Math.max(0, paid - dueNow)
   const short = Math.max(0, dueNow - paid)
-  const canComplete = canClose && !busy
+  // Локальная проводка принимает только полную сумму: «недобрали» — просим
+  // доплатить, а не пишем в очередь частичную оплату.
+  const canComplete = canClose && !busy && (!pendingLocal || short === 0)
 
   // Живой пересчёт итога
   const refreshTimer = useRef(null)
@@ -140,18 +149,35 @@ export default function PaymentScreen({
 
   useEffect(() => {
     const request = new AbortController()
-    Promise.all([financeApi.paymentTypes(request.signal), payments.forOrder(order.id)])
-      .then(([rows, recorded]) => {
+    // Способы оплаты и уже внесённые проводки грузим независимо: если список
+    // методов не пришёл (нет сети, битый кеш), касса всё равно должна видеть
+    // сумму прошлых оплат и уметь закрыть заказ наличными.
+    financeApi.paymentTypes(request.signal)
+      .then((rows) => {
         if (request.signal.aborted) return
-        setPaymentMethods(rows)
-        setRecordedPayments(recorded.filter((payment) => payment.status === 'completed'))
+        setPaymentMethods(Array.isArray(rows) ? rows : [])
         setMethodsStatus('ready')
       })
-      .catch(() => {
-        if (!request.signal.aborted) setMethodsStatus('error')
+      .catch(() => { if (!request.signal.aborted) setMethodsStatus('error') })
+    payments.forOrder(order.id)
+      .then((recorded) => {
+        if (request.signal.aborted) return
+        setRecordedPayments((Array.isArray(recorded) ? recorded : []).filter((payment) => payment.status === 'completed'))
       })
+      .catch(() => { /* суммы прошлых оплат уже пришли в paidBefore */ })
     return () => request.abort()
   }, [order?.id])
+
+  useEffect(() => {
+    const up = () => setOnline(true)
+    const down = () => setOnline(false)
+    window.addEventListener('online', up)
+    window.addEventListener('offline', down)
+    return () => {
+      window.removeEventListener('online', up)
+      window.removeEventListener('offline', down)
+    }
+  }, [])
 
   // Модалки выбора способа и долга закрываются по Escape и тапом по подложке.
   useEffect(() => {
@@ -292,6 +318,7 @@ export default function PaymentScreen({
     const moneyMethod = nextMethod === 'cash' || nextMethod === 'card'
     const paymentAmount = moneyMethod ? Math.min(entered || dueNow, dueNow) : dueNow
     const partial = !reopening && moneyMethod && (paidBefore > 0 || paymentAmount < dueNow)
+    if (pendingLocal && partial) { toast(t('not_enough'), 'error'); return }
     if (paidBefore > 0 && !reopening && !moneyMethod && nextMethod !== 'VIP') return
     if (partial && paymentAmount <= 0) return
     if (!reopening && paidBefore > 0 && paymentAmount >= dueNow) {
@@ -391,6 +418,7 @@ export default function PaymentScreen({
 
   const icons = { cash: Banknote, card: CreditCard, vip: Crown }
   const reservedNames = new Set(['cash', 'card', 'debt', 'vip', 'mixed', 'наличные', 'наличными', 'карта', 'в долг', 'смешанный'])
+  const cashOption = { value: 'cash', label: t('cash'), icon: <Banknote size={18} />, blocked: '', disabled: false }
   const methodOptions = paymentMethods.flatMap((row) => {
     const builtIn = ['cash', 'card', 'vip', 'debt'].includes(row.type) &&
       (row.is_system || /^fef15000-0000-4000-8000-00000000000[1-4]$/.test(row.id))
@@ -398,16 +426,30 @@ export default function PaymentScreen({
     if (builtIn && row.type === 'debt' && !debtAllowed) return []
     const isVip = builtIn && row.type === 'vip'
     const moneyMethod = builtIn && ['cash', 'card'].includes(row.type)
-    const blocked = isVip && reopening
+    // Офлайн-ядро проводит только наличные. Свой способ с типом cash допустим,
+    // но уходит на сервер как встроенные наличные — другого типа ядро не знает.
+    const offlineCash = cashOnly && row.type === 'cash'
+    // Без связи/до отправки заказа сервер принимает только наличные. Причина
+    // важнее прочих: кассир должен видеть именно её, а не «после частичной».
+    const offlineBlock = cashOnly && !offlineCash
+      ? (pendingLocal ? t('offline_order_cash_only') : t('offline_cash_only'))
+      : ''
+    const blocked = offlineBlock || (isVip && reopening
       ? t('payment_vip_unpaid_only')
-      : paidBefore > 0 && !reopening && !builtIn ? t('payment_method_after_partial') : ''
+      : paidBefore > 0 && !reopening && !builtIn ? t('payment_method_after_partial') : '')
     const MethodIcon = (builtIn && icons[row.type]) || Wallet
     return [{
-      value: builtIn ? (isVip ? 'VIP' : row.type) : row.name,
+      value: row.type === 'cash' ? 'cash' : builtIn ? (isVip ? 'VIP' : row.type) : row.name,
       label: row.name, icon: <MethodIcon size={18} />, blocked,
       disabled: Boolean(blocked),
     }]
   })
+  // Список способов мог не загрузиться (первый запуск без сети, битый кеш), а
+  // устаревшие способы без типа не проходят как наличные. Наличные — единственный
+  // способ, который ядро умеет провести само, поэтому мёртвого экрана быть не должно.
+  const shownOptions = methodOptions.length
+    ? (cashOnly && !methodOptions.some((o) => !o.disabled) ? [...methodOptions, cashOption] : methodOptions)
+    : [cashOption]
 
   return (
     <div className="pay-screen">
@@ -592,31 +634,39 @@ export default function PaymentScreen({
                 <span>{t('to_pay')}</span>
                 <strong>{fmt(dueNow)} {t('currency')}</strong>
               </button>
+              {cashOnly && (
+                <p className="pay-method__notice pay-method__notice--offline" role="status">
+                  {pendingLocal ? t('offline_order_cash_only') : t('offline_cash_only')}
+                </p>
+              )}
               <div className="pay-method__list" ref={methodListRef}>
-                {methodsStatus !== 'ready' ? (
-                  <p className="pay-method__notice" role={methodsStatus === 'error' ? 'alert' : 'status'}>
-                    {t(methodsStatus === 'error' ? 'payment_methods_load_error' : 'loading')}
-                  </p>
-                ) : methodOptions.length === 0 ? (
-                  <p className="pay-method__notice" role="status">{t('payment_methods_empty')}</p>
-                ) : methodOptions.map((option) => (
-                  <button
-                    key={option.value} type="button" data-method={option.value}
+                {methodsStatus === 'loading' ? (
+                  <p className="pay-method__notice" role="status">{t('loading')}</p>
+                ) : (
+                  <>
+                    {methodsStatus === 'error' && (
+                      <p className="pay-method__notice" role="alert">{t('payment_methods_load_error')}</p>
+                    )}
+                    {shownOptions.map((option) => (
+                      <button
+                        key={option.value} type="button" data-method={option.value}
                         className={`pay-method__opt${option.blocked ? ' pay-method__opt--blocked' : ''}${busy && method === option.value ? ' is-selected' : ''}`}
-                    disabled={busy || option.disabled}
-                    onClick={() => { setPadTarget('amount'); setSelected(option.value); completeWithMethod(option.value) }}
-                  >
-                    <span className="pay-method__ico">{option.icon}</span>
-                    <span className="pay-method__label">
-                      <span className="pay-method__name">{option.label}</span>
-                      {option.blocked && <span className="pay-method__reason">{option.blocked}</span>}
-                    </span>
-                    {allocated.has(option.value) && <strong className="pay-method__allocated" key={allocated.get(option.value)}>
-                      {fmt(allocated.get(option.value))}
-                    </strong>}
-                    {busy && method === option.value && spin}
-                  </button>
-                ))}
+                        disabled={busy || option.disabled}
+                        onClick={() => { setPadTarget('amount'); setSelected(option.value); completeWithMethod(option.value) }}
+                      >
+                        <span className="pay-method__ico">{option.icon}</span>
+                        <span className="pay-method__label">
+                          <span className="pay-method__name">{option.label}</span>
+                          {option.blocked && <span className="pay-method__reason">{option.blocked}</span>}
+                        </span>
+                        {allocated.has(option.value) && <strong className="pay-method__allocated" key={allocated.get(option.value)}>
+                          {fmt(allocated.get(option.value))}
+                        </strong>}
+                        {busy && method === option.value && spin}
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
             </div>
             {!reopening && (

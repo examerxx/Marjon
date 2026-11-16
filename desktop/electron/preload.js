@@ -48,11 +48,21 @@ const offline = {
 
   printReceipt: (args) => offlineCall('offline:print-receipt', args),
   printKitchen: (args) => offlineCall('offline:print-kitchen', args),
+  printJobs: (params) => offlineCall('offline:print-jobs', params),
+  retryPrintJob: (id) => offlineCall('offline:retry-print', id),
+
+  deadOps: () => offlineCall('offline:dead-ops'),
+  retryDead: (opId) => offlineCall('offline:retry-dead', opId),
 
   onState: (callback) => {
     const listener = (_event, state) => callback(state)
     ipcRenderer.on('offline:state', listener)
     return () => ipcRenderer.removeListener('offline:state', listener)
+  },
+  onAuthRequired: (callback) => {
+    const listener = () => callback()
+    ipcRenderer.on('offline:auth-required', listener)
+    return () => ipcRenderer.removeListener('offline:auth-required', listener)
   },
 }
 

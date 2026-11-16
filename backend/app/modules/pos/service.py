@@ -368,11 +368,14 @@ class OrderService:
                     "offline order notification failed for order %s", order.id, exc_info=True
                 )
         # Авто-печать кухонного чека (если настроен принтер). Не фатально для заказа.
+        # Офлайн-заказ терминал уже напечатал локально (или держит job в своей
+        # очереди печати) — повторная серверная печать дала бы кухне дубль.
         try:
             from app.modules.printers.service import PrinterService
-            await PrinterService(self.db).auto_print_kitchen(
-                company_id, order.id
-            )
+            if order.created_offline_at is None:
+                await PrinterService(self.db).auto_print_kitchen(
+                    company_id, order.id
+                )
         except Exception:
             # PRINT-DIAG-01: раньше здесь стоял молчаливый `pass` — кухонный чек
             # не выходил, и ни в логах, ни в ответе не было ни следа причины
@@ -841,6 +844,7 @@ class OrderService:
     async def add_items(
         self, company_id: UUID, order_id: UUID, items_data: list[OrderItemCreate],
         user: User | None = None, idempotency_key: str | None = None,
+        *, price_snapshot: bool = False, offline_import: bool = False,
     ) -> Order:
         from app.modules.finance.idempotency import FinancialOperationService, request_fingerprint_v2
         from app.modules.printers.service import PrinterService
@@ -862,13 +866,29 @@ class OrderService:
             raise ValidationError("Нельзя добавить позицию к завершённому или отменённому заказу")
 
         created: list[OrderItem] = []
+        price_mismatches: list[dict] = []
         for item_data in items_data:
             product = await self._get_product(company_id, item_data.product_id, for_update=True)
-            # STOP-LIST V1: та же каноническая проверка, что в create().
-            self._ensure_sale_allowed(product, item_data.quantity)
+            # STOP-LIST V1: та же каноническая проверка, что в create(). Для
+            # офлайн-дозаказа блюдо уже продано и тикет напечатан — отказ
+            # сервера означал бы потерянную продажу, поэтому снимок пропускаем.
+            if not (price_snapshot and offline_import):
+                self._ensure_sale_allowed(product, item_data.quantity)
+            # OFFLINE-01: цена, по которой блюдо реально продали на терминале.
+            unit_price = product.price
+            if price_snapshot and item_data.unit_price is not None:
+                unit_price = _quantize(item_data.unit_price)
+                if unit_price != _quantize(product.price):
+                    price_mismatches.append({
+                        "product_id": str(product.id),
+                        "name": product.name,
+                        "sale_price": str(unit_price),
+                        "menu_price": str(_quantize(product.price)),
+                        "quantity": str(item_data.quantity),
+                    })
             # Добавки поднимают цену порции — см. комментарий в create().
             modifiers_delta = _modifiers_delta(item_data.modifiers)
-            item_total = _quantize((product.price + modifiers_delta) * item_data.quantity)
+            item_total = _quantize((unit_price + modifiers_delta) * item_data.quantity)
             item_discount = _quantize(item_data.discount) if item_data.discount else Decimal("0")
             item_total_after_discount = max(item_total - item_discount, Decimal("0"))
 
@@ -876,7 +896,7 @@ class OrderService:
                 order_id=order.id,
                 product_id=product.id,
                 name=product.name,
-                price=product.price,
+                price=unit_price,
                 quantity=item_data.quantity,
                 discount=item_discount,
                 total=item_total_after_discount,
@@ -919,10 +939,15 @@ class OrderService:
             service_base=await self._service_base_q(order.id),
             tax_rate=await self._vat_rate(order),
         )
-        printer_service = PrinterService(self.db)
-        jobs = await printer_service.queue_kitchen_additions(
-            company_id, order.id, [item.id for item in created],
-        )
+        # Офлайн-дозаказ уже напечатан на терминале. Второй кухонный тикет из
+        # облака — дубль на кухне, поэтому серверная печать для него отключена.
+        printer_service = None
+        jobs = []
+        if not offline_import:
+            printer_service = PrinterService(self.db)
+            jobs = await printer_service.queue_kitchen_additions(
+                company_id, order.id, [item.id for item in created],
+            )
         if operation is not None:
             FinancialOperationService.complete(operation, {"item_ids": [str(item.id) for item in created]})
         await self.db.commit()
@@ -937,7 +962,76 @@ class OrderService:
             )
         except Exception:
             pass
-        await printer_service.notify_kitchen_additions(company_id, jobs)
+        if printer_service is not None:
+            await printer_service.notify_kitchen_additions(company_id, jobs)
+        if price_mismatches:
+            try:
+                await AuditService(self.db).log(
+                    company_id, user.id if user else order.waiter_id,
+                    "order.price_snapshot_mismatch", "order",
+                    entity_id=order.id,
+                    old_data={"menu_prices": price_mismatches},
+                    new_data={"client_number": order.client_number},
+                )
+            except Exception:
+                pass
+        return await self.get(company_id, order_id)
+
+    async def set_offline_totals(
+        self, company_id: UUID, order_id: UUID, totals, user: User | None = None,
+    ) -> Order:
+        """Сохранить итоги, посчитанные терминалом без сети.
+
+        Вызывается после каждой офлайн-правки строк. Чек уже напечатан по этим
+        суммам, поэтому сервер не пересчитывает обслугу/налог по изменившимся
+        настройкам, а проверяет арифметику и фиксирует снимок.
+        """
+        order = await self.get(company_id, order_id, for_update=True)
+        if order.status in ("completed", "cancelled"):
+            raise ValidationError("Итоги оплаченного или отменённого заказа менять нельзя")
+
+        line_total = sum(
+            (item.total for item in order.items if item.status != "cancelled"),
+            Decimal("0"),
+        )
+        subtotal = _quantize(totals.subtotal)
+        if subtotal != _quantize(line_total):
+            raise ValidationError("Сумма позиций офлайн-чека не совпадает с итогом строк")
+        discount = max(_quantize(totals.discount_amount), Decimal("0"))
+        if discount > subtotal:
+            raise ValidationError("Скидка больше суммы позиций")
+        tax = max(_quantize(totals.tax_amount), Decimal("0"))
+        service = max(_quantize(totals.service_fee), Decimal("0"))
+        expected = _quantize(subtotal - discount + tax + service)
+        if _quantize(totals.total_amount) != expected:
+            raise ValidationError("Итог офлайн-чека не сходится с суммой строк")
+
+        before = {
+            "subtotal": str(order.subtotal),
+            "discount_amount": str(order.discount_amount),
+            "tax_amount": str(order.tax_amount),
+            "service_fee": str(order.service_fee),
+            "total_amount": str(order.total_amount),
+        }
+        order.subtotal = subtotal
+        order.discount_amount = discount
+        order.tax_amount = tax
+        order.service_fee = service
+        order.total_amount = expected
+        await self.db.commit()
+        try:
+            await AuditService(self.db).log(
+                company_id, user.id if user else None, "order.offline_totals", "order",
+                entity_id=order.id,
+                old_data=before,
+                new_data={
+                    "subtotal": str(subtotal), "discount_amount": str(discount),
+                    "tax_amount": str(tax), "service_fee": str(service),
+                    "total_amount": str(expected),
+                },
+            )
+        except Exception:
+            pass
         return await self.get(company_id, order_id)
 
     # ── Remove item from order ────────────────────────────────────────────────

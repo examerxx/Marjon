@@ -207,6 +207,10 @@ async def test_sync_bootstrap_and_changes(client, db_engine):
     ctx = await _setup_company(
         client, db_engine, slug=f"off-d-{sfx}", email=f"off-d-{sfx}@example.com"
     )
+    created = await client.post("/settings/payment-methods", headers=ctx["headers"], json={
+        "name": "Наличные", "type": "cash", "sort": 1, "status": True,
+    })
+    assert created.status_code == 201, created.text
     resp = await client.get(
         "/sync/bootstrap", headers=ctx["headers"], params={"branch_id": str(ctx["branch_id"])}
     )
@@ -214,6 +218,10 @@ async def test_sync_bootstrap_and_changes(client, db_engine):
     data = resp.json()
     assert data["branch_id"] == str(ctx["branch_id"])
     assert [p["id"] for p in data["products"]] == [str(ctx["product_id"])]
+    # Без списка способов оплаты офлайн-модалка оплаты открылась бы пустой.
+    methods = data["payment_methods"]
+    assert [m["id"] for m in methods] == [created.json()["id"]]
+    assert methods[0]["type"] == "cash" and methods[0]["status"] is True
 
     order = (await _create(client, ctx, client_id=str(uuid4()))).json()
     delta = await client.get(
@@ -280,6 +288,34 @@ async def test_offline_totals_must_reconcile(client, db_engine):
     assert Decimal(body["subtotal"]) == Decimal("100.00")
     assert Decimal(body["discount_amount"]) == Decimal("10.00")
     assert Decimal(body["total_amount"]) == Decimal("90.00")
+
+
+async def test_offline_totals_endpoint_keeps_terminal_math(client, db_engine):
+    """Правка строк без сети присылает пересчитанные итоги; сервер принимает
+    их только если они сходятся с текущими строками заказа."""
+    sfx = uuid4().hex[:8]
+    ctx = await _setup_company(
+        client, db_engine, slug=f"off-h-{sfx}", email=f"off-h-{sfx}@example.com"
+    )
+    order = (await _create(client, ctx, client_id=str(uuid4()))).json()
+    totals = {
+        "subtotal": order["subtotal"],
+        "discount_amount": order["discount_amount"],
+        "tax_amount": order["tax_amount"],
+        "service_fee": order["service_fee"],
+        "total_amount": order["total_amount"],
+    }
+    ok = await client.post(
+        f"/pos/orders/{order['id']}/offline-totals", headers=ctx["headers"], json=totals,
+    )
+    assert ok.status_code == 200, ok.text
+    assert Decimal(ok.json()["total_amount"]) == Decimal(totals["total_amount"])
+
+    broken = {**totals, "total_amount": "999.00"}
+    bad = await client.post(
+        f"/pos/orders/{order['id']}/offline-totals", headers=ctx["headers"], json=broken,
+    )
+    assert bad.status_code == 422, bad.text
 
 
 async def test_sync_staff_exposes_hash_not_plain_pin(client, db_engine):

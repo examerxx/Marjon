@@ -18,6 +18,9 @@ from app.infrastructure.database.session import get_db
 from app.modules.auth.dependencies import require_company_app_user, require_staff_lister
 from app.modules.auth.models import User
 from app.modules.companies.models import Branch, Company
+from app.modules.finance.defaults import DEFAULT_PAYMENT_IDS
+from app.modules.finance.models import PaymentType
+from app.modules.finance.ownership import FinanceDictionaryService, FinanceScope
 from app.modules.halls.models import Hall, Table
 from app.modules.inventory.models import Category, Product
 from app.modules.pos.models import CashierShift, Order
@@ -26,6 +29,7 @@ from app.modules.printers.models import Printer
 from app.modules.rbac.models import Role, UserRole
 from app.modules.rbac.service import RBACService
 from app.shared.exceptions import ForbiddenError, ValidationError
+from app.shared.pagination import PageParams
 
 router = APIRouter(prefix="/sync", tags=["sync"])
 
@@ -114,6 +118,17 @@ def _printer_dto(p: Printer) -> dict:
     }
 
 
+def _payment_method_dto(p: PaymentType) -> dict:
+    return {
+        "id": str(p.id),
+        "name": p.name,
+        "type": p.type,
+        "sort": p.sort,
+        "status": p.status,
+        "is_system": p.scope_kind == "system" or p.source_template_id in DEFAULT_PAYMENT_IDS,
+    }
+
+
 @router.get("/bootstrap")
 async def bootstrap(
     branch_id: UUID | None = Query(None),
@@ -166,6 +181,16 @@ async def bootstrap(
             Printer.is_active.is_(True),
         )
     )).scalars().all())
+    # Способы оплаты — тот же источник, что веб-админка (Настройки → «Способ
+    # оплаты»). Касса кеширует их локально: без сети список должен открываться,
+    # иначе офлайн-оплату физически нечем выбрать.
+    payment_types, _ = await FinanceDictionaryService(
+        PaymentType, db, system_enabled=True
+    ).list(
+        FinanceScope("company", user.company_id),
+        PageParams(page=1, size=1_000_000),
+        default_sort="sort",
+    )
 
     return {
         "server_time": datetime.now(timezone.utc).isoformat(),
@@ -186,6 +211,7 @@ async def bootstrap(
         "products": [_product_dto(p) for p in products],
         "halls": [_hall_dto(h) for h in halls],
         "printers": [_printer_dto(p) for p in printers],
+        "payment_methods": [_payment_method_dto(p) for p in payment_types],
     }
 
 

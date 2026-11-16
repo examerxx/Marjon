@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage'
 import OrganizationScreen from './pages/OrganizationScreen'
 import PinPad from './pages/PinPad'
 import TopBar from './components/TopBar'
+import SyncStatusPanel from './components/SyncStatusPanel'
 import BottomBar from './components/BottomBar'
 import SettingsModal from './components/SettingsModal'
 import StaffProfileModal from './components/StaffProfileModal'
@@ -153,6 +154,9 @@ export default function App() {
   // операций ждёт отправки и сколько уже не удалось отправить. В браузере
   // (без Electron) остаётся старая легаси-очередь localStorage.
   const [syncState, setSyncState] = useState(null)
+  // Панель синхронизации: пилюля в шапке показывает проблему, клик по ней —
+  // список неотправленных операций и неудачной печати с кнопкой повтора.
+  const [syncOpen, setSyncOpen] = useState(false)
   useEffect(() => {
     const bridge = typeof window !== 'undefined' ? window.electron?.offline : null
     if (!bridge) return undefined
@@ -523,6 +527,7 @@ export default function App() {
         userRole={modeLabel}
         onAccount={handleAccount}
         onLock={handleLock}
+        onSyncClick={() => setSyncOpen(true)}
         sync={syncState || { online: isOnline, pending: queued, dead: 0 }}
       />
 
@@ -539,6 +544,7 @@ export default function App() {
       </main>
 
       <BottomBar />
+      <SyncStatusPanel open={syncOpen} state={syncState} onClose={() => setSyncOpen(false)} />
       {settingsOverlay}
       {profileOpen && (
         <StaffProfileModal

@@ -4792,6 +4792,11 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 .pay-method__opt:hover:not(:disabled) .pay-method__ico { color: var(--color-brand); }
 .pay-method__label { display: grid; flex: 1; gap: 3px; min-width: 0; }
 .pay-method__reason, .pay-method__notice { color: var(--color-text-secondary); font-size: var(--text-sm); font-weight: 500; }
+/* Офлайн-баннер: связь пропала — это предупреждение, а не просто подсказка. */
+.pay-method__notice--offline {
+  margin: 0 0 4px; padding: 8px 12px; border-radius: 12px;
+  background: var(--color-warning-bg); color: var(--color-warning);
+}
 .pay-method__opt--blocked:disabled { opacity: 1; background: var(--color-surface-hover); color: var(--color-text-secondary); }
 .pay-method__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Долг — та же карточка, что и выбор способа: итоги, поля клиента, действия. */

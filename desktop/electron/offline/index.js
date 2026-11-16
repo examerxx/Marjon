@@ -11,10 +11,18 @@ const store = require('./db')
 const { request, healthUrl } = require('./http')
 const escpos = require('./escpos')
 
-const CHANGE_CACHE_KEYS = new Set(['company', 'branch', 'products', 'categories', 'halls', 'printers'])
+const CHANGE_CACHE_KEYS = new Set(['company', 'branch', 'products', 'categories', 'halls', 'printers', 'payment_methods'])
 const BOOTSTRAP_TTL_MS = 30 * 60 * 1000
-const MAX_ATTEMPTS = 8
+// Потолок паузы между попытками. Раньше после 8 ошибок операция уходила в
+// «dead» — за ночь без сети или при 15-минутном access-токене очередь умирала
+// целиком, и деньги оставались только на терминале. Теперь transient-ошибки
+// повторяются бесконечно с редким шагом, а dead ставится только за
+// неисправимую ошибку валидации (4xx).
+const MAX_RETRY_DELAY_MS = 5 * 60 * 1000
+const AUTH_RETRY_DELAY_MS = 60 * 1000
 const PROBE_TTL_MS = 10 * 1000
+const PRINT_JOB_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
 
 let deps = null
 let config = {
@@ -125,6 +133,14 @@ function lastSyncAt() {
   return meta.last_sync_at || null
 }
 
+function failedPrintCount() {
+  try {
+    return Number(store.get().prepare(
+      "SELECT COUNT(*) AS n FROM print_jobs_local WHERE status = 'failed'"
+    ).get()?.n || 0)
+  } catch { return 0 }
+}
+
 function snapshot() {
   const counts = outboxCounts()
   return {
@@ -132,8 +148,9 @@ function snapshot() {
     online: lastProbeOk,
     pending: counts.pending,
     dead: counts.dead,
+    printFailed: failedPrintCount(),
     lastSyncAt: lastSyncAt(),
-    lastError: lastSyncError,
+    lastError: lastSyncError || store.kvGet('sync_meta')?.last_error || null,
     hasBootstrap: !!store.kvGet('bootstrap_at'),
     companyName: store.kvGet('company')?.name || null,
     branchId: config.branchId || store.kvGet('branch')?.id || null,
@@ -144,6 +161,20 @@ function emit() {
   try {
     const win = deps?.getWindow?.()
     if (win && !win.isDestroyed()) win.webContents.send('offline:state', snapshot())
+  } catch { /* окно закрывается */ }
+}
+
+// Движок не умеет обновлять access-токен сам (refresh-секрет живёт в
+// рендерере). При 401/403 просим рендерер молча обновить сессию и заново
+// передать конфиг моста. Без этого очередь стояла бы до следующего действия
+// кассира, а токен живёт всего 15 минут.
+let authAlertedAt = 0
+function emitAuthRequired() {
+  if (nowMs() - authAlertedAt < 60 * 1000) return
+  authAlertedAt = nowMs()
+  try {
+    const win = deps?.getWindow?.()
+    if (win && !win.isDestroyed()) win.webContents.send('offline:auth-required')
   } catch { /* окно закрывается */ }
 }
 
@@ -205,6 +236,9 @@ async function syncBootstrap(force = false) {
   store.kvSet('products', data.products || [])
   store.kvSet('halls', data.halls || [])
   store.kvSet('printers', data.printers || [])
+  // Способы оплаты нужны экрану оплаты офлайн. Старый сервер их не отдаёт —
+  // тогда не затираем уже сохранённый список пустым.
+  if (Array.isArray(data.payment_methods)) store.kvSet('payment_methods', data.payment_methods)
   store.kvSet('bootstrap_at', data.server_time || nowIso())
   return { products: (data.products || []).length, halls: (data.halls || []).length }
 }
@@ -474,6 +508,24 @@ function enqueue(op, { orderLocalId = null, payload = {}, idempotencyKey = null,
   return Number(info.lastInsertRowid)
 }
 
+// Итоги, посчитанные терминалом, отправляем отдельной операцией после правки
+// строк. Сервер пересчитывает обслугу/налог по ТЕКУЩИМ настройкам, а чек уже
+// напечатан по снимку — без этой операции оплата приходит с суммой, которая
+// не совпадает с серверным итогом, и деньги не попадают в облако.
+function enqueueOfflineTotals(row, order) {
+  if (!row?.server_id) return null
+  return enqueue('order_totals', {
+    orderLocalId: row.id,
+    payload: {
+      subtotal: order.subtotal,
+      discount_amount: order.discount_amount,
+      tax_amount: order.tax_amount,
+      service_fee: order.service_fee,
+      total_amount: order.total_amount,
+    },
+  })
+}
+
 function withOrder(id, mutate) {
   const row = findOrderRow(id)
   if (!row) return null
@@ -493,24 +545,71 @@ function addItemsLocal(id, items) {
   const order = orderDto(row)
   if (!order) return null
   if (['completed', 'cancelled'].includes(order.status)) return order
-  const prepared = (items || []).map((item) => buildItem(item, order.id))
+  const prepared = (items || []).map((item) => ({ ...buildItem(item, order.id), pending_sync: true }))
   order.items = [...(order.items || []), ...prepared]
   recalc(order)
   saveOrder(row, order)
   if (row.server_id) {
     enqueue('order_add_items', {
       orderLocalId: row.id,
+      idempotencyKey: `desktop-items:${crypto.randomUUID()}`,
       payload: {
         items: prepared.map((i) => ({
+          local_id: i.id,
           product_id: i.product_id, quantity: i.quantity, note: i.note,
           takeaway: i.takeaway, modifiers: i.modifiers, course: i.course,
+          // Цена и скидка с момента продажи: меню могло измениться, пока
+          // терминал был без сети.
+          unit_price: i.price,
+          ...(cents(i.discount) ? { discount: i.discount } : {}),
         })),
       },
     })
+    enqueueOfflineTotals(row, order)
   }
   printKitchenForOrder(order, new Set(prepared.map((i) => i.id))).catch(() => {})
   emit()
   return order
+}
+
+// Позиция, добавленная офлайн, ещё не имеет серверного id. Правка количества
+// или удаление такой позиции должны менять СООБЩЕНИЕ о дозаказе, а не слать
+// PATCH/DELETE с локальным UUID — сервер ответил бы 404, операция стала бы
+// «dead» и вместе с ней умерла бы вся очередь заказа.
+function findPendingAddOp(localId, itemLocalId) {
+  const ops = store.get().prepare(
+    "SELECT id, payload FROM outbox WHERE order_local_id = ? AND op = 'order_add_items' AND status = 'pending' ORDER BY id"
+  ).all(localId)
+  for (const op of ops) {
+    let payload = null
+    try { payload = JSON.parse(op.payload || '{}') } catch { continue }
+    if ((payload.items || []).some((i) => i.local_id === itemLocalId)) return { id: op.id, payload }
+  }
+  return null
+}
+
+function updatePendingAddItem(localId, itemLocalId, patch) {
+  const found = findPendingAddOp(localId, itemLocalId)
+  if (!found) return false
+  found.payload.items = found.payload.items.map((i) =>
+    i.local_id === itemLocalId ? { ...i, ...patch } : i)
+  store.get().prepare('UPDATE outbox SET payload = ?, updated_at = ? WHERE id = ?')
+    .run(JSON.stringify(found.payload), nowMs(), found.id)
+  return true
+}
+
+function dropPendingAddItem(localId, itemLocalId) {
+  const found = findPendingAddOp(localId, itemLocalId)
+  if (!found) return false
+  const items = found.payload.items.filter((i) => i.local_id !== itemLocalId)
+  if (!items.length) {
+    store.get().prepare('DELETE FROM outbox WHERE id = ?').run(found.id)
+  } else {
+    found.payload.items = items
+    store.get().prepare('UPDATE outbox SET payload = ?, updated_at = ? WHERE id = ?')
+      .run(JSON.stringify(found.payload), nowMs(), found.id)
+  }
+  return true
 }
 
 function setItemQuantityLocal(id, itemId, quantity) {
@@ -530,7 +629,16 @@ function setItemQuantityLocal(id, itemId, quantity) {
   recalc(order)
   saveOrder(row, order)
   if (row.server_id) {
-    enqueue('order_set_qty', { orderLocalId: row.id, payload: { item_id: item.id, quantity: qty } })
+    // Локальная (ещё не отправленная) позиция: правим сам дозаказ.
+    if (item.pending_sync && updatePendingAddItem(row.id, item.id, { quantity: qty })) {
+      enqueueOfflineTotals(row, order)
+    } else {
+      enqueue('order_set_qty', {
+        orderLocalId: row.id,
+        payload: { item_id: item.id, quantity: qty, price: item.price },
+      })
+      enqueueOfflineTotals(row, order)
+    }
   }
   emit()
   return order
@@ -551,7 +659,12 @@ function removeItemLocal(id, itemId, reason) {
   recalc(order)
   saveOrder(row, order)
   if (row.server_id) {
-    enqueue('order_remove_item', { orderLocalId: row.id, payload: { item_id: item.id, reason: reason || null } })
+    if (item.pending_sync && dropPendingAddItem(row.id, item.id)) {
+      enqueueOfflineTotals(row, order)
+    } else {
+      enqueue('order_remove_item', { orderLocalId: row.id, payload: { item_id: item.id, reason: reason || null } })
+      enqueueOfflineTotals(row, order)
+    }
   }
   emit()
   return order
@@ -596,6 +709,9 @@ function updateOrderLocal(id, patch, options = {}) {
     if (options.reason) backend.reason = options.reason
     if (options.action_pin) backend.action_pin = options.action_pin
     enqueue('order_update', { orderLocalId: row.id, payload: { patch: backend } })
+    if (allowed.discount_amount !== undefined || allowed.service_fee_rate !== undefined) {
+      enqueueOfflineTotals(row, order)
+    }
   }
   emit()
   return order
@@ -709,10 +825,13 @@ function payOrderLocal(id, payment) {
 
 function listOrders({ branch_id, status, active_only, date, limit = 200 } = {}) {
   const db = store.get()
+  // Фильтры применяем ДО лимита: раньше LIMIT отрезал строки по всей истории,
+  // и «заказы за сегодня» офлайн могли оказаться неполными уже на второй день.
   const rows = branch_id
-    ? db.prepare('SELECT * FROM orders_local WHERE branch_id = ? ORDER BY created_at DESC LIMIT ?').all(String(branch_id), Number(limit))
-    : db.prepare('SELECT * FROM orders_local ORDER BY created_at DESC LIMIT ?').all(Number(limit))
+    ? db.prepare('SELECT * FROM orders_local WHERE branch_id = ? ORDER BY created_at DESC').all(String(branch_id))
+    : db.prepare('SELECT * FROM orders_local ORDER BY created_at DESC').all()
   const list = []
+  const max = Number(limit) > 0 ? Number(limit) : 200
   for (const row of rows) {
     const order = orderDto(row)
     if (!order) continue
@@ -723,6 +842,7 @@ function listOrders({ branch_id, status, active_only, date, limit = 200 } = {}) 
       if (key !== String(date)) continue
     }
     list.push(order)
+    if (list.length >= max) break
   }
   return list
 }
@@ -733,19 +853,24 @@ function markDone(opId) {
   store.get().prepare("UPDATE outbox SET status = 'done', updated_at = ? WHERE id = ?").run(nowMs(), opId)
 }
 
-function markRetry(op, error) {
+function markRetry(op, error, { delay = null } = {}) {
   const attempts = Number(op.attempts || 0) + 1
-  if (attempts >= MAX_ATTEMPTS) {
-    store.get().prepare(
-      "UPDATE outbox SET status = 'dead', attempts = ?, last_error = ?, updated_at = ? WHERE id = ?"
-    ).run(attempts, String(error?.message || error), nowMs(), op.id)
-    if (op.order_local_id) markOrderDead(op.order_local_id, error)
-    return
-  }
-  const delay = Math.min(5 * 60 * 1000, 2000 * Math.pow(2, attempts))
+  const wait = delay ?? Math.min(MAX_RETRY_DELAY_MS, 2000 * Math.pow(2, Math.min(attempts, 8)))
   store.get().prepare(
     'UPDATE outbox SET attempts = ?, next_attempt_at = ?, last_error = ?, updated_at = ? WHERE id = ?'
-  ).run(attempts, nowMs() + delay, String(error?.message || error), nowMs(), op.id)
+  ).run(attempts, nowMs() + wait, String(error?.message || error), nowMs(), op.id)
+}
+
+// 401/403 — протухший access-токен, а не приговор операции; 5xx/408/409/423/429
+// — временные состояния сервера и конкурентных правок. В dead уходит только
+// то, что сервер отверг по существу (422/404 и т.п.): такие данные надо
+// показать владельцу и исправить руками.
+function classifyError(err) {
+  if (err?.permanent) return 'permanent'
+  const status = Number(err?.status || 0)
+  if (status === 401 || status === 403) return 'auth'
+  if (status >= 400 && status < 500 && ![408, 409, 423, 429].includes(status)) return 'permanent'
+  return 'retry'
 }
 
 function markDead(op, error) {
@@ -769,6 +894,57 @@ function markOrderDead(localId, error) {
   })
 }
 
+// ── Dead-операции: показать и повторить ────────────────────────────────────
+// Dead больше не наступает из-за сети/токена, но остаётся для ошибок данных
+// (блюдо удалили, заказ уже оплачен на другом терминале и т.п.). Без списка и
+// кнопки «повторить» такая операция висела бы вечно, а кассир не знал бы,
+// почему продажа не в облаке.
+function deadOps(limit = 100) {
+  const rows = store.get().prepare(
+    "SELECT id, op, order_local_id, attempts, last_error, updated_at FROM outbox WHERE status = 'dead' ORDER BY id DESC LIMIT ?"
+  ).all(Number(limit) || 100)
+  return rows.map((r) => {
+    let orderNumber = null
+    if (r.order_local_id) {
+      const row = findOrderRow(r.order_local_id)
+      try { orderNumber = row ? JSON.parse(row.data)?.client_number || null : null } catch { /* ignore */ }
+    }
+    return {
+      id: r.id, op: r.op, orderId: r.order_local_id, orderNumber,
+      attempts: r.attempts, error: r.last_error, updatedAt: r.updated_at,
+    }
+  })
+}
+
+function retryDead(opId = null) {
+  const db = store.get()
+  if (opId) {
+    const op = db.prepare("SELECT * FROM outbox WHERE id = ? AND status = 'dead'").get(Number(opId))
+    if (!op) return { retried: 0 }
+    // Очередь заказа проигрывается целиком: create → позиции → итоги → оплата.
+    // Поднимать одинокую операцию без предыдущих бессмысленно.
+    if (op.order_local_id) {
+      db.prepare(
+        "UPDATE outbox SET status = 'pending', attempts = 0, next_attempt_at = 0, last_error = NULL WHERE order_local_id = ? AND status = 'dead'"
+      ).run(op.order_local_id)
+      db.prepare("UPDATE orders_local SET sync_state = 'pending', updated_at = ? WHERE id = ?")
+        .run(nowIso(), op.order_local_id)
+    } else {
+      db.prepare(
+        "UPDATE outbox SET status = 'pending', attempts = 0, next_attempt_at = 0, last_error = NULL WHERE id = ?"
+      ).run(op.id)
+    }
+  } else {
+    db.prepare(
+      "UPDATE outbox SET status = 'pending', attempts = 0, next_attempt_at = 0, last_error = NULL WHERE status = 'dead'"
+    ).run()
+    db.prepare("UPDATE orders_local SET sync_state = 'pending', updated_at = ? WHERE sync_state = 'dead'").run(nowIso())
+  }
+  emit()
+  setTimeout(() => { flush().catch(() => {}) }, 50)
+  return outboxCounts()
+}
+
 function applyServerOrder(row, serverOrder) {
   const local = orderDto(row) || {}
   const merged = mergeOrderMeta(serverOrder, local)
@@ -779,7 +955,12 @@ function applyServerOrder(row, serverOrder) {
 }
 
 async function runOp(op) {
-  const payload = JSON.parse(op.payload || '{}')
+  let payload
+  try {
+    payload = JSON.parse(op.payload || '{}')
+  } catch {
+    throw Object.assign(new Error('повреждённая операция в очереди'), { permanent: true })
+  }
   const row = op.order_local_id ? findOrderRow(op.order_local_id) : null
   if (op.order_local_id && !row) throw Object.assign(new Error('локальный заказ не найден'), { permanent: true })
 
@@ -830,14 +1011,34 @@ async function runOp(op) {
     }
     case 'order_add_items': {
       if (!row.server_id) return
-      const updated = await api('POST', `/pos/orders/${row.server_id}/items/bulk`, { items: payload.items })
+      // local_id — только для сопоставления с локальным снимком, серверу не нужен.
+      const items = (payload.items || []).map(({ local_id, ...item }) => item)
+      const updated = await api('POST', `/pos/orders/${row.server_id}/items/bulk`, {
+        items,
+        price_snapshot: true,
+        offline_import: true,
+      }, { headers: op.idempotency_key ? { 'Idempotency-Key': op.idempotency_key } : {} })
       applyServerOrder(row, updated)
       return
     }
     case 'order_set_qty': {
       if (!row.server_id) return
-      const updated = await api('PATCH', `/pos/orders/${row.server_id}/items/${payload.item_id}`, { quantity: payload.quantity })
+      const updated = await api('PATCH', `/pos/orders/${row.server_id}/items/${payload.item_id}`, {
+        quantity: payload.quantity,
+        ...(payload.price != null ? { price: payload.price } : {}),
+      })
       applyServerOrder(row, updated)
+      return
+    }
+    case 'order_totals': {
+      if (!row.server_id) return
+      await api('POST', `/pos/orders/${row.server_id}/offline-totals`, {
+        subtotal: payload.subtotal,
+        discount_amount: payload.discount_amount,
+        tax_amount: payload.tax_amount,
+        service_fee: payload.service_fee,
+        total_amount: payload.total_amount,
+      })
       return
     }
     case 'order_remove_item': {
@@ -916,11 +1117,12 @@ async function flush() {
     }
     const db = store.get()
     let processed = 0
+    let networkDown = false
     for (let guard = 0; guard < 200; guard++) {
       const ops = db.prepare("SELECT * FROM outbox WHERE status = 'pending' ORDER BY id LIMIT 50").all()
       if (!ops.length) break
       let progressed = false
-      let networkDown = false
+      networkDown = false
       for (const op of ops) {
         if (Number(op.next_attempt_at || 0) > nowMs()) continue
         const row = op.order_local_id ? findOrderRow(op.order_local_id) : null
@@ -938,14 +1140,18 @@ async function flush() {
             lastSyncError = 'нет связи с сервером'
             break
           }
-          const status = Number(err?.status || 0)
-          const permanent = err?.permanent || (status >= 400 && status < 500 && status !== 409 && status !== 429)
-          if (permanent) {
+          const kind = classifyError(err)
+          if (kind === 'permanent') {
             markDead(op, err)
+            lastSyncError = String(err?.message || err)
+          } else if (kind === 'auth') {
+            markRetry(op, err, { delay: AUTH_RETRY_DELAY_MS })
+            lastSyncError = 'сессия истекла — терминал обновит токен автоматически'
+            emitAuthRequired()
           } else {
             markRetry(op, err)
+            lastSyncError = String(err?.message || err)
           }
-          lastSyncError = String(err?.message || err)
           progressed = true
         }
       }
@@ -953,6 +1159,10 @@ async function flush() {
     }
     // Дельта и справочники — после очереди: уже отправленные заказы придут
     // обратно с серверными id и обновят доску.
+    // Очередь пуста и сеть жива — старая ошибка больше не актуальна. Мёртвые
+    // операции оставляют сообщение: кассиру нужно знать их причину.
+    const deadLeft = db.prepare("SELECT COUNT(*) AS n FROM outbox WHERE status = 'dead'").get().n
+    if (!networkDown && !deadLeft) lastSyncError = null
     try { await pullChanges() } catch (err) { lastSyncError = String(err?.message || err) }
     try { await maybeBootstrap() } catch (err) { lastSyncError = String(err?.message || err) }
     setSyncMeta({ last_sync_at: nowIso(), last_error: lastSyncError })
@@ -1061,6 +1271,54 @@ async function printKitchenLocal({ orderId, itemIds = null } = {}) {
   const order = row ? orderDto(row) : null
   if (!order) throw new Error('заказ не найден локально')
   return printKitchenForOrder(order, itemIds ? new Set(itemIds) : null)
+}
+
+function printJobs({ status = null, limit = 50 } = {}) {
+  const max = Number(limit) > 0 ? Number(limit) : 50
+  const rows = status
+    ? store.get().prepare(
+      'SELECT id, printer_id, status, created_at, printed_at, error FROM print_jobs_local WHERE status = ? ORDER BY created_at DESC LIMIT ?'
+    ).all(String(status), max)
+    : store.get().prepare(
+      'SELECT id, printer_id, status, created_at, printed_at, error FROM print_jobs_local ORDER BY created_at DESC LIMIT ?'
+    ).all(max)
+  const printers = new Map(printerList().map((p) => [String(p.id), p.name || p.id]))
+  return rows.map((row) => ({ ...row, printerName: printers.get(String(row.printer_id)) || null }))
+}
+
+// Повтор уже сформированного чека: ESC/POS-байты лежат в базе, заново
+// пересобирать нечего — после смены меню чек должен выйти тем же.
+async function retryPrintJob(id) {
+  const job = store.get().prepare('SELECT * FROM print_jobs_local WHERE id = ?').get(String(id))
+  if (!job) throw new Error('задание печати не найдено')
+  const printer = printerList().find((p) => String(p.id) === String(job.printer_id))
+    || (job.printer_id ? null : receiptPrinter())
+  if (!printer?.ip_address) throw new Error('принтер недоступен — проверьте настройки')
+  const buffer = Buffer.from(job.payload, 'base64')
+  try {
+    await printBuffer(printer, buffer)
+  } catch (err) {
+    store.get().prepare(
+      "UPDATE print_jobs_local SET status = 'failed', error = ? WHERE id = ?"
+    ).run(String(err?.message || err), job.id)
+    emit()
+    throw err
+  }
+  store.get().prepare(
+    "UPDATE print_jobs_local SET status = 'printed', printed_at = ?, error = NULL WHERE id = ?"
+  ).run(nowIso(), job.id)
+  emit()
+  return { printed: true, printer: printer.name || printer.id }
+}
+
+// Успешные задания храним неделю (для диагностики), неудачные — до повтора:
+// payload в base64, иначе база терминала растёт без предела.
+function prunePrintJobs() {
+  try {
+    store.get().prepare(
+      "DELETE FROM print_jobs_local WHERE status = 'printed' AND created_at < ?"
+    ).run(new Date(nowMs() - PRINT_JOB_TTL_MS).toISOString())
+  } catch { /* уборка не критична */ }
 }
 
 // ── Смены ───────────────────────────────────────────────────────────────────
@@ -1236,13 +1494,20 @@ function registerIpc(ipcMain) {
   handle('offline:order-pay', (id, payment) => payOrderLocal(id, payment))
   handle('offline:payments-for-order', (id) => paymentsForOrder(id))
 
+  handle('offline:dead-ops', () => deadOps())
+  handle('offline:retry-dead', (opId) => retryDead(opId ?? null))
+
   handle('offline:print-receipt', (args) => printReceiptLocal(args || {}))
   handle('offline:print-kitchen', (args) => printKitchenLocal(args || {}))
+  handle('offline:print-jobs', (params) => printJobs(params || {}))
+  handle('offline:retry-print', (id) => retryPrintJob(id))
 }
 
 function initOffline(options) {
   deps = options || {}
   store.open(deps.app.getPath('userData'))
+  prunePrintJobs()
+  try { store.backup() } catch (err) { console.error('[offline] backup failed:', err) }
   registerIpc(deps.ipcMain)
   // Периодическая досылка: сеть могла вернуться без события online в рендерере
   // (спящий ноутбук, смена Wi-Fi). Тик дешёвый — без сети probe выходит сразу.
@@ -1251,6 +1516,10 @@ function initOffline(options) {
     if (outboxCounts().pending > 0) flush().catch(() => {})
   }, 20000)
   timer.unref?.()
+  const backupTimer = setInterval(() => {
+    try { store.backup() } catch (err) { console.error('[offline] backup failed:', err) }
+  }, 6 * 60 * 60 * 1000)
+  backupTimer.unref?.()
   return { snapshot }
 }
 

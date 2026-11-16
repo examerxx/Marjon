@@ -67,17 +67,40 @@ CREATE TABLE IF NOT EXISTS audit_local (
 `
 
 let db = null
+let baseDir = null
 
 function open(userDataPath) {
   if (db) return db
   const dir = path.join(userDataPath, 'offline')
   fs.mkdirSync(dir, { recursive: true })
+  baseDir = dir
   db = new Database(path.join(dir, 'marjon-offline.db'))
   db.pragma('journal_mode = WAL')
   db.pragma('synchronous = NORMAL')
   db.pragma('busy_timeout = 5000')
   db.exec(SCHEMA)
   return db
+}
+
+// Ежедневная копия локальной базы: сбой диска/профиля не должен уносить
+// несинхронизированные продажи. VACUUM INTO даёт консистентный снимок без
+// остановки кассы; храним последние 7 дней.
+function backup({ keep = 7 } = {}) {
+  if (!db || !baseDir) return null
+  const dir = path.join(baseDir, 'backups')
+  fs.mkdirSync(dir, { recursive: true })
+  const stamp = new Date().toISOString().slice(0, 10)
+  const target = path.join(dir, `marjon-offline-${stamp}.db`)
+  if (!fs.existsSync(target)) {
+    db.exec(`VACUUM INTO '${target.replace(/'/g, "''")}'`)
+  }
+  const files = fs.readdirSync(dir)
+    .filter((name) => /^marjon-offline-\d{4}-\d{2}-\d{2}\.db$/.test(name))
+    .sort()
+  for (const name of files.slice(0, Math.max(0, files.length - keep))) {
+    try { fs.unlinkSync(path.join(dir, name)) } catch { /* не мешаем работе */ }
+  }
+  return target
 }
 
 function get() {
@@ -116,4 +139,4 @@ function audit({ actorId, action, entity, entityId, data }) {
   } catch { /* журнал не должен ронять продажу */ }
 }
 
-module.exports = { open, close, get, kvGet, kvSet, kvDelete, audit }
+module.exports = { open, close, get, kvGet, kvSet, kvDelete, audit, backup }

@@ -25,6 +25,11 @@ class OrderItemsAdd(BaseSchema):
     """Пакетный дозаказ: касса отправляет все новые строки одной командой,
     чтобы на кухне вышел один тикет, а не по тикету на каждую позицию."""
     items: list[OrderItemCreate] = Field(..., min_length=1)
+    # OFFLINE-01: дозаказ из офлайн-очереди. price_snapshot разрешает цену из
+    # снимка терминала (меню могло измениться), offline_import сообщает, что
+    # кухонный тикет уже напечатан локально и серверу печатать его не нужно.
+    price_snapshot: bool = False
+    offline_import: bool = False
 
 
 class OfflineTotals(BaseSchema):

@@ -18,6 +18,7 @@ export default function TopBar({
   userRole,
   onAccount,
   onLock,
+  onSyncClick,
   sync,
   children,
 }) {
@@ -50,16 +51,23 @@ export default function TopBar({
 
       <div className="topbar__account">
         <span className="topbar__divider" aria-hidden="true" />
-        {sync && (!sync.online || sync.dead > 0 || sync.pending > 0) && (
-          <span
-            className={`topbar__sync ${!sync.online ? 'topbar__sync--offline' : sync.dead > 0 ? 'topbar__sync--failed' : ''}`}
+        {sync && (!sync.online || sync.dead > 0 || sync.pending > 0 || sync.printFailed > 0) && (
+          <button
+            type="button"
+            className={`topbar__sync ${!sync.online ? 'topbar__sync--offline' : sync.dead > 0 || sync.printFailed > 0 ? 'topbar__sync--failed' : ''}`}
             title={!sync.online ? t('offline') : sync.dead > 0 ? (sync.lastError || t('sync_failed')) : t('queue_hint')}
+            aria-label={t('sync_title')}
+            onClick={onSyncClick}
           >
             <span className="topbar__sync-dot" aria-hidden="true" />
             {!sync.online
               ? t('offline')
-              : `${sync.dead > 0 ? t('sync_failed') : t('queue_hint')}: ${sync.dead > 0 ? sync.dead : sync.pending}`}
-          </span>
+              : sync.dead > 0
+                ? `${t('sync_failed')}: ${sync.dead}`
+                : sync.pending > 0
+                  ? `${t('queue_hint')}: ${sync.pending}`
+                  : `${t('sync_print_failed')}: ${sync.printFailed}`}
+          </button>
         )}
         {onLock && (
           <button className="topbar__lock" onClick={onLock} title={t('nav_lock')} aria-label={t('nav_lock')}>

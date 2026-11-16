@@ -71,6 +71,33 @@ async def test_order_creation_enqueues_kitchen_ticket(client, monkeypatch):
     assert message["ip_address"] == "192.168.123.50"
 
 
+async def test_offline_order_is_not_printed_by_server(client, monkeypatch):
+    """Офлайн-заказ терминал напечатал сам: серверный дубль кухне не нужен."""
+    network_print = _offline_print()
+    broadcast = AsyncMock()
+    monkeypatch.setattr("app.modules.printers.service.print_raw", network_print)
+    monkeypatch.setattr("app.modules.printers.service.printer_ws_manager.broadcast", broadcast)
+    headers, branch_id, product_id = await _context(client)
+    response = await client.post(
+        "/printers", headers=headers,
+        json={"branch_id": branch_id, "name": "Kitchen", "printer_type": "kitchen",
+              "connection_type": "network", "ip_address": "192.168.123.51", "port": 9100},
+    )
+    assert response.status_code == 201, response.text
+    printer_id = response.json()["id"]
+    response = await client.post(
+        "/pos/orders", headers=headers,
+        json={"branch_id": branch_id, "order_type": "takeaway",
+              "created_offline_at": "2026-11-13T10:00:00+05:00",
+              "items": [{"product_id": product_id, "quantity": "1"}]},
+    )
+    assert response.status_code == 201, response.text
+    pending = await client.get(f"/printers/{printer_id}/jobs/pending", headers=headers)
+    assert pending.status_code == 200, pending.text
+    assert pending.json() == []
+    network_print.assert_not_awaited()
+
+
 async def test_adding_item_prints_only_the_new_dish(client, monkeypatch):
     """Дозаказ: повар получает тикет ТОЛЬКО с добавленным блюдом.
 
