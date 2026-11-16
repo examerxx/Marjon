@@ -357,7 +357,16 @@ class AdminReportService:
                     AuditLog.action == "order.vip_close",
                 ),
             ).correlate(Order).scalar_subquery()
-            event_date = func.greatest(paid_at, completed_at)
+            # GREATEST есть только в Postgres; на SQLite (dev/тесты) его нет и
+            # отчёт падал с "no such function: greatest". CASE повторяет
+            # семантику GREATEST: NULL-аргументы игнорируются, NULL — только
+            # когда оба неизвестны.
+            event_date = case(
+                (paid_at.is_(None), completed_at),
+                (completed_at.is_(None), paid_at),
+                (paid_at >= completed_at, paid_at),
+                else_=completed_at,
+            )
         else:
             event_date = Order.created_at
         query = (

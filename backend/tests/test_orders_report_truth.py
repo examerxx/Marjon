@@ -883,6 +883,33 @@ async def _report_numbers(client, headers, params):
 
 
 @pytest.mark.asyncio
+async def test_closed_date_basis_selects_latest_close_event(client, db_engine):
+    suffix = uuid4().hex[:8]
+    ctx = await _setup(
+        client, db_engine,
+        slug=f"closed-{suffix}", email=f"closed-{suffix}@example.com",
+    )
+    oid = await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="CL-1", created_at=_dt(8),
+    )
+    await _payment(
+        ctx["sessions"], company_id=ctx["company_id"], order_id=oid,
+        cashier_id=None, created_at=_dt(9),
+    )
+    await _order(
+        ctx["sessions"], company_id=ctx["company_id"], branch_id=ctx["branch_id"],
+        number="CL-2", created_at=_dt(10),
+    )
+    # date_basis=closed требует дату закрытия (платёж/журнал). Раньше здесь
+    # строился Postgres-only GREATEST и на SQLite (dev/тесты) запрос падал
+    # с "no such function: greatest" — отчёт отдавал 500.
+    rows = await _report_filtered(client, ctx["headers"], {"date_basis": "closed"})
+    assert "CL-1" in rows
+    assert "CL-2" not in rows
+
+
+@pytest.mark.asyncio
 async def test_payment_filter_completed_cash_included(client, db_engine):
     suffix = uuid4().hex[:8]
     ctx = await _setup(

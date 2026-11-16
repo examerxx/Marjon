@@ -2,8 +2,9 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, field_serializer, model_validator
 from app.shared.base_schema import BaseSchema, BaseResponseSchema
+from app.shared.media_url import absolute_media_url
 
 
 LOSS_TYPES = ("percent", "amount")
@@ -42,6 +43,10 @@ class CategoryResponse(BaseResponseSchema):
     calculate_service: bool
     show_in_menu: bool
     image_url: str | None
+
+    @field_serializer("image_url")
+    def _image_url_absolute(self, value: str | None) -> str | None:
+        return absolute_media_url(value)
 
 
 class CategoryUpdate(BaseSchema):
@@ -247,6 +252,12 @@ class ProductResponse(BaseResponseSchema):
     # Видимы только топ-апы с seq строго больше; пустое окно после сброса
     # UI показывает явным "0", audit-строки при этом живы.
     history_reset_seq: int | None = None
+
+    @field_serializer("image_url")
+    def _image_url_absolute(self, value: str | None) -> str | None:
+        # Локальное хранилище отдаёт /media/... — десктопу и мобилке нужен
+        # абсолютный URL под хост их запроса (см. shared/media_url.py).
+        return absolute_media_url(value)
 
 
 # --- Добавки (модификаторы) --------------------------------------------------
