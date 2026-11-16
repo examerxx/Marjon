@@ -1,0 +1,98 @@
+/* ============ адаптив: телефон и планшет ============ */
+
+/* смена языка: мягкая подмена страницы без экрана загрузки */
+html.ls .loader { display: none !important; }
+html.ls body { opacity: 0; }
+html.ls.ready body { opacity: 1; transition: opacity .35s ease; }
+html.ls-out body { opacity: 0; transition: opacity .2s ease; }
+
+/* шапка: язык стоит рядом с кнопкой меню */
+@media (max-width: 1100px) {
+  .nav-in { gap: 6px; }
+  .nav-tools { margin-left: auto; gap: 0; }
+  .burger { margin-right: -2px; }
+}
+
+/* роли: в портретной ориентации вместо 3D — снимки экранов в рамках устройств */
+@media (max-width: 820px), (max-aspect-ratio: 39/40) {
+  .rs-fb { display: block; position: relative; margin-inline: auto; padding: 6px; border-radius: 16px; overflow: hidden; background: #0b0c0e; box-shadow: 0 0 0 1px rgba(255, 255, 255, .16), inset 0 0 0 1px rgba(255, 255, 255, .05), 0 24px 60px rgba(0, 0, 0, .5); width: 100%; }
+  .rs-fb img { border-radius: 10px; }
+  .rs-fb.ph { width: min(62%, 250px); max-width: none; padding: 7px; border-radius: 40px; box-shadow: 0 0 0 1.5px #4a4e55, 0 0 0 3px #15171a, inset 0 0 0 1px rgba(255, 255, 255, .06), 0 28px 70px rgba(0, 0, 0, .55); }
+  .rs-fb.ph img { border-radius: 33px; }
+  .rs-fb.ph::before { content: ""; position: absolute; left: 50%; top: 15px; width: 27%; height: 15px; margin-left: -13.5%; border-radius: 999px; background: #050506; z-index: 1; }
+}
+@media (min-width: 821px) and (max-aspect-ratio: 39/40) {
+  .rs { gap: 40px; } .rs-fb { flex: 0 1 52%; } .rs-fb.ph { flex: 0 0 250px; }
+}
+
+@media (max-width: 820px) {
+  /* манифест → бегущая строка: без большой пустоты */
+  .ch-problem { padding-bottom: 28px; }
+  .mani { padding: 44px 0 clamp(40px, 6svh, 56px); }
+  .vband { padding: 16px 0; }
+
+  /* плитка «без интернета»: значок связи слева, статус справа — без пустого места */
+  .to-net { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-top: 4px; }
+  .to-bars { height: 56px; }
+  .to-state { flex: 1 1 auto; min-width: 0; }
+  .to-state span { left: auto; right: 0; top: auto; bottom: 0; }
+
+  /* живое демо: экран чуть выше центра */
+  .js:not(.static) .demo-pin { align-content: center; padding-bottom: 17svh; }
+
+  .rs { padding-block: 30px; }
+  .rs-cap { gap: 12px; }
+  .foot-word { margin-top: 34px; }
+}
+
+@media (max-width: 600px) {
+  /* первый экран целиком помещается в окно */
+  .ch-hero { padding-top: calc(var(--nav-h) + 8px); }
+  /* на телефоне техники в сцене нет: текст стоит по центру экрана, строка статуса — внизу */
+  .ch-hero { justify-content: flex-start; }
+  .ch-hero .hero-in { margin-block: auto; padding-top: 4svh; padding-bottom: 5svh; }
+  .hero-in { gap: 14px; padding-bottom: 10px; }
+  .hero-row { gap: 16px; }
+  .hero-copy { gap: 10px; }
+  .hero-row .btns { gap: 10px; margin-top: 38px; }
+  .hud { padding-block: 12px; }
+  .h-hero { font-size: clamp(2.05rem, 9.6vw, 2.6rem); }
+  .hero-copy .lede, .hero-row .lede { font-size: .98rem; line-height: 1.45; }
+
+  .lead-f input, .lead select, .lead textarea { font-size: 16px; } /* iOS не приближает страницу при фокусе */
+  .lead { padding-bottom: calc(10px + var(--kb, 0px)); }
+  .faq summary { gap: 14px; padding: 18px 0; }
+  .faq summary i { width: 36px; height: 36px; }
+}
+@media (max-width: 600px) and (max-height: 720px) {
+  .hero-row .btns { margin-top: 16px; }
+  .btn-lg { min-height: 50px; }
+  .hero-in { gap: 10px; }
+  .hero-copy .lede, .hero-row .lede { font-size: .92rem; }
+  .h-hero { font-size: clamp(1.9rem, 8.8vw, 2.3rem); }
+}
+@media (max-width: 600px) and (max-height: 620px) { .ch-hero .kicker { display: none; } .hud { display: none; } }
+
+/* телефон: производительность — без тяжёлых слоёв поверх 3D */
+@media (pointer: coarse), (max-width: 820px) {
+  .grain, .fx-edge, .cur-ring, .cur-dot { display: none !important; }
+  .card, .chip, .tool, .role-tab, .rs-who span, .tile, .cta-in, .vband, .btn-line, .mod-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  .card, .tile:not(.tile-money) { background: rgba(15, 18, 19, .86); }
+  .rs-who span, .role-tab, .chip, .tool { background: rgba(15, 18, 19, .78); }
+  .cta-in { background: linear-gradient(160deg, rgba(18, 22, 23, .86), rgba(10, 12, 13, .78)); }
+  .vband { background: rgba(10, 11, 12, .8); }
+  .btn-line { background: rgba(10, 12, 13, .45); }
+}
+
+/* «Возможности» на телефоне: компактная карточка внизу — нить с бусинами целиком видна над ней */
+@media (max-width: 820px) {
+  .mod-grid { padding-bottom: 16px; }
+  .mod-head { gap: 8px; } .mod-head .h-ch { font-size: 1.45rem; }
+  .mod-count { padding-top: 6px; } .mod-count b { font-size: 2.3rem; }
+  .mod-cards { align-self: end; }
+  .mod-card { padding: 14px 16px; gap: 6px; min-height: 0; border-radius: 16px; }
+  .mod-card h3 { font-size: 1.05rem; } .mod-card p { font-size: .86rem; line-height: 1.4; }
+  .mod-card .tags, .mod-card ul { gap: 6px; } .mod-card .tags span, .mod-card li { padding: 4px 10px; font-size: .74rem; }
+  .mod-live { margin-top: 2px; padding-top: 10px; font-size: .78rem; } .mod-live b { font-size: .95rem; }
+  .mod-bar { margin-top: 12px; }
+}

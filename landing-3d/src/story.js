@@ -31,11 +31,27 @@ const L = {
   pearl: [{ x: 0, y: 0, z: 0, s: 1.7 }, ...Array.from({ length: 7 }, (_, j) => ({ ...ring(j + 1, 2.7), s: 0.1 }))],
 };
 
-export function applyInitial(S, beads) {
-  beads.forEach((b, i) => Object.assign(b.st, L.hero[i], { dull: 0, lit: i === 0 ? 0.12 : 0.3, dark: 0 }));
+
+// Раскладки для версии «Нить и техника»: главный герой — устройства, бусины мельче и держатся ожерельем вокруг них
+const oval = (i, rx, ry, cx = 0, cy = 0) => { const a = 0.75 - i * (TAU / 8); return { x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry, z: Math.sin(a * 2 + 0.6) * 0.9 - 0.6 }; };
+const small = (arr, k = 0.6) => arr.map((b) => ({ ...b, s: b.s * k }));
+const LD = {
+  hero: Array.from({ length: 8 }, (_, i) => ({ ...oval(i, 2.75, 2.15, 0.25, -0.35), s: [0.4, 0.16, 0.13, 0.11, 0.13, 0.16, 0.2, 0.24][i] })),
+  // нить рвётся, но бусины лишь слегка расходятся — без хаоса
+  scatter: Array.from({ length: 8 }, (_, i) => ({ ...oval(i, 3.3 + (i % 3) * 0.35, 2.4 + ((i * 5) % 3) * 0.3, 0.25, -0.2), s: [0.34, 0.16, 0.14, 0.12, 0.14, 0.16, 0.2, 0.22][i] })),
+  line: small(L.line), ring: small(L.ring), orbit: small(L.orbit),
+  // 5 — ровный круг из одинаковых бусин
+  star: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 2.7), s: 0.2 })),
+  pearl: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 3.5), s: i === 0 ? 0.3 : 0.13 })),
+};
+
+export function applyInitial(S, beads, dev = false) {
+  const LL = dev ? LD : L;
+  beads.forEach((b, i) => Object.assign(b.st, LL.hero[i], { dull: 0, lit: i === 0 ? 0.12 : 0.3, dark: 0 }));
 }
 
-export function buildMaster(S, beads) {
+export function buildMaster(S, beads, dev = false) {
+  const LL = dev ? LD : L, bk = dev ? 0.6 : 1;
   const tl = gsap.timeline({ paused: true, defaults: { ease: 'power2.inOut' } });
   // «к моменту at прийти в состояние»: старт за dur до этого
   const cam = (at, dur, vars, ease) => tl.to(S, { ...vars, duration: dur, ...(ease ? { ease } : {}) }, at - dur);
@@ -43,46 +59,46 @@ export function buildMaster(S, beads) {
     beads.forEach((b, i) => tl.to(b.st, { ...layout[i], ...extra, duration: dur - stagger * 7 }, at - dur + stagger * i));
 
   // ── 0 → 1  нить рвётся ─────────────────────────────────────────────
-  lay(1, 1, L.scatter, { dull: 1, lit: 0 });
-  cam(1, 1, { camX: 0, camY: 0.4, camZ: 10.5, roll: 0.14, ox: 0.12, oy: 0, oyM: -0.05, ry: 0.5, rx: 0.1, drift: 1, coral: 1, glow: 0.7, dust: 0.9, pulse: 0 });
+  lay(1, 1, LL.scatter, { dull: 1, lit: 0 });
+  cam(1, 1, { camX: 0, camY: 0.4, camZ: dev ? 8.2 : 10.5, roll: dev ? 0.03 : 0.14, ox: dev ? 0.2 : 0.12, oy: 0, oyM: -0.05, ry: dev ? 0.12 : 0.5, rx: dev ? 0.03 : 0.1, drift: dev ? 0.35 : 1, coral: dev ? 0.5 : 1, glow: 0.7, dust: 0.9, pulse: 0 });
   tl.to(S, { threadA: 0, duration: 0.45, ease: 'power2.in' }, 0.05);
   tl.to(S, { draw: 0, duration: 0.5, ease: 'power2.in' }, 0.1);
   // 1 → 1.55  хаос держится и медленно поворачивается
-  cam(1.55, 0.55, { ry: 1.0, roll: -0.08, camZ: 9.6 }, 'none');
+  cam(1.55, 0.55, dev ? { ry: 0.22, roll: -0.02, camZ: 8.6 } : { ry: 1.0, roll: -0.08, camZ: 9.6 }, 'none');
 
   // ── 1.55 → 2  выстраиваются в линию (ещё тусклые) ──────────────────
-  lay(2, 0.45, L.line);
-  cam(2, 0.45, { camX: L.line[0].x + 2.2, camY: 0.6, camZ: 8.6, tx: L.line[0].x, roll: 0, ox: -0.04, oy: 0.04, oyM: -0.04, rx: 0, ry: 0, drift: 0.2, coral: 0.25, glow: 0.8, fit: 0.42, labels: 1, dust: 0.5 });
+  lay(2, 0.45, LL.line);
+  cam(2, 0.45, { camX: LL.line[0].x + 2.2, camY: 0.6, camZ: 8.6, tx: LL.line[0].x, roll: 0, ox: -0.04, oy: 0.04, oyM: -0.04, rx: 0, ry: 0, drift: 0.2, coral: 0.25, glow: 0.8, fit: 0.42, labels: 1, dust: 0.5 });
   tl.set(S, { threadA: 1 }, 1.95);
 
   // ── 2 → 2.8  камера едет вдоль нити, бусины загораются по одной ────
-  tl.to(S, { camX: L.line[7].x + 2.2, tx: L.line[7].x, draw: 7 / 8, coral: 0, glow: 1, duration: 0.8, ease: 'none' }, 2);
+  tl.to(S, { camX: LL.line[7].x + 2.2, tx: LL.line[7].x, draw: 7 / 8, coral: 0, glow: 1, duration: 0.8, ease: 'none' }, 2);
   beads.forEach((b, i) => {
     const t = 2 + i * 0.1;
-    tl.to(b.st, { dull: 0, lit: 1, s: 0.66, duration: 0.07, ease: 'power2.out' }, Math.max(2, t - 0.04));
-    if (i < 7) tl.to(b.st, { lit: 0.3, s: 0.52, duration: 0.1 }, t + 0.1);
+    tl.to(b.st, { dull: 0, lit: 1, s: 0.66 * bk, duration: 0.07, ease: 'power2.out' }, Math.max(2, t - 0.04));
+    if (i < 7) tl.to(b.st, { lit: 0.3, s: 0.52 * bk, duration: 0.1 }, t + 0.1);
   });
 
   // ── 2.8 → 3  нить замыкается в кольцо ───────────────────────────────
-  lay(3, 0.2, L.ring, { lit: 0.35 });
+  lay(3, 0.2, LL.ring, { lit: 0.35 });
   cam(3, 0.2, { camX: 0, camY: 0, camZ: 11.5, tx: 0, ox: 0.2, oy: 0, oyM: 0.12, rx: -0.3, ry: -0.35, draw: 1, labels: 0, fit: 1, pulse: 1, drift: 0.3 });
   // 3 → 3.6  кольцо вращается скроллом
   cam(3.6, 0.6, { rz: -1.1, ry: -0.2 }, 'none');
 
   // ── 3.6 → 4  кольцо ложится в орбиту ────────────────────────────────
-  lay(4, 0.4, L.orbit, { lit: 0.25 });
+  lay(4, 0.4, LL.orbit, { lit: 0.25 });
   cam(4, 0.4, { camY: 1.2, camZ: 11, rx: -1.12, ry: 0, rz: -1.6, ox: 0.24, oy: 0.1, oyM: 0.2, pulse: 0.7, dialAmt: 1, glow: 0.8 });
   cam(4.55, 0.55, { rz: -2.2 }, 'none');
 
   // ── 4.55 → 5  нить натягивается в восьмиконечную звезду ─────────────
-  lay(5, 0.45, L.star, { lit: 0.6 });
-  cam(5, 0.45, { camY: 0, camZ: 12, rx: 0, ry: 0.25, rz: -TAU / 2, ox: 0.26, oy: 0.02, oyM: 0.12, tension: 0, threadA: 0.75, pulse: 0.5, dialAmt: 0, glow: 1.1, drift: 0.12 });
+  lay(5, 0.45, LL.star, { lit: 0.6 });
+  cam(5, 0.45, { camY: 0, camZ: 12, rx: 0, ry: 0.25, rz: -TAU / 2, ox: 0.26, oy: 0.02, oyM: 0.12, tension: dev ? 0.5 : 0, threadA: 0.75, pulse: 0.5, dialAmt: 0, glow: 1.1, drift: 0.12 });
   // 5 → 5.7  звезда медленно вращается (и уходит под бумажный блок)
-  cam(5.7, 0.7, { rz: -TAU / 2 - 0.9, ry: -0.15 }, 'none');
+  cam(5.7, 0.7, dev ? { rz: -TAU / 2 - 0.28, ry: -0.3 } : { rz: -TAU / 2 - 0.9, ry: -0.15 }, 'none');
 
   // ── 5.7 → 6  всё стягивается в одну чёрную жемчужину ────────────────
-  lay(6, 0.3, L.pearl, { lit: 0.5 });
-  tl.to(beads[0].st, { dark: 1, lit: 0.55, duration: 0.3 }, 5.7);
+  lay(6, 0.3, LL.pearl, { lit: 0.5 });
+  tl.to(beads[0].st, dev ? { lit: 0.4, duration: 0.3 } : { dark: 1, lit: 0.55, duration: 0.3 }, 5.7); // в версии с техникой жемчужина остаётся обычной белой
   cam(6, 0.3, { camY: 0.2, camZ: 8.4, rx: -1.25, ry: 0.2, rz: -TAU / 2 - 1.6, ox: 0, oy: 0.02, oyM: 0, tension: 0.5, threadA: 1, pulse: 1, glow: 1.3, drift: 0.2, bloom: 0.6 });
 
   return tl;

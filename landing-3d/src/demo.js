@@ -30,7 +30,7 @@ export function initDemo() {
 
   // въезд: окно лежит «на столе» и поднимается к зрителю
   gsap.fromTo('.demo-stage', { rotateX: 46, scale: 0.7, yPercent: 14, transformPerspective: 1500 }, { rotateX: 0, scale: 1, yPercent: 0, ease: 'none', scrollTrigger: { trigger: '.demo', start: 'top bottom', end: 'top top', scrub: true } });
-  gsap.from('.demo-caps', { autoAlpha: 0, x: -40, ease: 'none', scrollTrigger: { trigger: '.demo', start: 'top 60%', end: 'top top', scrub: true } });
+  gsap.from('.demo-step, .caps', { autoAlpha: 0, y: -24, ease: 'none', scrollTrigger: { trigger: '.demo', start: 'top 60%', end: 'top top', scrub: true } });
 
   const tl = gsap.timeline({
     defaults: { ease: 'power2.inOut' }, onUpdate: apply,

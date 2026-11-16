@@ -62,9 +62,7 @@
 
 /* вопросы */
 .faq summary { transition: padding-left .7s var(--e-out), color .35s; }
-.faq summary:hover { padding-left: 12px; color: var(--mint-ink, var(--mint)); }
-.faq summary:hover i { transform: rotate(90deg); }
-.faq details[open] summary:hover i { transform: rotate(45deg) scale(1.15); }
+@media (hover: hover) { .faq summary:hover { padding-left: 12px; } }
 .faq details[open] p { animation: faqIn .7s var(--e-out); }
 @keyframes faqIn { from { opacity: 0; transform: translateY(-8px); filter: blur(6px); } }
 

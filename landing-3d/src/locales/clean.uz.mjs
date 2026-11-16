@@ -1,0 +1,157 @@
+// O'zbekcha matnlarni soddalashtirish (clean.ru.mjs bilan bir xil tuzilma). Нужна вычитка носителем языка.
+export default {
+  desc: "Marjon kassa, oshxona, ombor, xodimlar va moliyani O'zbekiston kafe va restoranlari uchun bitta tizimga birlashtiradi.",
+  ogDesc: "Kassa, oshxona, ombor, xodimlar va moliya bitta tizimda. Internetsiz ham ishlaydi — o'zbek, rus va ingliz tillarida.",
+  mani: { k: 'Bitta tizim', t: "Kassadagi buyurtma shu soniyaning o'zida <em>oshxonada paydo bo'ladi</em>, <em>ombordan mahsulotni hisobdan chiqaradi</em> va egasining <em>hisobotiga tushadi</em>. Hech kim hech narsani qo'lda ko'chirmaydi." },
+  hero: {
+    lede: "Kassa, oshxona, ombor, xodimlar va moliya — bitta tizimda. Har bir buyurtma va smenaning har bir daqiqasi <b>darhol</b> ko'rinadi — kechqurungi hisobotda emas.",
+    hud: ['internetsiz ishlaydi', 'Toshkent', "so'm", 'RU · UZ · EN'],
+    chipA: { top: 'chek · 00186', sum: '214 000', cur: "so'm", foot: "to'landi" },
+    chipB: { top: 'oshxona', time: '00:42', foot: 'Stol 4 · Palov × 2' },
+  },
+  problem: {
+    lede: "Kassa — bitta dasturda, ombor — jadvalda, oshxona — qog'ozda, hisobotlar — yozishmalarda. Kechqurun raqamlar mos kelmaydi, egasi esa muammodan oxirgi bo'lib xabar topadi.",
+    tools: [['Excel', 'Ombor'], ['WhatsApp', 'Buyurtmalar'], ["Qog'oz", 'Oshxona'], ['Bloknot', 'Smenalar'], ['Daftar', 'Tushum']],
+    pains: [
+      ['Ikki karra ish', "Bitta buyurtma kassaga, bloknotga va yozishmaga yoziladi. Qayerdadir albatta bitta taom yo'qoladi."],
+      ["Ko'r-ko'rona ombor", "Qancha mahsulot ketgani va taom qanchaga tushgani smenadan keyin taxminan hisoblanadi."],
+      ['Kechikkan hisobotlar', "Kecha nima bo'lgani faqat ertalab ma'lum bo'ladi. Yo'qotishni tuzatishga esa kech."],
+    ],
+  },
+  modules: {
+    lede: "Barcha bo'limlar bitta buyurtma, bitta ombor va bitta pul bilan ishlaydi. Hech narsani qo'lda ko'chirish shart emas.",
+    items: [
+      { short: 'Kassa', name: 'Kassa', text: "Buyurtmalar, smenalar va chegirmalar. Chek bir zumda chop etiladi, smena bitta tugma bilan yopiladi.", tags: ['chegirmalar', 'smenani yopish'], live: ['chek № 00186 · stol 4', "214 000 so'm"] },
+      { short: 'Oshxona', name: 'Oshxona ekrani', text: "Buyurtma darhol oshpazda paydo bo'ladi. Ofitsiant va kassir nima tayyor ekanini ko'radi.", tags: ['taymerlar', 'taom holati'], live: ['Stol 4 · Palov × 2', '00:42'] },
+      { short: 'Ombor', name: 'Ombor va retseptlar', text: "Kirim, hisobdan chiqarish va inventarizatsiya. Har bir taomning tannarxi o'zi hisoblanadi.", tags: ['qoldiqlar', 'tannarx'], live: ["Qo'zi go'shti · tugayapti", '3 kg'] },
+      { short: 'Yetkazish', name: 'Yetkazib berish', text: "Hududlar, kuryerlar va buyurtma holati. Mehmonning manzili va telefoni — chekda.", tags: ['hududlar', 'holatlar'], live: ["Yo'lda 4 ta buyurtma", '18 daq'] },
+      { short: 'Mehmonlar', name: 'Mehmonlar va bonuslar', text: "Mehmonning buyurtmalar tarixi, bonuslar va doimiy mehmonlarga chegirma — alohida dastursiz.", tags: ['bonuslar', 'doimiy mehmonlar'], live: ['Aziz Karimov · 14 tashrif', '1 240'] },
+      { short: 'Xodimlar', name: 'Xodimlar', text: "Rollar, smena jadvali va ishga kelish belgilari — bir joyda.", tags: ['rollar', 'jadvallar'], live: ['bugungi smena · 7 kishi', '07:00—23:00'] },
+      { short: 'Hisobot', name: 'Hisobotlar', text: "Tushum, foyda va savdo — kunlar va filiallar bo'yicha. Har qanday hisobot Excelga yuklanadi.", tags: ["filiallar bo'yicha", 'Excel'], live: ['tushum · bugun', '12,48 mln'] },
+      { short: "To'lov", name: "Qulay to'lov", text: "Mehmon o'ziga qulay usulda to'laydi: naqd, karta yoki o'tkazma orqali. Bitta hisobni bir necha usulda to'lash mumkin.", tags: ['naqd va karta', 'bitta hisobda bir necha usul'], live: ['stol 4 · naqd + karta', "214 000 so'm"] },
+    ],
+  },
+  live: {
+    lede: "Kassadagi buyurtma shu soniyaning o'zida oshxonada paydo bo'ladi, ombordan mahsulotni hisobdan chiqaradi va egasining hisobotiga tushadi.",
+    rev: { label: 'tushum · bugun', unit: "mln so'm", delta: '18,4', axis: ['08:00', '16:00', '00:00'] },
+    receipt: { head: 'MARJON', no: 'chek · 00186', meta: 'stol 4 · ofitsiant AK · 14:32', rows: [['Choyxona palovi', '×2', '148 000'], ['Achichuq', '×1', '24 000'], ["Ko'k choy", '×3', '42 000']], total: 'Jami', paid: "to'landi", ofd: 'tashrifingiz uchun rahmat' },
+    kds: { label: 'oshxona', rows: [['Stol 4', 'Palov × 2', 42], ['Yetkazish · 812', 'Shashlik · non', 130], ['Stol 7', "Lag'mon · kompot", 78]], foot: 'kassa bilan birga' },
+    stock: { label: 'ombor · tugayapti', n: '3', unit: 'mahsulot', foot: "qo'zi go'shti · guruch · yog'" },
+  },
+  roles: {
+    lede: "Har kim faqat o'zinikini ko'radi: kassir — buyurtmalarni, ofitsiant — o'z zalini, egasi — hammasini.",
+    items: [
+      { name: 'Egasi', title: 'Butun manzara — bitta ekranda', text: "Tushum, o'rtacha chek, zal bandligi va qoldiqlar. Xuddi shu — telefondagi ilovada.", list: ["Muassasa va filiallar bo'yicha umumiy ko'rinish", 'Hisobotlar va Excelga yuklash', 'Smenalar va xodimlar kirishini nazorat qilish', "Barcha bo'limlarga kirish"], access: "barcha bo'limlar" },
+      { name: 'Menejer', title: "Egaga qo'ng'iroq qilmasdan smena", text: "Menyu, stop-list, xaridlar va xodimlar. Ish kuni uchun kerakli hammasi — bir joyda.", list: ['Stop-list va taom retseptlari', 'Kirim, hisobdan chiqarish va inventarizatsiya', 'Smena jadvali va ishga kelish belgilari', 'Moliyaga kirishsiz'], access: 'moliyasiz' },
+      { name: 'Kassir', title: "Buyurtma, to'lov, chek", text: "Buyurtma va chegirma — ikki bosishda. Internet uzilsa ham kassa ishlayveradi.", list: ["Tezkor buyurtma va taomga qo'shimchalar", "Naqd, karta yoki o'tkazma", 'Chek chop etish va smenani yopish', 'Moliya va sozlamalar yashirin'], access: 'faqat kassa' },
+      { name: 'Ofitsiant', title: 'Zal va taom tayyorligi', text: "Zal xaritasi, stollar va qo'shimcha buyurtma. Qaysi taom tayyor ekani ko'rinib turadi.", list: ["Zal xaritasi va o'z stollari", "Qo'shimcha buyurtma va taomni ko'chirish", '«Qabul qilindi / tayyorlanmoqda / tayyor» holatlari', "Faqat o'z zalini ko'radi"], access: "faqat o'z zali" },
+      { name: 'Oshpaz', title: "Qog'oz o'rniga ekran", text: "Buyurtmalar ekranga navbat va vaqt bilan keladi. «Buyurtma tayyor» deb baqirish shart emas.", list: ["Buyurtmalar navbat va shoshilinchlik bo'yicha", 'Taymer va tayyorlik belgisi', 'Stop-list va almashtirishlar', 'Kassa va pulga kirishsiz'], access: 'faqat oshxona' },
+      { name: 'Kuryer', title: "Yo'qolgan manzilsiz yetkazib berish", text: "Manzillar va yo'ldagi holat. Mehmon telefoni — chekda.", list: ['Yetkazib berish hududlari va manzillar', "«Yo'lda / yetkazildi» holatlari", 'Mehmon telefoni chekda', "Faqat o'z buyurtmalari"], access: 'faqat yetkazib berish' },
+      { name: 'Buxgalter', title: "Bir-biriga to'g'ri keladigan raqamlar", text: "Kirim, chiqim va to'lovlarni solishtirish. Hammasi Excelga yuklanadi.", list: ['Kirim, chiqim va toifalar', "To'lovlarni usullar bo'yicha solishtirish", 'Buxgalteriya uchun yuklamalar', 'Kassaga kirishsiz'], access: 'faqat moliya' },
+    ],
+    show: [
+      { k: 'Kassa va oshxona', t: "Kassir buyurtma va to'lovni qabul qiladi, oshpaz uni darhol o'z ekranida ko'radi.", who: ['Kassir', 'Oshpaz'], img: 'pos' },
+      { k: 'Telefon', t: "Ofitsiant buyurtmani stol yonida oladi, kuryer manzilni, egasi esa tushumni ko'radi.", who: ['Ofitsiant', 'Kuryer', 'Egasi'], img: 'mobile' },
+      { k: 'Boshqaruv paneli', t: "Menejer menyu, ombor va smenalarni, buxgalter kirim va chiqimni yuritadi.", who: ['Menejer', 'Buxgalter'], img: 'dash' },
+    ],
+  },
+  uz: {
+    h2: ["O'zbekiston uchun", '<em>yaratilgan.</em>'],
+    lede: "Til, valyuta va mehmonlarning odatlari — «moslashtirish» emas, mahsulotning asosi.",
+    stats: [
+      { n: 29, pre: '', suf: 'mln', label: 'kishi kafe va restoranlarga boradi' },
+      { n: 224, pre: '+', suf: '%', label: "6 yilda soha o'sishi" },
+      { n: 7, pre: '', suf: '', label: 'bitta tizimda rol' },
+      { n: 3, pre: '', suf: '', label: 'interfeys tili' },
+    ],
+    feats: [
+      ['Uchta til', "O'zbek, rus va ingliz — har bir xodim o'z tilini tanlaydi."],
+      ["Hammasi so'mda", "Narxlar, cheklar va hisobotlar darhol so'mda, qayta hisoblashsiz."],
+      ['Internetsiz ishlaydi', "Kassa buyurtma olishda davom etadi va aloqa qaytganda ma'lumotni o'zi yuboradi."],
+      ['Toshkent vaqti', "Smenalar, hisobotlar va cheklar — mahalliy vaqt bo'yicha."],
+    ],
+    tiles: {
+      lang: { k: 'Uchta til', words: ['Buyurtma', 'Заказ', 'Order'], t: "Har bir xodim o'z tilini tanlaydi: o'zbek, rus yoki ingliz." },
+      money: { k: "Hammasi so'mda", big: '214 000', cur: "so'm", t: "Narxlar, cheklar va hisobotlar — darhol so'mda, qayta hisoblashsiz." },
+      off: { k: 'Internetsiz ishlaydi', on: 'aloqa bor', wait: "tarmoq yo'q · 3 ta buyurtma kutmoqda", t: "Aloqa uzildi — kassa buyurtma olishda davom etadi. Tarmoq qaytganda ma'lumot o'zi yuboriladi." },
+    },
+  },
+  platforms: {
+    lede: "Kassa kompyuterda, panel brauzerda, ilova telefonda ishlaydi. Bitta kirish va bitta ma'lumot.",
+    items: [
+      { os: 'Brauzer', name: 'Boshqaruv paneli', text: 'Menyu, ombor, moliya, hisobotlar va muassasa sozlamalari — istalgan brauzerdan.', tags: ['menyu', 'ombor', 'moliya', 'hisobotlar'] },
+      { os: 'Windows', name: 'Kassa', text: 'Kassa, ofitsiant va oshxona. Chek chop etadi va internetsiz ishlaydi.', tags: ['chek chop etish', 'internetsiz', 'kassa + oshxona'] },
+      { os: 'Android · iOS', name: 'Mobil ilova', text: "Ofitsiant buyurtmani stol yonida qabul qiladi: zal, stollar va taom rasmlari bilan menyu.", tags: ['zal', 'stollar', 'buyurtma'] },
+    ],
+    mock: { rev: 'bugungi tushum', sum: '12,48 mln', kds: 'Oshxona', rows: [['Stol 4', 'Palov × 2', '00:42'], ['Yetkazish', 'Shashlik', '02:10'], ['Stol 7', "Lag'mon", '01:18']] },
+  },
+  integ: {
+    kicker: '07 / Qurilmalar', h2: ['Bor qurilmalarda', '<em>ishlaydi.</em>'],
+    lede: 'Muassasada allaqachon turgan kompyuter, telefon va chek printeri.',
+    a: [['Windows', 'Kassa va oshxona'], ['Android · iOS', 'Ilova'], ['Brauzer', 'Boshqaruv paneli'], ['Chek printeri', 'Chop etish'], ['Excel', 'Hisobotlarni yuklash'], ['Telegram', 'Bildirishnomalar']],
+    b: [['Internetsiz', "Kassa to'xtamaydi"], ["So'm", 'Valyuta'], ['RU · UZ · EN', 'Uchta til'], ['Filiallar', 'Barcha nuqtalar bir joyda'], ['Taom rasmlari', 'Rasmli menyu'], ['Rollar', "Har kimga o'ziniki"]],
+  },
+  shift: {
+    kicker: "07 / Oldin va keyin", h2: ['Birinchi smenadanoq', "<em>nima o'zgaradi.</em>"],
+    lede: "O'sha odamlar va o'sha menyu — faqat ular orasidagi qo'l mehnatisiz.",
+    was: 'Oldin', now: 'Marjon bilan',
+    rows: [
+      ['Buyurtma', "Ofitsiant qog'ozni oshxonaga olib boradi", "Buyurtma o'zi oshpaz ekranida paydo bo'ladi"],
+      ['Ombor', 'Qoldiqlar haftada bir marta sanaladi', 'Mahsulot har bir taom bilan hisobdan chiqadi'],
+      ['Tushum', 'Kun yakuni — kechqurun daftarda', "Tushum istalgan daqiqada telefonda ko'rinadi"],
+      ['Smena', "Kassa qo'lda hisoblanadi", 'Smena bitta tugma bilan yopiladi'],
+      ['Xodimlar', 'Jadvallar — yozishmalarda', 'Jadval va rollar — bitta tizimda'],
+    ],
+  },
+  launch: {
+    lede: 'Uzoq joriy etishsiz: formatingizga kerakli narsani sozlaymiz — kafe, restoran yoki fastfud.',
+    steps: [
+      ['Ariza', "Saytda ariza qoldirasiz. Format, nuqtalar soni va smena qanday o'tishini aniqlaymiz."],
+      ['Sozlash', "Menyu, retseptlar, ombor va xodimlar rollari. Sizda bor narsalarni ko'chiramiz."],
+      ['Birinchi smena', "Kassa, oshxona va egasining ilovasi birga ishlay boshlaydi. Keyin — sizning qoidalaringiz bo'yicha."],
+    ],
+    checks: ['Menyu', 'Retseptlar', 'Ombor', 'Rollar'], open: 'Smena ochiq', phone: 'Telefon',
+  },
+  faq: {
+    lede: 'Javob topmadingizmi — ariza qoldiring, ish vaqtida javob beramiz.',
+    items: [
+      ['Doimiy internet kerakmi?', "Yo'q. Kassa internetsiz ishlashda davom etadi: buyurtmalar saqlanadi va aloqa qaytganda o'zi yuboriladi. Ulanish faqat ayrim hisobotlar uchun kerak."],
+      ["Menyu va omborni ko'chirish mumkinmi?", "Ha. Menyu, toifalar, mahsulotlar va retseptlarni ulanish vaqtida sozlaymiz. Qoldiqlar birinchi inventarizatsiya orqali kiritiladi yoki jadvaldan yuklanadi."],
+      ['Qanday qurilmalar kerak?', "Kassa Windows kompyuterida, boshqaruv paneli istalgan brauzerda, ilovalar Android va iPhone'da ishlaydi. Cheklar oddiy chek printerida chop etiladi."],
+      ['Narxi qancha?', "Narx nuqtalar soni va bo'limlar to'plamiga bog'liq. Ariza qoldiring — formatingizga mos variantni taklif qilamiz."],
+      ["Muassasa ma'lumotlarini kim ko'radi?", "Kirish rollar va filiallar bo'yicha ajratilgan: kassir moliyani ko'rmaydi, ofitsiant — boshqa zalni, egasi hammasini ko'radi. Har bir amal tarixda saqlanadi."],
+    ],
+  },
+  cta: {
+    lede: "Formatingizni ayting: kafe, restoran yoki fastfud. Kassa, oshxona va hisobotlar aynan sizda qanday ishlashini ko'rsatamiz.",
+    note: 'ish vaqtida javob beramiz',
+  },
+  form: {
+    title: ['Muassasangizni', '<em>ulaymiz</em>'], lede: "Kontaktlaringizni qoldiring — ish vaqtida bog'lanamiz, tizimni ko'rsatamiz va formatingizga mos variantni taklif qilamiz.",
+    points: ["Kassa, oshxona va hisobotlarni ko'rsatamiz", "Menyu va omborni ko'chiramiz", 'Birinchi smenani siz bilan birga ishga tushiramiz'],
+    type: 'Muassasa', types: ['Kafe', 'Restoran', 'Fastfud', 'Boshqa'], count: 'Filiallar soni', counts: ['1', '2–5', "6 va ko'p"],
+    name: 'Ismingiz', phone: 'Telefon', venue: 'Muassasa nomi', note: 'Izoh (ixtiyoriy)',
+    send: 'Ariza yuborish', close: 'Saytga qaytish', x: 'Yopish', agree: 'Tugmani bosish orqali maxfiylik siyosatiga rozilik bildirasiz.',
+    set: 'Odatda shulardan boshlashadi', pts: ['filial', 'filial', 'filial'],
+    sending: 'Yuborilmoqda…', doneOk: [['Ariza yuborildi', ''], ['U bizga yetib keldi', "Boshqa hech narsa qilish shart emas — ma'lumotlar menejerga yetdi."]],
+    done: 'Ariza tayyor', doneSteps: [['Ariza tayyor', ''], ['Xatni yuboring', "Pochta dasturida ma'lumotlaringiz yozilgan xatni ochdik — undagi «Yuborish» tugmasini bosing."], ["Siz bilan bog'lanamiz", "Ish vaqtida qo'ng'iroq qilib, tizimni ko'rsatamiz."]],
+    again: 'Xatni qayta ochish', copy: 'Arizani nusxalash', copied: 'Nusxalandi', noMail: 'Xat ochilmadimi? Arizani nusxalab, support@marjon.tech manziliga yuboring', err: 'Ism va telefonni kiriting',
+    subj: 'Marjonga ulanish uchun ariza',
+  },
+  foot: {
+    about: "O'zbekiston kafe va restoranlari uchun tizim: kassa, oshxona, ombor, xodimlar va moliya.",
+    cols: [
+      ['Mahsulot', [['#modules', 'Imkoniyatlar'], ['#roles', 'Rollar'], ['#platforms', 'Platformalar'], ['#launch', 'Ishga tushirish']]],
+      ['Hujjatlar', [['privacy.html', 'Maxfiylik siyosati'], ['#faq', 'Savol-javoblar'], ['#uzbekistan', "O'zbekiston"]]],
+      ['Kontaktlar', [['mailto:support@marjon.tech', 'support@marjon.tech'], ['https://www.instagram.com/marjon_tech', 'Instagram'], ['https://admin.marjon.tech/login', 'Panelga kirish'], ['#top', 'Toshkent']]],
+    ],
+  },
+  screens: {
+    pos: { kicker: 'Kassa', h2: ['Buyurtma', "<em>ikki bosishda yig'iladi.</em>"], text: 'Buyurtmalar, smenalar va chegirmalar. Chek bir zumda chop etiladi.', list: ['Rasmli menyu va toifalar', "Stollar bo'yicha buyurtma, taomga izoh", 'Tezkor chek va barcha stollar — bir bosishda'] },
+    dash: { kicker: 'Boshqaruv paneli', h2: ['Tushum va foyda —', '<em>ertalab emas, hozir.</em>'], text: "Tushum, foyda va savdo — kunlar va filiallar bo'yicha.", list: ["Tushum, foyda, buyurtmalar va o'rtacha chek", "Tovar kirimi va chiqimi, ombor qoldig'i", "Eng ko'p sotilgan taomlar va so'nggi buyurtmalar"] },
+    mob: { kicker: 'Telefon', h2: ['Buyurtma', '<em>stol yonida olinadi.</em>'], text: 'Zal, stollar va taom rasmlari bilan menyu.', list: ['Zal va stollar', 'Taom rasmlari bilan menyu', "Taomni nomi bo'yicha qidirish"] },
+    kitchen: { kicker: 'Oshxona', h2: ['Baqiriq emas,', '<em>ekran.</em>'], text: "Buyurtma darhol oshpazda paydo bo'ladi, mahsulot esa ombordan o'zi hisobdan chiqadi.", list: ["Buyurtmalar navbat va shoshilinchlik bo'yicha", 'Taymer va tayyorlik belgisi'] },
+    real: 'Marjonning haqiqiy interfeysi',
+  },
+  demo: { cur: "so'm", station: 'Oshxona', income: 'Tushum', winDash: 'Marjon · panel' },
+};

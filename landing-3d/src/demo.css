@@ -7,14 +7,14 @@
 .demo .real::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgba(95, 242, 208, .25); }
 .demo img { display: block; } .demo figure { margin: 0; } .demo p, .demo h2 { margin-top: 0; }
 .demo { position: relative; z-index: 2; background: #0c0d10; border-radius: clamp(28px, 3.4vw, 56px) clamp(28px, 3.4vw, 56px) 0 0; }
-.demo-pin { height: 100svh; display: grid; grid-template-columns: minmax(280px, 25vw) 1fr; gap: clamp(20px, 3vw, 56px); align-items: center; padding: calc(var(--nav-h) + 8px) var(--pad) 28px; overflow: hidden; }
+.demo-pin { height: 100svh; display: grid; grid-template-columns: minmax(200px, 18vw) 1fr; gap: clamp(18px, 2.4vw, 44px); align-items: center; padding: calc(var(--nav-h) + 8px) var(--pad) 28px; overflow: hidden; }
 .demo-caps { position: relative; align-self: center; }
 .demo-step { font-size: .9rem; color: var(--fg-2); margin-bottom: 20px; } .demo-step b { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
-.caps { position: relative; min-height: 23rem; }
+.caps { position: relative; min-height: 15rem; }
 .cap { position: absolute; inset: 0 0 auto 0; opacity: 0; visibility: hidden; }
 .cap.on { opacity: 1; visibility: visible; }
 .cap-k { font-size: .9rem; color: var(--accent); margin-bottom: 14px; }
-.cap-h { font-size: clamp(1.7rem, 2.7vw, 3rem); line-height: 1; letter-spacing: -.045em; font-weight: 500; margin-bottom: .55em; text-wrap: balance; }
+.cap-h { font-size: clamp(1.5rem, 2.25vw, 2.6rem); line-height: 1; letter-spacing: -.045em; font-weight: 500; margin-bottom: .55em; text-wrap: balance; }
 .cap-h em { font-style: normal; color: rgba(245, 245, 241, .45); }
 .cap-t { color: var(--fg-2); font-size: 1rem; }
 .cap .ticks { font-size: .95rem; margin-top: 1.1em; }
@@ -26,8 +26,8 @@
 .demo .real { color: var(--fg-2); margin-top: 16px; }
 .demo-hint { position: absolute; left: 50%; bottom: 14px; translate: -50% 0; font-size: .82rem; color: var(--fg-2); white-space: nowrap; }
 
-.demo-stage { position: relative; justify-self: center; width: min(100%, calc((100svh - var(--nav-h) - 90px) * 1.56)); transform-origin: 50% 100%; will-change: transform; }
-.win { position: relative; border-radius: 18px; background: #16181d; box-shadow: 0 0 0 1px rgba(245, 245, 241, .12), 0 40px 120px rgba(0, 0, 0, .6), 0 0 140px rgba(95, 242, 208, .08); overflow: hidden; will-change: transform; }
+.demo-stage { position: relative; justify-self: center; width: min(100%, calc((100svh - var(--nav-h) - 56px) * 1.56)); transform-origin: 50% 100%; will-change: transform; }
+.win { position: relative; border-radius: 18px; background: #16181d; box-shadow: 0 0 0 1px rgba(245, 245, 241, .12), 0 40px 120px rgba(0, 0, 0, .6), 0 0 0 6px rgba(95, 242, 208, .05), 0 0 180px rgba(95, 242, 208, .16); overflow: hidden; will-change: transform; }
 .win-bar { position: relative; height: 34px; display: flex; align-items: center; gap: 7px; padding: 0 14px; }
 .win-bar i { width: 10px; height: 10px; border-radius: 50%; background: rgba(245, 245, 241, .2); }
 .win-t { position: absolute; left: 50%; translate: -50% 0; font-size: .78rem; color: rgba(245, 245, 241, .6); white-space: nowrap; } .win-t[data-wt='1'] { opacity: 0; }
@@ -81,4 +81,28 @@
   .d-order, .d-sent, .p-chip { font-size: .8rem; padding: 9px 12px; gap: 8px; border-radius: 12px; } .d-order { left: 0; bottom: -52px; } .d-sent { right: 0; top: -14px; }
   .phone { height: auto; width: 52%; left: 24%; right: auto; top: -46%; } .p-chip { left: auto; right: -34%; top: 12%; }
   .static .caps, .no-js .caps { grid-template-columns: 1fr; }
+}
+
+/* меньше текста: остаются шаг, название и одна строка-заголовок; экран — главный */
+.cap-t, .cap .ticks, .demo .real { display: none; }
+.cap-kpi { border-top: 0; padding-top: 0; margin-top: .6em; }
+.static .cap-t, .no-js .cap-t { display: block; }
+
+/* раскладка: подпись сверху по центру, экран под ней, полоса прогресса сразу под экраном; весь блок по центру и всегда в одном экране */
+.js:not(.static) .demo-pin { --capH: clamp(4.4rem, 10.5svh, 6.4rem); grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto; align-content: center; justify-items: center; align-items: start; gap: 0; padding: calc(var(--nav-h) + 4px) var(--pad) 18px; }
+.js:not(.static) .demo-caps { display: contents; }
+.js:not(.static) .demo-step { grid-row: 1; margin: 0 0 4px; text-align: center; }
+.js:not(.static) .caps { grid-row: 2; width: 100%; min-height: 0; height: var(--capH); text-align: center; }
+.js:not(.static) .cap { inset: 0; display: flex; flex-wrap: wrap; justify-content: center; align-content: start; align-items: baseline; gap: 2px 22px; overflow: hidden; }
+.js:not(.static) .cap-k { flex: 0 0 100%; margin: 0 0 2px; }
+.js:not(.static) .cap-h { margin: 0; max-width: 100%; font-size: clamp(1.15rem, min(2.6vw, 4.6svh), 2.9rem); text-wrap: balance; }
+.js:not(.static) .cap-kpi { margin: 0; display: flex; align-items: baseline; gap: 10px; } .js:not(.static) .cap-kpi b { font-size: clamp(1.05rem, min(1.9vw, 3.4svh), 2rem); }
+.js:not(.static) .demo-stage { grid-row: 3; width: min(100%, calc((100svh - var(--nav-h) - var(--capH) - 152px) * 1.56)); }
+.js:not(.static) .demo-bar { grid-row: 4; width: min(100%, calc((100svh - var(--nav-h) - var(--capH) - 152px) * 1.56)); height: 3px; margin-top: clamp(14px, 2.2svh, 22px); border-radius: 3px; }
+.js:not(.static) .demo-hint { bottom: 10px; font-size: .76rem; }
+@media (max-width: 1100px) { .js:not(.static) .cap-kpi span { display: none; } }
+@media (max-width: 900px) {
+  .js:not(.static) .demo-pin { --capH: 5.6rem; padding-bottom: 40px; } .js:not(.static) .cap-h { font-size: 1.2rem; }
+  .js:not(.static) .demo-stage, .js:not(.static) .demo-bar { width: 100%; }
+  .js:not(.static) .demo-bar { margin-top: 66px; } /* под экраном висит плашка заказа */
 }

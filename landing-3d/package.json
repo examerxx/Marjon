@@ -7,6 +7,7 @@
     "pages": "node scripts/build-pages.mjs",
     "dev": "npm run pages && vite --host 0.0.0.0",
     "build": "npm run pages && vite build",
+    "build:prod": "PROD=1 npm run pages && PROD=1 vite build && npm run pages",
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {

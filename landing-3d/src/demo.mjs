@@ -14,7 +14,7 @@ export function demo(t, attrs = '') {
             <p class="cap-k">${k(sc.kicker)}</p>
             <h2 class="cap-h">${sc.h2.join(' ')}</h2>
             <p class="cap-t">${sc.text}</p>
-            ${i === 3 ? `<p class="cap-kpi"><span>${d.income}</span><b><i data-kpi>118 024 000</i> UZS</b></p>` : `<ul class="ticks">${sc.list.slice(0, 2).map((x) => `<li>${x}</li>`).join('')}</ul>`}
+            ${i === 3 ? `<p class="cap-kpi"><span>${d.income}</span><b><i data-kpi>118 024 000</i> ${d.cur}</b></p>` : `<ul class="ticks">${sc.list.slice(0, 2).map((x) => `<li>${x}</li>`).join('')}</ul>`}
             ${img ? `<figure class="cap-fb${ph ? ' ph' : ''}"><img src="/src/assets/shots/${img}.webp" alt="${a}" loading="lazy" width="${ph ? 1170 : 3072}" height="${ph ? 2532 : 1920}" /></figure>` : ''}
           </article>`).join('')}
         </div>
@@ -31,7 +31,7 @@ export function demo(t, attrs = '') {
               ${[[33.7, 41], [21.9, 41], [57.2, 17], [87.6, 87.2]].map(([x, y], i) => `<i class="hit" data-hit="${i}" style="left:${x}%;top:${y}%"></i>`).join('')}
               ${[['MANTI', 33.7, 41], ['OSH', 21.9, 41], ['BORSH', 57.2, 17]].map(([n, x, y], i) => `<span class="fly" data-fly="${i}" style="left:${x}%;top:${y}%">+1 ${n}</span>`).join('')}
               ${[20, 36, 52.1, 68.1].map((x) => `<i class="kring" data-kring style="left:${x}%"></i>`).join('')}
-              <i class="d-dot" data-dot></i><span class="d-tip" data-tip><b>13 486 000 UZS</b>${d.peak}</span>
+              <i class="d-dot" data-dot></i><span class="d-tip" data-tip><b>13 486 000 ${d.cur}</b>${d.peak}</span>
             </div>
             <div class="win-dim" data-dim></div>
             <svg class="cur" data-cur viewBox="0 0 24 24"><path d="M4 2.5 19 11l-6.6 1.7L9.6 19 4 2.500Z" fill="#fff" stroke="#09090b" stroke-width="1.4" stroke-linejoin="round"/></svg>
