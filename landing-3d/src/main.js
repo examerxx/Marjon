@@ -10,7 +10,7 @@ import { createLoader } from './loader.js';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import { $, $$, initBase, initMotion } from './ui.js';
+import { $, $$, initBase, initMotion, initSwitch } from './ui.js';
 import { initDemo } from './demo.js';
 
 const html = document.documentElement;
@@ -29,7 +29,7 @@ html.classList.toggle('static', reduced);
 
 let lenis = null, world = null, master = null, motion = null;
 const scrollTo = (target) => {
-  if (lenis) lenis.scrollTo(target, { duration: 1.4 });
+  if (lenis && !lenis.isStopped) lenis.scrollTo(target, { duration: 1.4 }); // lenis остановлен (загрузчик) — нативный фолбэк
   else if (typeof target === 'number') window.scrollTo({ top: target, behavior: reduced ? 'auto' : 'smooth' });
   else target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
 };
@@ -63,6 +63,7 @@ async function boot() {
   gsap.ticker.lagSmoothing(0);
 
   motion = initMotion({ scrollTo });
+  initSwitch({ scrollTo });
   initDemo(); // после initMotion: pin модулей стоит выше по странице
 
   // 3D

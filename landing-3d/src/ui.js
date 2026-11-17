@@ -80,6 +80,30 @@ export function initBase({ scrollTo, onRole }) {
 }
 
 /* ---------- анимации ---------- */
+// iPhone-переключатель в конце секции проблем: кружок в овале, «справа налево»
+export function initSwitch({ scrollTo }) {
+  const el = $('.next-switch'); if (!el) return;
+  const target = () => $('#modules');
+  const problem = () => $('#problem');
+  let on = false;
+  const isPast = () => {
+    const mod = target(); if (!mod) return false;
+    const top = mod.getBoundingClientRect().top; // модули пинуются: top упирается в 0
+    return top <= window.innerHeight * 0.12;
+  };
+  const sync = () => { const v = isPast(); if (v !== on) { on = v; el.classList.toggle('on', v); el.setAttribute('aria-checked', String(v)); } };
+  el.addEventListener('click', () => {
+    const dest = on ? problem() : target();
+    if (!dest) return;
+    on = !on; el.classList.toggle('on', on); el.setAttribute('aria-checked', String(on));
+    const top = Math.max(0, dest.getBoundingClientRect().top + window.scrollY - 2);
+    scrollTo(top);
+  });
+  window.addEventListener('scroll', sync, { passive: true });
+  window.addEventListener('resize', sync);
+  sync();
+}
+
 export function initMotion({ scrollTo }) {
   gsap.registerPlugin(ScrollTrigger, SplitText);
   ScrollTrigger.config({ ignoreMobileResize: true });
@@ -117,22 +141,13 @@ export function initMotion({ scrollTo }) {
   // «как это выглядит сейчас»: инструменты зачёркиваются по скроллу
   if ($('[data-tool]')) gsap.to('[data-tool]', { '--strike': 1, ease: 'none', stagger: 0.4, scrollTrigger: { trigger: '.tools', start: 'top 72%', end: 'top 26%', scrub: 0.4 } });
 
-  // модули: pin + переключение по прогрессу
-  const btns = $$('.mod-b'), cards = $$('.mod-card'), numEl = $('[data-mod-n]'), bar = $('[data-mod-bar]'), barWrap = bar?.closest('.mod-bar');
-  let cur = 0;
-  const setMod = (i) => {
-    if (i === cur) return; cur = i;
-    btns.forEach((b, k) => b.classList.toggle('on', k === i));
-    cards.forEach((c, k) => { c.classList.toggle('on', k === i); c.setAttribute('aria-hidden', k !== i); });
-    numEl.textContent = pad(i + 1);
-    gsap.fromTo(numEl, { yPercent: 28, opacity: 0.2 }, { yPercent: 0, opacity: 1, duration: 0.5, ease: 'power3.out', overwrite: true });
-  };
+  // модули: pin + тонкая полоса прогресса (текст живёт в 3D-подписях у бусин)
+  const bar = $('[data-mod-bar]'), barWrap = bar?.closest('.mod-bar');
   const pin = !$('.mod-pin') ? null : ScrollTrigger.create({
     trigger: '.mod-pin', pin: true, start: 'top top', anticipatePin: 1, invalidateOnRefresh: true,
     end: () => '+=' + window.innerHeight * (window.innerWidth < 820 ? 2.8 : 3.4),
-    onUpdate: (self) => { setMod(Math.min(7, Math.floor(self.progress * 8))); const done = self.progress >= 0.995; barWrap?.classList.toggle('done', done); gsap.set(bar, { scaleX: self.progress }); },
+    onUpdate: (self) => { const done = self.progress >= 0.995; barWrap?.classList.toggle('done', done); if (bar) gsap.set(bar, { scaleX: self.progress }); },
   });
-  if (pin) btns.forEach((b, i) => b.addEventListener('click', () => scrollTo(pin.start + ((i + 0.5) / 8) * (pin.end - pin.start))));
 
   // навигация: прячется при скролле вниз, перекрашивается на бумаге
   ScrollTrigger.create({

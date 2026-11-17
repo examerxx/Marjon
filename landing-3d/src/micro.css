@@ -57,8 +57,6 @@
 .role-tab:hover:not(.on) { padding-left: 8px; }
 .role-tab i { transition: color .35s, transform .7s var(--e-out); display: inline-block; }
 .role-tab:hover i { transform: translateY(-2px); }
-.mod-b { transition: color .35s, transform .7s var(--e-out); }
-.mod-b:hover { transform: translateX(6px); }
 
 /* вопросы */
 .faq summary { transition: padding-left .7s var(--e-out), color .35s; }

@@ -320,8 +320,11 @@ export function createScene(canvas, { low = false, labels = [], addon = null } =
         v.project(camera);
         const px = (v.x * 0.5 + 0.5) * W, py = (-v.y * 0.5 + 0.5) * H;
         const rad = (b.st.s / (dist * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)))) * (H / 2);
-        const on = v.z < 1 && px > -80 && px < W + 80 ? S.labels * (0.35 + 0.65 * b.st.lit) : 0;
-        el.style.transform = `translate3d(${px.toFixed(1)}px, ${(py + rad + 14).toFixed(1)}px, 0) translateX(-50%)`;
+        const on = v.z < 1 && px > -140 && px < W + 140 && py > -120 && py < H + 120 ? S.labels * (0.3 + 0.7 * b.st.lit) : 0;
+        const up = py > H * 0.32; // под бусиной, если там невысокеющее место — над
+        el.classList.toggle('up', up);
+        const off = rad + 10;
+        el.style.transform = `translate3d(${px.toFixed(1)}px, ${(py + (up ? -off : off)).toFixed(1)}px, 0) translate(-50%, ${up ? '-100%' : '0'})`;
         el.style.opacity = on.toFixed(3); el._o = on;
       }
     }

@@ -76,7 +76,7 @@ html.ls-out body { opacity: 0; transition: opacity .2s ease; }
 /* телефон: производительность — без тяжёлых слоёв поверх 3D */
 @media (pointer: coarse), (max-width: 820px) {
   .grain, .fx-edge, .cur-dot { display: none !important; }
-  .card, .chip, .tool, .role-tab, .rs-who span, .tile, .cta-in, .vband, .btn-line, .mod-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  .card, .chip, .tool, .role-tab, .rs-who span, .tile, .cta-in, .vband, .btn-line { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
   .card, .tile:not(.tile-money) { background: rgba(15, 18, 19, .86); }
   .rs-who span, .role-tab, .chip, .tool { background: rgba(15, 18, 19, .78); }
   .cta-in { background: linear-gradient(160deg, rgba(18, 22, 23, .86), rgba(10, 12, 13, .78)); }
@@ -86,13 +86,5 @@ html.ls-out body { opacity: 0; transition: opacity .2s ease; }
 
 /* «Возможности» на телефоне: компактная карточка внизу — нить с бусинами целиком видна над ней */
 @media (max-width: 820px) {
-  .mod-grid { padding-bottom: 16px; }
-  .mod-head { gap: 8px; } .mod-head .h-ch { font-size: 1.45rem; }
-  .mod-count { padding-top: 6px; } .mod-count b { font-size: 2.3rem; }
-  .mod-cards { align-self: end; }
-  .mod-card { padding: 14px 16px; gap: 6px; min-height: 0; border-radius: 16px; }
-  .mod-card h3 { font-size: 1.05rem; } .mod-card p { font-size: .86rem; line-height: 1.4; }
-  .mod-card .tags, .mod-card ul { gap: 6px; } .mod-card .tags span, .mod-card li { padding: 4px 10px; font-size: .74rem; }
-  .mod-live { margin-top: 2px; padding-top: 10px; font-size: .78rem; } .mod-live b { font-size: .95rem; }
-  .mod-bar { margin-top: 12px; }
+  .mod-bar { bottom: 14px; }
 }

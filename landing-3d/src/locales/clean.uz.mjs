@@ -10,6 +10,7 @@ export default {
     chipB: { top: 'oshxona', time: '00:42', foot: 'Stol 4 · Palov × 2' },
   },
   problem: {
+    switch: { off: 'Muammolar', on: 'Bitta tizim', aria: "«Bitta tizim» bo'limiga o'tish" },
     lede: "Kassa — bitta dasturda, ombor — jadvalda, oshxona — qog'ozda, hisobotlar — yozishmalarda. Kechqurun raqamlar mos kelmaydi, egasi esa muammodan oxirgi bo'lib xabar topadi.",
     tools: [['Excel', 'Ombor'], ['WhatsApp', 'Buyurtmalar'], ["Qog'oz", 'Oshxona'], ['Bloknot', 'Smenalar'], ['Daftar', 'Tushum']],
     pains: [

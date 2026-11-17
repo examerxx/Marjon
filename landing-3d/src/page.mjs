@@ -144,7 +144,7 @@ export function render(t) {
   <div class="stage-shade"></div>
 </div>
 <div class="bead-labels" aria-hidden="true">
-  ${t.modules.items.map((m, i) => `<span class="bl" data-bl="${i}"><i>${pad(i + 1)}</i>${m.short}</span>`).join('')}
+  ${t.modules.items.map((m, i) => `<span class="bl" data-bl="${i}"><span class="bl-line" aria-hidden="true"></span><span class="bl-tag"><i>${pad(i + 1)}</i><b>${m.short}</b></span></span>`).join('')}
 </div>
 
 <header class="nav" id="nav">
@@ -222,6 +222,11 @@ export function render(t) {
     <div class="pains">
       ${t.problem.pains.map(([a, b, c], i) => `<article class="card pain" data-r><div class="pain-top"><span class="pain-ic" aria-hidden="true">${painIcons[i]}</span><span class="idx">${pad(i + 1)}</span></div><h3>${a}</h3><p>${b}</p>${c ? `<div class="pain-tag">${c}</div>` : ''}</article>`).join('\n      ')}
     </div>
+    <button class="next-switch" type="button" role="switch" aria-checked="false" aria-label="${t.problem.switch.aria}">
+      <span class="ns-cap ns-cap-off">${t.problem.switch.off}</span>
+      <span class="ns-track" aria-hidden="true"><span class="ns-knob"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span>
+      <span class="ns-cap ns-cap-on">${t.problem.switch.on}</span>
+    </button>
   </div>
 </section>
 
@@ -236,19 +241,12 @@ ${vband(t.band, 1)}
 
 <section class="ch ch-modules" id="modules" data-ch="2">
   <div class="mod-pin">
-    <div class="wrap mod-grid">
+    <div class="mod-bar" aria-hidden="true"><i data-mod-bar></i></div>
+    <div class="mod-fallback">
       ${head(t.modules, 'mod-head')}
-      <div class="mod-count" aria-hidden="true"><b data-mod-n>01</b><i>/ 08</i></div>
       <ol class="mod-list" aria-label="${t.modules.listAria}">
-        ${t.modules.items.map((m, i) => `<li><button type="button" class="mod-b${i ? '' : ' on'}" data-mod="${i}"><i>${pad(i + 1)}</i><span>${m.name}</span></button></li>`).join('\n        ')}
+        ${t.modules.items.map((m, i) => `<li><i>${pad(i + 1)}</i>${m.name}</li>`).join('\n        ')}
       </ol>
-      <div class="mod-cards">
-        ${t.modules.items.map((m, i) => `<article class="card mod-card${i ? '' : ' on'}" data-mod-card="${i}"${i ? ' aria-hidden="true"' : ''}>
-          <header class="mod-card-h"><span class="idx">${pad(i + 1)} / 08</span><h3>${m.name}</h3></header>
-          <div class="mod-card-b"><p>${m.text}</p><div class="tags">${m.tags.map((x) => `<span>${x}</span>`).join('')}</div><div class="mod-live"><span><i class="dot"></i>${m.live[0]}</span><b>${m.live[1]}</b></div></div>
-        </article>`).join('\n        ')}
-      </div>
-      <div class="mod-bar" aria-hidden="true"><i data-mod-bar></i></div>
     </div>
   </div>
 </section>
