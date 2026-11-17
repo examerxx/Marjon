@@ -180,6 +180,20 @@ export function createDevices({ scene, renderer, rig, low }) {
     [[-0.075, 0.075], [0.075, 0.075], [-0.075, -0.075]].forEach(([x, y]) => { phone.add(at(cyl(0.06, 0.03, mAluDark, 28), 0.18 + x, 0.58 + y, -0.066, Math.PI / 2), at(mesh(new THREE.CircleGeometry(0.045, 24), mLens), 0.18 + x, 0.58 + y, -0.0815, 0, Math.PI)); });
     phone.add(at(glow(0xd6efe9, 1.0, 4), 0, 0, 0.8));
   }
+  /* ---------- большой круг за техникой (контакт и футер) ---------- */
+  const haloTex = tex(512, 512, (g, W, H) => {
+    const grad = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W / 2);
+    grad.addColorStop(0, 'rgba(63,227,196,.85)'); grad.addColorStop(.38, 'rgba(63,227,196,.30)'); grad.addColorStop(.72, 'rgba(63,227,196,.06)'); grad.addColorStop(1, 'rgba(63,227,196,0)');
+    g.fillStyle = grad; g.fillRect(0, 0, W, H);
+  });
+  const haloMat = M(THREE.MeshBasicMaterial, { map: haloTex, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+  const halo = at(mesh(new THREE.PlaneGeometry(1.5, 1.5), haloMat), -1.78, 1.22, -1.68); halo.renderOrder = -1; halo.visible = false;
+  const discMat = M(THREE.MeshBasicMaterial, { color: new THREE.Color('#03120d'), transparent: true, opacity: 0, depthWrite: false, toneMapped: false });
+  const disc = at(mesh(new THREE.CircleGeometry(0.4, 96), discMat), -1.78, 1.22, -1.66); disc.visible = false;
+  const ringMat = M(THREE.MeshBasicMaterial, { color: new THREE.Color('#aef7de').multiplyScalar(1.25), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+  const ring = at(mesh(new THREE.RingGeometry(0.4, 0.455, 128), ringMat), -1.78, 1.22, -1.62); ring.visible = false;
+  root.add(halo, disc, ring);
+
   root.add(posSet, kds, laptop, phone);
 
   /* ---------- раскадровка: те же отметки, что у бусин ---------- */
@@ -241,6 +255,13 @@ export function createDevices({ scene, renderer, rig, low }) {
         it.o.scale.setScalar(s);
       });
       dim.setScalar(0.86 - 0.5 * S.coral - 0.5 * Math.max(0, Math.min(1, (t - 5.7) / 0.3)) * (1 - end * 0.85)); screens.forEach((m) => m.color.copy(dim));
+      // круг за техникой проявляется к финалу
+      const haloK = ss((t - 5.85) / 0.15) * (portrait ? 0 : 1);
+      halo.visible = disc.visible = ring.visible = haloK > 0.01;
+      haloMat.opacity = 0.2 * haloK;
+      discMat.opacity = 0.34 * haloK;
+      ringMat.opacity = (0.52 + 0.14 * Math.sin(time * 1.35)) * haloK;
+      ring.rotation.z = time * 0.12;
       const sec = Math.floor(time);
       if (sec !== kdsAt && kds.visible) { kdsAt = sec; drawKds(sec); }
     },

@@ -348,11 +348,10 @@ main { position: relative; } /* без z-index: иначе mix-blend у H1 не 
 .faq details p { padding: 0 40px 24px 0; color: var(--muted); max-width: 62ch; }
 
 /* ---------- finale + footer ---------- */
-.ch-cta { min-height: 110svh; display: grid; align-items: center; text-align: center; }
+.ch-cta { min-height: 100svh; display: grid; align-items: start; text-align: center; padding-top: clamp(32px, 6vh, 84px); }
 .cta-in { display: grid; justify-items: center; gap: clamp(20px, 3vw, 36px); }
 .cta-in .lede { max-width: 52ch; }
 .cta-in .btns { justify-content: center; }
-.cta-note { display: flex; align-items: center; gap: 10px; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .foot { position: relative; z-index: 2; padding: clamp(50px, 8vh, 90px) 0 24px; border-top: 1px solid var(--line); background: linear-gradient(transparent, rgba(10, 11, 12, .82) 30%); overflow: hidden; }
 .foot-grid { display: grid; grid-template-columns: 1.6fr repeat(3, 1fr); gap: 36px; }
 .foot-brand p { margin-top: 16px; max-width: 36ch; color: var(--muted); font-size: .92rem; }
@@ -578,8 +577,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; heig
   .mod-head .h-ch { font-size: clamp(1.5rem, 3.4vw, 3.4rem); line-height: 1.02; }
   .mod-head .lede { max-width: 50ch; }
   .mod-list { display: none; }
-  .mod-count { grid-column: 2; grid-row: 1; align-self: end; justify-self: end; padding-bottom: clamp(10px, 2vh, 22px); }
-  .mod-cards { grid-column: 2; grid-row: 2; align-self: center; }
+  .mod-count { grid-column: 2; grid-row: 1; align-self: start; justify-self: end; padding: 0; }
+  .mod-cards { grid-column: 2; grid-row: 2; align-self: start; padding-top: clamp(4px, 1vh, 14px); }
   .mod-bar { grid-row: 3; }
 }
 /* курсор: кольцо-спутник вместо системного на точных указателях */

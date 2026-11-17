@@ -124,7 +124,6 @@ export default {
   },
   cta: {
     lede: "Formatingizni ayting: kafe, restoran yoki fastfud. Kassa, oshxona va hisobotlar aynan sizda qanday ishlashini ko'rsatamiz.",
-    note: 'ish vaqtida javob beramiz',
   },
   form: {
     title: ['Muassasangizni', '<em>ulaymiz</em>'], lede: "Kontaktlaringizni qoldiring — ish vaqtida bog'lanamiz, tizimni ko'rsatamiz va formatingizga mos variantni taklif qilamiz.",

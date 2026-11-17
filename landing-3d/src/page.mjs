@@ -371,7 +371,6 @@ ${demo(t)}
       <a class="btn btn-mint btn-lg" href="mailto:support@marjon.tech?subject=${encodeURIComponent(t.cta.aSubj)}" data-lead>${t.cta.a}${arrow}</a>
       <a class="btn btn-line btn-lg" href="https://www.instagram.com/marjon_tech" target="_blank" rel="noopener">${t.cta.b}${right}</a>
     </div>
-    <p class="cta-note" data-r><i class="dot"></i>${t.cta.note}</p>
   </div>
 </section>
 
