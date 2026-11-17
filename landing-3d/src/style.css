@@ -623,6 +623,4 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; heig
   .mod-count { grid-column: 1; grid-row: 2; }
   /* прогресс-бар 02 прячем, когда он доехал до конца */
   .mod-bar.done { opacity: 0; }
-  /* футер: дуга с бусинами (нить 3D-сцены) за колонками больше не просвечивает */
-  .foot { background: #0a0b0c; }
 }

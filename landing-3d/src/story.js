@@ -42,7 +42,7 @@ const LD = {
   line: small(L.line), ring: small(L.ring), orbit: small(L.orbit),
   // 5 — ровный круг из одинаковых бусин
   star: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 2.7), s: 0.2 })),
-  pearl: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 3.5), z: -2.7, s: i === 0 ? 0.3 : 0.13 })), // A+H: техника на первом плане — нить с бусинами за ней
+  pearl: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 3.5), z: -2.7, s: 0.13 })), // A+H: техника на первом плане — нить с бусинами за ней; одна большая бусина убрана по просьбе
 };
 
 export function applyInitial(S, beads, dev = false) {
