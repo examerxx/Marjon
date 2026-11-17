@@ -18,7 +18,7 @@ const init = () => {
 
   // блоки: «листовые» элементы; закреплённые сцены пропускаем (там своя анимация)
   const SEL = 'h1, h2, h3, h4, p, li, figure, blockquote, dl, table, .btn, [class*="card"], [class*="stat"], [class*="tile"]';
-  const SKIP = '.nav, .menu, #loader, .demo-pin, .mod-pin, .stage, .fx-edge, [data-nofx]';
+  const SKIP = '.nav, .menu, #loader, .demo-pin, .mod-pin, .stage, .fx-edge, [data-nofx], #lead'; // модалку не «умно-размываем»: её позиции измеряются, когда она скрыта, и подставляется блюр 12px
   const all = [...document.querySelectorAll(SEL)].filter((el) => !el.closest(SKIP));
   const set = new Set(all);
   const items = all.filter((el) => { for (let p = el.parentElement; p; p = p.parentElement) if (set.has(p)) return false; return true; })

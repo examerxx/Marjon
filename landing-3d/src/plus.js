@@ -6,7 +6,7 @@ import './plus.css';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches && !new URLSearchParams(location.search).has('motion');
+const reduced = new URLSearchParams(location.search).get('motion') === '0'; // анимация всегда
 const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 const init = () => {

@@ -2,7 +2,7 @@
 import './micro.css';
 
 const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches && !new URLSearchParams(location.search).has('motion');
+const reduced = new URLSearchParams(location.search).get('motion') === '0'; // анимация всегда
 const init = () => {
   if (!fine || reduced) return;
   const HOT = 'a, button, summary, .btn, [role="tab"], .role-tab, .mod-b';
