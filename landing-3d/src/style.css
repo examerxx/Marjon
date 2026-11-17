@@ -571,13 +571,16 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; heig
   .tl-words b { animation: none; } .tl-words b:first-child { opacity: 1; } .tl-pills span, .to-bars i, .to-on, .to-wait { animation: none; }
 }
 
-/* правки: 02 «Возможности» — пункты плашками справа сверху, текст слева ограничен по ширине */
+/* правки: 02 «Возможности» — плашки с пунктами убраны (их роль дублирует карточка); счётчик справа сверху, карточка поднята; заголовок меньше */
 @media (min-width: 1000px) {
-  .mod-head { grid-column: 1; max-width: 640px; }
-  .mod-head .lede { max-width: 52ch; }
-  .mod-list { grid-column: 2; grid-row: 1; align-self: start; justify-self: end; grid-template-columns: 1fr; gap: 8px; justify-items: end; padding-top: 6px; }
-  .mod-b { justify-content: flex-end; gap: 12px; padding: 9px 16px; font-size: .9rem; text-align: right; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(17, 19, 21, .55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: color .4s, border-color .4s, background .4s, transform .5s var(--ease); }
-  .mod-b.on { border-color: rgba(63, 227, 196, .55); background: rgba(63, 227, 196, .12); transform: translateX(-10px); }
+  .mod-grid { grid-template-rows: auto 1fr auto; }
+  .mod-head { grid-column: 1; max-width: 560px; }
+  .mod-head .h-ch { font-size: clamp(1.5rem, 3.4vw, 3.4rem); line-height: 1.02; }
+  .mod-head .lede { max-width: 50ch; }
+  .mod-list { display: none; }
+  .mod-count { grid-column: 2; grid-row: 1; align-self: end; justify-self: end; padding-bottom: clamp(10px, 2vh, 22px); }
+  .mod-cards { grid-column: 2; grid-row: 2; align-self: center; }
+  .mod-bar { grid-row: 3; }
 }
 /* курсор: кольцо-спутник вместо системного на точных указателях */
 @media (hover: hover) and (pointer: fine) { html, body, body * { cursor: none !important; } }
