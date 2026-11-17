@@ -261,6 +261,7 @@ main { position: relative; } /* без z-index: иначе mix-blend у H1 не 
 .mod-cards { grid-column: 2; grid-row: 3; position: relative; display: grid; }
 .mod-card { grid-area: 1 / 1; display: grid; gap: 12px; align-content: start; opacity: 0; visibility: hidden; transform: translateY(18px); transition: opacity .45s, transform .7s var(--ease), visibility .45s; }
 .mod-card.on { opacity: 1; visibility: visible; transform: none; }
+.mod-card-h, .mod-card-b { display: contents; } /* по умолчанию — прежняя колонка */
 .mod-live { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 6px; padding-top: 14px; border-top: 1px dashed var(--line-2); font-size: .82rem; color: var(--muted); }
 .mod-live span { display: inline-flex; align-items: center; gap: 10px; }
 .mod-live b { font-family: var(--display); font-weight: 500; font-size: 1.05rem; color: var(--text); letter-spacing: -.02em; white-space: nowrap; }
@@ -619,8 +620,13 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; heig
   .hero-row { flex-direction: column; align-items: flex-start; gap: clamp(20px, 3.4vh, 40px); }
   /* 02 «Возможности»: вместо h2+lede слева — карточка активного модуля, чуть длиннее прежней */
   .mod-head { display: none; }
-  .mod-cards { grid-column: 1; grid-row: 1; align-self: start; justify-self: start; width: min(560px, 100%); padding-top: 0; justify-items: stretch; }
+  .mod-cards { grid-column: 1; grid-row: 1; align-self: start; justify-self: start; width: min(720px, 100%); padding-top: 0; justify-items: stretch; }
   .mod-count { grid-column: 1; grid-row: 2; }
+  /* карточка в две колонки: слева заголовок, всё остальное — справа в ряду */
+  .mod-card { grid-template-columns: max-content minmax(0, 1fr); column-gap: clamp(22px, 1.8vw, 36px); justify-items: stretch; }
+  .mod-card-h { display: grid; gap: 12px; align-content: start; }
+  .mod-card-h h3 { max-width: 16ch; }
+  .mod-card-b { display: grid; gap: 12px; align-content: center; padding: clamp(4px, 1vh, 12px) 0; }
   /* прогресс-бар 02 прячем, когда он доехал до конца */
   .mod-bar.done { opacity: 0; }
 }

@@ -244,11 +244,8 @@ ${vband(t.band, 1)}
       </ol>
       <div class="mod-cards">
         ${t.modules.items.map((m, i) => `<article class="card mod-card${i ? '' : ' on'}" data-mod-card="${i}"${i ? ' aria-hidden="true"' : ''}>
-          <span class="idx">${pad(i + 1)} / 08</span>
-          <h3>${m.name}</h3>
-          <p>${m.text}</p>
-          <div class="tags">${m.tags.map((x) => `<span>${x}</span>`).join('')}</div>
-          <div class="mod-live"><span><i class="dot"></i>${m.live[0]}</span><b>${m.live[1]}</b></div>
+          <header class="mod-card-h"><span class="idx">${pad(i + 1)} / 08</span><h3>${m.name}</h3></header>
+          <div class="mod-card-b"><p>${m.text}</p><div class="tags">${m.tags.map((x) => `<span>${x}</span>`).join('')}</div><div class="mod-live"><span><i class="dot"></i>${m.live[0]}</span><b>${m.live[1]}</b></div></div>
         </article>`).join('\n        ')}
       </div>
       <div class="mod-bar" aria-hidden="true"><i data-mod-bar></i></div>
