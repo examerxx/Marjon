@@ -54,6 +54,12 @@ const rolesTabs = (t) => `    <div class="roles" data-r>
       </div>
     </div>`;
 
+const painIcons = [
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.3" y="8.3" width="10.8" height="10.8" rx="2.3"/><path d="M5.3 14.9V6.6a2.3 2.3 0 0 1 2.3-2.3h8.3"/></svg>',
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.7 5.6 20.3 18.4"/><path d="M10.2 5.2A9.4 9.4 0 0 1 12 5c5.1 0 8.7 4.3 9.7 6.6-.5 1.2-1.7 2.6-3.2 3.7M7 6.7C4.6 8.3 3 10.9 2.3 12c.9 2.3 4.5 6.8 9.7 6.8 1.4 0 2.7-.3 3.9-1"/></svg>',
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.4"/><path d="M12 7.4V12l3.1 2.1"/></svg>',
+];
+
 export function render(t) {
   const B = t.base;
   const isRu = t.lang === 'ru';
@@ -214,7 +220,7 @@ export function render(t) {
       </ul>
     </div>
     <div class="pains">
-      ${t.problem.pains.map(([a, b], i) => `<article class="card pain" data-r><span class="idx">${pad(i + 1)}</span><h3>${a}</h3><p>${b}</p><i class="x" aria-hidden="true"></i></article>`).join('\n      ')}
+      ${t.problem.pains.map(([a, b, c], i) => `<article class="card pain" data-r><div class="pain-top"><span class="pain-ic" aria-hidden="true">${painIcons[i]}</span><span class="idx">${pad(i + 1)}</span></div><h3>${a}</h3><p>${b}</p>${c ? `<div class="pain-tag">${c}</div>` : ''}</article>`).join('\n      ')}
     </div>
   </div>
 </section>
@@ -261,6 +267,7 @@ ${vband(t.band, 1)}
         <span class="delta">+<b data-count="18.4" data-dec="1">${t.live.rev.delta}</b>%</span>
         <div class="bars" data-bars>${[22, 30, 26, 44, 58, 52, 70, 64, 86, 78, 100, 92].map((v) => `<i style="--v:${v}"></i>`).join('')}</div>
         <div class="axis">${t.live.rev.axis.map((a) => `<span>${a}</span>`).join('')}</div>
+        ${t.live.rev.foot ? `<div class="lc-foot">${t.live.rev.foot.map(([k, v]) => `<span>${k}<b>${v}</b></span>`).join('')}</div>` : ''}
       </article>
       <article class="card lc lc-receipt" data-r>
         <div class="rc-head"><b>${t.live.receipt.head}</b><span>${t.live.receipt.no}</span></div>
@@ -269,6 +276,7 @@ ${vband(t.band, 1)}
         <div class="rc-total"><span>${t.live.receipt.total}</span><b><span data-count="214000" data-dec="0">214 000</span> ${t.demo.cur}</b></div>
         <p class="rc-paid"><i class="dot"></i>${t.live.receipt.paid}</p>
         <p class="rc-ofd">${t.live.receipt.ofd}</p>
+        ${t.live.receipt.cap ? `<div class="rc-code" aria-hidden="true"><i></i><p class="rc-cap">${t.live.receipt.cap}</p></div>` : ''}
       </article>
       <article class="card lc lc-kds" data-r>
         <span class="mini"><i class="dot dot-coral"></i>${t.live.kds.label}</span>

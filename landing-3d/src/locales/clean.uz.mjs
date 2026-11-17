@@ -13,9 +13,9 @@ export default {
     lede: "Kassa — bitta dasturda, ombor — jadvalda, oshxona — qog'ozda, hisobotlar — yozishmalarda. Kechqurun raqamlar mos kelmaydi, egasi esa muammodan oxirgi bo'lib xabar topadi.",
     tools: [['Excel', 'Ombor'], ['WhatsApp', 'Buyurtmalar'], ["Qog'oz", 'Oshxona'], ['Bloknot', 'Smenalar'], ['Daftar', 'Tushum']],
     pains: [
-      ['Ikki karra ish', "Bitta buyurtma kassaga, bloknotga va yozishmaga yoziladi. Qayerdadir albatta bitta taom yo'qoladi."],
-      ["Ko'r-ko'rona ombor", "Qancha mahsulot ketgani va taom qanchaga tushgani smenadan keyin taxminan hisoblanadi."],
-      ['Kechikkan hisobotlar', "Kecha nima bo'lgani faqat ertalab ma'lum bo'ladi. Yo'qotishni tuzatishga esa kech."],
+      ['Ikki karra ish', "Bitta buyurtma kassaga, bloknotga va yozishmaga yoziladi. Qayerdadir albatta bitta taom yo'qoladi.", "Kassa ≠ bloknot ≠ yozishma"],
+      ["Ko'r-ko'rona ombor", "Qancha mahsulot ketgani va taom qanchaga tushgani smenadan keyin taxminan hisoblanadi.", "Qoldiq faqat smena tugagach aniq bo'ladi"],
+      ['Kechikkan hisobotlar', "Kecha nima bo'lgani faqat ertalab ma'lum bo'ladi. Yo'qotishni tuzatishga esa kech.", "Kechani faqat ertalab ko'ramiz"],
     ],
   },
   modules: {
@@ -33,8 +33,8 @@ export default {
   },
   live: {
     lede: "Kassadagi buyurtma shu soniyaning o'zida oshxonada paydo bo'ladi, ombordan mahsulotni hisobdan chiqaradi va egasining hisobotiga tushadi.",
-    rev: { label: 'tushum · bugun', unit: "mln so'm", delta: '18,4', axis: ['08:00', '16:00', '00:00'] },
-    receipt: { head: 'MARJON', no: 'chek · 00186', meta: 'stol 4 · ofitsiant AK · 14:32', rows: [['Choyxona palovi', '×2', '148 000'], ['Achichuq', '×1', '24 000'], ["Ko'k choy", '×3', '42 000']], total: 'Jami', paid: "to'landi", ofd: 'tashrifingiz uchun rahmat' },
+    rev: { label: 'tushum · bugun', unit: "mln so'm", delta: '18,4', axis: ['08:00', '16:00', '00:00'], foot: [['Bugungi cheklar', '1 574'], ["O'rtacha chek", "7 933 so'm"]] },
+    receipt: { head: 'MARJON', no: 'chek · 00186', meta: 'stol 4 · ofitsiant AK · 14:32', rows: [['Choyxona palovi', '×2', '148 000'], ['Achichuq', '×1', '24 000'], ["Ko'k choy", '×3', '42 000']], total: 'Jami', paid: "to'landi", ofd: 'Rahmat tashrifingiz uchun', cap: 'x000186 · 14:32 · terminal 01' },
     kds: { label: 'oshxona', rows: [['Stol 4', 'Palov × 2', 42], ['Yetkazish · 812', 'Shashlik · non', 130], ['Stol 7', "Lag'mon · kompot", 78]], foot: 'kassa bilan birga' },
     stock: { label: 'ombor · tugayapti', n: '3', unit: 'mahsulot', foot: "qo'zi go'shti · guruch · yog'" },
   },

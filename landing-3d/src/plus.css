@@ -7,7 +7,7 @@
 /* манифест: слова проявляются по скроллу */
 .mani { position: relative; z-index: 2; padding: clamp(110px, 24vh, 260px) 0 clamp(90px, 18vh, 200px); }
 .mani-k { margin-bottom: clamp(20px, 3vw, 40px); }
-.mani-t { margin: 0; max-width: 20em; font-family: var(--display); font-weight: 500; font-size: clamp(1.9rem, 4.9vw, 5.4rem); line-height: 1.06; letter-spacing: -.045em; color: var(--text); text-wrap: balance; }
+.mani-t { margin: 0; max-width: 20em; font-family: var(--display); font-weight: 500; font-size: clamp(1.9rem, 4.9vw, 5.4rem); line-height: 1.06; letter-spacing: -.045em; color: var(--text); text-align: justify; text-justify: inter-word; text-align-last: left; hyphens: none; }
 .mani-t .w { display: inline-block; opacity: .13; transition: color .5s, opacity .25s linear, transform .7s var(--ease), filter .5s; transform: translateY(.12em); filter: blur(3px); }
 .mani-t .w.on { opacity: 1; transform: none; filter: none; }
 .mani-t .w.em.on { color: var(--mint); }

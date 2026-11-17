@@ -15,6 +15,10 @@ const init = () => {
   // блюр у кромок: сверху и снизу
   const edge = (cls) => { const el = document.createElement('div'); el.className = 'fx-edge ' + cls; el.setAttribute('aria-hidden', 'true'); el.innerHTML = '<i></i><i></i><i></i><i></i>'; document.body.appendChild(el); return el; };
   const top = edge('is-top'), bottom = edge('is-bottom');
+  // у пиннутого демо полоса прогресса прижата к низу экрана — прогрессивный блюр кромки её мылит, поэтому на время демо кромку гасим
+  let demoOn = false;
+  const demoPin = document.querySelector('.demo-pin');
+  if (demoPin && 'IntersectionObserver' in window) new IntersectionObserver((es) => { demoOn = es.some((e) => e.isIntersecting); }, { threshold: 0 }).observe(demoPin);
 
   // блоки: «листовые» элементы; закреплённые сцены пропускаем (там своя анимация)
   const SEL = 'h1, h2, h3, h4, p, li, figure, blockquote, dl, table, .btn, [class*="card"], [class*="stat"], [class*="tile"]';
@@ -47,7 +51,7 @@ const init = () => {
     const speed = Math.min(Math.abs(vel) / 3, 1);
     // у самого верха и самого низа страницы кромки «отпускают» — первый экран и футер остаются резкими
     const kTop = clamp(y / 260, 0, 1), kBot = clamp((max - y) / 260, 0, 1);
-    top.classList.toggle('off', y < 60); bottom.classList.toggle('off', y < vh * 0.35 || max - y < 80);
+    top.classList.toggle('off', y < 60); bottom.classList.toggle('off', y < vh * 0.35 || max - y < 80 || demoOn);
     for (const it of items) {
       if (!it.on) continue;
       const t0 = it.top - y, b0 = t0 + it.h;

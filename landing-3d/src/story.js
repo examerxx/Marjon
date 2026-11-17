@@ -26,7 +26,7 @@ const L = {
   // 4 — орбита (то же кольцо, но rig лежит плашмя)
   orbit: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 3.2), s: 0.4 })),
   // 5 — звезда {8/3}: мотив гириха; при tension = 0 нить становится ломаной
-  star: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 3.2, 3), s: 0.3 })),
+  star: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 3.2, 3), z: -1.7, s: 0.2 })), // A+H: техника на первом плане — круг бусин уходит за неё
   // 6 — одна жемчужина и тесный ореол
   pearl: [{ x: 0, y: 0, z: 0, s: 1.7 }, ...Array.from({ length: 7 }, (_, j) => ({ ...ring(j + 1, 2.7), s: 0.1 }))],
 };
@@ -42,7 +42,7 @@ const LD = {
   line: small(L.line), ring: small(L.ring), orbit: small(L.orbit),
   // 5 — ровный круг из одинаковых бусин
   star: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 2.7), s: 0.2 })),
-  pearl: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 3.5), s: i === 0 ? 0.3 : 0.13 })),
+  pearl: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 3.5), z: -2.7, s: i === 0 ? 0.3 : 0.13 })), // A+H: техника на первом плане — нить с бусинами за ней
 };
 
 export function applyInitial(S, beads, dev = false) {
