@@ -44,9 +44,9 @@ svg, canvas { display: block; }
 .kicker::before { content: ""; width: 28px; height: 1px; background: var(--mint); flex: none; }
 .mini { display: inline-flex; align-items: center; gap: 10px; }
 .h-hero, .h-ch, .h-cta { font-family: var(--display); font-weight: 600; text-wrap: balance; }
-.h-hero { font-size: clamp(2.4rem, 8.9vw, 10.5rem); line-height: .98; letter-spacing: -.045em; }
+.h-hero { font-size: clamp(2.2rem, 7.2vw, 8.25rem); line-height: .98; letter-spacing: -.045em; }
 .h-ch { font-size: clamp(2rem, 6.3vw, 7rem); line-height: 1; letter-spacing: -.04em; }
-.h-cta { font-size: clamp(2rem, 7.4vw, 8.5rem); line-height: 1; letter-spacing: -.045em; }
+.h-cta { font-size: clamp(1.7rem, 5.6vw, 6rem); line-height: 1; letter-spacing: -.045em; }
 .ln { display: block; }
 .h-hero em, .h-ch em, .h-cta em { font-style: normal; color: var(--mint); }
 .h-ch em, .h-cta em { color: var(--ghost); } /* только крупный текст: контраст ≥ 3:1 */
@@ -222,10 +222,12 @@ main { position: relative; } /* без z-index: иначе mix-blend у H1 не 
 .tool span { font: 400 .78rem var(--body); letter-spacing: 0; color: var(--muted); }
 .tool::after { content: ""; position: absolute; left: 12px; right: 12px; top: 50%; height: 2px; background: var(--coral); transform: scaleX(var(--strike, 0)); transform-origin: 0 50%; }
 .pains { margin-top: clamp(32px, 5.5vh, 64px); display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.pain { position: relative; overflow: hidden; display: grid; gap: 11px; align-content: start; min-height: 252px; isolation: isolate; padding: clamp(20px, 1.9vw, 28px); transition: transform .5s var(--ease), border-color .5s var(--ease), box-shadow .5s var(--ease); }
-.pain::before { content: ""; position: absolute; z-index: -1; width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 106, 77, .15), transparent 65%); right: -110px; top: -110px; opacity: .6; transition: opacity .5s var(--ease), transform .6s var(--ease); }
-.pain:nth-child(2)::before { right: auto; left: -110px; top: auto; bottom: -130px; }
-.pain:nth-child(3)::before { top: auto; bottom: -130px; }
+.pain { position: relative; overflow: hidden; display: grid; gap: 11px; align-content: start; min-height: 252px; isolation: isolate; padding: clamp(20px, 1.9vw, 28px); background: linear-gradient(168deg, rgba(26, 28, 33, .92), rgba(17, 19, 21, .94)); transition: transform .5s var(--ease), border-color .5s var(--ease), box-shadow .5s var(--ease), background .5s var(--ease); }
+/* свой «тёплый» ховер вместо мятного курсорного блика из micro.css (.card::before/::after) — там жёсткая дуга переставала читаться на тёмных карточках */
+.card.pain::before { content: ""; position: absolute; z-index: -1; inset: auto; right: -120px; top: -120px; width: 340px; height: 340px; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, rgba(255, 106, 77, .18), transparent 66%); opacity: .55; transition: opacity .5s var(--ease), transform .6s var(--ease); }
+.card.pain:nth-child(2)::before { right: auto; left: -120px; top: auto; bottom: -140px; }
+.card.pain:nth-child(3)::before { top: auto; right: -120px; bottom: -140px; }
+.card.pain::after { content: none; }
 .pain-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .pain-ic { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 15px; color: var(--coral); background: rgba(255, 106, 77, .09); border: 1px solid rgba(255, 106, 77, .32); transition: transform .5s var(--ease), box-shadow .5s var(--ease); }
 .pain-ic svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
@@ -234,8 +236,8 @@ main { position: relative; } /* без z-index: иначе mix-blend у H1 не 
 .pain p { max-width: 46ch; }
 .pain-tag { margin-top: auto; display: flex; align-items: center; gap: 10px; padding-top: 13px; border-top: 1px dashed var(--line-2); font-size: .8rem; letter-spacing: .02em; color: #ffb4a5; }
 .pain-tag::before { content: ""; flex: none; width: 20px; height: 1.5px; background: var(--coral); }
-.pain:hover { transform: translateY(-6px); border-color: rgba(255, 106, 77, .45); box-shadow: 0 30px 80px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(255, 106, 77, .22); }
-.pain:hover::before { opacity: 1; transform: scale(1.3); }
+.pain:hover { transform: translateY(-6px); border-color: rgba(255, 106, 77, .5); background: linear-gradient(168deg, rgba(43, 30, 27, .96), rgba(22, 18, 17, .97)); box-shadow: 0 30px 80px rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(255, 106, 77, .25), inset 0 0 80px rgba(255, 106, 77, .08); }
+.card.pain:hover::before { opacity: 1; transform: scale(1.28); }
 .pain:hover .pain-ic { transform: rotate(-6deg) scale(1.07); box-shadow: 0 0 36px rgba(255, 106, 77, .32); }
 .pain:hover .idx { color: rgba(255, 106, 77, .95); -webkit-text-stroke-color: rgba(255, 106, 77, .95); }
 @media (hover: none) { .pain:hover { transform: none; } }
@@ -469,7 +471,7 @@ html { scrollbar-width: none; -ms-overflow-style: none; }
 html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; height: 0; }
 
 /* версия «Нить и техника»: заголовок первого экрана уже, справа — устройства */
-@media (min-width: 1000px) { .v-ah #top .h-hero { font-size: clamp(2.6rem, 6.5vw, 8rem); max-width: none; } .ch-hero .hero-in { padding-bottom: clamp(120px, 23vh, 270px); } }
+@media (min-width: 1000px) { .v-ah #top .h-hero { font-size: clamp(2.3rem, 5.3vw, 6.1rem); max-width: none; } .ch-hero .hero-in { padding-bottom: clamp(120px, 23vh, 270px); } }
 
 /* ================= правки: роли по очереди, плитки, «было и стало», финал ================= */
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -543,7 +545,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; heig
 .cta-in { position: relative; width: min(1240px, calc(100% - var(--pad) * 2)); padding: clamp(36px, 6vw, 96px) clamp(22px, 4vw, 72px); border-radius: clamp(28px, 4vw, 60px); background: linear-gradient(160deg, rgba(20, 24, 25, .62), rgba(10, 12, 13, .46)); border: 1px solid rgba(242, 240, 232, .1); box-shadow: inset 0 1px 0 rgba(242, 240, 232, .08), 0 40px 120px rgba(0, 0, 0, .35); backdrop-filter: blur(26px) saturate(1.25); -webkit-backdrop-filter: blur(26px) saturate(1.25); overflow: hidden; }
 .cta-in::before { content: ''; position: absolute; inset: auto -10% -60% -10%; height: 90%; background: radial-gradient(ellipse at 50% 100%, rgba(63, 227, 196, .22), transparent 62%); pointer-events: none; }
 .cta-in > * { position: relative; }
-.cta-in .h-cta { font-size: clamp(1.9rem, 6vw, 6.6rem); }
+.cta-in .h-cta { font-size: clamp(1.55rem, 4.6vw, 4.5rem); }
 .cta-in .lede { color: rgba(242, 240, 232, .88); }
 .ch-cta .h-cta em { color: var(--mint); }
 .foot { border-top: 0; background: linear-gradient(transparent, rgba(10, 11, 12, .62) 55%, rgba(10, 11, 12, .86)); }
@@ -592,7 +594,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; heig
   .mod-head .lede { max-width: 50ch; }
   .mod-list { display: none; }
   .mod-count { grid-column: 1; grid-row: 2; align-self: start; justify-self: start; padding: clamp(6px, 1.6vh, 20px) 0 0; }
-  .mod-cards { grid-column: 1; grid-row: 2; align-self: end; justify-self: start; padding-top: 0; justify-items: start; }
+  .mod-cards { grid-column: 2; grid-row: 1 / span 2; align-self: start; justify-self: end; padding-top: 0; justify-items: stretch; width: 100%; }
   .mod-bar { grid-row: 3; }
 }
 /* курсор: кольцо-спутник вместо системного на точных указателях */
@@ -603,8 +605,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; heig
 @media (min-width: 2100px) {
   .ch-hero .wrap { width: min(2080px, 100% - var(--pad) * 2); }
   .hero-row { flex-direction: column; align-items: flex-start; gap: clamp(22px, 3vh, 38px); }
-  .h-hero { font-size: clamp(3rem, min(7vw, 44svh), 11.25rem); }
-  .v-ah #top .h-hero { font-size: clamp(3rem, min(7vw, 44svh), 11.25rem); }
+  .h-hero { font-size: clamp(2.4rem, min(5.6vw, 36svh), 7rem); }
+  .v-ah #top .h-hero { font-size: clamp(2.4rem, min(5.6vw, 36svh), 7rem); }
 }
 .lc-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; padding-top: 12px; border-top: 1px dashed var(--line-2); font-size: .8rem; color: var(--muted); }
 .lc-foot span { display: grid; gap: 2px; }
