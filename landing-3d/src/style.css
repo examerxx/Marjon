@@ -266,6 +266,7 @@ main { position: relative; } /* без z-index: иначе mix-blend у H1 не 
 .mod-live b { font-family: var(--display); font-weight: 500; font-size: 1.05rem; color: var(--text); letter-spacing: -.02em; white-space: nowrap; }
 .mod-bar { grid-column: 1 / -1; grid-row: 4; height: 1px; background: var(--line); margin-top: clamp(16px, 3vh, 28px); }
 .mod-bar i { display: block; height: 100%; background: var(--mint); transform-origin: 0 50%; transform: scaleX(0); box-shadow: 0 0 12px var(--mint); }
+.mod-bar { transition: opacity .45s ease; }
 
 /* live */
 .live-grid { margin-top: clamp(48px, 9vh, 110px); display: grid; grid-template-columns: 1.25fr 1fr 1fr; grid-template-rows: auto auto; gap: 14px; }
@@ -597,8 +598,6 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; heig
   .mod-cards { grid-column: 2; grid-row: 1 / span 2; align-self: start; justify-self: end; padding-top: 0; justify-items: stretch; width: 100%; }
   .mod-bar { grid-row: 3; }
 }
-/* курсор: кольцо-спутник вместо системного на точных указателях */
-@media (hover: hover) and (pointer: fine) { html, body, body * { cursor: none !important; } }
 
 
 /* правки: широкие мониторы ≥2100px — первый экран раскрывается на всю ширину («лучше расширь») */
@@ -614,3 +613,16 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; heig
 .rc-code { align-self: end; padding-top: 14px; border-top: 1px dashed var(--line-2); }
 .rc-code i { display: block; height: 46px; opacity: .8; background: repeating-linear-gradient(90deg, var(--text) 0 2px, transparent 2px 4px, var(--text) 4px 5px, transparent 5px 9px, var(--text) 9px 12px, transparent 12px 14px, var(--text) 14px 15px, transparent 15px 19px, var(--text) 19px 22px, transparent 22px 24px, var(--text) 24px 25px, transparent 25px 30px); }
 .rc-cap { margin-top: 8px; text-align: center; font-size: .74rem; letter-spacing: .3em; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+/* правки: ≤1920px — кнопки первого экрана под текстом, плашка «Возможностей» вместо заголовка слева, футер без 3D-дуги */
+@media (max-width: 1920px) {
+  .hero-row { flex-direction: column; align-items: flex-start; gap: clamp(20px, 3.4vh, 40px); }
+  /* 02 «Возможности»: вместо h2+lede слева — карточка активного модуля, чуть длиннее прежней */
+  .mod-head { display: none; }
+  .mod-cards { grid-column: 1; grid-row: 1; align-self: start; justify-self: start; width: min(560px, 100%); padding-top: 0; justify-items: stretch; }
+  .mod-count { grid-column: 1; grid-row: 2; }
+  /* прогресс-бар 02 прячем, когда он доехал до конца */
+  .mod-bar.done { opacity: 0; }
+  /* футер: дуга с бусинами (нить 3D-сцены) за колонками больше не просвечивает */
+  .foot { background: #0a0b0c; }
+}

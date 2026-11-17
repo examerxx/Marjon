@@ -118,7 +118,7 @@ export function initMotion({ scrollTo }) {
   if ($('[data-tool]')) gsap.to('[data-tool]', { '--strike': 1, ease: 'none', stagger: 0.4, scrollTrigger: { trigger: '.tools', start: 'top 72%', end: 'top 26%', scrub: 0.4 } });
 
   // модули: pin + переключение по прогрессу
-  const btns = $$('.mod-b'), cards = $$('.mod-card'), numEl = $('[data-mod-n]'), bar = $('[data-mod-bar]');
+  const btns = $$('.mod-b'), cards = $$('.mod-card'), numEl = $('[data-mod-n]'), bar = $('[data-mod-bar]'), barWrap = bar?.closest('.mod-bar');
   let cur = 0;
   const setMod = (i) => {
     if (i === cur) return; cur = i;
@@ -130,7 +130,7 @@ export function initMotion({ scrollTo }) {
   const pin = !$('.mod-pin') ? null : ScrollTrigger.create({
     trigger: '.mod-pin', pin: true, start: 'top top', anticipatePin: 1, invalidateOnRefresh: true,
     end: () => '+=' + window.innerHeight * (window.innerWidth < 820 ? 2.8 : 3.4),
-    onUpdate: (self) => { setMod(Math.min(7, Math.floor(self.progress * 8))); gsap.set(bar, { scaleX: self.progress }); },
+    onUpdate: (self) => { setMod(Math.min(7, Math.floor(self.progress * 8))); const done = self.progress >= 0.995; barWrap?.classList.toggle('done', done); gsap.set(bar, { scaleX: self.progress }); },
   });
   if (pin) btns.forEach((b, i) => b.addEventListener('click', () => scrollTo(pin.start + ((i + 0.5) / 8) * (pin.end - pin.start))));
 

@@ -60,7 +60,10 @@ const init = () => {
     if (mani) {
       const r = mani.getBoundingClientRect();
       if (r.bottom > -vh && r.top < vh * 2) {
-        const p = clamp((vh * 0.82 - r.top) / (r.height + vh * 0.32), 0, 1), k = Math.round(p * (words.length + 2));
+        // ≤1920px блюр убираем раньше: текст должен быть чётким, пока секция читается, а не после того, как она уехала
+        const early = innerWidth <= 1920;
+        const start = early ? vh * 0.85 : vh * 0.82, denom = early ? r.height * 0.55 + vh * 0.22 : r.height + vh * 0.32;
+        const p = clamp((start - r.top) / denom, 0, 1), k = Math.round(p * (words.length + 2));
         if (k !== maniK) { maniK = k; words.forEach((w, i) => w.classList.toggle('on', i < k)); }
       }
     }
