@@ -5,9 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <!-- Шрифты лежат локально (src/styles/fonts.css), внешние домены не нужны:
          терминал должен рисовать интерфейс без интернета. `data:` во font-src —
-         на случай, если Vite заинлайнит мелкий woff2 в CSS (лимит 4 КБ). -->
+         на случай, если Vite заинлайнит мелкий woff2 в CSS (лимит 4 КБ).
+         img-src с http: — фото блюд на сервере по локальной сети (и на локальном
+         бэкенде) отдаются без TLS; без http: CSP их блокирует. -->
     <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src *; img-src 'self' data: https:;" />
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src *; img-src 'self' data: http: https:;" />
     <title>Marjon</title>
   </head>
   <body>

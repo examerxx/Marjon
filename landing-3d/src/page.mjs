@@ -36,7 +36,7 @@ const rolesShow = (t) => `    <ol class="rshow" data-rshow>
           <p>${r.t}</p>
           <div class="rs-who">${r.who.map((w) => `<span>${w}</span>`).join('')}</div>
         </div>
-        <figure class="rs-fb d-${r.img}${r.img === 'mobile' ? ' ph' : ''}"><img src="/src/assets/shots/${r.img}.webp" alt="${r.k}" loading="lazy" width="${r.img === 'mobile' ? 1170 : 3072}" height="${r.img === 'mobile' ? 2532 : 1920}" /></figure>
+        <figure class="rs-fb d-${r.img}${r.img === 'mobile' ? ' ph' : ''}"><img src="/src/assets/shots/${r.img}.webp" alt="${r.k}" loading="eager" decoding="async" width="${r.img === 'mobile' ? 1170 : 3072}" height="${r.img === 'mobile' ? 2532 : 1920}" /></figure>
       </li>`).join('\n      ')}
     </ol>`;
 const rolesTabs = (t) => `    <div class="roles" data-r>
@@ -53,6 +53,12 @@ const rolesTabs = (t) => `    <div class="roles" data-r>
         </article>`).join('\n        ')}
       </div>
     </div>`;
+
+const painIcons = [
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.3" y="8.3" width="10.8" height="10.8" rx="2.3"/><path d="M5.3 14.9V6.6a2.3 2.3 0 0 1 2.3-2.3h8.3"/></svg>',
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.7 5.6 20.3 18.4"/><path d="M10.2 5.2A9.4 9.4 0 0 1 12 5c5.1 0 8.7 4.3 9.7 6.6-.5 1.2-1.7 2.6-3.2 3.7M7 6.7C4.6 8.3 3 10.9 2.3 12c.9 2.3 4.5 6.8 9.7 6.8 1.4 0 2.7-.3 3.9-1"/></svg>',
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.4"/><path d="M12 7.4V12l3.1 2.1"/></svg>',
+];
 
 export function render(t) {
   const B = t.base;
@@ -138,7 +144,7 @@ export function render(t) {
   <div class="stage-shade"></div>
 </div>
 <div class="bead-labels" aria-hidden="true">
-  ${t.modules.items.map((m, i) => `<span class="bl" data-bl="${i}"><i>${pad(i + 1)}</i>${m.short}</span>`).join('')}
+  ${t.modules.items.map((m, i) => `<span class="bl" data-bl="${i}"><span class="bl-line" aria-hidden="true"></span><span class="bl-tag"><i>${pad(i + 1)}</i><b>${m.short}</b></span></span>`).join('')}
 </div>
 
 <header class="nav" id="nav">
@@ -214,10 +220,19 @@ export function render(t) {
       </ul>
     </div>
     <div class="pains">
-      ${t.problem.pains.map(([a, b], i) => `<article class="card pain" data-r><span class="idx">${pad(i + 1)}</span><h3>${a}</h3><p>${b}</p><i class="x" aria-hidden="true"></i></article>`).join('\n      ')}
+      ${t.problem.pains.map(([a, b, c], i) => `<article class="card pain" data-r><div class="pain-top"><span class="pain-ic" aria-hidden="true">${painIcons[i]}</span><span class="idx">${pad(i + 1)}</span></div><h3>${a}</h3><p>${b}</p>${c ? `<div class="pain-tag">${c}</div>` : ''}</article>`).join('\n      ')}
     </div>
   </div>
 </section>
+
+<!-- переключатель ровно на стыке «Проблема → Манифест» -->
+<div class="switch-seam">
+  <button class="next-switch" type="button" role="switch" aria-checked="false" aria-label="${t.problem.switch.aria}">
+    <span class="ns-cap ns-cap-off">${t.problem.switch.off}</span>
+    <span class="ns-track" aria-hidden="true"><span class="ns-knob"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span>
+    <span class="ns-cap ns-cap-on">${t.problem.switch.on}</span>
+  </button>
+</div>
 
 <!-- 2 · MODULES (pin) -->
 <section class="mani" id="mani" data-nofx>
@@ -230,22 +245,19 @@ ${vband(t.band, 1)}
 
 <section class="ch ch-modules" id="modules" data-ch="2">
   <div class="mod-pin">
-    <div class="wrap mod-grid">
-      ${head(t.modules, 'mod-head')}
-      <div class="mod-count" aria-hidden="true"><b data-mod-n>01</b><i>/ 08</i></div>
-      <ol class="mod-list" aria-label="${t.modules.listAria}">
-        ${t.modules.items.map((m, i) => `<li><button type="button" class="mod-b${i ? '' : ' on'}" data-mod="${i}"><i>${pad(i + 1)}</i><span>${m.name}</span></button></li>`).join('\n        ')}
-      </ol>
-      <div class="mod-cards">
-        ${t.modules.items.map((m, i) => `<article class="card mod-card${i ? '' : ' on'}" data-mod-card="${i}"${i ? ' aria-hidden="true"' : ''}>
-          <span class="idx">${pad(i + 1)} / 08</span>
-          <h3>${m.name}</h3>
-          <p>${m.text}</p>
-          <div class="tags">${m.tags.map((x) => `<span>${x}</span>`).join('')}</div>
-          <div class="mod-live"><span><i class="dot"></i>${m.live[0]}</span><b>${m.live[1]}</b></div>
-        </article>`).join('\n        ')}
+    <div class="mod-top">
+      <div class="wrap">
+        <p class="kicker mod-kick">${t.modules.kicker}</p>
+        <h2 class="h-ch mod-h2">${t.modules.h2.map((l) => `<span class="ln">${l}</span>`).join('')}</h2>
+        <p class="lede mod-lede">${t.modules.lede}</p>
       </div>
-      <div class="mod-bar" aria-hidden="true"><i data-mod-bar></i></div>
+    </div>
+    <div class="mod-bar" aria-hidden="true"><i data-mod-bar></i></div>
+    <div class="mod-fallback">
+      ${head(t.modules, 'mod-head')}
+      <ol class="mod-list" aria-label="${t.modules.listAria}">
+        ${t.modules.items.map((m, i) => `<li><i>${pad(i + 1)}</i>${m.name}</li>`).join('\n        ')}
+      </ol>
     </div>
   </div>
 </section>
@@ -261,6 +273,7 @@ ${vband(t.band, 1)}
         <span class="delta">+<b data-count="18.4" data-dec="1">${t.live.rev.delta}</b>%</span>
         <div class="bars" data-bars>${[22, 30, 26, 44, 58, 52, 70, 64, 86, 78, 100, 92].map((v) => `<i style="--v:${v}"></i>`).join('')}</div>
         <div class="axis">${t.live.rev.axis.map((a) => `<span>${a}</span>`).join('')}</div>
+        ${t.live.rev.foot ? `<div class="lc-foot">${t.live.rev.foot.map(([k, v]) => `<span>${k}<b>${v}</b></span>`).join('')}</div>` : ''}
       </article>
       <article class="card lc lc-receipt" data-r>
         <div class="rc-head"><b>${t.live.receipt.head}</b><span>${t.live.receipt.no}</span></div>
@@ -269,6 +282,7 @@ ${vband(t.band, 1)}
         <div class="rc-total"><span>${t.live.receipt.total}</span><b><span data-count="214000" data-dec="0">214 000</span> ${t.demo.cur}</b></div>
         <p class="rc-paid"><i class="dot"></i>${t.live.receipt.paid}</p>
         <p class="rc-ofd">${t.live.receipt.ofd}</p>
+        ${t.live.receipt.cap ? `<div class="rc-code" aria-hidden="true"><i></i><p class="rc-cap">${t.live.receipt.cap}</p></div>` : ''}
       </article>
       <article class="card lc lc-kds" data-r>
         <span class="mini"><i class="dot dot-coral"></i>${t.live.kds.label}</span>
@@ -371,7 +385,6 @@ ${demo(t)}
       <a class="btn btn-mint btn-lg" href="mailto:support@marjon.tech?subject=${encodeURIComponent(t.cta.aSubj)}" data-lead>${t.cta.a}${arrow}</a>
       <a class="btn btn-line btn-lg" href="https://www.instagram.com/marjon_tech" target="_blank" rel="noopener">${t.cta.b}${right}</a>
     </div>
-    <p class="cta-note" data-r><i class="dot"></i>${t.cta.note}</p>
   </div>
 </section>
 

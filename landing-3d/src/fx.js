@@ -2,7 +2,7 @@
 // инерция блоков при прокрутке, прогрессивный блюр у кромок экрана, шапка-инверсия
 import './fx.css';
 
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches && !new URLSearchParams(location.search).has('motion');
+const reduced = new URLSearchParams(location.search).get('motion') === '0'; // анимация всегда, prefers-reduced-motion игнорируем по просьбе владельца
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const init = () => {
   const html = document.documentElement;
@@ -15,10 +15,20 @@ const init = () => {
   // блюр у кромок: сверху и снизу
   const edge = (cls) => { const el = document.createElement('div'); el.className = 'fx-edge ' + cls; el.setAttribute('aria-hidden', 'true'); el.innerHTML = '<i></i><i></i><i></i><i></i>'; document.body.appendChild(el); return el; };
   const top = edge('is-top'), bottom = edge('is-bottom');
+  // у пиннутых секций (демо, «Возможности») прогресс-полоса прижата к низу экрана — прогрессивный блюр кромки её мылит, поэтому на время пина кромку гасим
+  let pinOn = false;
+  const pinEls = [...document.querySelectorAll('.demo-pin, .mod-pin')];
+  if (pinEls.length && 'IntersectionObserver' in window) {
+    const pinIO = new IntersectionObserver((es) => { // гасим кромку, пока виден хотя бы один пин
+      for (const e of es) e.target.__pinOn = e.isIntersecting;
+      pinOn = pinEls.some((el) => el.__pinOn);
+    }, { threshold: 0 });
+    for (const el of pinEls) pinIO.observe(el);
+  }
 
   // блоки: «листовые» элементы; закреплённые сцены пропускаем (там своя анимация)
   const SEL = 'h1, h2, h3, h4, p, li, figure, blockquote, dl, table, .btn, [class*="card"], [class*="stat"], [class*="tile"]';
-  const SKIP = '.nav, .menu, #loader, .demo-pin, .mod-pin, .stage, .fx-edge, [data-nofx]';
+  const SKIP = '.nav, .menu, #loader, .demo-pin, .mod-pin, .stage, .fx-edge, [data-nofx], #lead'; // модалку не «умно-размываем»: её позиции измеряются, когда она скрыта, и подставляется блюр 12px
   const all = [...document.querySelectorAll(SEL)].filter((el) => !el.closest(SKIP));
   const set = new Set(all);
   const items = all.filter((el) => { for (let p = el.parentElement; p; p = p.parentElement) if (set.has(p)) return false; return true; })
@@ -47,7 +57,7 @@ const init = () => {
     const speed = Math.min(Math.abs(vel) / 3, 1);
     // у самого верха и самого низа страницы кромки «отпускают» — первый экран и футер остаются резкими
     const kTop = clamp(y / 260, 0, 1), kBot = clamp((max - y) / 260, 0, 1);
-    top.classList.toggle('off', y < 60); bottom.classList.toggle('off', y < vh * 0.35 || max - y < 80);
+    top.classList.toggle('off', y < 60); bottom.classList.toggle('off', y < vh * 0.35 || max - y < 80 || pinOn);
     for (const it of items) {
       if (!it.on) continue;
       const t0 = it.top - y, b0 = t0 + it.h;

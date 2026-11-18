@@ -2,10 +2,9 @@
 import './micro.css';
 
 const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches && !new URLSearchParams(location.search).has('motion');
+const reduced = new URLSearchParams(location.search).get('motion') === '0'; // анимация всегда
 const init = () => {
   if (!fine || reduced) return;
-  const HOT = 'a, button, summary, .btn, [role="tab"], .role-tab, .mod-b';
   const SPOT = '.btn, .card, .step, .feat, .stat, .iq';
 
   // свет за курсором (+ наклон карточек, + магнит кнопок) — одно делегированное событие
@@ -32,26 +31,5 @@ const init = () => {
   }, { passive: true });
   document.addEventListener('pointerleave', () => { if (cur) { leave(cur); cur = null; } });
 
-  // курсор-спутник
-  const ring = document.createElement('i');
-  ring.className = 'cur-ring'; ring.setAttribute('aria-hidden', 'true');
-  document.body.appendChild(ring);
-  let tx = 0, ty = 0, x = 0, y = 0, raf = 0, seen = false;
-  const loop = () => {
-    x += (tx - x) * 0.16; y += (ty - y) * 0.16;
-    ring.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
-    raf = Math.abs(tx - x) + Math.abs(ty - y) > 0.2 ? requestAnimationFrame(loop) : 0;
-  };
-  addEventListener('pointermove', (e) => {
-    if (e.pointerType === 'touch') return;
-    tx = e.clientX; ty = e.clientY;
-    if (!seen) { seen = true; x = tx; y = ty; ring.classList.add('on'); }
-    ring.classList.toggle('is-hot', !!e.target.closest?.(HOT));
-    if (!raf) raf = requestAnimationFrame(loop);
-  }, { passive: true });
-  addEventListener('pointerdown', () => ring.classList.add('is-down'));
-  addEventListener('pointerup', () => ring.classList.remove('is-down'));
-  document.documentElement.addEventListener('mouseleave', () => ring.classList.remove('on'));
-  document.documentElement.addEventListener('mouseenter', () => seen && ring.classList.add('on'));
 };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

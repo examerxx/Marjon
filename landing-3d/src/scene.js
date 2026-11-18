@@ -95,14 +95,6 @@ function buildEnv(renderer) {
   return tex;
 }
 
-function glowTexture() {
-  const c = document.createElement('canvas'); c.width = c.height = 64;
-  const g = c.getContext('2d'); const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.25, 'rgba(200,255,240,.6)'); r.addColorStop(1, 'rgba(63,227,196,0)');
-  g.fillStyle = r; g.fillRect(0, 0, 64, 64);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
-}
-
 export function createScene(canvas, { low = false, labels = [], addon = null } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
   let maxDpr = 2;
@@ -176,15 +168,6 @@ export function createScene(canvas, { low = false, labels = [], addon = null } =
   rig.add(line);
   const segArr = lineGeo.attributes.instanceStart.data.array; // [x0 y0 z0 x1 y1 z1] * SEG
   const segBuf = lineGeo.attributes.instanceStart.data;
-
-  // ---- импульсы по нити ----
-  const glowTex = glowTexture();
-  const pulses = [0, 1, 2].map(() => {
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 }));
-    sp.material.color.setRGB(1.2, 2.4, 2.0);
-    rig.add(sp);
-    return sp;
-  });
 
   // ---- пыль ----
   const dustN = low ? 260 : 700;
@@ -288,15 +271,6 @@ export function createScene(canvas, { low = false, labels = [], addon = null } =
     lineMat.opacity = S.threadA;
     line.visible = S.threadA > 0.004 && S.draw > 0.002;
 
-    for (let i = 0; i < 3; i++) {
-      const sp = pulses[i];
-      const u = ((time * 0.11 + i / 3) % 1) * Math.min(1, S.draw);
-      curve.getPoint(u, sp.position);
-      sp.scale.setScalar(0.42 + Math.sin(time * 4 + i) * 0.06);
-      sp.material.opacity = S.pulse * S.threadA;
-      sp.visible = sp.material.opacity > 0.01;
-    }
-
     // камера
     const fit = 1 + (Math.max(1, 1.05 / aspect) - 1) * S.fit;
     const introZ = (1 - S.intro) * 5;
@@ -346,8 +320,11 @@ export function createScene(canvas, { low = false, labels = [], addon = null } =
         v.project(camera);
         const px = (v.x * 0.5 + 0.5) * W, py = (-v.y * 0.5 + 0.5) * H;
         const rad = (b.st.s / (dist * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)))) * (H / 2);
-        const on = v.z < 1 && px > -80 && px < W + 80 ? S.labels * (0.35 + 0.65 * b.st.lit) : 0;
-        el.style.transform = `translate3d(${px.toFixed(1)}px, ${(py + rad + 14).toFixed(1)}px, 0) translateX(-50%)`;
+        const on = v.z < 1 && px > -140 && px < W + 140 && py > -120 && py < H + 120 ? S.labels * (0.3 + 0.7 * b.st.lit) : 0;
+        const up = py > H * 0.32; // под бусиной, если там невысокеющее место — над
+        el.classList.toggle('up', up);
+        const off = rad + 10;
+        el.style.transform = `translate3d(${px.toFixed(1)}px, ${(py + (up ? -off : off)).toFixed(1)}px, 0) translate(-50%, ${up ? '-100%' : '0'})`;
         el.style.opacity = on.toFixed(3); el._o = on;
       }
     }
@@ -358,7 +335,7 @@ export function createScene(canvas, { low = false, labels = [], addon = null } =
   function dispose() {
     window.removeEventListener('pointermove', onMove);
     sphere.dispose(); beads.forEach((b) => b.mat.dispose());
-    lineGeo.dispose(); lineMat.dispose(); glowTex.dispose(); pulses.forEach((p) => p.material.dispose());
+    lineGeo.dispose(); lineMat.dispose();
     dustGeo.dispose(); dustMat.dispose(); bg.geometry.dispose(); bgMat.dispose();
     extra?.dispose();
     scene.environment?.dispose(); rt.dispose(); composer.dispose(); renderer.dispose();

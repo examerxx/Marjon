@@ -10,14 +10,14 @@ import { createLoader } from './loader.js';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import { $, $$, initBase, initMotion } from './ui.js';
+import { $, $$, initBase, initMotion, initSwitch } from './ui.js';
 import { initDemo } from './demo.js';
 
 const html = document.documentElement;
 const q = new URLSearchParams(location.search);
 
 /* ---------- режимы ---------- */
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches && q.get('motion') !== '1';
+const reduced = q.get('motion') === '0'; // анимация всегда; ?motion=0 — принудительный фолбэк
 const hasWebGL = (() => { try { return !!document.createElement('canvas').getContext('webgl2'); } catch { return false; } })();
 const weak = navigator.hardwareConcurrency <= 2 || navigator.deviceMemory <= 2 || navigator.connection?.saveData === true;
 // ?gl=0 / ?gl=1 — принудительно выключить/включить 3D (для проверки фолбэка)
@@ -29,7 +29,7 @@ html.classList.toggle('static', reduced);
 
 let lenis = null, world = null, master = null, motion = null;
 const scrollTo = (target) => {
-  if (lenis) lenis.scrollTo(target, { duration: 1.4 });
+  if (lenis && !lenis.isStopped) lenis.scrollTo(target, { duration: 1.4 }); // lenis остановлен (загрузчик) — нативный фолбэк
   else if (typeof target === 'number') window.scrollTo({ top: target, behavior: reduced ? 'auto' : 'smooth' });
   else target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
 };
@@ -63,6 +63,7 @@ async function boot() {
   gsap.ticker.lagSmoothing(0);
 
   motion = initMotion({ scrollTo });
+  initSwitch({ scrollTo });
   initDemo(); // после initMotion: pin модулей стоит выше по странице
 
   // 3D
@@ -176,7 +177,7 @@ async function boot() {
   const warmed = world?.warm ? Promise.race([world.warm(), new Promise((r) => setTimeout(r, 5000))]).catch(() => {}) : null; // прогрев 3D идёт, пока считает загрузчик
   // снимки в «живом демо» и рамках ролей декодируем заранее, а не в момент появления на экране
   const idle = window.requestIdleCallback || ((f) => setTimeout(f, 600));
-  idle(() => $$('.demo img, .rs-fb img').forEach((im) => { im.loading = 'eager'; im.decoding = 'async'; im.decode?.().catch(() => {}); }));
+  idle(() => $$('img').forEach((im) => { im.loading = 'eager'; im.decoding = 'async'; im.decode?.().catch(() => {}); }));
   await ld.run(Promise.all([fontsReady, warmed]), () => world?.render(0.016, 0, 0), // прогрев шейдеров под загрузчиком
     () => { if (world) gsap.to(world.S, { intro: 1, duration: 2.4, ease: 'expo.out' }); }); // сцена проявляется уже под занавесом — без чёрной паузы
   motion.intro();

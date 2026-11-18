@@ -26,7 +26,7 @@ const L = {
   // 4 — орбита (то же кольцо, но rig лежит плашмя)
   orbit: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 3.2), s: 0.4 })),
   // 5 — звезда {8/3}: мотив гириха; при tension = 0 нить становится ломаной
-  star: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 3.2, 3), s: 0.3 })),
+  star: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 3.2, 3), z: -1.7, s: 0.2 })), // A+H: техника на первом плане — круг бусин уходит за неё
   // 6 — одна жемчужина и тесный ореол
   pearl: [{ x: 0, y: 0, z: 0, s: 1.7 }, ...Array.from({ length: 7 }, (_, j) => ({ ...ring(j + 1, 2.7), s: 0.1 }))],
 };
@@ -42,7 +42,7 @@ const LD = {
   line: small(L.line), ring: small(L.ring), orbit: small(L.orbit),
   // 5 — ровный круг из одинаковых бусин
   star: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 2.7), s: 0.2 })),
-  pearl: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 3.5), s: i === 0 ? 0.3 : 0.13 })),
+  pearl: Array.from({ length: 8 }, (_, i) => ({ ...ring(i, 3.5), z: -2.7, s: 0.13 })), // A+H: техника на первом плане — нить с бусинами за ней; одна большая бусина убрана по просьбе
 };
 
 export function applyInitial(S, beads, dev = false) {
@@ -97,9 +97,9 @@ export function buildMaster(S, beads, dev = false) {
   cam(5.7, 0.7, dev ? { rz: -TAU / 2 - 0.28, ry: -0.3 } : { rz: -TAU / 2 - 0.9, ry: -0.15 }, 'none');
 
   // ── 5.7 → 6  всё стягивается в одну чёрную жемчужину ────────────────
-  lay(6, 0.3, LL.pearl, { lit: 0.5 });
-  tl.to(beads[0].st, dev ? { lit: 0.4, duration: 0.3 } : { dark: 1, lit: 0.55, duration: 0.3 }, 5.7); // в версии с техникой жемчужина остаётся обычной белой
-  cam(6, 0.3, { camY: 0.2, camZ: 8.4, rx: -1.25, ry: 0.2, rz: -TAU / 2 - 1.6, ox: 0, oy: 0.02, oyM: 0, tension: 0.5, threadA: 1, pulse: 1, glow: 1.3, drift: 0.2, bloom: 0.6 });
+  lay(6, 0.3, LL.pearl, { lit: 0 });
+  tl.to(beads[0].st, dev ? { lit: 0, duration: 0.3 } : { dark: 1, lit: 0, duration: 0.3 }, 5.7); // финал — без неона: в футере остаются только тёмные жемчужины
+  cam(6, 0.3, { camY: 0.2, camZ: 8.4, rx: -1.25, ry: 0.2, rz: -TAU / 2 - 1.6, ox: 0, oy: 0.02, oyM: 0, tension: 0.5, threadA: 0, pulse: 0, glow: 1.3, drift: 0.2, bloom: 0.6 });
 
   return tl;
 }

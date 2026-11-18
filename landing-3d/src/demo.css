@@ -27,7 +27,7 @@
 .demo-hint { position: absolute; left: 50%; bottom: 14px; translate: -50% 0; font-size: .82rem; color: var(--fg-2); white-space: nowrap; }
 
 .demo-stage { position: relative; justify-self: center; width: min(100%, calc((100svh - var(--nav-h) - 56px) * 1.56)); transform-origin: 50% 100%; will-change: transform; }
-.win { position: relative; border-radius: 18px; background: #16181d; box-shadow: 0 0 0 1px rgba(245, 245, 241, .12), 0 40px 120px rgba(0, 0, 0, .6), 0 0 0 6px rgba(95, 242, 208, .05), 0 0 180px rgba(95, 242, 208, .16); overflow: hidden; will-change: transform; }
+.win { position: relative; border-radius: 18px; background: #16181d; box-shadow: 0 0 0 1px rgba(245, 245, 241, .12), 0 40px 120px rgba(0, 0, 0, .6), 0 0 0 6px rgba(95, 242, 208, .05), 0 0 96px rgba(95, 242, 208, .12); overflow: hidden; will-change: transform; }
 .win-bar { position: relative; height: 34px; display: flex; align-items: center; gap: 7px; padding: 0 14px; }
 .win-bar i { width: 10px; height: 10px; border-radius: 50%; background: rgba(245, 245, 241, .2); }
 .win-t { position: absolute; left: 50%; translate: -50% 0; font-size: .78rem; color: rgba(245, 245, 241, .6); white-space: nowrap; } .win-t[data-wt='1'] { opacity: 0; }
@@ -89,7 +89,7 @@
 .static .cap-t, .no-js .cap-t { display: block; }
 
 /* раскладка: подпись сверху по центру, экран под ней, полоса прогресса сразу под экраном; весь блок по центру и всегда в одном экране */
-.js:not(.static) .demo-pin { --capH: clamp(4.4rem, 10.5svh, 6.4rem); grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto; align-content: center; justify-items: center; align-items: start; gap: 0; padding: calc(var(--nav-h) + 4px) var(--pad) 18px; }
+.js:not(.static) .demo-pin { --capH: clamp(4.4rem, 10.5svh, 6.4rem); grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto; align-content: center; justify-items: center; align-items: start; gap: 0; padding: clamp(10px, 2vh, 22px) var(--pad) clamp(14px, 2.6vh, 26px); }
 .js:not(.static) .demo-caps { display: contents; }
 .js:not(.static) .demo-step { grid-row: 1; margin: 0 0 4px; text-align: center; }
 .js:not(.static) .caps { grid-row: 2; width: 100%; min-height: 0; height: var(--capH); text-align: center; }
@@ -97,8 +97,8 @@
 .js:not(.static) .cap-k { flex: 0 0 100%; margin: 0 0 2px; }
 .js:not(.static) .cap-h { margin: 0; max-width: 100%; font-size: clamp(1.15rem, min(2.6vw, 4.6svh), 2.9rem); text-wrap: balance; }
 .js:not(.static) .cap-kpi { margin: 0; display: flex; align-items: baseline; gap: 10px; } .js:not(.static) .cap-kpi b { font-size: clamp(1.05rem, min(1.9vw, 3.4svh), 2rem); }
-.js:not(.static) .demo-stage { grid-row: 3; width: min(100%, calc((100svh - var(--nav-h) - var(--capH) - 152px) * 1.56)); }
-.js:not(.static) .demo-bar { grid-row: 4; width: min(100%, calc((100svh - var(--nav-h) - var(--capH) - 152px) * 1.56)); height: 3px; margin-top: clamp(14px, 2.2svh, 22px); border-radius: 3px; }
+.js:not(.static) .demo-stage { grid-row: 3; width: min(100%, calc((100svh - var(--nav-h) - var(--capH) - 212px) * 1.56)); }
+.js:not(.static) .demo-bar { grid-row: 4; width: min(100%, calc((100svh - var(--nav-h) - var(--capH) - 212px) * 1.56)); height: 4px; margin-top: clamp(12px, 2vh, 20px); border-radius: 3px; background: rgba(12, 13, 16, .85); box-shadow: 0 0 0 1px rgba(95, 242, 208, .25), 0 2px 18px rgba(0, 0, 0, .65); position: relative; z-index: 3; }
 .js:not(.static) .demo-hint { bottom: 10px; font-size: .76rem; }
 @media (max-width: 1100px) { .js:not(.static) .cap-kpi span { display: none; } }
 @media (max-width: 900px) {

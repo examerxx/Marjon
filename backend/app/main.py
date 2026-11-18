@@ -14,6 +14,7 @@ from app.middleware.tenant_middleware import TenantMiddleware
 from app.infrastructure.database.session import AsyncSessionLocal
 from app.shared.error_handlers import register_error_handlers
 from app.shared.rate_limit import limiter
+from app.shared.media_url import MediaUrlMiddleware
 from app.shared.storage import storage as media_storage
 
 # ── Register all models with SQLAlchemy metadata ────────────────────────────
@@ -152,6 +153,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(TenantMiddleware)
+# MEDIA-ABS: относительные /media/... в ответах становятся абсолютными под хост
+# запроса (десктоп/мобилка не умеют разрешать относительные пути — см. shared/media_url.py)
+app.add_middleware(MediaUrlMiddleware)
 
 API = "/api/v1"
 routers = [
