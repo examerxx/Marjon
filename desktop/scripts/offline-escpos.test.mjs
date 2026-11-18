@@ -3,12 +3,14 @@ import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 
 const require = createRequire(import.meta.url)
-const { buildReceipt, buildKitchenTicket, money, quantity } = require('../electron/offline/escpos.js')
+const { buildReceipt, buildKitchenTicket, encode, money, quantity } = require('../electron/offline/escpos.js')
 
 // CP866: «Итого» → И(0x88) т(0xE2) о(0xAE) г(0xA3) о(0xAE)
 const CP866_ITOGO = Buffer.from([0x88, 0xe2, 0xae, 0xa3, 0xae])
 const CUT = Buffer.from([0x1d, 0x56, 0x41, 0x03])
+const KITCHEN_CUT = Buffer.from([0x1d, 0x56, 0x41, 0x49])
 const CODEPAGE = Buffer.from([0x1b, 0x74, 17])
+const cp866 = (text) => Buffer.from(encode(text))
 
 const order = {
   id: 'local-1',
@@ -99,7 +101,55 @@ test('receipt fits the paper width on 58mm and 80mm', () => {
 test('kitchen ticket contains order number, table and dishes', () => {
   const buffer = buildKitchenTicket({ order, width: 80 })
   const text = buffer.toString('latin1')
-  assert.ok(text.includes('T12-261114-001'))
+  assert.ok(text.includes('#T12-261114-001'))
   assert.ok(buffer.indexOf(Buffer.from([0x91, 0xe2, 0xae, 0xab, 0x3a])) > 0) // «Стол:»
+  assert.ok(buffer.indexOf(cp866('Ош')) > 0)
+  assert.ok(buffer.subarray(buffer.length - KITCHEN_CUT.length).equals(KITCHEN_CUT))
+})
+
+// Зеркало formatter.py без шаблона: блоки канонические, «Итого:» стилем
+// total (xlarge = двойная высота, не жирный), приветствие и нижний номер —
+// крупные, между секциями разделители, после заголовка — без разделителя.
+const DEFAULT_STYLE = Buffer.concat([
+  Buffer.from([0x1b, 0x4d, 0x00]),       // FONT_A
+  Buffer.from([0x1b, 0x61, 0x01]),       // align center
+  Buffer.from([0x1d, 0x21, 0x11]),       // restaurantName large → 2x2
+])
+
+test('offline receipt mirrors the server default block layout', () => {
+  const buffer = buildReceipt({
+    company: { name: 'Marjon' },
+    order,
+    payment: { method: 'cash', cash_received: '50000.00', change_given: '5000.00' },
+    width: 80,
+  })
+  for (const label of [
+    'Номер заказа:', 'Тип заказа:', 'Номер стола:', 'Официант:', 'Дата:',
+    'Сумма блюд', 'Итого:', 'Наличные:', 'Получено:', 'Сдача:',
+    'XARIDINGIZ', 'UCHUN RAXMAT!', '45,000',
+  ]) {
+    assert.ok(buffer.includes(cp866(label)), `missing "${label}"`)
+  }
+  assert.ok(buffer.indexOf(DEFAULT_STYLE) > CODEPAGE.length, 'restaurant name must use the server 2x2 style')
+  // Нижний номер: крупный стиль bottomOrderNumber (2x2 → код 0x22).
+  assert.ok(buffer.includes(Buffer.from([0x1d, 0x21, 0x22])))
   assert.ok(buffer.subarray(buffer.length - CUT.length).equals(CUT))
+})
+
+test('receipt template toggles and order are honored like on the server', () => {
+  const template = {
+    blocks: ['restaurantName', 'orderNumber', 'items', 'total', 'bottomOrderNumber'],
+    enabled: { waiter: false, table: false, dateTime: false, paymentMethod: false, thankYouText: false },
+    lineSpacing: 'small',
+    blockStyles: { bottomOrderNumber: { size: 'large', align: 'center', weight: 'bold', placement: 'top' } },
+  }
+  const buffer = buildReceipt({ company: { name: 'Marjon' }, order, width: 80, template })
+  assert.ok(!buffer.includes(cp866('Официант:')), 'waiter row is disabled')
+  assert.ok(!buffer.includes(cp866('Дата:')), 'dateTime row is disabled')
+  assert.ok(!buffer.includes(cp866('XARIDINGIZ')), 'thank you block is disabled')
+  assert.ok(buffer.includes(Buffer.from([0x1b, 0x33, 20])), 'small line spacing')
+  // placement: top → номер идёт до строк заказа, а не в подвал.
+  const numberAt = buffer.indexOf(cp866('T12-261114-001'))
+  const tableAt = buffer.indexOf(cp866('Блюдо'))
+  assert.ok(numberAt > 0 && tableAt > 0 && numberAt < tableAt)
 })

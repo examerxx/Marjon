@@ -23,6 +23,7 @@ from app.modules.finance.models import PaymentType
 from app.modules.finance.ownership import FinanceDictionaryService, FinanceScope
 from app.modules.halls.models import Hall, Table
 from app.modules.inventory.models import Category, Product
+from app.modules.kafe_compat.models import ReceiptTemplateSettings
 from app.modules.pos.models import CashierShift, Order
 from app.modules.pos.schemas import OrderResponse
 from app.modules.printers.models import Printer
@@ -191,6 +192,17 @@ async def bootstrap(
         PageParams(page=1, size=1_000_000),
         default_sort="sort",
     )
+    # Тот же шаблон, что использует физическая печать сервера
+    # (printers/service.py::_get_receipt_templates читает эту таблицу).
+    # Company.receipt_template — мёртвая legacy-колонка, из неё шаблон
+    # никогда не печатался.
+    template_row = (
+        await db.execute(
+            select(ReceiptTemplateSettings).where(
+                ReceiptTemplateSettings.company_id == user.company_id
+            )
+        )
+    ).scalar_one_or_none()
 
     return {
         "server_time": datetime.now(timezone.utc).isoformat(),
@@ -204,8 +216,8 @@ async def bootstrap(
             "vat_rate": str(company.vat_rate) if company.vat_rate is not None else None,
             "service_fee": str(company.service_fee) if company.service_fee is not None else None,
             "order_types": company.order_types,
-            "receipt_template": company.receipt_template,
-            "kitchen_receipt_template": company.kitchen_receipt_template,
+            "receipt_template": (template_row.customer_template if template_row else None),
+            "kitchen_receipt_template": (template_row.kitchen_template if template_row else None),
         },
         "categories": [_category_dto(c) for c in categories],
         "products": [_product_dto(p) for p in products],

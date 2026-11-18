@@ -10,6 +10,7 @@ const bcrypt = require('bcryptjs')
 const store = require('./db')
 const { request, healthUrl } = require('./http')
 const escpos = require('./escpos')
+const raster = require('./raster')
 
 const CHANGE_CACHE_KEYS = new Set(['company', 'branch', 'products', 'categories', 'halls', 'printers', 'payment_methods'])
 const BOOTSTRAP_TTL_MS = 30 * 60 * 1000
@@ -1217,14 +1218,35 @@ async function printReceiptLocal({ orderId, printerId, copies = 1, payment = nul
   if (!order) throw new Error('заказ не найден локально')
   const printer = receiptPrinter(printerId)
   if (!printer) throw new Error('чек-принтер не настроен')
-  const buffer = escpos.buildReceipt({
-    company: store.kvGet('company') || {},
-    branch: store.kvGet('branch') || {},
+  // Онлайн-чек берёт оплату из базы заказа; офлайн — из локального журнала
+  // платежей, иначе строка способа оплаты на офлайн-чеке пропадала. После
+  // синхронизации платеж лежит под серверным id, поэтому смотрим оба ключа.
+  const localPayments = [
+    ...paymentsForOrder(row.id),
+    ...(row.server_id ? paymentsForOrder(row.server_id) : []),
+  ]
+  const paid = payment || localPayments[localPayments.length - 1] || null
+  const company = store.kvGet('company') || {}
+  const options = {
+    company,
     order,
-    payment,
+    payment: paid,
     width: printer.paper_width || 80,
     timeZone: tz(),
-  })
+    template: company.receipt_template || null,
+    // Сервер печатает момент печати, а не время создания заказа.
+    printedAt: new Date(),
+  }
+  // Онлайн-чек — растровая картинка (сервер, receipt_raster.py). Тот же
+  // рендер повторяем локально, чтобы бумага выглядела одинаково; текстовый
+  // ESC/POS остаётся аварийным путём, если canvas-рендер не собрался.
+  let buffer
+  try {
+    buffer = await raster.renderCustomerReceipt(options)
+  } catch (err) {
+    console.warn('offline: raster receipt failed, text fallback:', err?.message || err)
+    buffer = escpos.buildReceipt(options)
+  }
   try {
     for (let i = 0; i < Number(copies || 1); i++) await printBuffer(printer, buffer)
     recordPrint(printer, buffer, null)
@@ -1246,12 +1268,22 @@ async function printKitchenForOrder(order, onlyItemIds = null) {
     ? (order.items || []).filter((i) => onlyItemIds.has(i.id))
     : order.items
   if (!items?.length) return { printed: false }
-  const buffer = escpos.buildKitchenTicket({
+  const company = store.kvGet('company') || {}
+  const options = {
     order,
     items,
     width: printers[0].paper_width || 80,
     timeZone: tz(),
-  })
+    template: company.kitchen_receipt_template || null,
+  }
+  // Кухня на сервере тоже печатается растром (render_kitchen_ticket_raster).
+  let buffer
+  try {
+    buffer = await raster.renderKitchenTicket(options)
+  } catch (err) {
+    console.warn('offline: raster kitchen failed, text fallback:', err?.message || err)
+    buffer = escpos.buildKitchenTicket(options)
+  }
   const results = []
   for (const printer of printers) {
     try {
