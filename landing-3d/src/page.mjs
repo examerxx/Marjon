@@ -220,7 +220,7 @@ export function render(t) {
       </ul>
     </div>
     <div class="pains">
-      ${t.problem.pains.map(([a, b, c], i) => `<article class="card pain" data-r><div class="pain-top"><span class="pain-ic" aria-hidden="true">${painIcons[i]}</span><span class="idx">${pad(i + 1)}</span></div><h3>${a}</h3><p>${b}</p>${c ? `<div class="pain-tag">${c}</div>` : ''}</article>`).join('\n      ')}
+      ${t.problem.pains.map(([a, b, c], i) => `<article class="card pain" data-r><div class="pain-top"><span class="pain-idx">${pad(i + 1)}<i> / ${pad(t.problem.pains.length)}</i></span><span class="pain-ic" aria-hidden="true">${painIcons[i]}</span></div><h3>${a}</h3><p>${b}</p>${c ? `<div class="pain-tag">${c}</div>` : ''}</article>`).join('\n      ')}
     </div>
   </div>
 </section>
@@ -228,9 +228,7 @@ export function render(t) {
 <!-- переключатель ровно на стыке «Проблема → Манифест» -->
 <div class="switch-seam">
   <button class="next-switch" type="button" role="switch" aria-checked="false" aria-label="${t.problem.switch.aria}">
-    <span class="ns-cap ns-cap-off">${t.problem.switch.off}</span>
     <span class="ns-track" aria-hidden="true"><span class="ns-knob"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span>
-    <span class="ns-cap ns-cap-on">${t.problem.switch.on}</span>
   </button>
 </div>
 
@@ -282,7 +280,6 @@ ${vband(t.band, 1)}
         <div class="rc-total"><span>${t.live.receipt.total}</span><b><span data-count="214000" data-dec="0">214 000</span> ${t.demo.cur}</b></div>
         <p class="rc-paid"><i class="dot"></i>${t.live.receipt.paid}</p>
         <p class="rc-ofd">${t.live.receipt.ofd}</p>
-        ${t.live.receipt.cap ? `<div class="rc-code" aria-hidden="true"><i></i><p class="rc-cap">${t.live.receipt.cap}</p></div>` : ''}
       </article>
       <article class="card lc lc-kds" data-r>
         <span class="mini"><i class="dot dot-coral"></i>${t.live.kds.label}</span>
@@ -305,6 +302,9 @@ ${vband(t.band, 1)}
 ${t.ah ? rolesShow(t) : rolesTabs(t)}
   </div>
 </section>
+
+<!-- ЖИВОЕ ДЕМО: интерфейс сам проходит сценарий (src/demo.mjs) -->
+${demo(t)}
 
 <!-- 5 · UZBEKISTAN -->
 <section class="ch ch-uz" id="uzbekistan" data-ch="5">
@@ -336,9 +336,6 @@ ${t.ah ? rolesShow(t) : rolesTabs(t)}
     </div>
   </div>
 </section>
-
-<!-- ЖИВОЕ ДЕМО: интерфейс сам проходит сценарий (src/demo.mjs) -->
-${demo(t)}
 
 <!-- PAPER -->
 <div class="paper" id="paper">

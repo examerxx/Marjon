@@ -35,7 +35,7 @@ export default {
     ],
   },
   modules: {
-    kicker: '02 / Imkoniyatlar', h2: ['Bitta mahsulot.', "<em>Dasturlar to'plami o'rniga.</em>"],
+    kicker: '02 / Imkoniyatlar', h2: ['Butun restoran', '<em>bitta ipda.</em>'],
     lede: "Har bir modul bitta buyurtma, ombor va pul bilan ishlaydi. Ma'lumotlarni qo'lda ko'chirish shart emas.",
     listAria: 'Marjon modullari',
     items: [

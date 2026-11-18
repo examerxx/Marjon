@@ -95,6 +95,14 @@ function buildEnv(renderer) {
   return tex;
 }
 
+function glowTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'); const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.25, 'rgba(200,255,240,.6)'); r.addColorStop(1, 'rgba(63,227,196,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
 export function createScene(canvas, { low = false, labels = [], addon = null } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
   let maxDpr = 2;
@@ -169,6 +177,15 @@ export function createScene(canvas, { low = false, labels = [], addon = null } =
   const segArr = lineGeo.attributes.instanceStart.data.array; // [x0 y0 z0 x1 y1 z1] * SEG
   const segBuf = lineGeo.attributes.instanceStart.data;
 
+  // ---- импульсы по нити: три мягких вспыхивающих огонька бегут вдоль нити ----
+  const glowTex = glowTexture();
+  const pulses = [0, 1, 2].map(() => {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 }));
+    sp.material.color.setRGB(1.2, 2.4, 2.0);
+    rig.add(sp);
+    return sp;
+  });
+
   // ---- пыль ----
   const dustN = low ? 260 : 700;
   const dpos = new Float32Array(dustN * 3), dseed = new Float32Array(dustN);
@@ -224,12 +241,14 @@ export function createScene(canvas, { low = false, labels = [], addon = null } =
   window.addEventListener('pointermove', onMove, { passive: true });
 
   const v = new THREE.Vector3(), v2 = new THREE.Vector3(), tgt = new THREE.Vector3(), col = new THREE.Color();
-  let vel = 0;
+  let vel = 0, swMix = 0;
 
   function render(dt, time, scrollVel = 0) {
     const k = 1 - Math.pow(1 - 0.06, dt * 60); // lerp, не зависящий от fps
     mouse.x += (mouse.tx - mouse.x) * k; mouse.y += (mouse.ty - mouse.y) * k;
     vel += (Math.min(Math.abs(scrollVel), 60) - vel) * k;
+    // атмосфера за бусинами: переключатель включён → фирменная мята вместо белесой дымки
+    swMix += ((document.documentElement.classList.contains('switch-on') ? 1 : 0) - swMix) * k;
 
     // rig
     rig.rotation.set(S.rx + mouse.y * 0.04, S.ry + mouse.x * 0.06, S.rz + S.dial * S.dialAmt + Math.sin(time * 0.25) * 0.05);
@@ -271,6 +290,15 @@ export function createScene(canvas, { low = false, labels = [], addon = null } =
     lineMat.opacity = S.threadA;
     line.visible = S.threadA > 0.004 && S.draw > 0.002;
 
+    for (let i = 0; i < 3; i++) {
+      const sp = pulses[i];
+      const u = ((time * 0.11 + i / 3) % 1) * Math.min(1, S.draw);
+      curve.getPoint(u, sp.position);
+      sp.scale.setScalar(0.42 + Math.sin(time * 4 + i) * 0.06);
+      sp.material.opacity = S.pulse * S.threadA;
+      sp.visible = sp.material.opacity > 0.01;
+    }
+
     // камера
     const fit = 1 + (Math.max(1, 1.05 / aspect) - 1) * S.fit;
     const introZ = (1 - S.intro) * 5;
@@ -285,8 +313,8 @@ export function createScene(canvas, { low = false, labels = [], addon = null } =
     camera.updateMatrixWorld();
 
     // свет и атмосфера
-    col.copy(C.mint).lerp(C.coral, S.coral);
-    bgMat.uniforms.uGlow.value.copy(col).multiplyScalar(0.34);
+    col.copy(C.mint).lerp(C.coral, S.coral * (1 - swMix));
+    bgMat.uniforms.uGlow.value.copy(col).multiplyScalar(0.34 + 0.08 * swMix);
     bgMat.uniforms.uAmt.value = S.glow * S.intro;
     bgMat.uniforms.uTime.value = time;
     rig.getWorldPosition(v).project(camera);
@@ -335,7 +363,7 @@ export function createScene(canvas, { low = false, labels = [], addon = null } =
   function dispose() {
     window.removeEventListener('pointermove', onMove);
     sphere.dispose(); beads.forEach((b) => b.mat.dispose());
-    lineGeo.dispose(); lineMat.dispose();
+    lineGeo.dispose(); lineMat.dispose(); glowTex.dispose(); pulses.forEach((p) => p.material.dispose());
     dustGeo.dispose(); dustMat.dispose(); bg.geometry.dispose(); bgMat.dispose();
     extra?.dispose();
     scene.environment?.dispose(); rt.dispose(); composer.dispose(); renderer.dispose();

@@ -35,7 +35,7 @@ export default {
   live: {
     lede: "Kassadagi buyurtma shu soniyaning o'zida oshxonada paydo bo'ladi, ombordan mahsulotni hisobdan chiqaradi va egasining hisobotiga tushadi.",
     rev: { label: 'tushum · bugun', unit: "mln so'm", delta: '18,4', axis: ['08:00', '16:00', '00:00'], foot: [['Bugungi cheklar', '1 574'], ["O'rtacha chek", "7 933 so'm"]] },
-    receipt: { head: 'MARJON', no: 'chek · 00186', meta: 'stol 4 · ofitsiant AK · 14:32', rows: [['Choyxona palovi', '×2', '148 000'], ['Achichuq', '×1', '24 000'], ["Ko'k choy", '×3', '42 000']], total: 'Jami', paid: "to'landi", ofd: 'Rahmat tashrifingiz uchun', cap: 'x000186 · 14:32 · terminal 01' },
+    receipt: { head: 'MARJON', no: 'chek · 00186', meta: 'stol 4 · ofitsiant AK · 14:32', rows: [['Choyxona palovi', '×1', '74 000'], ["Qo'zi kabob", '×1', '68 000'], ['Achichuq', '×1', '24 000'], ["Ko'k choy", '×3', '21 000'], ['Tandir non', '×1', '12 000'], ["Go'shtli somsa", '×2', '15 000']], total: 'Jami', paid: "to'landi", ofd: 'Rahmat tashrifingiz uchun', cap: 'x000186 · 14:32 · terminal 01' },
     kds: { label: 'oshxona', rows: [['Stol 4', 'Palov × 2', 42], ['Yetkazish · 812', 'Shashlik · non', 130], ['Stol 7', "Lag'mon · kompot", 78]], foot: 'kassa bilan birga' },
     stock: { label: 'ombor · tugayapti', n: '3', unit: 'mahsulot', foot: "qo'zi go'shti · guruch · yog'" },
   },

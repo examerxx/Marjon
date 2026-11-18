@@ -99,7 +99,7 @@ export function buildMaster(S, beads, dev = false) {
   // ── 5.7 → 6  всё стягивается в одну чёрную жемчужину ────────────────
   lay(6, 0.3, LL.pearl, { lit: 0 });
   tl.to(beads[0].st, dev ? { lit: 0, duration: 0.3 } : { dark: 1, lit: 0, duration: 0.3 }, 5.7); // финал — без неона: в футере остаются только тёмные жемчужины
-  cam(6, 0.3, { camY: 0.2, camZ: 8.4, rx: -1.25, ry: 0.2, rz: -TAU / 2 - 1.6, ox: 0, oy: 0.02, oyM: 0, tension: 0.5, threadA: 0, pulse: 0, glow: 1.3, drift: 0.2, bloom: 0.6 });
+  cam(6, 0.3, { camY: 0.2, camZ: 8.4, rx: -1.25, ry: 0.2, rz: -TAU / 2 - 1.6, ox: 0, oy: 0.02, oyM: 0, tension: 0.5, threadA: 0.75, pulse: 0.6, glow: 1.3, drift: 0.2, bloom: 0.6 });
 
   return tl;
 }
