@@ -105,7 +105,8 @@ body {
 .p-head h2 { margin: 0; }
 .p-title { font-family: var(--display); font-weight: 700; font-size: clamp(1.02rem, 1.9vw, 1.26rem); line-height: 1.22; letter-spacing: -.02em; color: #f2f8ff; text-wrap: balance; }
 .p-sub { margin: 0 0 2px; font-size: .88rem; color: var(--muted); line-height: 1.5; }
-.f-label { font-size: .8rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #cfe3ff; margin: 16px 0 8px; }
+.f-label { display: block; font-size: .8rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #cfe3ff; margin: 18px 0 8px; }
+#lbl-type { margin-top: 2px; }
 .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .seg-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 13px 8px 12px; border-radius: 16px; background: rgba(10,30,64,.72); border: 1px solid rgba(110,190,255,.38); color: #cfe3ff; cursor: pointer; font: 700 .95rem var(--body); transition: border-color .25s, box-shadow .25s, background .25s, transform .2s; -webkit-tap-highlight-color: transparent; }
 .seg-btn svg { width: 26px; height: 26px; }
@@ -113,12 +114,30 @@ body {
 .seg-btn.on { background: radial-gradient(120% 150% at 50% 0%, #23c3ff 0%, #0b8fe0 52%, #0666bd 100%); border-color: #8df0ff; color: #032338; box-shadow: 0 0 0 1px rgba(141,240,255,.65), 0 0 26px rgba(53,198,255,.75), inset 0 1px 0 rgba(255,255,255,.75), inset 0 -6px 14px rgba(3,60,110,.6); text-shadow: 0 1px 0 rgba(255,255,255,.4); }
 .field { position: relative; }
 .field > svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; color: #79cdf7; pointer-events: none; }
-.input, .select { width: 100%; height: 58px; border-radius: 14px; border: 1px solid rgba(110,190,255,.4); background: rgba(6,20,44,.78); color: #eaf2ff; padding: 0 18px 0 48px; font: 500 1rem var(--body); transition: border-color .25s, box-shadow .25s; appearance: none; }
-.select { cursor: pointer; }
-.select option { background: #0a2144; color: #eaf2ff; }
+.input, .dd-btn { width: 100%; height: 58px; border-radius: 14px; border: 1px solid rgba(110,190,255,.4); background: rgba(6,20,44,.78); color: #eaf2ff; font: 500 1rem var(--body); transition: border-color .25s, box-shadow .25s; }
+.input { padding: 0 18px 0 48px; }
 .input::placeholder { color: rgba(143,178,232,.6); }
-.input:focus, .select:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(53,198,255,.28), 0 0 22px rgba(53,198,255,.3); }
-.field .chev { position: absolute; right: 16px; left: auto; pointer-events: none; }
+.input:focus, .dd-btn:focus-visible { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(53,198,255,.28), 0 0 22px rgba(53,198,255,.3); }
+
+/* ---------- кастомный выпадающий список ---------- */
+.dd { position: relative; }
+.dd-btn { position: relative; display: flex; align-items: center; gap: 10px; padding: 0 16px 0 48px; cursor: pointer; text-align: left; -webkit-tap-highlight-color: transparent; }
+.dd-btn:hover { border-color: rgba(120,215,255,.65); }
+.dd-btn > svg:first-of-type { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; color: #79cdf7; pointer-events: none; }
+.dd-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dd-btn .chev { flex: none; width: 20px; height: 20px; color: #79cdf7; transition: transform .25s var(--ease); }
+.dd.open .chev { transform: rotate(180deg); }
+.dd-pop { position: absolute; z-index: 40; top: calc(100% + 8px); left: 0; right: 0; border-radius: 16px; border: 1px solid rgba(110,220,255,.45); background: linear-gradient(180deg, #103059 0%, #0c2344 100%); box-shadow: 0 24px 55px rgba(0,6,24,.62), 0 0 32px rgba(47,139,255,.3), inset 0 1px 0 rgba(190,235,255,.25); opacity: 0; transform: translateY(-6px) scale(.97); visibility: hidden; transition: opacity .2s, transform .22s var(--ease), visibility .2s; }
+.dd.open .dd-pop { opacity: 1; transform: none; visibility: visible; }
+.dd-list { list-style: none; margin: 0; padding: 8px; max-height: min(282px, 42vh); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(110,190,255,.45) transparent; }
+.dd-list::-webkit-scrollbar { width: 6px; } .dd-list::-webkit-scrollbar-thumb { background: rgba(110,190,255,.35); border-radius: 3px; }
+.dd-opt { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 11px; color: #cfe3ff; font-size: .94rem; cursor: pointer; transition: background .15s, color .15s; }
+.dd-opt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dd-opt svg { flex: none; width: 18px; height: 18px; color: var(--cyan-bright); opacity: 0; transform: scale(.6); transition: opacity .15s, transform .2s; }
+.dd-opt:hover { background: rgba(53,198,255,.12); color: #fff; }
+.dd-opt[aria-selected="true"] { color: #fff; background: rgba(53,198,255,.16); }
+.dd-opt[aria-selected="true"] svg { opacity: 1; transform: scale(1); }
+.dd-opt.active { background: rgba(53,198,255,.18); color: #fff; }
 .err { display: none; margin-top: 12px; color: var(--danger); font-size: .88rem; line-height: 1.45; }
 .err.show { display: block; }
 .cta { position: relative; width: 100%; height: 66px; margin-top: 20px; border: 0; border-radius: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; font: 800 1.18rem var(--body); letter-spacing: .03em; color: var(--gold-ink); text-transform: uppercase; background: linear-gradient(180deg, var(--gold-1) 0%, var(--gold-2) 30%, var(--gold-3) 64%, var(--gold-4) 100%); box-shadow: 0 14px 38px rgba(255,196,60,.4), 0 2px 0 rgba(255,255,255,.7) inset, 0 -8px 16px rgba(190,110,20,.55) inset; transition: transform .25s, filter .25s; -webkit-tap-highlight-color: transparent; }
@@ -150,10 +169,10 @@ body {
   .p-emoji { font-size: 1.5rem; }
   .p-title { font-size: 1.08rem; }
   .p-sub { font-size: .78rem; margin-bottom: 0; }
-  .f-label { margin: 8px 0 5px; font-size: .64rem; }
+  .f-label { margin: 14px 0 7px; font-size: .64rem; }
   .seg-btn { padding: 7px 6px 8px; font-size: .82rem; border-radius: 12px; gap: 3px; }
   .seg-btn svg { width: 19px; height: 19px; }
-  .input, .select { height: 44px; font-size: .9rem; padding: 0 14px 0 42px; border-radius: 11px; }
+  .input, .dd-btn { height: 44px; font-size: .9rem; padding: 0 12px 0 42px; border-radius: 11px; }
   .field > svg { width: 17px; height: 17px; left: 13px; }
   .cta { height: 50px; font-size: .92rem; margin-top: 10px; border-radius: 13px; }
   .cta svg { width: 18px; height: 18px; }
@@ -173,10 +192,10 @@ body {
   .p-emoji { font-size: 1.25rem; }
   .p-title { font-size: .95rem; }
   .p-sub { display: none; }
-  .f-label { margin: 6px 0 4px; font-size: .6rem; }
+  .f-label { margin: 12px 0 6px; font-size: .6rem; }
   .seg-btn { padding: 5px 6px 6px; font-size: .76rem; }
   .seg-btn svg { width: 16px; height: 16px; }
-  .input, .select { height: 38px; font-size: .84rem; }
+  .input, .dd-btn { height: 38px; font-size: .84rem; padding: 0 12px 0 40px; }
   .cta { height: 42px; font-size: .84rem; margin-top: 8px; }
   .fine { display: none; }
 }
@@ -189,17 +208,17 @@ body {
   .p-head { display: none; }
   .seg-btn { padding: 4px; font-size: .68rem; gap: 2px; }
   .seg-btn svg { width: 13px; height: 13px; }
-  .input, .select { height: 33px; font-size: .78rem; border-radius: 9px; }
+  .input, .dd-btn { height: 33px; font-size: .78rem; border-radius: 9px; padding: 0 11px 0 36px; }
   .cta { height: 36px; font-size: .76rem; }
 }
 @media (max-height: 360px) {
   .top { height: 32px; }
   .page { padding-top: 34px; padding-bottom: 2px; }
   .panel { padding: 8px 12px; border-radius: 14px; }
-  .f-label { margin: 3px 0 3px; font-size: .56rem; }
+  .f-label { margin: 8px 0 4px; font-size: .56rem; }
   .seg-btn { padding: 2px 4px; font-size: .62rem; border-radius: 8px; }
   .seg-btn svg { width: 11px; height: 11px; }
-  .input, .select { height: 29px; font-size: .72rem; border-radius: 8px; }
+  .input, .dd-btn { height: 29px; font-size: .72rem; border-radius: 8px; padding: 0 10px 0 34px; }
   .cta { height: 30px; font-size: .68rem; margin-top: 5px; border-radius: 9px; gap: 8px; }
   .cta svg { width: 13px; height: 13px; }
 }
@@ -259,27 +278,33 @@ body {
         <button type="button" class="seg-btn" data-value="fastfood" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16h16M12 6a8.5 8.5 0 0 1 8.5 8.5v.5h-17v-.5A8.5 8.5 0 0 1 12 6Z"/><path d="M12 6V4.2M10 4.2h4"/></svg><span>Фастфуд</span></button>
       </div>
 
-      <label class="f-label" for="region">Выберите регион:</label>
-      <div class="field">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s6.5-5.3 6.5-10.2A6.5 6.5 0 1 0 5.5 10.8C5.5 15.7 12 21 12 21Z"/><circle cx="12" cy="10.8" r="2.4"/></svg>
-        <select class="select" id="region" name="region">
-          <option value="Ташкент">Ташкент</option>
-          <option value="Ташкентская область">Ташкентская область</option>
-          <option value="Самаркандская область">Самаркандская область</option>
-          <option value="Бухарская область">Бухарская область</option>
-          <option value="Ферганская область">Ферганская область</option>
-          <option value="Андижанская область">Андижанская область</option>
-          <option value="Наманганская область">Наманганская область</option>
-          <option value="Кашкадарьинская область">Кашкадарьинская область</option>
-          <option value="Сурхандарьинская область">Сурхандарьинская область</option>
-          <option value="Хорезмская область">Хорезмская область</option>
-          <option value="Навоийская область">Навоийская область</option>
-          <option value="Джизакская область">Джизакская область</option>
-          <option value="Сырдарьинская область">Сырдарьинская область</option>
-          <option value="Республика Каракалпакстан">Республика Каракалпакстан</option>
-        </select>
-        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      <span class="f-label" id="lbl-region">Выберите регион:</span>
+      <div class="dd" id="region-dd">
+        <button type="button" class="dd-btn" id="region-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="lbl-region">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s6.5-5.3 6.5-10.2A6.5 6.5 0 1 0 5.5 10.8C5.5 15.7 12 21 12 21Z"/><circle cx="12" cy="10.8" r="2.4"/></svg>
+          <span class="dd-value" id="region-value">Ташкент</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="dd-pop">
+          <ul class="dd-list" role="listbox" id="region-list" aria-labelledby="lbl-region">
+            <li class="dd-opt" role="option" id="region-opt-0" data-value="Ташкент" aria-selected="true" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 5 5L19.5 6.5"/></svg><span>Ташкент</span></li>
+            <li class="dd-opt" role="option" id="region-opt-1" data-value="Ташкентская область" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 5 5L19.5 6.5"/></svg><span>Ташкентская область</span></li>
+            <li class="dd-opt" role="option" id="region-opt-2" data-value="Самаркандская область" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 5 5L19.5 6.5"/></svg><span>Самаркандская область</span></li>
+            <li class="dd-opt" role="option" id="region-opt-3" data-value="Бухарская область" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 5 5L19.5 6.5"/></svg><span>Бухарская область</span></li>
+            <li class="dd-opt" role="option" id="region-opt-4" data-value="Ферганская область" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 5 5L19.5 6.5"/></svg><span>Ферганская область</span></li>
+            <li class="dd-opt" role="option" id="region-opt-5" data-value="Андижанская область" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 5 5L19.5 6.5"/></svg><span>Андижанская область</span></li>
+            <li class="dd-opt" role="option" id="region-opt-6" data-value="Наманганская область" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 5 5L19.5 6.5"/></svg><span>Наманганская область</span></li>
+            <li class="dd-opt" role="option" id="region-opt-7" data-value="Кашкадарьинская область" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 5 5L19.5 6.5"/></svg><span>Кашкадарьинская область</span></li>
+            <li class="dd-opt" role="option" id="region-opt-8" data-value="Сурхандарьинская область" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 5 5L19.5 6.5"/></svg><span>Сурхандарьинская область</span></li>
+            <li class="dd-opt" role="option" id="region-opt-9" data-value="Хорезмская область" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 5 5L19.5 6.5"/></svg><span>Хорезмская область</span></li>
+            <li class="dd-opt" role="option" id="region-opt-10" data-value="Навоийская область" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 5 5L19.5 6.5"/></svg><span>Навоийская область</span></li>
+            <li class="dd-opt" role="option" id="region-opt-11" data-value="Джизакская область" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 5 5L19.5 6.5"/></svg><span>Джизакская область</span></li>
+            <li class="dd-opt" role="option" id="region-opt-12" data-value="Сырдарьинская область" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 5 5L19.5 6.5"/></svg><span>Сырдарьинская область</span></li>
+            <li class="dd-opt" role="option" id="region-opt-13" data-value="Республика Каракалпакстан" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.5 5 5L19.5 6.5"/></svg><span>Республика Каракалпакстан</span></li>
+          </ul>
+        </div>
       </div>
+      <input type="hidden" id="region" name="region" value="Ташкент" />
 
       <label class="f-label" for="name">Ваше имя:</label>
       <div class="field">
@@ -326,18 +351,110 @@ body {
     currentType = b.dataset.value;
   });
 
-  // телефон: +998 XX XXX XX XX
+  // телефон: авто-маска +998 XX XXX XX XX
   var phone = document.getElementById('phone');
-  var fmt = function (v) {
-    var d = v.replace(/\D/g, '');
-    if (d.startsWith('998')) d = d.slice(3); else if (d.length > 9 && d.startsWith('8')) d = d.slice(1);
-    d = d.slice(0, 9);
-    return '+998 ' + [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)].filter(Boolean).join(' ');
+  var PREFIX = '+998 ';
+  var maskPhone = function (d) {
+    if (!d) return '';
+    return PREFIX + [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)].filter(Boolean).join(' ');
   };
   var toEnd = function () { try { phone.setSelectionRange(phone.value.length, phone.value.length); } catch (e) {} };
-  phone.addEventListener('focus', function () { if (!phone.value) { phone.value = '+998 '; setTimeout(toEnd); } });
+  phone.addEventListener('focus', function () { if (!phone.value) { phone.value = PREFIX; requestAnimationFrame(toEnd); } });
   phone.addEventListener('blur', function () { if (phone.value.replace(/\D/g, '') === '998') phone.value = ''; });
-  phone.addEventListener('input', function (e) { if (e.inputType && e.inputType.indexOf('delete') === 0) return; phone.value = fmt(phone.value); toEnd(); });
+  phone.addEventListener('keydown', function (e) {
+    var s = phone.selectionStart || 0, en = phone.selectionEnd || 0;
+    // не даём Backspace/Delete съесть префикс
+    if (e.key === 'Backspace' && s === en && s <= PREFIX.length) { e.preventDefault(); return; }
+    if (e.key === 'Delete' && s === en && s < PREFIX.length) { e.preventDefault(); return; }
+    // печать начинается после префикса
+    if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey && /\d/.test(e.key) && s < PREFIX.length) {
+      phone.setSelectionRange(phone.value.length, phone.value.length);
+    }
+  });
+  phone.addEventListener('input', function () {
+    var v = phone.value;
+    var d;
+    if (v.indexOf(PREFIX) === 0) d = v.slice(PREFIX.length).replace(/\D/g, '');
+    else d = v.replace(/\D/g, '');
+    // на случай IME/autofill без префикса — снимаем код страны, если он влез
+    while (d.length > 9 && d.indexOf('998') === 0) d = d.slice(3);
+    while (d.length > 9 && d.charAt(0) === '8') d = d.slice(1);
+    d = d.slice(0, 9);
+    phone.value = d ? maskPhone(d) : (v.replace(/\D/g, '').length ? PREFIX : '');
+    toEnd();
+  });
+  phone.addEventListener('paste', function () { setTimeout(function () {
+    // при вставке нормализуем полностью: снимаем код страны / trunk 8
+    var d = phone.value.replace(/\D/g, '');
+    while (d.length > 9 && d.indexOf('998') === 0) d = d.slice(3);
+    if (d.length === 12 && d.indexOf('998') === 0) d = d.slice(3);
+    while (d.length > 9 && d.charAt(0) === '8') d = d.slice(1);
+    d = d.slice(0, 9);
+    phone.value = d ? maskPhone(d) : '';
+    toEnd();
+  }); });
+
+  // кастомный выпадающий список регионов
+  var dd = document.getElementById('region-dd');
+  var ddBtn = document.getElementById('region-btn');
+  var ddValue = document.getElementById('region-value');
+  var ddHidden = document.getElementById('region');
+  var ddList = document.getElementById('region-list');
+  var ddOpts = Array.prototype.slice.call(ddList.querySelectorAll('.dd-opt'));
+  var ddActive = -1;
+  var setActive = function (i) {
+    ddActive = i;
+    ddOpts.forEach(function (o, j) { o.classList.toggle('active', i === j); });
+    if (i > -1) { try { ddOpts[i].scrollIntoView({ block: 'nearest' }); } catch (e) {} }
+  };
+  var openDD = function (open) {
+    dd.classList.toggle('open', open);
+    ddBtn.setAttribute('aria-expanded', String(open));
+    if (open) {
+      var sel = ddOpts.findIndex(function (o) { return o.getAttribute('aria-selected') === 'true'; });
+      setActive(sel > -1 ? sel : 0);
+    }
+  };
+  var selectDD = function (i, keepFocus) {
+    ddOpts.forEach(function (o, j) { o.setAttribute('aria-selected', String(i === j)); });
+    ddValue.textContent = ddOpts[i].dataset.value;
+    ddHidden.value = ddOpts[i].dataset.value;
+    setActive(i);
+    openDD(false);
+    if (keepFocus !== false) ddBtn.focus();
+  };
+  ddBtn.addEventListener('click', function () { openDD(!dd.classList.contains('open')); });
+  ddBtn.addEventListener('keydown', function (e) {
+    var open = dd.classList.contains('open');
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End') {
+      e.preventDefault();
+      if (!open) { openDD(true); return; }
+      if (e.key === 'ArrowDown') setActive(Math.min(ddOpts.length - 1, ddActive + 1));
+      else if (e.key === 'ArrowUp') setActive(Math.max(0, ddActive - 1));
+      else if (e.key === 'Home') setActive(0); else setActive(ddOpts.length - 1);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (open && ddActive > -1) selectDD(ddActive); else openDD(!open);
+    } else if (e.key === 'Escape') { if (open) { e.preventDefault(); openDD(false); } }
+    else if (e.key === 'Tab') { openDD(false); }
+    else if (e.key.length === 1 && /[a-zа-яё0-9]/i.test(e.key)) {
+      var ch = e.key.toLowerCase();
+      var start = ddActive > -1 ? ddActive + 1 : 0;
+      for (var k = 0; k < ddOpts.length; k++) {
+        var i = (start + k) % ddOpts.length;
+        if (ddOpts[i].dataset.value.toLowerCase().charAt(0) === ch) { setActive(i); if (!open) selectDD(i); break; }
+      }
+    }
+  });
+  ddList.addEventListener('click', function (e) {
+    var o = e.target.closest('.dd-opt'); if (!o) return;
+    selectDD(ddOpts.indexOf(o));
+  });
+  ddList.addEventListener('mousemove', function (e) {
+    var o = e.target.closest('.dd-opt'); if (!o) return;
+    var i = ddOpts.indexOf(o); if (i !== ddActive) setActive(i);
+  });
+  document.addEventListener('click', function (e) { if (!dd.contains(e.target)) openDD(false); });
 
   form.addEventListener('input', function () { err.classList.remove('show'); });
 
