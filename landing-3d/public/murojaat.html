@@ -100,11 +100,11 @@ body {
 }
 .panel::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(120% 55% at 50% -12%, rgba(111,227,255,.16), transparent 55%); }
 .panel > * { position: relative; }
-.p-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 18px; }
-.p-emoji { font-size: 2rem; line-height: 1; margin-top: 2px; filter: drop-shadow(0 2px 6px rgba(0,0,0,.5)); }
-.p-head h2, .p-head p { margin: 0; }
+.p-head { display: flex; gap: 14px; align-items: center; margin-bottom: 10px; }
+.p-emoji { font-size: 2rem; line-height: 1; filter: drop-shadow(0 2px 6px rgba(0,0,0,.5)); }
+.p-head h2 { margin: 0; }
 .p-title { font-family: var(--display); font-weight: 700; font-size: clamp(1.02rem, 1.9vw, 1.26rem); line-height: 1.22; letter-spacing: -.02em; color: #f2f8ff; text-wrap: balance; }
-.p-sub { margin-top: 8px; font-size: .88rem; color: var(--muted); line-height: 1.5; }
+.p-sub { margin: 0 0 2px; font-size: .88rem; color: var(--muted); line-height: 1.5; }
 .f-label { font-size: .8rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #cfe3ff; margin: 16px 0 8px; }
 .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .seg-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 13px 8px 12px; border-radius: 16px; background: rgba(10,30,64,.72); border: 1px solid rgba(110,190,255,.38); color: #cfe3ff; cursor: pointer; font: 700 .95rem var(--body); transition: border-color .25s, box-shadow .25s, background .25s, transform .2s; -webkit-tap-highlight-color: transparent; }
@@ -149,7 +149,7 @@ body {
   .p-head { gap: 10px; margin-bottom: 8px; }
   .p-emoji { font-size: 1.5rem; }
   .p-title { font-size: 1.08rem; }
-  .p-sub { font-size: .78rem; margin-top: 2px; }
+  .p-sub { font-size: .78rem; margin-bottom: 0; }
   .f-label { margin: 8px 0 5px; font-size: .64rem; }
   .seg-btn { padding: 7px 6px 8px; font-size: .82rem; border-radius: 12px; gap: 3px; }
   .seg-btn svg { width: 19px; height: 19px; }
@@ -248,11 +248,9 @@ body {
     <form id="lead-form" novalidate data-src="Заявка с сайта marjon.tech/murojaat.html (bepul konsultatsiya, UZ)" data-l-type="Biznes turi" data-l-region="Viloyat" data-l-name="Ism" data-l-phone="Nomer" data-err="Iltimos, ismingiz va telefon raqamingizni to'liq kiriting (+998 XX XXX XX XX)." data-fail="Yuborilmadi. Bizga to'g'ridan-to'g'ri yozing:">
       <div class="p-head">
         <span class="p-emoji" aria-hidden="true">📋</span>
-        <div>
-          <h2 class="p-title">Bepul Konsultatsiya Uchun Ariza</h2>
-          <p class="p-sub">Biznesingiz uchun eng yaxshi yechimni birga topamiz!</p>
-        </div>
+        <h2 class="p-title">Bepul Konsultatsiya Uchun Ariza</h2>
       </div>
+      <p class="p-sub">Biznesingiz uchun eng yaxshi yechimni birga topamiz!</p>
 
       <p class="f-label" id="lbl-type">Biznes turi:</p>
       <div class="seg" role="group" aria-labelledby="lbl-type" id="seg">
