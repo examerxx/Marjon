@@ -183,6 +183,7 @@ export function render(t) {
 
 <!-- 0 · HERO -->
 <section class="ch ch-hero" id="top" data-ch="0">
+  <div class="hero-3d" data-showcase aria-hidden="true"><canvas></canvas><div class="hero-dots">${'<i class="hero-dot"></i>'.repeat(4)}</div></div>
   <div class="wrap hero-in">
     <p class="kicker" data-r>${t.hero.kicker}</p>
     <div class="hero-title">

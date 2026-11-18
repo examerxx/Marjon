@@ -12,6 +12,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 import { $, $$, initBase, initMotion, initSwitch } from './ui.js';
 import { initDemo } from './demo.js';
+import { initShowcase } from './showcase.js';
 
 const html = document.documentElement;
 const q = new URLSearchParams(location.search);
@@ -45,6 +46,7 @@ const stopBase = initBase({
 
 if (reduced) {
   $('#loader')?.remove();
+  initShowcase(); // статичный первый слайд, без автосмены
 } else {
   boot();
 }
@@ -65,6 +67,7 @@ async function boot() {
   motion = initMotion({ scrollTo });
   initSwitch({ scrollTo });
   initDemo(); // после initMotion: pin модулей стоит выше по странице
+  initShowcase(); // мобильный hero: 3D-слайдер техники (на десктопе функция сразу снимается)
 
   // 3D
   if (useGL) {

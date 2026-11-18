@@ -68,7 +68,7 @@ export function buildMaster(S, beads, dev = false) {
 
   // ── 1.55 → 2  выстраиваются в линию (ещё тусклые) ──────────────────
   lay(2, 0.45, LL.line);
-  cam(2, 0.45, { camX: LL.line[0].x + 2.2, camY: 0.6, camZ: 8.6, tx: LL.line[0].x, roll: 0, ox: -0.04, oy: 0.04, oyM: -0.04, rx: 0, ry: 0, drift: 0.2, coral: 0.25, glow: 0.8, fit: 0.42, labels: 1, dust: 0.5 });
+  cam(2, 0.45, { camX: LL.line[0].x + 2.2, camY: 0.6, camZ: 8.6, tx: LL.line[0].x, roll: 0, ox: -0.04, oy: 0.04, oyM: 0.16, rx: 0, ry: 0, drift: 0.2, coral: 0.25, glow: 0.8, fit: 0.42, labels: 1, dust: 0.5 });
   tl.set(S, { threadA: 1 }, 1.95);
 
   // ── 2 → 2.8  камера едет вдоль нити, бусины загораются по одной ────

@@ -59,9 +59,10 @@ export function createDevices({ scene, renderer, rig, low }) {
   const glow = (color, intensity, dist) => new THREE.PointLight(color, intensity, dist, 1.6);
 
   /* ---------- комплект кассы ---------- */
+  const pos = new THREE.Group(), printer = new THREE.Group();
   const posSet = new THREE.Group();
   {
-    const pos = at(new THREE.Group(), -0.75, 0, 0);
+    at(pos, -0.75, 0, 0);
     pos.add(at(slab(1.5, 1.15, 0.07, 0.16, mAlu), 0, 0.035, -0.1, -Math.PI / 2));                      // основание
     pos.add(at(box(0.34, 1.3, 0.09, 0.04, mAlu), 0, 0.68, -0.3, -0.22));                // стойка
     pos.add(at(cyl(0.085, 0.5, mAluDark), 0, 1.3, -0.2, 0, 0, Math.PI / 2));            // шарнир
@@ -83,7 +84,7 @@ export function createDevices({ scene, renderer, rig, low }) {
     tb.add(at(mesh(new THREE.PlaneGeometry(0.4, 0.47), M(THREE.MeshStandardMaterial, { map: pad, roughness: 0.55 })), 0, -0.2, 0.0805));
     term.add(tb, at(box(0.4, 0.2, 0.5, 0.05, mSoft), 0, 0.1, -0.12));
     // принтер чеков
-    const pr = at(new THREE.Group(), 2.2, 0, 0.3, 0, -0.3);
+    const pr = at(printer, 2.2, 0, 0.3, 0, -0.3);
     pr.add(at(box(0.95, 0.72, 1.05, 0.1, mBlack), 0, 0.36, 0));
     pr.add(at(box(0.82, 0.03, 0.56, 0.012, mSoft), 0, 0.725, -0.12));
     pr.add(at(box(0.6, 0.02, 0.03, 0.008, mAlu, 2), 0, 0.735, 0.2));                    // нож отрыва
@@ -217,6 +218,9 @@ export function createDevices({ scene, renderer, rig, low }) {
 
   return {
     ready: Promise.all(pending),
+    // части набора кассы и остальные устройства — отдельно, для мобильного hero-слайдера
+    parts: { pos, printer, kds, laptop, phone },
+    root,
     update(time, S, mouse, portrait) {
       const t = S.t || 0;
       root.position.copy(rig.position); root.scale.setScalar(rig.scale.x * (portrait ? 0.72 : 1));

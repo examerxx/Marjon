@@ -254,6 +254,7 @@ export function createScene(canvas, { low = false, labels = [], addon = null } =
     rig.rotation.set(S.rx + mouse.y * 0.04, S.ry + mouse.x * 0.06, S.rz + S.dial * S.dialAmt + Math.sin(time * 0.25) * 0.05);
 
     // бусины
+    const bScale = 1 - 0.24 * portrait; // на портрете бусины и жемчужины чуть мельче
     for (let i = 0; i < N; i++) {
       const b = beads[i], st = b.st, d = S.drift;
       b.mesh.position.set(
@@ -261,7 +262,7 @@ export function createScene(canvas, { low = false, labels = [], addon = null } =
         st.y + Math.cos(time * b.fq * 0.8 + b.ph * 1.3) * 0.26 * d,
         st.z + Math.sin(time * b.fq * 0.6 + b.ph * 2.1) * 0.2 * d
       );
-      b.mesh.scale.setScalar(Math.max(0.0001, st.s));
+      b.mesh.scale.setScalar(Math.max(0.0001, st.s * bScale));
       b.mesh.rotation.y = time * 0.1 + b.ph;
       pts[i].copy(b.mesh.position);
       const m = b.mat;
