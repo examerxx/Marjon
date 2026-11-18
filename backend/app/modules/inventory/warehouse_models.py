@@ -30,6 +30,15 @@ class PurchaseDocument(TimeStampedModel):
     created_by: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id"), nullable=True)
     created_by_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Как оплачен приход: 'paid' — сразу (создан денежный расход), 'credit' — на потом
+    # (кредиторка перед поставщиком). NULL — старые приходы: финансы не затрагиваются.
+    payment_mode: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    payment_type_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("fin_payment_types.id", ondelete="SET NULL"), nullable=True
+    )
+    finance_transaction_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("fin_transactions.id", ondelete="SET NULL"), nullable=True
+    )
 
     items: Mapped[list[PurchaseDocumentItem]] = relationship(
         back_populates="document", cascade="all, delete-orphan"

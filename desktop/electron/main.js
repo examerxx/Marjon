@@ -206,7 +206,12 @@ function createWindow() {
     }
   })
 
-  mainWindow.on('ready-to-show', () => mainWindow.show())
+  mainWindow.on('ready-to-show', () => {
+    if (mainWindow.webContents.getZoomFactor() < ZOOM_MIN) {
+      mainWindow.webContents.setZoomFactor(ZOOM_MIN)
+    }
+    mainWindow.show()
+  })
 
   // PIN-protected close: intercept 'close' when locked
   mainWindow.on('close', (e) => {

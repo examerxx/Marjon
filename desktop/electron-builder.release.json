@@ -1,0 +1,58 @@
+{
+  "appId": "uz.marjon.desktop",
+  "productName": "Marjon",
+  "copyright": "Copyright \u0412\u00a9 2025 Marjon",
+  "publish": {
+    "provider": "github",
+    "owner": "Zafarovpolat",
+    "repo": "Marjon"
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      },
+      {
+        "target": "portable",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "icon": "resources/icon.ico",
+    "requestedExecutionLevel": "asInvoker",
+    "signAndEditExecutable": false
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": true,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "shortcutName": "Marjon",
+    "artifactName": "Marjon-Setup-${version}.exe"
+  },
+  "files": [
+    "out/**/*",
+    "!out/**/*.map",
+    "resources/**/*",
+    "!node_modules/lucide-react/**",
+    "!node_modules/react/**",
+    "!node_modules/react-dom/**",
+    "!node_modules/react-router-dom/**",
+    "!node_modules/axios/**",
+    "!node_modules/scheduler/**",
+    "!node_modules/@remix-run/**"
+  ],
+  "directories": {
+    "output": "dist",
+    "buildResources": "resources"
+  },
+  "compression": "maximum",
+  "afterPack": "scripts/after-pack.cjs",
+  "portable": {
+    "artifactName": "Marjon-Portable-${version}.exe"
+  }
+}

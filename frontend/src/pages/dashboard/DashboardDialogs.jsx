@@ -80,8 +80,10 @@ function RevenueProductsTable({ report }) {
     ? [["revenue", t("pages.dashboard.dashboarddialogs.chistaya_pribyl")], ["income", t("pages.dashboard.dashboarddialogs.denezhnyy_prihod")]]
     : [["income", t("pages.dashboard.dashboarddialogs.denezhnyy_prihod")], ["revenue", t("pages.dashboard.dashboarddialogs.chistaya_pribyl")]];
   const quantity = (value) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 3 }).format(Number(value));
-  const totalRow = report.rows.length > 0 && !report.unavailable ? <tr className="revenue-products__total"><th scope="row" colSpan={4}>{t("pages.dashboard.dashboarddialogs.itogo")}</th>
+  const totalRow = (report.rows.length > 0 || Number(report.expenses) > 0) && !report.unavailable ? <tr className="revenue-products__total"><th scope="row" colSpan={4}>{t("pages.dashboard.dashboarddialogs.itogo")}</th>
     {amounts.map(([key]) => <td key={key}>{formatDetailMoney(report[key])}</td>)}</tr> : null;
+  const expenseRow = Number(report.expenses) > 0 && !report.unavailable ? <tr className="revenue-products__total revenue-products__expenses"><th scope="row" colSpan={4}>Расходы</th>
+    {amounts.map(([key]) => <td key={key}>{key === "revenue" ? formatDetailMoney(-Number(report.expenses)) : "—"}</td>)}</tr> : null;
   return (
     <div className="revenue-products">
       <div className="revenue-products__scroll" tabIndex={0} role="region" aria-label={t("pages.dashboard.dashboarddialogs.prodazhi_oplachennyh_blyud")}>
@@ -89,12 +91,12 @@ function RevenueProductsTable({ report }) {
           <thead><tr>
             <th scope="col">№</th><th scope="col">{t("pages.dashboard.dashboarddialogs.blyudo_tovar")}</th><th scope="col">{t("pages.dashboard.dashboarddialogs.kategoriya")}</th>
             <th scope="col">{t("pages.dashboard.dashboarddialogs.prodano")}</th>{amounts.map(([key, label]) => <th key={key} scope="col">{label}</th>)}
-          </tr>{totalRow}</thead>
+          </tr>{totalRow}{expenseRow}</thead>
           <tbody className="kpi-detail-rows" tabIndex={0}>
           {report.rows.length ? report.rows.map((row, index) => (
             <tr key={row.product_id}>
-              <td>{index + 1}</td><td>{row.name}</td><td><span className="revenue-products__category">{row.category}</span></td>
-              <td>{quantity(row.quantity)}</td>{amounts.map(([key]) => <td key={key}>{formatDetailMoney(row[key])}</td>)}
+              <td>{index + 1}</td><td>{row.name}</td><td><span className="revenue-products__category-text">{row.category}</span></td>
+              <td>{row.quantity == null ? "—" : quantity(row.quantity)}</td>{amounts.map(([key]) => <td key={key}>{formatDetailMoney(row[key])}</td>)}
             </tr>
           )) : <tr><td colSpan={6} className="revenue-products__empty">{report.unavailable
             ? t("pages.dashboard.dashboarddialogs.ne_udalos_zagruzit_prodazhi") : t("pages.dashboard.dashboarddialogs.net_dannyh")}</td></tr>}</tbody>

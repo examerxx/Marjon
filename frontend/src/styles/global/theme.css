@@ -1164,3 +1164,12 @@ html[data-theme="dark"] body.dashboard-body .dishes-report-page .dishes-sales-ta
     color: var(--theme-secondary);
   }
 }
+
+  html[data-theme="dark"] body.dashboard-body .preview-serif-wordmark__full img {
+    filter: url("#marjon-dark-wordmark");
+    mix-blend-mode: normal !important;
+    opacity: .94;
+  }
+  html[data-theme="dark"] body.dashboard-body .preview-serif-wordmark__full {
+    mix-blend-mode: normal;
+  }

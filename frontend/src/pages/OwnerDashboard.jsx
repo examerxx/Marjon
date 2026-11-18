@@ -184,6 +184,7 @@ export default function OwnerDashboard() {
   const [recentOrdersStatus, setRecentOrdersStatus] = useState("loading");
   const [placeSettings, setPlaceSettings] = useState([]);
   const [financeTransactions, setFinanceTransactions] = useState([]);
+  const [debtTotals, setDebtTotals] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const hasLoadedDashboardRef = useRef(false);
@@ -248,6 +249,7 @@ export default function OwnerDashboard() {
       ordersRes,
       placesRes,
       financeRes,
+      debtRes,
     ]) => {
       if (!request.isCurrent()) return;
       setDashboard(dashboardRes.data);
@@ -262,6 +264,15 @@ export default function OwnerDashboard() {
       setPlaceSettings(placeList);
       const financeList = apiList(financeRes.data);
       setFinanceTransactions(financeList);
+      const debts = debtRes?.data;
+      setDebtTotals(Array.isArray(debts) && debts.every(row => row.closing_balance != null && Number.isFinite(Number(row.closing_balance)))
+        ? debts.reduce((totals, row) => {
+          const balance = Number(row.closing_balance);
+          totals.debtor += Math.max(balance, 0);
+          totals.creditor += Math.max(-balance, 0);
+          return totals;
+        }, { debtor: 0, creditor: 0 })
+        : null);
     }).catch((err) => {
       if (request.isCurrent() && !isAbortError(err)) {
         setError(err.response?.data?.detail || "Не удалось загрузить dashboard данные.");
@@ -342,8 +353,8 @@ export default function OwnerDashboard() {
 
   const displaySales = useMemo(() => sales, [sales]);
   const revenueChartSales = useMemo(
-    () => buildRevenueChartSales(displaySales),
-    [displaySales]
+    () => buildRevenueChartSales(displaySales, financeTransactions, dashboardPeriodParams.date_from, dashboardPeriodParams.date_to),
+    [displaySales, financeTransactions, dashboardPeriodParams.date_from, dashboardPeriodParams.date_to]
   );
   // No-data state: same real chart shell with a flat display-only zero series
   // derived from the selected period (never stored/sent, values exactly 0).
@@ -386,18 +397,19 @@ export default function OwnerDashboard() {
   // Складские карточки: при живых итогах — реальные суммы + навигация
   // в подкатегории; без итогов — честное unavailable (0, без перехода).
   const warehouseSummary = useMemo(() => {
-    if (!warehouseTotals) return buildUnavailableWarehouseSummary();
     const live = {
-      "Приход товаров": { value: warehouseTotals.incoming, to: "/stock-report/incoming" },
-      "Расход товаров": { value: warehouseTotals.outgoing, to: "/stock-report/outgoing" },
-      "Остаток склада": { value: warehouseTotals.stock, to: "/stock-report/stock" },
+      income: { value: warehouseTotals?.incoming, to: "/stock-report/incoming" },
+      expense: { value: warehouseTotals?.outgoing, to: "/stock-report/outgoing" },
+      stock: { value: warehouseTotals?.stock, to: "/stock-report/stock" },
+      creditor: { value: debtTotals?.creditor, to: "/finance/debtors-creditors" },
+      debtor: { value: debtTotals?.debtor, to: "/finance/debtors-creditors" },
     };
     return buildUnavailableWarehouseSummary().map((item) => (
-      live[item.label] && live[item.label].value !== null
-        ? { ...item, value: live[item.label].value, to: live[item.label].to, unavailable: false, rows: [] }
+      live[item.tone]?.value != null
+        ? { ...item, ...live[item.tone], unavailable: false, rows: [] }
         : item
     ));
-  }, [warehouseTotals]);
+  }, [warehouseTotals, debtTotals]);
   const recentOrdersList = useMemo(() => {
     if (recentOrders.length > 0) {
       return recentOrders.map((order) => {
@@ -544,7 +556,7 @@ export default function OwnerDashboard() {
                 <div className="warehouse-summary-item__text">
                   <strong>{item.label}</strong>
                   {item.unavailable && item.tone === "expense" ? <span>{t("Недоступно")}</span>
-                    : item.unavailable && (item.tone === "creditor" || item.tone === "debtor") ? <span>{t("Скоро")}</span>
+                    : item.unavailable && (item.tone === "creditor" || item.tone === "debtor") ? <span>{t("Недоступно")}</span>
                       : <CountUpValue value={item.unavailable ? 0 : item.value} format={formatMoney} />}
                 </div>
                 {visual ? (

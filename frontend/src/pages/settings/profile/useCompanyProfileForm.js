@@ -233,6 +233,12 @@ export function useCompanyProfileForm(user, onProfileSaved) {
       release("company-profile-save");
       return;
     }
+    if (!form.name.trim() || form.name.trim().length > 255) {
+      setError("Укажите название заведения от 1 до 255 символов.");
+      clearSuccess();
+      release("company-profile-save");
+      return;
+    }
     setSaving(true);
     setError("");
     clearSuccess();
@@ -240,7 +246,7 @@ export function useCompanyProfileForm(user, onProfileSaved) {
     try {
       // Company metadata and personal identity use separate scoped endpoints.
       const payload = {
-        name: form.name,
+        name: form.name.trim(),
         phone: savedForm.phone,
         address: form.address,
         inn: form.inn,

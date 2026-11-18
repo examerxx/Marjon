@@ -96,3 +96,8 @@ export function useOrg() {
   if (!ctx) throw new Error("useOrg must be used inside <OrgProvider>");
   return ctx;
 }
+
+// Для страниц, которым организация нужна лишь «по возможности» (обновить данные после сохранения).
+export function useOrgOptional() {
+  return useContext(OrgContext);
+}

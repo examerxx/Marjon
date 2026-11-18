@@ -7,6 +7,7 @@ from decimal import Decimal
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from dataclasses import replace
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -306,20 +307,10 @@ class PrinterService:
         заказ (остальное повар уже получил отдельным тикетом).
         """
         order = await self._get_order(company_id, order_id)
-        printers = await self.repo.get_by_type(company_id, order.branch_id, "kitchen")
-        if not printers:
-            logger.warning(
-                "auto_print_kitchen: no active kitchen printer for company=%s (order=%s) — skipped",
-                company_id, order_id,
-            )
-            return []
+        ticket = await self._build_kitchen_data(company_id, order, item_ids=item_ids)
         jobs = []
         _, kitchen_tpl = await self._get_receipt_templates(company_id)
-        for printer in printers:
-            ticket_data = await self._build_kitchen_data(company_id, order, item_ids=item_ids)
-            if item_ids is not None and not ticket_data.items:
-                # Все переданные позиции уже отменены/отданы — печатать пустой тикет незачем.
-                continue
+        for printer, ticket_data in await self._route_kitchen_ticket(company_id, order, ticket):
             raw = self._render_kitchen_ticket(printer, ticket_data, kitchen_tpl)
             job = await self._enqueue_and_send(
                 company_id, printer, "kitchen", order_id, raw, server_timeout=AUTO_PRINT_TIMEOUT
@@ -327,19 +318,39 @@ class PrinterService:
             jobs.append(job)
         return jobs
 
+    async def _route_kitchen_ticket(self, company_id: UUID, order: Order, ticket: KitchenTicketData):
+        from app.modules.inventory.models import Product
+
+        if not ticket.items:
+            return []
+        printers = (await self.db.scalars(select(Printer).where(
+            Printer.company_id == company_id, Printer.branch_id == order.branch_id, Printer.is_active.is_(True),
+        ))).all()
+        by_id = {printer.id: printer for printer in printers}
+        defaults = [printer.id for printer in printers if printer.printer_type == "kitchen"]
+        products = (await self.db.execute(select(Product.id, Product.printer_id, Product.secondary_printer_id).where(
+            Product.company_id == company_id,
+            Product.id.in_({UUID(item.product_id) for item in ticket.items if item.product_id and item.product_id != "None"}),
+        ))).all()
+        assigned = {str(pid): [key for key in (first, second) if key in by_id] for pid, first, second in products}
+        grouped = {}
+        for item in ticket.items:
+            for key in dict.fromkeys(assigned.get(item.product_id) or defaults):
+                grouped.setdefault(key, []).append(item)
+        return [(by_id[key], replace(ticket, items=items)) for key, items in grouped.items()]
+
     async def queue_kitchen_additions(
         self, company_id: UUID, order_id: UUID, item_ids: list[UUID],
     ) -> list[tuple[PrintJob, Printer]]:
         """Prepare durable kitchen jobs in the caller's order transaction."""
         order = await self._get_order(company_id, order_id)
-        printers = await self.repo.get_by_type(company_id, order.branch_id, "kitchen")
         _, template = await self._get_receipt_templates(company_id)
         ticket = await self._build_kitchen_data(company_id, order, item_ids=item_ids)
         jobs = []
         if not ticket.items:
             return jobs
-        for printer in printers:
-            raw = self._render_kitchen_ticket(printer, ticket, template)
+        for printer, routed in await self._route_kitchen_ticket(company_id, order, ticket):
+            raw = self._render_kitchen_ticket(printer, routed, template)
             job = PrintJob(
                 company_id=company_id, printer_id=printer.id, job_type="kitchen",
                 ref_id=order_id, payload=base64.b64encode(raw).decode(),
@@ -362,7 +373,6 @@ class PrinterService:
         if not deltas:
             return []
         order = await self._get_order(company_id, order_id)
-        printers = await self.repo.get_by_type(company_id, order.branch_id, "kitchen")
         _, template = await self._get_receipt_templates(company_id)
         ticket = await self._build_kitchen_data(
             company_id, order, item_ids=list(deltas), qty_overrides=deltas,
@@ -371,8 +381,8 @@ class PrinterService:
         jobs: list[tuple[PrintJob, Printer]] = []
         if not ticket.items:
             return jobs
-        for printer in printers:
-            raw = self._render_kitchen_ticket(printer, ticket, template)
+        for printer, routed in await self._route_kitchen_ticket(company_id, order, ticket):
+            raw = self._render_kitchen_ticket(printer, routed, template)
             job = PrintJob(
                 company_id=company_id, printer_id=printer.id, job_type="kitchen",
                 ref_id=order_id, payload=base64.b64encode(raw).decode(),

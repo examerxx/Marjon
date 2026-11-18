@@ -7,9 +7,12 @@ async def _setup_order_and_printers(client, headers, *, with_printers=True):
     branch = await client.post("/companies/me/branches", headers=headers, json={"name": "Main"})
     branch_id = branch.json()["id"]
 
+    product = await client.post("/inventory/products", headers=headers, json={"name": "Test dish", "price": "10000"})
+    assert product.status_code == 201, product.text
     order = await client.post(
         "/pos/orders", headers=headers,
-        json={"branch_id": branch_id, "order_type": "dine_in", "table_number": "5"},
+        json={"branch_id": branch_id, "order_type": "dine_in", "table_number": "5",
+              "items": [{"product_id": product.json()["id"], "quantity": "1"}]},
     )
     order_id = order.json()["id"]
 

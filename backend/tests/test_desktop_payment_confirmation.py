@@ -314,3 +314,24 @@ async def test_vip_closes_only_the_remaining_balance_after_a_partial_payment(rep
             FinTransaction.company_id == company.id,
         ))).scalar_one()
         assert (expense.direction, expense.amount) == ("expense", Decimal("20.00"))
+
+
+@pytest.mark.asyncio
+async def test_partial_vip_leaves_order_open(report_engine):
+    async with AsyncSession(report_engine, expire_on_commit=False) as db:
+        company, branch, product, _, _ = await seed(db)
+        user = User(company_id=company.id, email=f"{uuid4().hex}@test.example", password_hash="unused")
+        db.add(user)
+        order = await add_order(db, company, branch, product, status="new", payments=())
+        order.total_amount = Decimal("441468.00")
+        await db.commit()
+
+        payment = await PaymentService(db).process(company.id, user.id, PaymentCreate(
+            order_id=order.id, amount="455.00", method="VIP", partial=True,
+        ), f"partial-vip-{uuid4()}")
+
+        assert payment.status == "complimentary"
+        assert payment.amount == Decimal("0.00")
+        assert payment.vip_amount == Decimal("455.00")
+        assert payment.remaining_amount == Decimal("441013.00")
+        assert (await db.get(Order, order.id)).status == "new"

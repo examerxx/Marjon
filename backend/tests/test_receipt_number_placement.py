@@ -19,7 +19,7 @@ def test_number_size_is_separate_from_other_blocks(size, pixels):
 @pytest.mark.parametrize("enabled", [True, False])
 def test_text_number_placement_and_no_duplicate(placement, enabled):
     fmt = EscPosFormatter()
-    template = {"enabled": {"bottomOrderNumber": enabled}, "blockStyles": {"bottomOrderNumber": {"placement": placement}}}
+    template = {"restaurantName": "Cafe", "enabled": {"bottomOrderNumber": enabled}, "blockStyles": {"bottomOrderNumber": {"placement": placement}}}
     text = fmt.format_receipt(_receipt(company_name="Cafe", order_number="98765"), template=template).decode("cp866")
     top = placement == "top" and enabled
     assert ("Номер заказа:" in text) == (not top)
@@ -42,7 +42,7 @@ def test_raster_number_placement(width, placement):
     def capture_row(self, label, value, *args, **kwargs):
         calls.append(label)
         return row(self, label, value, *args, **kwargs)
-    template = {"blockStyles": {"bottomOrderNumber": {"placement": placement, "size": "xlarge"}}}
+    template = {"restaurantName": "Cafe", "blockStyles": {"bottomOrderNumber": {"placement": placement, "size": "xlarge"}}}
     with patch.object(_RasterCanvas, "line_of_text", capture_line), patch.object(_RasterCanvas, "text_row", capture_row):
         raw = render_customer_receipt_raster(_receipt(company_name="Cafe", order_number="98765"), template, width)
     assert raw

@@ -473,9 +473,7 @@ describe("APP dishes drawer data selects — compact sort, no subcategory, real 
     const labels = gridLabels(dialog);
     // V18/V19: «Тип» и read-only «Меню» убраны, остальные поля на месте
     // (порядок DOM: cost → price → категория → ед. изм → принтер).
-    // «Шаг порции» добавлен фичей дробной порции (7663394) — поле живое,
-    // поэтому входит в контракт после «Принтера».
-    expect(labels.slice(2)).toEqual(["Себестоимость", "Цена", "Категория", "Ед. изм", "Принтер", "Шаг порции"]);
+    expect(labels.slice(2)).toEqual(["Себестоимость", "Цена", "Категория", "Ед. изм", "Принтер", "Дополнительный принтер"]);
     expect(labels).not.toContain("Подкатегория");
     expect(dialog.querySelector(".dish-drawer__body")).not.toBeNull();
   });

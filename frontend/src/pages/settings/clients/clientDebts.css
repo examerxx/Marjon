@@ -1,0 +1,639 @@
+/* Долг клиента: ячейка в списке «Клиенты» и бейдж в карточке клиента. */
+.client-debt-cell {
+  font-weight: 600;
+  color: var(--neutral-600, #475569);
+  white-space: nowrap;
+}
+.client-debt-cell.is-debt {
+  color: #d24450;
+}
+.client-debt-cell.is-overpaid {
+  color: #12866d;
+}
+
+.client-debt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 650;
+  color: #12866d;
+  background: rgba(18, 134, 109, 0.1);
+  white-space: nowrap;
+}
+.client-debt-badge.is-debt {
+  color: #c23a46;
+  background: rgba(210, 68, 80, 0.1);
+}
+
+.client-statement-right .client-debt-pay {
+  white-space: nowrap;
+}
+.client-statement-right .client-debt-pay:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Остаток долга по счёту и список погашений в карточке клиента. */
+.client-order-debt.is-open {
+  color: #c23a46;
+  font-weight: 650;
+}
+.client-order-debt.is-repaid {
+  color: #12866d;
+  font-weight: 600;
+}
+.client-repayments {
+  margin-top: 18px;
+}
+.client-repayments h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.client-repayments > p {
+  margin: 0;
+  color: var(--neutral-600, #475569);
+  font-size: 13px;
+}
+.client-repayments__amount {
+  color: #12866d;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.client-repayments__table tfoot td {
+  font-weight: 700;
+}
+
+/* Кнопка «Погасить долг по заказу» в строке счёта — как кнопки действий в таблице блюд. */
+.client-order-actions {
+  text-align: center;
+}
+.orders-report-page.owner-report-view .client-debt-frame .report-table thead th {
+  color: #111;
+}
+.owner-report-view .client-debt-frame .report-table :is(td.report-total-price, td.client-debt-money, td.client-repayments__amount, .client-order-debt.is-open, .client-order-debt.is-before) {
+  font-size: 15px;
+  font-weight: 600;
+}
+.client-order-pay {
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(31, 201, 201, 0.45);
+  border-radius: 9px;
+  background: rgba(31, 201, 201, 0.08);
+  color: #0f9f98;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.client-order-pay:hover:not(:disabled) {
+  background: rgba(31, 201, 201, 0.16);
+  border-color: rgba(31, 201, 201, 0.75);
+  color: #0c7f79;
+}
+.client-order-pay:focus-visible {
+  outline: 2px solid #0f9f98;
+  outline-offset: 2px;
+}
+.client-order-pay:disabled {
+  cursor: default;
+  border-color: var(--neutral-200, #e2e8f0);
+  background: transparent;
+  color: #12866d;
+  opacity: 0.7;
+}
+html[data-theme="dark"] body.dashboard-body .client-order-pay {
+  color: var(--theme-accent, #2dd4bf);
+  background: var(--theme-control, rgba(255, 255, 255, 0.04));
+  border-color: var(--theme-line, rgba(255, 255, 255, 0.12));
+}
+html[data-theme="dark"] body.dashboard-body .client-order-pay:hover:not(:disabled) {
+  background: var(--theme-hover, rgba(255, 255, 255, 0.08));
+  border-color: var(--theme-accent, #2dd4bf);
+}
+html[data-theme="dark"] body.dashboard-body .client-order-pay:disabled {
+  color: var(--theme-success, #34d399);
+  background: transparent;
+}
+
+/* Таблицы «Заказы в долг» и «Погашения»: от таблицы блюд («Меню → Блюда») берём только
+   рамку со скруглением, фон и шапку; содержимое остаётся как в отчётах. */
+.client-debt-frame {
+  border: 1px solid var(--neutral-200, #e2e8f0);
+  border-radius: 20px;
+  background: #fff;
+  overflow-x: auto;
+  overflow-y: hidden;
+  box-shadow: none;
+}
+.client-debt-frame .report-table thead th {
+  background: var(--blue-50, #eff6ff);
+  color: #456174;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--neutral-200, #e2e8f0);
+}
+.client-debt-frame .report-table thead th::after,
+.client-debt-frame .report-table thead th::before {
+  content: none !important;
+  display: none !important;
+}
+.client-debt-frame .report-table tfoot td {
+  border-top: 1px solid var(--neutral-200, #e2e8f0);
+  font-weight: 700;
+}
+html[data-theme="dark"] body.dashboard-body .client-debt-frame {
+  border-color: var(--theme-line, rgba(255, 255, 255, 0.12));
+  background: var(--theme-panel-face, #0f1b2a);
+}
+html[data-theme="dark"] body.dashboard-body .client-debt-frame .report-table thead th {
+  background: var(--theme-control, rgba(255, 255, 255, 0.04));
+  color: var(--theme-muted, #a5b4c8);
+}
+.client-debt-frame .report-table td.client-repayments__amount {
+  color: #12866d;
+  font-weight: 650;
+}
+
+/* Рамка ровно как у таблицы блюд (там var(--neutral-200) = rgb(208, 217, 232));
+   стили отчётов перебивали её почти прозрачной, поэтому — точнее селектор. */
+.owner-report-view .report-table-wrapper.client-debt-frame {
+  border: 1px solid var(--neutral-200, rgb(208, 217, 232));
+  border-radius: 20px;
+}
+.owner-report-view .client-debt-frame .report-table thead th {
+  color: rgb(83, 109, 142);
+  border-bottom: 0;
+}
+
+/* Окно погашения: справа от «Денежные операции · Приход» — сколько долга останется. */
+.finance-form__eyebrow.has-aside {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+.finance-form__header button.client-debt-left {
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  font-family: inherit;
+  line-height: 1.35;
+  box-shadow: none;
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(210, 68, 80, 0.1);
+  color: #c23a46;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.client-debt-left:focus-visible { outline: 2px solid #c23a46; outline-offset: 2px; }
+.finance-form__header button.client-debt-left:disabled { cursor: default; opacity: 1; }
+
+/* Галочки у заказов: выбор заказов, чью историю погашений показать ниже. */
+.client-debt-frame .report-table .client-order-select {
+  width: 44px;
+  text-align: center;
+  cursor: default;
+}
+
+/* Чекбокс Marjon (галочки у заказов и «выбрать все»).
+   Токены: бренд #1fc9c9 → #0f9f98, рамка #b9c7d8, ореол — бренд 18%, радиус 6px, размер 20px.
+   Состояния: обычный · наведение (бирюзовая рамка + лёгкий ореол) · отмечен (заливка, белая
+   галочка, ореол как на референсе) · частично (белая черта) · фокус с клавиатуры · отключён. */
+.marjon-check {
+  --check-size: 20px;
+  --check-brand: #1fbdb8;
+  --check-brand-deep: #0f9f98;
+  --check-border: #b9c7d8;
+  --check-halo: rgba(31, 201, 201, 0.2);
+  appearance: none;
+  -webkit-appearance: none;
+  flex-shrink: 0;
+  width: var(--check-size);
+  height: var(--check-size);
+  margin: 0;
+  border: 1.5px solid var(--check-border);
+  border-radius: 6px;
+  background: #fff center / 13px 13px no-repeat;
+  box-shadow: 0 0 0 0 var(--check-halo);
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.18s ease, transform 0.12s ease;
+}
+.marjon-check:hover:not(:disabled) {
+  border-color: var(--check-brand);
+  box-shadow: 0 0 0 4px rgba(31, 201, 201, 0.1);
+}
+.marjon-check:active:not(:disabled) {
+  transform: scale(0.92);
+}
+.marjon-check:checked,
+.marjon-check:indeterminate {
+  border-color: transparent;
+  background-color: var(--check-brand);
+  background-image: linear-gradient(145deg, #2ccfc9, var(--check-brand-deep));
+  box-shadow: 0 0 0 4px var(--check-halo);
+}
+.marjon-check:checked {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8l2.7 2.7L12 5.4' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"),
+    linear-gradient(145deg, #2ccfc9, var(--check-brand-deep));
+  background-size: 15px 15px, 100% 100%;
+  background-position: center;
+}
+.marjon-check:indeterminate {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8h8' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E"),
+    linear-gradient(145deg, #2ccfc9, var(--check-brand-deep));
+  background-size: 13px 13px, 100% 100%;
+  background-position: center;
+}
+.marjon-check:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(31, 201, 201, 0.32);
+}
+.marjon-check:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+html[data-theme="dark"] body.dashboard-body .marjon-check:not(:checked):not(:indeterminate) {
+  background-color: var(--theme-control, rgba(255, 255, 255, 0.04));
+  border-color: var(--theme-line, rgba(255, 255, 255, 0.22));
+}
+.client-debt-frame .report-table th.client-order-select,
+.client-debt-frame .report-table td.client-order-select {
+  padding-left: 4px;
+  padding-right: 0;
+  text-align: center;
+}
+
+/* Шапка колонки выбора — просто иконка, в цвет подписей шапки (как «№»). */
+.client-debt-frame .report-table th.client-order-select {
+  color: rgb(83, 109, 142);
+  line-height: 0;
+}
+.client-debt-frame .report-table th.client-order-select svg {
+  vertical-align: middle;
+}
+
+/* Доработка галочки: при отметке — мягкий ореол и лёгкая тень, как на референсе. */
+.marjon-check:checked {
+  box-shadow: 0 0 0 2px rgba(31, 201, 201, 0.12), 0 1px 2px rgba(15, 159, 152, 0.12);
+}
+.marjon-check:checked:hover:not(:disabled) {
+  box-shadow: 0 0 0 3px rgba(31, 201, 201, 0.18), 0 1px 3px rgba(15, 159, 152, 0.15);
+}
+.dashboard-shell input.marjon-check[type="checkbox"]::after {
+  content: none;
+}
+.dashboard-shell input.marjon-check[type="checkbox"]:checked {
+  border-color: transparent;
+  background-color: #18b7b1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5 10l3.2 3.2L15 6.5' fill='none' stroke='white' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 16px 16px;
+  background-repeat: no-repeat;
+  background-position: center;
+  box-shadow: 0 0 0 2px rgba(24,183,177,.1);
+}
+.client-order-select__icon {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* «Долг» в истории погашений — долг по заказу до этого погашения. */
+.client-debt-frame .report-table .client-order-debt.is-before {
+  color: var(--neutral-800, #1e293b);
+  font-weight: 600;
+}
+
+/* Галочка v3 — эстетичнее и чуть крупнее (22px вместо 20px):
+   мягкий градиент со светлым бликом сверху, тонкая внутренняя подсветка, аккуратная галочка
+   с «пружинкой» при отметке, нежный ореол без резкой тени. */
+.marjon-check {
+  --check-size: 22px;
+  border-radius: 7px;
+  border: 1.5px solid #c3cfdd;
+  background-color: #fff;
+  box-shadow: inset 0 1px 2px rgba(15, 35, 60, 0.06);
+}
+.marjon-check:hover:not(:disabled) {
+  border-color: #2ccfc9;
+  box-shadow: inset 0 1px 2px rgba(15, 35, 60, 0.04), 0 0 0 4px rgba(31, 201, 201, 0.1);
+}
+.marjon-check:checked,
+.marjon-check:indeterminate {
+  border-color: transparent;
+}
+.marjon-check:checked {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.3l2.6 2.6 5.4-5.8' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"),
+    linear-gradient(160deg, #3ed8d1 0%, #1fbdb8 45%, #0e9a93 100%);
+  background-size: 15px 15px, 100% 100%;
+  background-position: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 0 0 4px rgba(31, 201, 201, 0.16),
+    0 3px 8px -2px rgba(14, 154, 147, 0.45);
+  animation: marjon-check-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.marjon-check:checked:hover:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 0 0 5px rgba(31, 201, 201, 0.22),
+    0 3px 8px -2px rgba(14, 154, 147, 0.5);
+}
+.marjon-check:focus-visible {
+  box-shadow: 0 0 0 4px rgba(31, 201, 201, 0.35);
+}
+@keyframes marjon-check-pop {
+  0% { transform: scale(0.82); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marjon-check:checked { animation: none; }
+}
+
+/* Таблица «Заказы в долг»: ширина колонок — по содержимому, лишнее место делится поровну
+   (у всех колонок одинаковая «доля» 1%), поэтому промежутки между колонками одинаковые.
+   Текст в одну строку; колонка выбора 44px, кнопка погашения у правого края. */
+.client-debt-frame .report-table.client-debt-orders {
+  table-layout: fixed;
+  width: 100%;
+}
+.client-debt-orders col.client-debt-orders__fill {
+  width: auto;
+}
+.client-debt-orders col.client-debt-orders__select {
+  width: 44px;
+}
+.client-debt-orders col.client-debt-orders__action {
+  width: 56px;
+}
+/* Ячейки — в одну строку; шапка может перенестись на 2 строки, чтобы таблица помещалась в рамку. */
+.client-debt-frame .report-table.client-debt-orders td {
+  white-space: nowrap;
+}
+.client-debt-frame .report-table.client-debt-orders th {
+  white-space: normal;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.client-debt-frame .report-table.client-debt-orders td {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.owner-report-view .client-debt-frame .report-table.client-debt-orders th.client-order-actions,
+.owner-report-view .client-debt-frame .report-table.client-debt-orders td.client-order-actions {
+  width: 56px;
+  padding-left: 0;
+  padding-right: 12px;
+  text-align: right;
+}
+
+.client-repayments__table .client-repayments__actions { text-align: right; padding-right: 12px; }
+
+.client-statement-page .client-statement-identity .client-statement-phone {
+  font-size: 19px;
+  color: var(--neutral-800, #1e293b);
+}
+
+/* Compact order rows match the finance operations table. */
+.client-statement-page .owner-report-view .client-debt-frame .report-table.client-debt-orders tbody td {
+  height: 40px;
+  box-sizing: border-box;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+.client-statement-page .owner-report-view .client-debt-frame .report-table.client-debt-orders tbody td.client-order-actions {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.client-statement-page .owner-report-view .client-debt-frame .report-table.client-repayments__table tbody td {
+  height: 40px;
+  box-sizing: border-box;
+  padding-top: 9px;
+  padding-bottom: 9px;
+  white-space: nowrap;
+}
+.client-statement-page .owner-report-view .client-debt-frame .report-table.client-repayments__table tbody td.client-repayments__actions {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.client-statement-page .owner-report-view .client-debt-frame .report-table.client-repayments__table td.client-repayments__comment {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.client-statement-page .client-debt-badge {
+  font-size: 17px;
+  font-weight: 500;
+  box-sizing: border-box;
+  height: 42px;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(194, 58, 70, .16);
+}
+.client-statement-page .client-debt-badge svg {
+  width: 17px;
+  height: 17px;
+}
+
+.client-statement-page .client-debt-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.client-statement-page .client-statement-right {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+}
+.client-statement-page .client-debt-summary {
+  margin-right: auto;
+  margin-left: 20px;
+}
+@media (max-width: 1100px) {
+  .client-statement-page .client-statement-right { width: 100%; }
+  .client-statement-page .client-debt-summary { margin-left: 0; }
+}
+
+.client-statement-page .client-debt-badge.is-payment {
+  color: #0e705c;
+  border-color: rgba(18, 134, 109, .18);
+  background: rgba(18, 134, 109, .1);
+}
+.client-statement-page .client-debt-badge.is-remaining {
+  color: #043c49;
+  border-color: rgba(8, 126, 145, .18);
+  background: rgba(22, 198, 200, .12);
+}
+
+/* Wrap the toolbar as a whole before it can squeeze the client identity. */
+.settings-owner-view.client-statement-page .client-statement-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px 24px;
+}
+.client-statement-page .client-statement-header > .settings-title-group {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.client-statement-page .client-statement-header > .settings-title-group > div {
+  min-width: 0;
+}
+.client-statement-page .client-statement-header .settings-title-group p,
+.client-statement-page .client-statement-identity .client-statement-phone {
+  white-space: nowrap;
+}
+.client-statement-page .client-statement-identity h1 {
+  overflow-wrap: anywhere;
+}
+.client-statement-page .client-statement-header .client-statement-right {
+  flex: 1 1 880px;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  margin-left: 0;
+  gap: 10px;
+}
+.client-statement-page .client-statement-header .client-debt-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 0;
+  margin-right: auto;
+}
+.client-statement-page .client-debt-summary .client-debt-badge {
+  flex: 0 0 auto;
+}
+
+/* Keep the period beside the heading, with the debt summary on its own row. */
+.settings-owner-view.client-statement-page .client-statement-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px 24px;
+}
+.client-statement-page .client-statement-header > .settings-title-group {
+  grid-column: 1;
+  grid-row: 1;
+}
+.client-statement-page .client-statement-header .client-statement-right {
+  display: contents;
+}
+.client-statement-page .client-statement-header .client-debt-summary {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin: 0;
+  justify-content: center;
+}
+.client-statement-page .client-statement-header .client-statement-right > .owner-reports__period {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  align-self: center;
+}
+@media (max-width: 600px) {
+  .settings-owner-view.client-statement-page .client-statement-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .client-statement-page .client-statement-header .client-statement-right > .owner-reports__period {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+  }
+  .client-statement-page .client-statement-header .client-debt-summary {
+    grid-row: 3;
+  }
+}
+
+/* Keep the wide desktop toolbar on the heading row. */
+@media (min-width: 1400px) {
+  .settings-owner-view.client-statement-page .client-statement-header {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    column-gap: 12px;
+  }
+  .client-statement-page .client-statement-header .client-debt-summary {
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  .client-statement-page .client-statement-header .client-statement-right > .owner-reports__period {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .client-statement-page .client-statement-header .client-debt-badge {
+    padding-inline: 10px;
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 1400px) and (max-width: 1800px) {
+  .client-statement-page .client-statement-header .client-statement-identity {
+    flex-direction: row;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+  }
+  .client-statement-page .client-statement-header .client-statement-phone {
+    font-size: 17px;
+  }
+  .client-statement-page .client-statement-header .client-debt-badge {
+    font-size: 15px;
+    padding-inline: 8px;
+  }
+  .settings-owner-view.client-statement-page .client-statement-header {
+    column-gap: 10px;
+  }
+}
+
+.client-statement-page button.client-debt-badge.is-remaining {
+  font-family: inherit;
+  cursor: pointer;
+}
+.client-statement-page button.client-debt-badge.is-remaining:disabled { cursor: default; }
+.client-statement-page button.client-debt-badge.is-remaining:focus-visible {
+  outline: 2px solid #087e91;
+  outline-offset: 3px;
+}
+.client-statement-page .client-order-pay.is-repaid:disabled {
+  opacity: 1;
+  color: #12866d;
+  border-color: #b9ded1;
+  background: #eaf7f0;
+}
+
+.client-statement-page .client-order-paid {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  vertical-align: middle;
+  color: #12866d;
+}
+.client-statement-page .client-order-paid svg { stroke-width: 2.3; }
+
+.client-statement-page .client-order-paid .client-order-paid__mark { width: 32px; height: 32px; }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import OrderReportDetails from "./reports/OrderReportDetails";
 import { reportsService } from "../api/reports";
@@ -11,6 +11,7 @@ import { formatSelectedLabels } from "../components/ReportMultiSelect";
 import { formatDateLabel, todayInputValue } from "../utils/date";
 import { isAbortError, isOrderedDateRange, useLatestRequest } from "../hooks/useAsyncSafety";
 import { toApiDate } from "./reports/reportPeriod";
+import { dashboardPeriodFromSearch, reportRangeToApiParams } from "./dashboard/reportRange";
 import { formatMoney } from "./reports/reportMoney";
 import { paymentMethodLabel } from "./dashboard/analyticsData";
 import { webFormat } from "../utils/webTime";
@@ -116,6 +117,25 @@ function orderStatusLabel(value) {
 function formatCashierNames(names) {
   const list = (names || []).map((name) => String(name ?? "").trim()).filter(Boolean);
   return list.length ? list.join(", ") : "—";
+}
+
+function PaymentLines({ row }) {
+  // «сумма тип» — по строке на способ оплаты, строки вплотную.
+  const lines = (row.paymentAmounts || []).filter((line) => line && line.method);
+  // Обычная оплата одним способом — как раньше; суммы только у разделённого счёта.
+  if (lines.length < 2) return joinPaymentMethods(row.paymentMethods) || "—";
+  return (
+    <span className="report-pay-lines">
+      {lines.map((line) => (
+        <span key={line.method} className="report-pay-line">
+          <b>{new Intl.NumberFormat("ru-RU").format(Number(line.amount) || 0)}</b> - {paymentMethodLabel(line.method)}
+        </span>
+      ))}
+      {row.paymentMethods?.includes("debt") && !lines.some((line) => line.method === "debt") && (
+        <span className="report-pay-line">{paymentMethodLabel("debt")}</span>
+      )}
+    </span>
+  );
 }
 
 function joinPaymentMethods(methods) {
@@ -301,7 +321,6 @@ function FilterMultiSelect({
 }
 
 export default function OrdersReportPage() {
-  const [dateRange, setDateRange] = useState(currentOrdersDateRange);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [panelState, setPanelState] = useState({ active: "", closing: "", pending: "" });
   const [filters, setFilters] = useState(initialFilters);
@@ -325,6 +344,18 @@ export default function OrdersReportPage() {
     return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
   }, [pageSizeOpen]);
   const [searchParams, setSearchParams] = useSearchParams();
+  const dateRange = useMemo(() => dashboardPeriodFromSearch(searchParams) || currentOrdersDateRange(), [searchParams]);
+  function setDateRange(range) {
+    const period = reportRangeToApiParams(range);
+    setSearchParams(current => {
+      const next = new URLSearchParams(current);
+      for (const key of ["date_from", "date_to", "time_from", "time_to"]) {
+        if (period[key]) next.set(key, period[key]);
+        else next.delete(key);
+      }
+      return next;
+    }, { replace: true });
+  }
   const selectedOrder = rows.find(row => row.id === searchParams.get("order"));
   function openOrder(row) {
     setSearchParams(current => { const next = new URLSearchParams(current); next.set("order", row.id); return next; });
@@ -414,6 +445,7 @@ export default function OrdersReportPage() {
           cashierNames: Array.isArray(item.cashier_names) ? item.cashier_names.map(String) : [],
           serviceFee: Number(item.service_fee ?? 0),
           paymentMethods: Array.isArray(item.payment_methods) ? item.payment_methods.map(String) : [],
+          paymentAmounts: Array.isArray(item.payment_amounts) ? item.payment_amounts : [],
         }));
         writeReportCache(cacheKey, { rows: mapped });
         setRows(mapped);
@@ -678,7 +710,7 @@ export default function OrdersReportPage() {
                     }
                   }}
                 >
-                  <td><strong>{row.orderNumber}</strong></td><td>{orderTypeLabel(row.orderType)}</td><td>{formatDate(row.closedAt)}</td><td>{formatOrderPlace(row) || "—"}</td><td className="report-total-price">{formatMoney(row.totalAmount)}</td><td>{joinPaymentMethods(row.paymentMethods) || "—"}</td><td>{row.waiterName ?? "—"}</td><td>{formatCashierNames(row.cashierNames)}</td><td><OrderStatus value={row.status} /></td>
+                  <td><strong>{row.orderNumber}</strong></td><td>{orderTypeLabel(row.orderType)}</td><td>{formatDate(row.closedAt)}</td><td>{formatOrderPlace(row) || "—"}</td><td className="report-total-price">{formatMoney(row.totalAmount)}</td><td><PaymentLines row={row} /></td><td>{row.waiterName ?? "—"}</td><td>{formatCashierNames(row.cashierNames)}</td><td><OrderStatus value={row.status} /></td>
                 </tr>
               ))}
               {!visibleRows.length ? <tr className="report-empty-row"><td colSpan={9}><ReportEmptyState title={t("pages.ordersreportpage.zakazov_ne_naydeno")} loading={loading} /></td></tr> : null}

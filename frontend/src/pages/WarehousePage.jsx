@@ -14,6 +14,8 @@ import ReportEmptyState from "../components/ReportEmptyState";
 import CountUpValue from "../components/CountUpValue";
 import DishSingleSelect from "./nomenclature/DishSingleSelect";
 import PurchaseDrawer from "./warehouse/PurchaseDrawer";
+import PurchasePaymentDialog from "./warehouse/PurchasePaymentDialog";
+import { financeService } from "../api/finance";
 import ExpenseDrawer from "./warehouse/ExpenseDrawer";
 import WasteDrawer from "./warehouse/WasteDrawer";
 import InventoryModal from "./warehouse/InventoryModal";
@@ -1143,6 +1145,10 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
   const [createWarehouseId, setCreateWarehouseId] = useState("");
   const [createDate, setCreateDate] = useState(() => webDayKey());
   const [createSaving, setCreateSaving] = useState(false);
+  // «Сохранить» сначала спрашивает, как оплачен приход (сразу / на потом); пока ждём ответ — документ здесь.
+  const [pendingPurchase, setPendingPurchase] = useState(null);
+  const [financePaymentTypes, setFinancePaymentTypes] = useState([]);
+  const [pendingPurchaseError, setPendingPurchaseError] = useState("");
   const [createError, setCreateError] = useState("");
   // Поставщики из Настройки → Клиенты → Поставщики (GET /crm/counterparties,
   // type=supplier). Грузятся отдельно от refData — нужны только созданию.
@@ -1653,6 +1659,23 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
       setCreateError("Укажите количество и цену хотя бы для одного продукта.");
       return;
     }
+    setCreateError("");
+    const total = items.reduce((sum, item) => sum + Number(item.quantity) * Number(item.cost_price), 0);
+    // Способы оплаты нужны окну «Оплачено сразу»; грузим один раз, ошибка не мешает «на потом».
+    if (!financePaymentTypes.length) {
+      financeService.listPaymentTypes().then((response) => {
+        const list = Array.isArray(response?.data) ? response.data : response?.data?.items || [];
+        setFinancePaymentTypes(list);
+      }).catch(() => {});
+    }
+    setPendingPurchase({ items, lastPatch, total });
+  };
+
+  // Ответ в окне «Как оплачен приход?»: сохраняем документ с выбранной оплатой.
+  const confirmPurchasePayment = async ({ mode, paymentTypeId }) => {
+    if (createSaving || !pendingPurchase) return;
+    setPendingPurchaseError("");
+    const { items, lastPatch } = pendingPurchase;
     setCreateSaving(true);
     setCreateError("");
     try {
@@ -1665,8 +1688,11 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
           )?.name || null,
         date: createDate || null,
         note: null,
+        payment_mode: mode,
+        ...(paymentTypeId ? { payment_type_id: paymentTypeId } : {}),
         items,
       });
+      setPendingPurchase(null);
       writePurchaseLastValues(lastPatch);
       if (onCloseCreate) {
         onCloseCreate();
@@ -1678,7 +1704,11 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
       setReloadKey((key) => key + 1);
     } catch (err) {
       const detail = err.response?.data?.detail;
-      setCreateError(typeof detail === "string" ? detail : "Не удалось сохранить приход.");
+      const message = typeof detail === "string" ? detail : "Не удалось сохранить приход.";
+      setCreateError(message);
+      if (!pendingPurchase) return;
+      // ошибка показывается в самом окне оплаты, чтобы её не пропустили
+      setPendingPurchaseError(message);
     } finally {
       setCreateSaving(false);
     }
@@ -3983,6 +4013,17 @@ function WarehousePage({ initialSection = "incoming", warehouseId, onOpenWarehou
                     >
                       <Icon name="bi-check2-circle" size={18} /> {createSaving ? "Сохранение…" : "Сохранить"}
                     </button>
+                    {pendingPurchase ? (
+                      <PurchasePaymentDialog
+                        total={pendingPurchase.total}
+                        supplier={createSupplier}
+                        paymentTypes={financePaymentTypes}
+                        saving={createSaving}
+                        error={pendingPurchaseError}
+                        onConfirm={confirmPurchasePayment}
+                        onCancel={() => { setPendingPurchase(null); setPendingPurchaseError(""); }}
+                      />
+                    ) : null}
                   </div>
                 )}
               </div>

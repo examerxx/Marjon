@@ -6,7 +6,7 @@ to these payments. Unknown historical costs are NULL, not fabricated zeroes.
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, ROUND_FLOOR
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, or_, select
 
 from app.modules.analytics.service import AnalyticsService
 from app.modules.analytics.owner_period import owner_period_bounds
@@ -46,9 +46,14 @@ async def owner_financials(db, company_id, date_from: date, date_to: date, *, we
         tz = await AnalyticsService(db)._company_tz(company_id)
     start, end = owner_period_bounds(date_from, date_to, tz, time_from, time_to)
     # One row per order BEFORE joining positions: split payments do not multiply COGS.
-    paid = (select(Payment.order_id, func.sum(Payment.amount).label("income"),
+    # VIP-часть (complimentary) денег не приносит, но закрывает счёт: заказ,
+    # закрытый «частично деньгами + остаток VIP», тоже попадает в приход — в
+    # сумме только фактически полученные деньги.
+    paid = (select(Payment.order_id,
+                   func.coalesce(func.sum(case((Payment.status == "completed", Payment.amount), else_=0)), 0).label("income"),
+                   func.sum(case((Payment.status == "complimentary", 1), else_=0)).label("vip_count"),
                    func.max(Payment.updated_at).label("confirmed_at"))
-            .where(Payment.company_id == company_id, Payment.status == "completed")
+            .where(Payment.company_id == company_id, Payment.status.in_(("completed", "complimentary")))
             .group_by(Payment.order_id).subquery())
     orders = (await db.execute(
         select(Order.id, Order.order_number, Order.created_at, Order.table_number,
@@ -57,7 +62,8 @@ async def owner_financials(db, company_id, date_from: date, date_to: date, *, we
         .join(paid, paid.c.order_id == Order.id)
         .outerjoin(Branch, (Branch.id == Order.branch_id) & (Branch.company_id == company_id))
         .where(Order.company_id == company_id, Order.status == "completed",
-               Order.total_amount > 0, paid.c.income >= Order.total_amount,
+               Order.total_amount > 0, paid.c.income > 0,
+               or_(paid.c.income >= Order.total_amount, paid.c.vip_count > 0),
                paid.c.confirmed_at >= start, paid.c.confirmed_at < end)
         # The displayed timestamp, report period and chart buckets all use
         # the last confirmed payment, not when the order was first created.

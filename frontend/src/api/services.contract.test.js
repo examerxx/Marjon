@@ -502,7 +502,7 @@ describe("Web domain service contracts", () => {
         ? Promise.reject(Object.assign(new Error("report unavailable"), { response: { status } }))
         : Promise.resolve({ data: [] }));
       const result = await dashboardService.loadOwnerOverview({ dateFrom: "2026-10-12", dateTo: "2026-10-17" });
-      expect(result).toHaveLength(8);
+      expect(result).toHaveLength(9);
       expect(result[2]).toMatchObject({ data: [], unavailable: true });
       expect(api.get.mock.calls.some(([path]) => path === "/analytics/products/top")).toBe(false);
     });
@@ -597,4 +597,18 @@ describe("Web domain service contracts", () => {
       }
     });
   });
+});
+
+it("keeps debt expenses in dashboard reporting without posting a cash transaction", async () => {
+  api.get.mockImplementation(path => Promise.resolve({ data:
+    path === "/finance/order-debt-operations" ? [{ id: "order-1", amount: 340000, date: "2026-11-18T08:00:00Z" }] :
+    path === "/finance/transactions" ? [{ id: "repayment-1", amount: 200000, direction: "income", category_id: "repayment" }] :
+    path === "/finance/transaction-categories" ? [{ id: "repayment", name: "Возврат долга" }] : []
+  }));
+  const result = await dashboardService.loadOwnerOverview({ dateFrom: "2026-11-18", dateTo: "2026-11-18" });
+  expect(result[7].data).toEqual(expect.arrayContaining([
+    expect.objectContaining({ id: "order-debt-order-1", amount: 340000, direction: "expense", non_cash: true, category_name: "Продажа в долг" }),
+    expect.objectContaining({ id: "repayment-1", category_name: "Возврат долга" }),
+  ]));
+  expect(api.post).not.toHaveBeenCalled();
 });

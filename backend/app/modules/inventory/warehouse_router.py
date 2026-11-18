@@ -36,6 +36,7 @@ from app.modules.inventory.warehouse_schemas import (
     ExpenseDocumentDetailResponse,
     WasteDocumentCreate, WasteDocumentUpdate, WasteDocumentResponse,
 )
+from app.modules.finance.models import Counterparty, FinTransaction, PaymentType, TransactionCategory
 from app.shared.exceptions import ConflictError, NotFoundError, ValidationError
 from app.shared.tenant_scope import require_company_resource, require_company_resource_ids
 
@@ -553,6 +554,22 @@ async def create_purchase(
     number = await _next_doc_number(db, user.company_id, PurchaseDocument)
     now = _now()
     total = sum(item.quantity * item.cost_price for item in data.items)
+    supplier_name = (data.supplier or "").strip()
+    if data.payment_mode == "credit":
+        # На потом: сумма станет долгом перед поставщиком (кредиторка) — без поставщика
+        # непонятно, кому должны.
+        if not supplier_name:
+            raise ValidationError("Выберите поставщика: оплата «на потом» записывается как долг перед ним.")
+        if await _find_supplier(db, user.company_id, supplier_name) is None:
+            raise ValidationError("Поставщик не найден в справочнике контрагентов — сначала добавьте его.")
+    payment_type = None
+    if data.payment_mode == "paid" and data.payment_type_id is not None:
+        payment_type = await db.scalar(select(PaymentType).where(
+            PaymentType.id == data.payment_type_id,
+            (PaymentType.company_id == user.company_id) | (PaymentType.scope_kind == "system"),
+        ))
+        if payment_type is None:
+            raise ValidationError("Тип оплаты не найден.")
 
     # Черновиков больше нет: «Сохранить» = сразу «Принято». Остатки двигаем
     # тут же, атомарно с созданием (PATCH accept оставлен только для старых
@@ -572,6 +589,8 @@ async def create_purchase(
         created_by=user.id,
         created_by_name=_user_display(user),
         note=data.note,
+        payment_mode=data.payment_mode,
+        payment_type_id=payment_type.id if payment_type else None,
     )
 
     for item_data, ingredient_id in zip(data.items, linked_ingredient_ids):
@@ -591,9 +610,60 @@ async def create_purchase(
     await db.flush()
     if doc.warehouse_id:
         await _apply_purchase_to_stock(db, user.company_id, user.id, doc)
+    if data.payment_mode == "paid" and total > 0:
+        # Оплачено сразу — денежный расход (Финансы → Операции). Поставщика в операцию не
+        # привязываем: любой расход с контрагентом отчёт «Дебиторы и кредиторы» считает
+        # кредиторкой, а тут деньги уже уплачены. Кто и за что — в комментарии.
+        tx = FinTransaction(
+            company_id=user.company_id,
+            amount=total,
+            direction="expense",
+            payment_type_id=payment_type.id if payment_type else None,
+            category_id=await _purchase_expense_category_id(db, user.company_id),
+            comment=f"Приход № {number}" + (f" · {supplier_name}" if supplier_name else ""),
+            user_id=user.id,
+        )
+        db.add(tx)
+        await db.flush()
+        doc.finance_transaction_id = tx.id
     await db.commit()
     await db.refresh(doc)
     return doc
+
+
+PURCHASE_EXPENSE_CATEGORY = "На продукты"
+
+
+async def _purchase_expense_category_id(db: AsyncSession, company_id: UUID) -> UUID:
+    """Категория денежного расхода для оплаченных приходов: «На продукты» (создаём, если нет)."""
+    found = await db.scalar(select(TransactionCategory).where(
+        TransactionCategory.company_id == company_id,
+        TransactionCategory.scope_kind == "company",
+        TransactionCategory.kind == "expense",
+        func.lower(func.trim(TransactionCategory.name)) == PURCHASE_EXPENSE_CATEGORY.lower(),
+    ))
+    if found is not None:
+        return found.id
+    category = TransactionCategory(
+        company_id=company_id, scope_kind="company", name=PURCHASE_EXPENSE_CATEGORY,
+        kind="expense", status=True,
+    )
+    db.add(category)
+    await db.flush()
+    return category.id
+
+
+async def _find_supplier(db: AsyncSession, company_id: UUID, name: str):
+    """Поставщик из справочника контрагентов по имени (без учёта регистра, в том числе кириллицы)."""
+    wanted = name.strip().casefold()
+    rows = (await db.execute(select(Counterparty).where(
+        Counterparty.company_id == company_id,
+        Counterparty.scope_kind == "company",
+        Counterparty.organization_id.is_(None),
+        Counterparty.deleted_at.is_(None),
+        Counterparty.type == "supplier",
+    ))).scalars().all()
+    return next((row for row in rows if (row.full_name or "").strip().casefold() == wanted), None)
 
 
 @router.patch("/purchases/{doc_id}", response_model=PurchaseDocumentResponse)

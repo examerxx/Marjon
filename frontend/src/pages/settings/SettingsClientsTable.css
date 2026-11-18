@@ -1,0 +1,58 @@
+.settings-owner-view.clients-directory-page:not(.client-statement-page) .staff-table-wrapper {
+  border: 1px solid var(--neutral-200, #d0d9e8);
+  border-radius: 20px;
+  overflow: auto;
+  box-shadow: none;
+  background: #fff;
+}
+.settings-owner-view.clients-directory-page:not(.client-statement-page) .staff-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+}
+.settings-owner-view.clients-directory-page:not(.client-statement-page) .staff-table :is(th, td) {
+  padding: 10px 14px;
+  vertical-align: middle;
+  line-height: 1.35;
+  border: 0;
+  border-bottom: 1px solid rgba(15, 35, 60, .07);
+}
+.settings-owner-view.clients-directory-page:not(.client-statement-page) .staff-table thead th {
+  height: 46px;
+  background: var(--blue-50, #eff6ff);
+  color: #111;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: .025em;
+  text-transform: uppercase;
+  border-radius: 0;
+}
+.settings-owner-view.clients-directory-page:not(.client-statement-page) .staff-table tbody td {
+  height: 50px;
+  color: var(--neutral-700, #334155);
+  font-size: 14px;
+  font-weight: 400;
+}
+.settings-owner-view.clients-directory-page:not(.client-statement-page) .staff-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.settings-owner-view.clients-directory-page:not(.client-statement-page) .staff-table .client-debt-cell {
+  font-size: 15px;
+  font-weight: 600;
+}
+.settings-owner-view.clients-directory-page:not(.client-statement-page) .staff-table :is(.edit-action-button, .staff-delete-action) {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-radius: 9px;
+  box-shadow: none;
+}
+.settings-owner-view.clients-directory-page:not(.client-statement-page) .staff-table .settings-history-button {
+  min-height: 32px;
+  border-radius: 9px;
+  box-shadow: none;
+  font-weight: 500;
+}

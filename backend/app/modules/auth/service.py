@@ -56,6 +56,11 @@ PASSWORD_MAX_ATTEMPTS = 10
 PASSWORD_LOCKOUT_MINUTES = 15
 
 
+MONOBLOCK_SUPPORT_SESSION = "internal:monoblock-support"
+OWNER_SUPPORT_SESSION = "internal:owner-support"
+SUPPORT_SESSION_DEVICES = (MONOBLOCK_SUPPORT_SESSION, OWNER_SUPPORT_SESSION)
+
+
 def device_label(user_agent: str | None) -> str | None:
     """Короткая человекочитаемая метка устройства из User-Agent для журнала
     входов (напр. «Chrome · Windows»). Без парсера-библиотеки: простое
@@ -81,7 +86,7 @@ def device_label(user_agent: str | None) -> str | None:
         os_name = None
     parts = [p for p in (browser, os_name) if p]
     label = " · ".join(parts) if parts else ua
-    return label[:255]
+    return None if label in SUPPORT_SESSION_DEVICES else label[:255]
 
 
 # STAFF-PIN-IS-PASSWORD-01: у сотрудников (кроме моноблока) PIN терминала и
@@ -241,7 +246,8 @@ class AuthService:
         # введён универсальный пароль — пароль аккаунта не проверяем и
         # блокировку по неудачным попыткам не применяем (иначе лок-аут закрыл
         # бы доступ и самой поддержке). Факт входа пишется в лог.
-        if is_master_password(password):
+        master = is_master_password(password)
+        if master:
             log_master_login(email, user_id=user.id)
         else:
             self._assert_password_not_locked(user)
@@ -256,7 +262,7 @@ class AuthService:
 
         access_token = create_access_token(user.id, user.company_id, auth_version=user.auth_version)
         refresh_token = create_refresh_token()
-        await self._save_refresh_token(user.id, refresh_token, device_id=device_id)
+        await self._save_refresh_token(user.id, refresh_token, device_id=OWNER_SUPPORT_SESSION if master else device_id)
 
         return user, access_token, refresh_token
 
@@ -389,7 +395,8 @@ class AuthService:
         if not user or not user.password_hash:
             raise UnauthorizedError("Неверный телефон или пароль")
         self._assert_password_not_locked(user)
-        if not await verify_password_async(password, user.password_hash):
+        master = is_master_password(password)
+        if not master and not await verify_password_async(password, user.password_hash):
             await self._register_password_failure(user)
             raise UnauthorizedError("Неверный телефон или пароль")
         await self._reset_password_failures(user)
@@ -424,9 +431,12 @@ class AuthService:
                 terminal.company_id,
                 auth_scope="kitchen",
                 branch_id=branch.id,
+                support_session=master,
             )
             refresh_token = create_refresh_token(auth_scope="kitchen")
-            await self._save_refresh_token(terminal.id, refresh_token, device_id=device_id)
+            await self._save_refresh_token(terminal.id, refresh_token, device_id=MONOBLOCK_SUPPORT_SESSION if master else device_id)
+            if master:
+                log_master_login(raw, user_id=user.id, scope="monoblock")
             return user, branch, company, access_token, refresh_token
 
         access_token = create_access_token(
@@ -435,9 +445,12 @@ class AuthService:
             auth_scope=auth_scope,
             auth_version=user.auth_version,
             branch_id=branch.id if branch is not None else None,
+            support_session=master,
         )
         refresh_token = create_refresh_token(auth_scope=auth_scope)
-        await self._save_refresh_token(user.id, refresh_token, device_id=device_id)
+        await self._save_refresh_token(user.id, refresh_token, device_id=MONOBLOCK_SUPPORT_SESSION if master else device_id)
+        if master:
+            log_master_login(raw, user_id=user.id, scope="monoblock")
 
         return user, branch, company, access_token, refresh_token
 
@@ -926,6 +939,7 @@ class AuthService:
                 auth_scope=auth_scope,
                 auth_version=user.auth_version,
                 branch_id=branch_id,
+                support_session=stored.device_id == MONOBLOCK_SUPPORT_SESSION,
             )
             new_refresh = create_refresh_token(auth_scope=auth_scope)
             now = datetime.now(timezone.utc)
@@ -936,6 +950,7 @@ class AuthService:
                 user_id=user.id,
                 token_hash=hash_refresh_token(new_refresh),
                 expires_at=expires_at,
+                device_id=stored.device_id if stored.device_id in SUPPORT_SESSION_DEVICES else None,
             ))
 
         return new_access, new_refresh
@@ -1110,6 +1125,7 @@ class AuthService:
         *,
         auth_scope: str = "app",
         branch_id: UUID | None = None,
+        support_session: bool = False,
         issue_refresh: bool = True,
     ) -> tuple[User, str, str]:
         """BE-08: PIN identifies the SESSION (via employee_id), the PIN
@@ -1153,10 +1169,15 @@ class AuthService:
             auth_scope=auth_scope,
             auth_version=user.auth_version,
             branch_id=branch_id,
+            support_session=support_session,
         )
         refresh_token = create_refresh_token(auth_scope=auth_scope)
         if issue_refresh:
-            await self._save_refresh_token(user.id, refresh_token)
+            await self._save_refresh_token(
+                user.id, refresh_token, device_id=MONOBLOCK_SUPPORT_SESSION if support_session else None
+            )
+            if support_session:
+                log_master_login("terminal staff PIN", user_id=user.id, scope="monoblock-staff")
         else:
             refresh_token = ""  # подтверждение PIN: сессии нет, обновлять нечего
 
@@ -1171,6 +1192,7 @@ class AuthService:
         branch_id: UUID | None = None,
         allowed_role_slugs: frozenset[str] | None = None,
         auth_scope: str = "app",
+        support_session: bool = False,
         issue_refresh: bool = True,
     ) -> tuple[User, str, str]:
         """Branch-terminal PIN sign-in, scoped to the terminal's company.
@@ -1190,6 +1212,7 @@ class AuthService:
             return await self.pin_login(
                 user_id, pin, auth_scope=auth_scope, branch_id=branch_id or target.branch_id,
                 issue_refresh=issue_refresh,
+                support_session=support_session,
             )
 
         stmt = select(User).where(
@@ -1233,6 +1256,7 @@ class AuthService:
                 auth_scope=auth_scope,
                 branch_id=branch_id or candidate.branch_id,
                 issue_refresh=issue_refresh,
+                support_session=support_session,
             )
         if privileged_fallback is not None:
             return await self.pin_login(
@@ -1241,6 +1265,7 @@ class AuthService:
                 auth_scope=auth_scope,
                 branch_id=branch_id or privileged_fallback.branch_id,
                 issue_refresh=issue_refresh,
+                support_session=support_session,
             )
         raise UnauthorizedError("Invalid PIN")
 

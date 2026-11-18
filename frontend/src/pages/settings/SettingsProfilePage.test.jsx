@@ -204,13 +204,14 @@ describe("SettingsProfilePage V3 — success toast и truthful имя", () => {
     expect(screen.getByAltText("Лого профиля").getAttribute("src")).toMatch(/^data:image\/png/);
   });
 
-  it("внутреннее меню содержит ровно 4 секции", async () => {
+  it("внутреннее меню содержит 5 секций (4 профиля + QR-меню)", async () => {
     await renderPage();
     expect(sectionLabels()).toEqual([
       "Основные данные",
       "Основные настройки",
       "Другие настройки",
       "Настройка профиля",
+      "QR-меню",
     ]);
   });
 
@@ -299,10 +300,11 @@ describe("SettingsProfilePage V3 — success toast и truthful имя", () => {
       "bi-sliders",
       "bi-list-check",
       "bi-person-gear",
+      "bi-qr-code",
     ]);
     await renderPage();
     const buttons = [...document.querySelectorAll(".company-profile-nav button")];
-    expect(buttons).toHaveLength(4);
+    expect(buttons).toHaveLength(5);
     // Все иконки рендерятся (Icon не вернул null) и одинакового размера.
     buttons.forEach((button) => {
       const svg = button.querySelector("svg");
@@ -598,5 +600,46 @@ describe("SettingsProfilePage V3 — success toast и truthful имя", () => {
     expect(screen.queryByPlaceholderText("Название компании")).not.toBeInTheDocument();
     expect(screen.queryByText("Начало дня")).not.toBeInTheDocument();
     expect(screen.queryByText("Доставка")).not.toBeInTheDocument();
+  });
+});
+
+
+describe("SettingsProfilePage — название заведения", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+    useAuth.mockReturnValue({ user: { id: "owner-1", full_name: "Владелец" }, applyProfile: vi.fn() });
+    settingsService.getCompanyProfile.mockResolvedValue({ data: { ...COMPANY } });
+    settingsService.updateCompanyProfile.mockImplementation(async (payload) => ({ data: { ...COMPANY, ...payload } }));
+    authService.getProfilePhoto.mockResolvedValue({ data: { image: "data:image/webp;base64,AAA" } });
+    authService.updateProfile.mockImplementation(async ({ name }) => ({ data: { id: "owner-1", name } }));
+  });
+
+  it("в «Основных данных» есть поле «Название заведения» с текущим названием компании", async () => {
+    await renderPage();
+    const input = await screen.findByPlaceholderText("Введите название заведения");
+    await waitFor(() => expect(input).toHaveValue("Мой ресторан"));
+    expect(screen.getByText("Это название видят гости в QR-меню")).toBeInTheDocument();
+  });
+
+  it("новое название уходит на сервер как название компании", async () => {
+    await renderPage();
+    const input = await screen.findByPlaceholderText("Введите название заведения");
+    await waitFor(() => expect(input).toHaveValue("Мой ресторан"));
+    fireEvent.change(input, { target: { value: "  Сардор  " } });
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+    await waitFor(() => expect(settingsService.updateCompanyProfile).toHaveBeenCalled());
+    expect(settingsService.updateCompanyProfile.mock.calls[0][0]).toMatchObject({ name: "Сардор" });
+  });
+
+  it("пустое название не сохраняется", async () => {
+    await renderPage();
+    const input = await screen.findByPlaceholderText("Введите название заведения");
+    await waitFor(() => expect(input).toHaveValue("Мой ресторан"));
+    fireEvent.change(input, { target: { value: "   " } });
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+    expect(await screen.findByText(/Укажите название заведения/)).toBeInTheDocument();
+    expect(settingsService.updateCompanyProfile).not.toHaveBeenCalled();
+    expect(authService.updateProfile).not.toHaveBeenCalled();
   });
 });

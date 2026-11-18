@@ -52,6 +52,8 @@ class CounterpartyResponse(BaseResponseSchema):
 
 
 class CounterpartyOrderRow(BaseModel):
+    closed_at: datetime | None = None
+    cashier_name: str | None = None
     """DEBT-ORDERS-01: строка «заказы клиента» в карточке контрагента.
 
     Один в один с колонками отчёта по заказам, плюс оплачено/долг, чтобы

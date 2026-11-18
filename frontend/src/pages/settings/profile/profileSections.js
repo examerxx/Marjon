@@ -11,6 +11,7 @@ export const profileSections = [
   { key: "main", label: "Основные настройки", icon: "bi-sliders" },
   { key: "other", label: "Другие настройки", icon: "bi-list-check" },
   { key: "profile", label: "Настройка профиля", icon: "bi-person-gear" },
+  { key: "qr", label: "QR-меню", icon: "bi-qr-code" },
 ];
 
 export const emptyForm = {

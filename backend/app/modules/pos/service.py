@@ -429,6 +429,8 @@ class OrderService:
             # (дашборд → Настройки → Клиенты) и в отчёте по долгам. До этого
             # имя и телефон из экрана «В долг» никуда не сохранялись.
             await self._register_debtor(company_id, order, data)
+            if data.counterparty_id is not None:
+                order.closed_at = datetime.now(timezone.utc)
 
         order.status = target
         if target == "cancelled":
@@ -450,10 +452,11 @@ class OrderService:
                 if item.status in ("pending", "cooking"):
                     item.status = "ready"
         if target == "completed":
-            # Долг после частичной оплаты: сырьё списываем при закрытии счёта
-            # (полностью оплаченный заказ списывается в PaymentService).
+            # Долг (в т.ч. целиком, без единой оплаты): сырьё списываем при закрытии счёта
+            # (полностью оплаченный заказ списывается в PaymentService). Раньше целиком
+            # «в долг» заказ склад не списывал — условие требовало paid_total > 0.
             paid_total = await self._paid_total(company_id, order.id)
-            if order.reopened_at is None and 0 < paid_total < order.total_amount:
+            if order.reopened_at is None and paid_total < order.total_amount:
                 from app.modules.inventory.service import StockService
 
                 await StockService(self.db).deduct_for_order(
@@ -541,7 +544,7 @@ class OrderService:
         """
         name = (data.client_name or "").strip()
         phone = (data.client_phone or "").strip()
-        if not name and not phone:
+        if data.counterparty_id is None and not name and not phone:
             return
         if order.reopened_at is not None:
             return
@@ -557,12 +560,21 @@ class OrderService:
             Counterparty.scope_kind == "company",
             Counterparty.organization_id.is_(None),
             Counterparty.deleted_at.is_(None),
+            Counterparty.type == "client",
         )
         existing = None
-        if phone:
+        if data.counterparty_id is not None:
+            existing = await self.db.scalar(
+                select(Counterparty).where(*scope, Counterparty.id == data.counterparty_id).with_for_update()
+            )
+            if existing is None:
+                raise ValidationError("Выберите клиента из справочника")
+            name = existing.full_name
+            phone = existing.phone
+        elif phone:
             existing = (
                 await self.db.execute(
-                    select(Counterparty).where(*scope, Counterparty.phone == phone)
+                    select(Counterparty).where(*scope, Counterparty.phone == phone).with_for_update()
                 )
             ).scalars().first()
         if existing is None and name:
@@ -570,7 +582,7 @@ class OrderService:
                 await self.db.execute(
                     select(Counterparty).where(
                         *scope, func.lower(Counterparty.full_name) == name.lower()
-                    )
+                    ).with_for_update()
                 )
             ).scalars().first()
 
@@ -657,7 +669,7 @@ class OrderService:
     async def cancel(
         self, company_id: UUID, order_id: UUID,
         password: str | None = None, comment: str | None = None,
-        user: User | None = None,
+        user: User | None = None, consume_stock: bool = False,
     ) -> Order:
         order = await self.get(company_id, order_id, for_update=True)
         if order.status in ("completed", "cancelled"):
@@ -680,6 +692,16 @@ class OrderService:
                     await self._restore_to_limit(company_id, item.product_id, item.quantity)
                 except Exception:
                     pass
+        if consume_stock:
+            # Галочка «Не возвращать продукты» в окне отмены: блюда уже приготовлены/испорчены,
+            # поэтому сырьё по рецептам списывается со склада, как при обычной продаже.
+            # По умолчанию (без галочки) отмена склад не трогает — на открытом заказе ничего
+            # списано не было. Идемпотентно. Списание и отмена — одной транзакцией (save коммитит).
+            from app.modules.inventory.service import StockService
+
+            await StockService(self.db).deduct_for_order(
+                company_id, order.id, created_by=user.id if user else None,
+            )
         saved = await self.repo.save(order)
         try:
             await kitchen_manager.broadcast(
@@ -1820,7 +1842,7 @@ class ShiftService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def open_shift(self, company_id: UUID, cashier_id: UUID, data: ShiftOpen) -> CashierShift:
+    async def open_shift(self, company_id: UUID, cashier_id: UUID, data: ShiftOpen, *, support_session: bool = False) -> CashierShift:
         await require_company_resource(
             self.db, Branch, data.branch_id, company_id, detail="Branch not found"
         )
@@ -1836,6 +1858,7 @@ class ShiftService:
             cashier_id=cashier_id,
             opened_at=datetime.now(timezone.utc),
             opening_cash=data.opening_cash,
+            support_session=support_session,
             status="open",
         )
         self.db.add(shift)

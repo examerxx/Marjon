@@ -12,12 +12,22 @@ function FinanceTransactionDrawer({
   onClose,
   onSave,
   editing = false,
+  lockOperationDate = false,
+  repaymentMode = false,
   paymentTypes = [],
   counterparties = [],
   categories = [],
   saving = false,
   error = "",
   onClearError = null,
+  // Погашение долга из карточки клиента: контрагент и категория уже выбраны и не меняются,
+  // свой заголовок и подпись кнопки. Обычные приход/расход этими параметрами не пользуются.
+  presetPartyType = "supplier",
+  lockParty = false,
+  lockCategory = false,
+  heading = "",
+  submitLabel = "",
+  headerAside = null, // справа в строке «Денежные операции · Приход» (например, остаток долга)
 }) {
   const operationPeriod = useMemo(() => {
     const [date, time] = (form.operationDateTime || "").split("T");
@@ -25,7 +35,7 @@ function FinanceTransactionDrawer({
   }, [form.operationDateTime]);
   const isExpense = form.type === "expense";
   const titleId = useId();
-  const [partyType, setPartyType] = useState("supplier");
+  const [partyType, setPartyType] = useState(presetPartyType);
   const partyGroups = [
     ["supplier", "Поставщики"], ["client", "Клиенты"],
     ["employee", "Сотрудники"], ["other", "Другие"],
@@ -112,19 +122,19 @@ function FinanceTransactionDrawer({
       }} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-busy={busy} onSubmit={submit}>
         <header className="finance-form__header">
           <span className="finance-accent-bar" />
-          <div><p>Денежные операции · {isExpense ? "Расход" : "Приход"}</p><h2 id={titleId}>{editing ? "Редактирование операции" : isExpense ? "Расходная операция" : "Приходная операция"}</h2></div>
+          <div><p className={headerAside ? "finance-form__eyebrow has-aside" : undefined}><span>Денежные операции · {isExpense ? "Расход" : "Приход"}</span>{headerAside}</p><h2 id={titleId}>{heading || (editing ? "Редактирование операции" : isExpense ? "Расходная операция" : "Приходная операция")}</h2></div>
           <button type="button" onClick={dismiss} disabled={busy} aria-label="Закрыть"><Icon name="bi-x-lg" size={20} /></button>
         </header>
 
         <div className="finance-form__grid">
-          <label><span>Сумма, UZS</span><div className="finance-amount" data-amount={String(form.amount ?? "").replace(/^(\d+)/, digits => digits.replace(/\B(?=(\d{3})+(?!\d))/g, " "))}><input ref={amountRef} value={String(form.amount ?? "").replace(/^(\d+)/, digits => digits.replace(/\B(?=(\d{3})+(?!\d))/g, " "))} disabled={busy} onChange={(event) => { const amount = event.target.value.replace(/\s/g, ""); if (/^\d*(?:[.,]\d*)?$/.test(amount)) update("amount", amount); }} inputMode="decimal" autoComplete="off" placeholder="Введите сумму" required />{form.amount && <span className="finance-amount-unit" aria-hidden="true">сум</span>}</div></label>
+          <label><span className="finance-field-label"><Icon name="bi-database" size={14} />Сумма, UZS</span><div className="finance-amount" data-amount={String(form.amount ?? "").replace(/^(\d+)/, digits => digits.replace(/\B(?=(\d{3})+(?!\d))/g, " "))}><input ref={amountRef} value={String(form.amount ?? "").replace(/^(\d+)/, digits => digits.replace(/\B(?=(\d{3})+(?!\d))/g, " "))} disabled={busy} onChange={(event) => { const amount = event.target.value.replace(/\s/g, ""); if (/^\d*(?:[.,]\d*)?$/.test(amount)) update("amount", amount); }} inputMode="decimal" autoComplete="off" placeholder="Введите сумму" required />{form.amount && <span className="finance-amount-unit" aria-hidden="true">сум</span>}</div></label>
           <div className="finance-operation-date">
-            <span className="finance-select-label">Дата и время операции</span>
+            <span className="finance-select-label"><Icon name="bi-calendar3" size={14} />Дата и время операции</span>
             <ReportDateRangePicker
               variant="canonical"
               singleDateTime
               animateExit
-              disabled={busy}
+              disabled={busy || lockOperationDate}
               value={operationPeriod}
               buttonAriaLabel="Дата и время операции"
               formatButtonLabel={({ start, startTime }) => start ? `${start} ${startTime}` : "Выберите дату и время"}
@@ -132,8 +142,8 @@ function FinanceTransactionDrawer({
             />
           </div>
           {editing && <div className="finance-form__wide"><FinanceSelect label="Тип операции" value={form.type} disabled={busy} onChange={value => update("type", value)} options={[{ value: "income", label: "Приход" }, { value: "expense", label: "Расход" }]} /></div>}
-          <div className="finance-form__wide finance-party-panel">
-            {!editing && <fieldset className="finance-party-groups" disabled={busy}>
+          {!repaymentMode && <div className="finance-form__wide finance-party-panel">
+            {!editing && !lockParty && <fieldset className="finance-party-groups" disabled={busy}>
               <legend>Группа контрагентов</legend>
               {partyGroups.map(([type, label]) => <label key={type} className="finance-party-chip">
                 <input type="radio" name={titleId} checked={partyType === type} onChange={() => {
@@ -144,7 +154,7 @@ function FinanceTransactionDrawer({
               </label>)}
             </fieldset>}
             <div className={employeeExpense ? "finance-party-selection has-service-option" : "finance-party-selection"}>
-              <FinanceSelect label={`Контрагент${editing ? " — только чтение" : ""}`} value={form.counterpartyId} disabled={editing || busy || !visibleParties.length} onChange={value => update("counterpartyId", value)} placeholder={visibleParties.length ? "Выберите" : "Нет контрагентов в этой группе"} options={visibleParties.map(item => ({ value: item.id, label: item.full_name }))} />
+              <FinanceSelect label={`Контрагент${editing ? " — только чтение" : ""}`} value={form.counterpartyId} disabled={editing || lockParty || busy || !visibleParties.length} onChange={value => update("counterpartyId", value)} placeholder={visibleParties.length ? "Выберите" : "Нет контрагентов в этой группе"} options={visibleParties.map(item => ({ value: item.id, label: item.full_name }))} />
               {employeeExpense && <label className="finance-service-option">
                 <input type="checkbox" checked={Boolean(form.staffService)} disabled={busy}
                   onChange={event => update("staffService", event.target.checked)} />
@@ -152,14 +162,14 @@ function FinanceTransactionDrawer({
                 <span>За услугу</span>
               </label>}
             </div>
-          </div>
-          <FinanceSelect label={`Тип оплаты${editing ? " — только чтение" : ""}`} value={form.paymentTypeId} disabled={editing || busy || !paymentTypes.length} onChange={value => update("paymentTypeId", value)} placeholder={paymentTypes.length ? "Выберите" : "Нет способов оплаты"} options={paymentTypes.map(item => ({ value: item.id, label: item.name }))} />
-          <FinanceSelect label="Категория" value={form.categoryId} disabled={busy} onChange={value => update("categoryId", value)} placeholder="Выберите" options={categories.filter(item => (item.status !== false || item.id === form.categoryId) && (!item.kind || item.kind === form.type)).map(item => ({ value: item.id, label: item.name }))} />
-          <label className="finance-form__wide"><span>Комментарий</span><textarea value={form.comment} disabled={busy} onChange={(event) => update("comment", event.target.value)} placeholder="Назначение операции или примечание" /></label>
+          </div>}
+          <FinanceSelect icon="bi-credit-card" label={`Способ оплаты${editing ? " — только чтение" : ""}`} expandAll={repaymentMode} required={repaymentMode} value={form.paymentTypeId} disabled={editing || busy || !paymentTypes.length} onChange={value => update("paymentTypeId", value)} placeholder={paymentTypes.length ? "Выберите" : "Нет способов оплаты"} options={paymentTypes.map(item => ({ value: item.id, label: item.name }))} />
+          <FinanceSelect icon="bi-tags" label="Категория" value={form.categoryId} disabled={busy || lockCategory} onChange={value => update("categoryId", value)} placeholder="Выберите" options={categories.filter(item => (item.status !== false || item.id === form.categoryId) && (!item.kind || item.kind === form.type)).map(item => ({ value: item.id, label: item.name }))} />
+          <label className="finance-form__wide"><span className="finance-field-label"><Icon name="bi-chat-square-dots" size={14} />Комментарий</span><textarea value={form.comment} disabled={busy} onChange={(event) => update("comment", event.target.value)} placeholder="Назначение операции или примечание" /></label>
         </div>
 
         {error ? <p className="finance-operation-error" role="alert">{error}</p> : null}
-        <footer className="finance-form__footer"><button type="button" onClick={dismiss} disabled={busy}>Отмена</button><button type="submit" disabled={busy}>{saving ? "Сохранение..." : editing ? "Сохранить" : isExpense ? "Добавить расход" : "Добавить приход"}</button></footer>
+        <footer className="finance-form__footer"><button type="button" onClick={dismiss} disabled={busy}>Отмена</button><button type="submit" disabled={busy}>{saving ? "Сохранение..." : submitLabel || (editing ? "Сохранить" : isExpense ? "Добавить расход" : "Добавить приход")}</button></footer>
       </form>
     </div>, document.body
   );

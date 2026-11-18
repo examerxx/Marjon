@@ -153,10 +153,10 @@
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: linear-gradient(135deg, #0fa8ab 0%, #0a8f9b 100%);
+  background: #20C5EB;
   color: #fff;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 500;
   line-height: 1;
   box-shadow: 0 4px 10px -4px rgba(10, 143, 155, 0.85);
   pointer-events: none;
@@ -580,7 +580,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  min-height: 220px;
+  min-height: 200px;
   padding: 0;
   border: none;
   border-radius: 22px;
@@ -595,6 +595,20 @@
 }
 .hcard:hover { transform: translateY(-2px); box-shadow: 0 20px 32px -20px rgba(0, 0, 0, 0.72); }
 .hcard:active { transform: translateY(0) scale(0.995); }
+.hcard:focus-visible {
+  outline: 2px solid #8de5df;
+  outline-offset: 3px;
+}
+.hcard .hcard__foot {
+  background: linear-gradient(180deg, #edf7fc, var(--hall-foot));
+  box-shadow: inset 0 1px #d4e8f3;
+  font-variant-numeric: tabular-nums;
+}
+.hcard .hcard__more {
+  padding-inline: 7px;
+  border-radius: 999px;
+  background: #e2f5f1;
+}
 
 .hcard__head {
   display: flex;
@@ -602,9 +616,9 @@
   justify-content: space-between;
   gap: 8px;
   flex-shrink: 0;
-  min-height: 50px;
-  padding: 11px 14px;
-  background: linear-gradient(135deg, var(--hall-green-a) 0%, var(--hall-green-b) 100%);
+  height: 35px;
+  padding: 0 14px;
+  background: linear-gradient(115deg, var(--hall-green-a), var(--hall-green-b));
   color: #fff;
 }
 .hcard--pay .hcard__head {
@@ -617,8 +631,8 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 600;
   white-space: nowrap;
 }
 .hcard__title > svg { flex-shrink: 0; }
@@ -627,7 +641,7 @@
   flex-direction: column;
   gap: 6px;
   flex: 1 1 auto;
-  padding: 11px 13px;
+  padding: 5px 13px;
   background: #fff;
 }
 /* Время работы заказа живёт в зелёной шапке справа — на месте, где раньше
@@ -638,11 +652,11 @@
   gap: 5px;
   flex-shrink: 0;
   padding: 3px 8px;
-  border-radius: 8px;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.2);
   color: #fff;
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 500;
   white-space: nowrap;
 }
 .hcard__client {
@@ -655,7 +669,7 @@
 .hcard__items {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 2px;
 }
 .hcard__item {
   display: flex;
@@ -664,11 +678,46 @@
   overflow: hidden;
   color: #1c3044;
   font-size: 13.5px;
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 .hcard__item > svg { flex-shrink: 0; color: #24384c; }
+.hcard__qty {
+  flex: 0 0 auto;
+  margin-inline: 3px -3px;
+  text-align: left;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #526980;
+}
+.hcard__item-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hcard .hcard__item + .hcard__item {
+  box-shadow: inset 0 1px #eaf0f4;
+}
+.hcard .hcard__body {
+  min-height: 0;
+  gap: 0;
+  overflow: hidden;
+  padding-block: 1px;
+}
+.hcard__client { flex: 0 0 auto; line-height: 14px; }
+.hcard .hcard__items {
+  flex: 1 1 0;
+  min-height: 0;
+  gap: 0;
+}
+.hcard .hcard__item,
+.hcard .hcard__more {
+  flex: 0 0 calc(100% / 6);
+  min-height: 0;
+  line-height: 14px;
+}
+.hcard .hcard__more { display: flex; align-items: center; }
 .hcard__item--muted { color: var(--hall-muted); font-weight: 500; }
 .hcard__more {
   align-self: flex-start;
@@ -682,11 +731,12 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  padding: 12px 14px;
+  height: 35px;
+  padding: 0 14px;
   background: var(--hall-foot);
   border-top: none;
   color: #16220f;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
 }
 
@@ -717,7 +767,7 @@
   align-items: center;
   justify-content: center;
   gap: 14px;
-  min-height: 220px;
+  min-height: 200px;
   padding: 20px;
   background: linear-gradient(160deg, var(--hall-free-a) 0%, var(--hall-free-b) 100%);
   border: 1px solid rgba(255, 255, 255, 0.38);
@@ -1140,7 +1190,7 @@ button.table-pick__table--busy:disabled .table-pick__table-status { opacity: 1; 
   flex: none;
   grid-template-columns: repeat(auto-fill, 230px);
   grid-template-rows: none;
-  grid-auto-rows: 220px;
+  grid-auto-rows: 200px;
   justify-content: start;
   align-content: start;
 }
@@ -1175,4 +1225,61 @@ button.table-pick__table--busy:disabled .table-pick__table-status { opacity: 1; 
   border-radius: 8px;
 }
 
-.hgroup--fill > .hgrid { grid-auto-rows: 220px; }
+.hgroup--fill > .hgrid { grid-auto-rows: 200px; }
+
+.hall-types--top.hall-types--segmented {
+  position: relative;
+  isolation: isolate;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #dce7f5;
+  border-radius: 24px;
+  background: #e7edf5;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.hall-types--segmented .hall-types__indicator {
+  position: absolute;
+  left: 0;
+  pointer-events: none;
+  z-index: 0;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #10a5a8 0%, #0b8d99 100%);
+  box-shadow: 0 12px 24px -16px rgba(11, 141, 153, .9);
+  transition: transform 360ms cubic-bezier(.22, 1, .36, 1), width 360ms cubic-bezier(.22, 1, .36, 1);
+}
+.hall-types--top.hall-types--segmented .hall-type {
+  font-size: 14.5px;
+  position: relative;
+  z-index: 1;
+  border-radius: 20px;
+  background: transparent;
+  box-shadow: none;
+  color: #647b98;
+  transition: none;
+}
+.hall-types--top.hall-types--segmented .hall-type.is-active {
+  background: transparent;
+  box-shadow: none;
+  color: #fff;
+}
+.hall-types--top.hall-types--segmented .hall-type:active { transform: none; }
+.hall-types--top.hall-types--segmented .hall-type:focus-visible { outline: 2px solid #20c5eb; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .hall-types--segmented .hall-types__indicator,
+  .hall-types--top.hall-types--segmented .hall-type { transition: none; }
+}
+
+.hall-types--segmented .hall-type__label {
+  display: inline-block;
+  transform: scale(1);
+  transition: transform 300ms cubic-bezier(.22, 1, .36, 1);
+  transform-origin: center;
+}
+.hall-types--segmented .hall-type.is-active .hall-type__label {
+  transform: scale(1.07);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hall-types--segmented .hall-type__label { transition: none; }
+}

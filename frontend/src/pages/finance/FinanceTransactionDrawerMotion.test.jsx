@@ -131,7 +131,7 @@ describe("finance transaction modal lifecycle", () => {
 
   it("lets an open select consume Escape before the dialog closes", () => {
     const { onClose } = openDrawer();
-    const payment = screen.getByRole("combobox", { name: /Тип оплаты/ });
+    const payment = screen.getByRole("combobox", { name: /Способ оплаты/ });
     fireEvent.click(payment);
     expect(screen.getByRole("listbox")).toBeInTheDocument();
     fireEvent.keyDown(payment, { key: "Escape" });

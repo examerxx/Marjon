@@ -206,7 +206,7 @@ describe("Dashboard DEV URL-only KPI preview", () => {
     window.history.replaceState({}, "", "/");
     render(<OwnerDashboard />);
     const normal = await screen.findByRole("button", { name: /Чистая прибыль/ });
-    expect(normal.querySelector(".kpi-value")).toHaveTextContent("900 UZS");
+    expect(normal.querySelector(".kpi-value")).toHaveTextContent("800 UZS");
     expect(normal.textContent.replace(/\s/g, "")).not.toContain("12450000");
   });
 
@@ -214,7 +214,7 @@ describe("Dashboard DEV URL-only KPI preview", () => {
     vi.stubEnv("DEV", false);
     render(<OwnerDashboard />);
     const button = await screen.findByRole("button", { name: /Чистая прибыль/ });
-    expect(button.querySelector(".kpi-value")).toHaveTextContent("900 UZS");
+    expect(button.querySelector(".kpi-value")).toHaveTextContent("800 UZS");
   });
 
   it("preserves the normal API-error state", async () => {
@@ -276,7 +276,7 @@ describe("Dashboard DEV URL-only KPI preview", () => {
     fireEvent.change(screen.getByLabelText("Конец периода"), { target: { value: "05.10.2026 | 00:00" } });
     fireEvent.click(document.querySelector(".owner-revenue-switcher .report-date-ok"));
     expect(window.location.search).toBe("?date_from=2026-10-05&date_to=2026-10-05");
-    expect(screen.getByRole("button", { name: /Чистая прибыль/ }).querySelector(".kpi-value")).toHaveTextContent("900 UZS");
+    expect(screen.getByRole("button", { name: /Чистая прибыль/ }).querySelector(".kpi-value")).toHaveTextContent("800 UZS");
   });
 
   it("immediately uses canonical data after manual preview removal and does not re-add it on the next date apply", async () => {
@@ -286,7 +286,7 @@ describe("Dashboard DEV URL-only KPI preview", () => {
     expect(preview.textContent.replace(/\s/g, "")).toContain("12450000");
     window.history.replaceState({}, "", "/?date_from=2026-10-05&date_to=2026-10-05");
     view.rerender(<OwnerDashboard />);
-    expect(screen.getByRole("button", { name: /Чистая прибыль/ }).querySelector(".kpi-value")).toHaveTextContent("900 UZS");
+    expect(screen.getByRole("button", { name: /Чистая прибыль/ }).querySelector(".kpi-value")).toHaveTextContent("800 UZS");
     fireEvent.click(screen.getByRole("button", { name: "Период денежного прихода" }));
     fireEvent.change(screen.getByLabelText("Начало периода"), { target: { value: "04.10.2026 | 00:00" } });
     fireEvent.change(screen.getByLabelText("Конец периода"), { target: { value: "04.10.2026 | 00:00" } });

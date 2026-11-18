@@ -71,6 +71,7 @@ class OrderStatusUpdate(BaseSchema):
     # комментарии к заказу и не появлялся ни в «Клиентах», ни в отчёте по долгам.
     client_name: str | None = None
     client_phone: str | None = None
+    counterparty_id: UUID | None = None
 
 
 class OrderReopen(BaseSchema):

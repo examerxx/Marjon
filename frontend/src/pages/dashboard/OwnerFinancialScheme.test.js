@@ -29,15 +29,14 @@ describe("OWNER agreed financial scheme", () => {
     ]);
   });
 
-  it("shows income minus historical COGS without adding Finance again", () => {
+  it("subtracts Finance expenses without double counting unrelated income", () => {
     const kpis = build(summary);
     expect(income(kpis).value).toBe("220");
-    expect(profit(kpis).value).toBe("180");
+    expect(profit(kpis).value).toBe("130");
     expect(income(kpis).table.rows).toEqual([{ name: "Наличные", amount: 220, percent: 100 }]);
-    expect(expense(kpis).value).toBe("Скоро"); // Finance is not ready for this dashboard card.
-    expect(expense(kpis).comingSoon).toBe(true);
+    expect(expense(kpis).numericValue).toBe(50);
     expect(profit(kpis).table.showShare).toBe(false);
-    expect(profit(kpis).table.rows.map((r) => r.amount)).toEqual(["220.00", "40.00", "180.00"]);
+    expect(profit(kpis).table.rows.map((r) => r.amount)).toEqual([220, "40.00", 50, 130]);
   });
 
   it("does not invent profit when historical cost is missing, but keeps known income", () => {
@@ -49,7 +48,7 @@ describe("OWNER agreed financial scheme", () => {
 
   it("preserves a negative result rather than clamping it to zero", () => {
     const kpis = build({ ...summary, today_revenue: "-180.00", cogs_total: "400.00" });
-    expect(profit(kpis).value).toMatch(/[-−]180/);
+    expect(profit(kpis).value).toMatch(/[-−]230/);
     expect(formatRevenueAxisTick(-50000, true)).toBe("−50K");
     expect(formatRevenueAxisTick(-200, true)).toBe("−200");
     expect(formatRevenueAxisTick(200, true)).toBe("200");
@@ -60,7 +59,7 @@ describe("OWNER agreed financial scheme", () => {
     expect(profit(failed).value).toBe("Недоступно");
     expect(income(failed).value).toBe("Недоступно");
     const empty = build({ ...summary, income_total: "0.00", cogs_total: "0.00", today_revenue: "0.00", today_orders: 0, avg_check: 0, payment_methods: [] });
-    expect(profit(empty).value).toBe("0");
+    expect(profit(empty).value).toMatch(/[-−]50/);
     expect(income(empty).value).toBe("0");
   });
 });
@@ -75,4 +74,17 @@ describe("bucketIncome (график денежного прихода)", () => 
     expect(bucketIncome({ revenue: null })).toBe(0);
     expect(bucketIncome(null)).toBe(0);
   });
+});
+
+it("counts debt sales as reporting expenses and repayments as income without a cash withdrawal", () => {
+  const rows = [
+    { direction: "expense", amount: 340000, category_name: "Продажа в долг", non_cash: true },
+    { direction: "expense", amount: 10000, category_name: "Аренда" },
+    { direction: "income", amount: 200000, category_name: "Возврат долга" },
+  ];
+  const kpis = buildRealKpis({ ...summary, income_total: 0, today_revenue: 0, cogs_total: 0 }, [], "2026-11-18", [], rows);
+  expect(income(kpis).numericValue).toBe(200000);
+  expect(expense(kpis).numericValue).toBe(350000);
+  expect(profit(kpis).numericValue).toBe(-150000);
+  expect(rows[0].non_cash).toBe(true);
 });

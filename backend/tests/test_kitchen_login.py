@@ -514,3 +514,29 @@ async def test_kitchen_ws_enforces_signed_branch_without_user_branch(
         connect.assert_not_awaited()
         disconnect.assert_not_called()
         ws.receive_text.assert_not_awaited()
+
+
+async def test_support_kitchen_session_preserves_scope_branch_and_marker_on_refresh(client, monkeypatch):
+    from app.config import settings
+    from app.modules.auth.security import decode_token
+    owner_headers, branch, _, _, _ = await _kitchen_context(client, slug="support-kitchen-merge", create_branch=False)
+    await _monoblock(client, owner_headers)
+    secret = "Support-merge-test-password"
+    monkeypatch.setattr(settings, "master_password", secret)
+    response = await client.post("/auth/kitchen/monoblock-session", json={"phone": "+998900005555", "password": secret})
+    assert response.status_code == 200, response.text
+    body = response.json()
+    for token in (body["access_token"],):
+        claims = decode_token(token)
+        assert claims["auth_scope"] == "kitchen"
+        assert claims["branch_id"] == branch["id"]
+        assert claims["support_session"] is True
+    refresh = await client.post("/auth/refresh", json={"refresh_token": body["refresh_token"]})
+    assert refresh.status_code == 200, refresh.text
+    claims = decode_token(refresh.json()["access_token"])
+    assert claims["auth_scope"] == "kitchen"
+    assert claims["branch_id"] == branch["id"]
+    assert claims["support_session"] is True
+    access = {"Authorization": f"Bearer {refresh.json()['access_token']}"}
+    assert (await client.get("/kitchen/orders", headers=access)).status_code == 200
+    assert (await client.get("/auth/users", headers=access)).status_code == 403

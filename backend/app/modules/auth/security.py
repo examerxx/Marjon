@@ -60,6 +60,7 @@ def create_access_token(
     *,
     auth_version: int = 0,
     branch_id: UUID | None = None,
+    support_session: bool = False,
 ) -> str:
     """auth_scope marks what this SESSION is authorized for, independent of the
     user's static is_superadmin flag — a superadmin who logs in through the
@@ -78,6 +79,8 @@ def create_access_token(
         "auth_version": auth_version,
         "exp": datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes),
     }
+    if support_session:
+        payload["support_session"] = True
     if branch_id:
         payload["branch_id"] = str(branch_id)
     return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)

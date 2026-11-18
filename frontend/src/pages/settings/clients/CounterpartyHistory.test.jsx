@@ -10,7 +10,7 @@ import {
 } from "./CounterpartyHistory";
 
 vi.mock("../../../api/finance", () => ({
-  financeService: { listCounterpartyTransactions: vi.fn() },
+  financeService: { listCounterpartyTransactions: vi.fn(), listCounterpartyOrders: vi.fn(), listPaymentTypes: vi.fn(), listTransactionCategories: vi.fn(), updateTransaction: vi.fn(), createTransaction: vi.fn() },
 }));
 
 const TX = [
@@ -176,4 +176,41 @@ describe("CounterpartyStatementView", () => {
     expect(container.querySelector(".settings-header .settings-title-group")).not.toBeNull();
     expect(screen.getByText("История транзакций")).toBeInTheDocument();
   });
+});
+
+
+it("edits the original repayment instead of creating another payment", async () => {
+  const transaction = { id: "repayment-1", date: "2026-11-17T10:00:00Z", amount: 5000, payment_type_id: "cash", direction: "income", category_id: "return-debt", comment: "Original note" };
+  financeService.listCounterpartyTransactions.mockResolvedValue({ data: { items: [transaction], pages: 1 } });
+  financeService.listCounterpartyOrders.mockResolvedValue({ data: [] });
+  financeService.listPaymentTypes.mockResolvedValue({ data: { items: [{ id: "cash", name: "Наличными" }] } });
+  financeService.listTransactionCategories.mockResolvedValue({ data: { items: [{ id: "return-debt", name: "Возврат долга", status: true }] } });
+  financeService.updateTransaction.mockResolvedValue({ data: { ...transaction, amount: 4000 } });
+  render(<CounterpartyStatementView row={{ id: "client-1", name: "Client", type: "client" }} debt={10000} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Редактировать погашение" }));
+  const amount = await screen.findByDisplayValue("5 000");
+  fireEvent.change(amount, { target: { value: "4000" } });
+  fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+  await waitFor(() => expect(financeService.updateTransaction).toHaveBeenCalledWith("repayment-1", { amount: 4000, comment: "Original note", payment_type_id: "cash" }));
+  expect(financeService.createTransaction).not.toHaveBeenCalled();
+});
+
+it("opens total debt repayment from the remaining badge and requires a non-VIP payment method", async () => {
+  financeService.listCounterpartyTransactions.mockResolvedValue({ data: { items: [], pages: 1 } });
+  financeService.listCounterpartyOrders.mockResolvedValue({ data: [] });
+  financeService.listPaymentTypes.mockResolvedValue({ data: { items: [{ id: "cash", name: "Наличными" }, { id: "vip", name: "VIP", type: "vip" }, { id: "card", name: "Карта" }] } });
+  financeService.listTransactionCategories.mockResolvedValue({ data: { items: [{ id: "return-debt", name: "Возврат долга", status: true }] } });
+  render(<CounterpartyStatementView row={{ id: "client-1", name: "Client", type: "client" }} debt={267388} />);
+  fireEvent.click(screen.getByTitle("Погасить общий долг клиента"));
+  const dialog = await screen.findByRole("dialog");
+  expect(within(dialog).queryByRole("combobox", { name: /Контрагент/ })).toBeNull();
+  const method = within(dialog).getByRole("combobox", { name: /Способ оплаты/ });
+  expect(method).toHaveAttribute("aria-required", "true");
+  fireEvent.click(method);
+  expect(screen.queryByRole("option", { name: "VIP" })).toBeNull();
+  expect(screen.getAllByRole("option")).toHaveLength(2);
+  fireEvent.change(within(dialog).getByPlaceholderText("Введите сумму"), { target: { value: "100000" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Погасить" }));
+  expect(await screen.findByText("Выберите способ оплаты.")).toBeInTheDocument();
+  expect(financeService.createTransaction).not.toHaveBeenCalled();
 });

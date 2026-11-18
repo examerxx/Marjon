@@ -98,7 +98,7 @@ export default function FinanceCategoriesPage({ kind }) {
           <div className="dishcat-main"><div className="dishcat-info"><strong>{row.name}</strong></div></div>
           <div className="dishcat-meta">
             <span className={`settings-status-badge ${archived ? "is-inactive" : "is-active"}`}><span className="settings-status-badge__dot" aria-hidden="true" />{archived ? "В архиве" : "Активен"}</span>
-            {!row.is_system && <>
+            {!row.is_system && !(kind === "income" && row.name === "Возврат долга") && <>
               <button type="button" className="settings-place__edit" onClick={() => open(archived ? "restore" : "edit", row)}>{archived ? "Восстановить" : "Редактировать"}</button>
               <button type="button" className="settings-action-delete" aria-label={`${archived ? "Удалить" : "Архивировать"} категорию ${row.name}`} title={archived ? "Удалить навсегда" : "Архивировать категорию"} onClick={() => open(archived ? "delete" : "archive", row)}><Icon name="bi-trash3" size={15} /></button>
             </>}

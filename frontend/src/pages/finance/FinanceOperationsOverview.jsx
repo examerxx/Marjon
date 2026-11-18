@@ -243,6 +243,7 @@ export default function FinanceOperationsOverview() {
         financeService.listPaymentTypes({ signal: request.signal }),
         financeService.listTransactionCategories(undefined, { signal: request.signal }),
         Promise.resolve().then(() => financeService.listCounterparties({ signal: request.signal })),
+        Promise.resolve().then(() => financeService.listOrderDebtOperations({ dateFrom: start, dateTo: end, signal: request.signal })),
       ]);
       if (!request.isCurrent()) return;
       if (results[0].status !== "fulfilled") throw new Error("Transactions unavailable");
@@ -252,6 +253,8 @@ export default function FinanceOperationsOverview() {
         try { history = checkedTransactions(results[1].value); } catch { /* Unknown opening balance stays unavailable. */ }
       }
       setData({ rows, history,
+        debts: results[5].status === "fulfilled" && Array.isArray(results[5].value.data) ? results[5].value.data : [],
+        debtLoadFailed: results[5].status !== "fulfilled" || !Array.isArray(results[5].value.data),
         payments: results[2].status === "fulfilled" ? itemsOf(results[2].value) : [],
         counterparties: results[4].status === "fulfilled" ? itemsOf(results[4].value) : [],
         categories: results[3].status === "fulfilled" ? itemsOf(results[3].value) : [],
@@ -285,7 +288,15 @@ export default function FinanceOperationsOverview() {
       window.removeEventListener("resize", fitTable);
     };
   }, [expanded]);
-  const recent = mapTransactions([...rows].sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, expanded ? undefined : 6), data?.payments || [], data?.categories || [], data?.counterparties || []);
+  const operations = [
+    ...mapTransactions(rows, data?.payments || [], data?.categories || [], data?.counterparties || []),
+    ...(data?.debts || []).map(debt => ({
+      ...debt, id: `order-debt-${debt.id}`, createdAt: debt.date, type: "expense",
+      isOrderDebt: true, category: "Продажа в долг", paymentType: "Без движения денег",
+      comment: `Заказ № ${debt.order_number}`,
+    })),
+  ].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const recent = operations.slice(0, expanded ? undefined : 6);
   const hourly = Boolean(start) && start === end;
   const days = useMemo(() => {
     if (!start || !end || start > end) return [];
@@ -324,6 +335,7 @@ export default function FinanceOperationsOverview() {
       <button className="fo-export" onClick={exportRows} disabled={loading || error || !rows.length}><Icon name="bi-filetype-xlsx" size={19} strokeWidth={1.9} className="owner-report-xlsx-icon" />{(i18n.resolvedLanguage || i18n.language || "ru").split("-")[0] === "ru" ? "Скачать Excel" : text.export}</button>
     </div>
     {error && <div className="fo-alert" role="alert">{text.error}<button onClick={load}>{text.retry}</button></div>}
+    {data?.debtLoadFailed && <div className="fo-alert" role="alert">Не удалось загрузить заказы в долг.<button onClick={load}>{text.retry}</button></div>}
     {!loading && data && !data.history && <p className="fo-history-warning" role="status">{text.historyError}</p>}
     <div className="fo-middle" hidden={expanded}>
       <section className="fo-panel fo-movement"><header><h2>{text.movement}</h2><div className="fo-legend"><span className="fo-income">{text.income}</span><span className="fo-expense">{text.expense}</span></div></header>
@@ -335,7 +347,7 @@ export default function FinanceOperationsOverview() {
     <div className={expanded ? "fo-bottom fo-bottom--expanded" : "fo-bottom"}>
       <section className="fo-panel fo-recent"><header><h2>{text.recent}</h2><button type="button" className="fo-details" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? "Свернуть" : "Подробнее"}<Icon name={expanded ? "bi-chevron-up" : "bi-chevron-right"} size={15} /></button></header>
         <div className="fo-table-scroll finance-catalog-scroll" ref={tableRef} tabIndex={0} aria-label={text.recent}><table><thead><tr><th>{text.operationDate}</th><th>{text.registrationDate}</th><th>{text.amount}</th><th>{text.counterparty}</th><th>{text.category}</th><th>{text.payment}</th><th>{text.comment}</th><th aria-label={text.actions} /></tr></thead><tbody>
-          {recent.map(row => <tr key={row.id}><td>{formatDate(row.date)}</td><td>{formatDate(row.createdAt)}</td><td className={row.isVip ? "finance-vip-text" : `fo-amount--${row.type}`}>{row.amount > 0 ? (row.type === "income" ? "+" : "−") : ""}{formatMoney(row.amount)}</td><td>{row.counterparty}</td><td className={row.isVip ? "finance-vip-text" : undefined}>{row.categoryId ? row.category : text.uncategorized}</td><td>{row.paymentTypeId ? row.paymentType : text.unspecified}</td><td className="fo-operation-comment">{row.comment?.trim() || "—"}</td><td className="fo-operation-actions"><button type="button" className="finance-action-edit" aria-label={text.editOperation} onClick={() => openEdit(row)}><Icon name="bi-pencil" size={15} /></button></td></tr>)}
+          {recent.map(row => <tr key={row.id}><td>{formatDate(row.date)}</td><td>{formatDate(row.createdAt)}</td><td className={row.isVip ? "finance-vip-text" : `fo-amount--${row.type}`}>{row.amount > 0 ? (row.type === "income" ? "+" : "−") : ""}{formatMoney(row.amount)}</td><td>{row.counterparty}</td><td className={row.isVip ? "finance-vip-text" : undefined}>{row.isOrderDebt || row.categoryId ? row.category : text.uncategorized}</td><td>{row.isOrderDebt || row.paymentTypeId ? row.paymentType : text.unspecified}</td><td className="fo-operation-comment">{row.comment?.trim() || "—"}</td><td className="fo-operation-actions">{!row.isOrderDebt && <button type="button" className="finance-action-edit" aria-label={text.editOperation} onClick={() => openEdit(row)}><Icon name="bi-pencil" size={15} /></button>}</td></tr>)}
           {(loading || error || !recent.length) && <tr><td colSpan={8} className="fo-table-empty">{loading ? text.loading : error ? text.unavailable : text.empty}</td></tr>}
         </tbody></table></div>
       </section>

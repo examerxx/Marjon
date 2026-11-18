@@ -381,8 +381,14 @@ export const orders = {
   // «в долг» (client_name/client_phone), по ним бэкенд заводит клиента.
   updateStatus: (id, status, extra) =>
     writeQueued('patch', `/pos/orders/${id}/status`, { status, ...(extra || {}) }),
-  cancel: (id, password, comment) => api.delete(`/pos/orders/${id}`, {
-    params: { ...(password ? { password } : {}), ...(comment ? { comment } : {}) },
+  closeAsDebt: (id, counterpartyId) =>
+    api.post(`/pos/orders/${id}/debt`, { status: 'completed', counterparty_id: counterpartyId }).then((r) => r.data),
+  // consumeStock — галочка «Не возвращать продукты»: сырьё по рецептам списывается со склада.
+  cancel: (id, password, comment, consumeStock = false) => api.delete(`/pos/orders/${id}`, {
+    params: {
+      ...(password ? { password } : {}), ...(comment ? { comment } : {}),
+      ...(consumeStock ? { consume_stock: true } : {}),
+    },
   }).then((r) => r.data),
   // Возврат закрытого заказа в работу: гость вернул блюдо/пожаловался — кассир
   // открывает заказ, отменяет позицию с причиной и закрывает снова (со сдачей).
@@ -505,6 +511,10 @@ export const finance = {
 
 // Клиенты (автокомплит по номеру в доставке)
 export const customers = {
+  createDebtClient: (fullName, phone) => api.post('/crm/debt-clients', { full_name: fullName, phone })
+    .then(({ data }) => data),
+  debtClients: (signal) => api.get('/crm/counterparties', { signal })
+    .then(({ data }) => data.items.filter((row) => row.type === 'client')),
   search: (q) => api.get('/crm/customers', { params: { q } }).then((r) => r.data),
 }
 

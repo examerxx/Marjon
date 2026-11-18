@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, ChevronDown, Lock, MessageSquare, X } from 'lucide-react'
+import { ArrowRight, Check, ChevronDown, Lock, MessageSquare, X } from 'lucide-react'
 import { t } from '../shared/i18n'
 import { formatQty } from '../shared/qty'
 
@@ -17,12 +17,15 @@ import { formatQty } from '../shared/qty'
  *   submitLabel? — текст кнопки (по умолчанию «Сохранить»)
  *   allowEmpty? — разрешить отправить пустое значение (для необязательного
  *                 комментария: причина возврата заказа и т.п.)
- *   onSubmit(value, extraValue) — async; при ошибке текст показывается внутри модалки
+ *   headerToggle? — переключатель-галочка в шапке справа от заголовка { label, title? };
+ *                   по умолчанию выключен, его значение приходит третьим аргументом onSubmit
+ *   onSubmit(value, extraValue, toggled) — async; при ошибке текст показывается внутри модалки
  *   onClose()
  */
-export default function InputPromptModal({ title, hint, placeholder = '', initial = '', type = 'text', options = [], extra, changes, submitLabel, allowEmpty = false, compact = false, sidePad = false, onSubmit, onClose }) {
+export default function InputPromptModal({ title, hint, placeholder = '', initial = '', type = 'text', options = [], extra, changes, submitLabel, allowEmpty = false, compact = false, sidePad = false, headerToggle, onSubmit, onClose }) {
   const [value, setValue] = useState(() => String(initial || options[0]?.value || ''))
   const [extraValue, setExtraValue] = useState('')
+  const [toggled, setToggled] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [optionsOpen, setOptionsOpen] = useState(false)
@@ -41,7 +44,7 @@ export default function InputPromptModal({ title, hint, placeholder = '', initia
     if (busy || (!allowEmpty && String(value).trim() === '')) return
     setBusy(true); setErr('')
     try {
-      await onSubmit(String(value).trim(), extraValue.trim())
+      await onSubmit(String(value).trim(), extraValue.trim(), toggled)
     } catch (e) {
       setErr(e?.response?.data?.detail || e?.message || t('cancel_error'))
     } finally {
@@ -63,6 +66,14 @@ export default function InputPromptModal({ title, hint, placeholder = '', initia
         ) : (
           <div className="modal__header">
             <h3>{title}</h3>
+            {headerToggle && (
+              <label className="prompt-toggle" title={headerToggle.title || undefined}>
+                <input type="checkbox" className="prompt-toggle__input" checked={toggled} disabled={busy}
+                  onChange={(e) => setToggled(e.target.checked)} />
+                <span className="prompt-toggle__box" aria-hidden="true"><Check size={15} strokeWidth={3.2} /></span>
+                <span className="prompt-toggle__label">{headerToggle.label}</span>
+              </label>
+            )}
             <button className="icon-btn" onClick={onClose}><X size={24} /></button>
           </div>
         )}

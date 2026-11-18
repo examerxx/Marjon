@@ -134,3 +134,24 @@ describe("Revenue product detail", () => {
     expect(within(table).queryByText("Итого")).toBeNull();
   });
 });
+
+it("pins expenses after the total and keeps category labels plain in both dialogs", () => {
+  const finance = [{ direction: "expense", amount: 30, category_name: "Расход" }];
+  const kpis = buildRealKpis(summary, [], "2026-10-17", [], finance);
+  for (const card of [CARD.revenue, CARD.income]) {
+    const kpi = kpis.find(item => item.className === card);
+    const view = render(<KpiInfoDialog kpi={kpi} onClose={() => {}} />);
+    const table = screen.getByRole("table");
+    const expense = table.querySelector("thead .revenue-products__expenses");
+    expect(expense).not.toBeNull();
+    expect(expense.previousElementSibling).toHaveClass("revenue-products__total");
+    expect(table.querySelector("tbody .revenue-products__expenses")).toBeNull();
+    expect(table.querySelector(".revenue-products__category")).toBeNull();
+    expect(view.container.querySelector(".kpi-info-window__description")).toBeNull();
+    view.unmount();
+  }
+});
+it("omits the pinned expense row when there are no expenses", () => {
+  const table = show(summary);
+  expect(table.querySelector(".revenue-products__expenses")).toBeNull();
+});

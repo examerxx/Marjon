@@ -3,7 +3,7 @@ from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Query, Request, status
-from sqlalchemy import select
+from sqlalchemy import String, cast, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.session import get_db
@@ -25,6 +25,36 @@ from app.shared.exceptions import NotFoundError
 from app.shared.pagination import Page, PageParams
 
 router = APIRouter(prefix="/finance", tags=["finance"])
+
+
+@router.get("/order-debt-operations")
+async def list_order_debt_operations(
+    date_from: date,
+    date_to: date,
+    scope: FinanceScope = Depends(get_owner_finance_scope),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.modules.audit.models import AuditLog
+    from app.modules.finance.counterparty_orders import DEBT_AUDIT_ACTION
+    from app.modules.pos.models import Order
+    from app.shared.web_time import web_date_conditions
+
+    rows = await db.execute(
+        select(AuditLog.id, AuditLog.created_at, AuditLog.new_data, Order.order_number,
+               models.Counterparty.full_name)
+        .select_from(AuditLog)
+        .join(Order, Order.id == AuditLog.entity_id)
+        .outerjoin(models.Counterparty, (models.Counterparty.company_id == scope.tenant_id)
+                   & (cast(models.Counterparty.id, String) == AuditLog.new_data["counterparty_id"].as_string()))
+        .where(AuditLog.company_id == scope.tenant_id, Order.company_id == scope.tenant_id,
+               AuditLog.action == DEBT_AUDIT_ACTION,
+               *web_date_conditions(AuditLog.created_at, date_from, date_to))
+        .order_by(AuditLog.created_at.desc())
+    )
+    return [{
+        "id": audit_id, "date": created_at, "amount": data["debt"],
+        "order_number": number, "counterparty": name or data.get("client_name"),
+    } for audit_id, created_at, data, number, name in rows if data and data.get("debt")]
 
 # BE-04: /finance/transactions and /finance/transaction-categories used to be
 # reached by BOTH the HQ admin panel and the owner/kafe app under the same

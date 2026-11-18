@@ -97,6 +97,22 @@ class FinanceDictionaryService(Generic[M]):
         sort: str | None = None,
         default_sort: str = "name",
     ) -> tuple[list[M], int]:
+        if self.model is TransactionCategory and scope.kind == SCOPE_COMPANY:
+            from app.modules.companies.models import Company
+            await self.db.execute(select(Company.id).where(Company.id == scope.tenant_id).with_for_update())
+            for category_name, category_kind in (("Возврат долга", "income"), ("Продажа в долг", "expense")):
+                category = (await self.db.execute(select(TransactionCategory).where(
+                    TransactionCategory.company_id == scope.tenant_id,
+                    TransactionCategory.kind == category_kind,
+                    TransactionCategory.name == category_name,
+                ).order_by(TransactionCategory.created_at).limit(1))).scalar_one_or_none()
+                if category is None:
+                    self.db.add(TransactionCategory(name=category_name, kind=category_kind, status=True,
+                        scope_kind=SCOPE_COMPANY, company_id=scope.tenant_id))
+                else:
+                    category.status = True
+                    category.deleted_at = None
+            await self.db.commit()
         query = select(self.model).where(self._visible(scope), _alive(self.model))
         if search:
             pattern = f"%{search}%"
@@ -287,6 +303,9 @@ class FinanceDictionaryService(Generic[M]):
                 self.db.add(row)
         else:
             row = await self._get_owned(resource_id, scope)
+            if self.model is TransactionCategory and (row.kind, row.name) in (("income", "Возврат долга"), ("expense", "Продажа в долг")):
+                if any(payload.get(key, current) != current for key, current in (("name", row.name), ("kind", row.kind), ("status", True))):
+                    raise ForbiddenError(f"Категория {row.name} является постоянной")
             if self.model is PaymentType and row.source_template_id in DEFAULT_PAYMENT_IDS:
                 if set(payload) != {"status"} or not isinstance(payload["status"], bool):
                     raise ForbiddenError("Only the status of a default payment method may change")
@@ -303,6 +322,8 @@ class FinanceDictionaryService(Generic[M]):
 
     async def delete(self, resource_id: UUID, scope: FinanceScope) -> None:
         row = await self._get_owned(resource_id, scope)
+        if self.model is TransactionCategory and (row.kind, row.name) in (("income", "Возврат долга"), ("expense", "Продажа в долг")):
+            raise ForbiddenError(f"Категория {row.name} является постоянной")
         if self.model is PaymentType and row.source_template_id in DEFAULT_PAYMENT_IDS:
             raise ForbiddenError("Default payment methods cannot be deleted")
         if hasattr(row, "deleted_at"):

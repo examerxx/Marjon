@@ -46,7 +46,26 @@ export const dashboardService = Object.freeze({
         return { data: [], unavailable: true };
       }),
       settingsService.listDashboardPlaces(config),
-      financeService.listTransactions({ dateFrom, dateTo, signal }),
+      Promise.all([
+        financeService.listTransactions({ dateFrom, dateTo, signal }),
+        financeService.listOrderDebtOperations({ dateFrom, dateTo, signal }),
+        financeService.listTransactionCategories(undefined, { signal }),
+      ]).then(([transactions, debts, categories]) => {
+        const rows = Array.isArray(transactions.data) ? transactions.data : transactions.data.items || [];
+        const debtRows = (Array.isArray(debts.data) ? debts.data : debts.data?.items || []).filter(row => {
+          const timestamp = `${webDayKey(row.date)}T${webTime(row.date)}`;
+          return timestamp >= `${dateFrom}T${timeFrom || "00:00"}` && timestamp <= `${dateTo}T${timeTo || "23:59"}`;
+        }).map(row => ({ ...row, id: `order-debt-${row.id}`, direction: "expense",
+          category_name: "Продажа в долг", isOrderDebt: true, non_cash: true }));
+        const categoryRows = Array.isArray(categories.data) ? categories.data : categories.data.items || [];
+        const names = new Map(categoryRows.map(row => [String(row.id), row.name]));
+        return { data: [...rows.map(row => ({ ...row, category_name: row.category_name || names.get(String(row.category_id)) })), ...debtRows] };
+      }),
+      Promise.resolve().then(() => reportsService.listDebtCredit(dateFrom, dateTo, undefined, config))
+        .catch((error) => {
+          if (signal?.aborted || error?.code === "ERR_CANCELED" || error?.name === "AbortError") throw error;
+          return { data: null };
+        }),
     ]);
   },
 });

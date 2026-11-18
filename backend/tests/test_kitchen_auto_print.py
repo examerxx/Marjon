@@ -71,6 +71,42 @@ async def test_order_creation_enqueues_kitchen_ticket(client, monkeypatch):
     assert message["ip_address"] == "192.168.123.50"
 
 
+async def test_dish_routes_to_two_distinct_printers(client, monkeypatch):
+    monkeypatch.setattr("app.modules.printers.service.print_raw", _offline_print())
+    monkeypatch.setattr("app.modules.printers.service.printer_ws_manager.broadcast", AsyncMock())
+    headers, branch_id, product_id = await _context(client)
+    printers = []
+    for number in range(1, 4):
+        response = await client.post("/printers", headers=headers, json={
+            "branch_id": branch_id, "name": f"Kitchen {number}", "printer_type": "kitchen",
+            "connection_type": "network", "ip_address": f"192.0.2.{number}", "port": 9100,
+        })
+        assert response.status_code == 201, response.text
+        printers.append(response.json()["id"])
+
+    dish = f"/inventory/products/{product_id}"
+    first, second, unused = printers
+    result = await client.patch(dish, headers=headers, json={"printer_id": first, "secondary_printer_id": second})
+    assert result.status_code == 200, result.text
+    assert result.json()["secondary_printer_id"] == second
+    duplicate = await client.patch(dish, headers=headers, json={"secondary_printer_id": first})
+    assert duplicate.status_code == 422, duplicate.text
+
+    created = await client.post("/pos/orders", headers=headers, json={
+        "branch_id": branch_id, "order_type": "takeaway", "items": [{"product_id": product_id, "quantity": 1}],
+    })
+    assert created.status_code == 201, created.text
+    order_id = created.json()["id"]
+    for printer_id, count in [(first, 1), (second, 1), (unused, 0)]:
+        jobs = await client.get(f"/printers/{printer_id}/jobs/pending", headers=headers)
+        assert jobs.status_code == 200, jobs.text
+        assert len([job for job in jobs.json() if job["ref_id"] == order_id]) == count
+
+    cleared = await client.patch(dish, headers=headers, json={"secondary_printer_id": None})
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["secondary_printer_id"] is None
+
+
 async def test_adding_item_prints_only_the_new_dish(client, monkeypatch):
     """Дозаказ: повар получает тикет ТОЛЬКО с добавленным блюдом.
 

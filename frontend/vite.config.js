@@ -1,9 +1,21 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+// QR-меню: /m/<заведение>[/<стол>], а также короткие /M/<ЗАВЕДЕНИЕ> и /T/<код стола>
+// отдают отдельную публичную страницу menu.html (в проде то же делает nginx).
+const qrMenuRoute = () => ({
+  name: "qr-menu-route",
+  configureServer(server) {
+    server.middlewares.use((req, _res, next) => {
+      if (req.url && /^\/[mt]\//i.test(req.url)) req.url = "/menu.html";
+      next();
+    });
+  },
+});
+
 export default defineConfig({
   cacheDir: ".vite-cache-5293",
-  plugins: [react()],
+  plugins: [react(), qrMenuRoute()],
   server: {
     proxy: {
       "/api": {
@@ -30,6 +42,7 @@ export default defineConfig({
         kafe: "index.html",
         admin: "admin.html",
         kitchen: "kitchen.html",
+        menu: "menu.html",
         tv: "tv.html",
         expo: "expo.html",
       },

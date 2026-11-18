@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 from app.shared.base_schema import BaseSchema, BaseResponseSchema
 
@@ -50,6 +51,11 @@ class PurchaseItemCreate(BaseSchema):
 
 
 class PurchaseDocumentCreate(BaseSchema):
+    # Как оплачен приход: "paid" — сразу (создаётся денежный расход, можно выбрать
+    # payment_type_id), "credit" — на потом (кредиторка перед поставщиком; поставщик обязателен).
+    # Не указан — как раньше: финансы не затрагиваются.
+    payment_mode: Literal["paid", "credit"] | None = None
+    payment_type_id: UUID | None = None
     supplier: str | None = None
     warehouse_id: UUID | None = None
     warehouse_name: str | None = None
@@ -92,6 +98,7 @@ class PurchaseDocumentResponse(BaseResponseSchema):
     status: str
     created_by_name: str | None
     note: str | None
+    payment_mode: str | None = None
 
 
 class PurchaseDocumentDetailResponse(PurchaseDocumentResponse):

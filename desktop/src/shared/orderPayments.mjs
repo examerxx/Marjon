@@ -28,6 +28,12 @@ export function buildOrderPayment(order, method, detail) {
   // у такого способа нет, оплата идёт одной суммой.
   if (detail?.partialAmount !== undefined) {
     const amount = cents(detail.partialAmount)
+    if (name === 'VIP' && amount > 0 && amount <= total) {
+      return { order_id: order.id, amount: money(amount), method: name, partial: true }
+    }
+    if (!['cash', 'card', 'mixed'].includes(name) && name.toLowerCase() !== 'vip' && amount > 0 && amount <= total) {
+      return { order_id: order.id, amount: money(amount), method: name.slice(0, 30), partial: true }
+    }
     if (!['cash', 'card'].includes(name) || amount <= 0 || amount > total) fail('payment_invalid_amount')
     const received = name === 'cash' ? cents(detail.cash ?? detail.partialAmount) : null
     if (received !== null && received < amount) fail('payment_not_full')
@@ -77,7 +83,18 @@ export function submitOrderPayment({ api, storage, server, order, method, detail
     const raw = storage.getItem(slot)
     attempt = raw ? JSON.parse(raw) : null
   } catch { fail('payment_attempt_storage') }
-  if (attempt && (!attempt.key || JSON.stringify(attempt.payload) !== JSON.stringify(payload))) fail('payment_pending_changed')
+  if (attempt && (!attempt.key || JSON.stringify(attempt.payload) !== JSON.stringify(payload))) {
+    // Зависшая попытка с другими суммами. Если на сервере по заказу нет ни одного
+    // действующего платежа, эта попытка ничего не провела — её можно забыть.
+    return Promise.resolve().then(async () => {
+      let rows = null
+      try { rows = (await api.get(`/payments/order/${order.id}`))?.data } catch { rows = null }
+      const active = Array.isArray(rows) && rows.some(p => !['voided', 'failed', 'cancelled'].includes(String(p.status).toLowerCase()))
+      if (!Array.isArray(rows) || active) fail('payment_pending_changed')
+      try { storage.removeItem(slot) } catch { fail('payment_attempt_storage') }
+      return submitOrderPayment({ api, storage, server, order, method, detail, newKey })
+    })
+  }
   if (!attempt) {
     attempt = { key: `desktop-payment:${newKey()}`, payload }
     try { storage.setItem(slot, JSON.stringify(attempt)) } catch { fail('payment_attempt_storage') }
@@ -89,7 +106,8 @@ export function submitOrderPayment({ api, storage, server, order, method, detail
       const expectedStatus = vip ? 'complimentary' : 'completed'
       const expectedAmount = vip ? 0 : cents(payload.amount)
       if (data?.status !== expectedStatus || data?.order_id !== order.id || cents(data.amount) !== expectedAmount) fail('payment_not_confirmed')
-      if (payload.partial && (data.remaining_amount == null || !Number.isFinite(Number(data.remaining_amount)) || Number(data.remaining_amount) < 0)) {
+      if (vip && payload.partial && (data.vip_amount == null || cents(data.vip_amount) !== cents(payload.amount))) fail('payment_not_confirmed')
+      if (payload.partial && (data.remaining_amount == null || !Number.isFinite(Number(data.remaining_amount)) || Number(data.remaining_amount) < 0 || (detail.expectedRemaining > 0 && Number(data.remaining_amount) === 0))) {
         fail('payment_not_confirmed')
       }
       try { storage.removeItem(slot) } catch { /* A retained key safely replays the same confirmed payment. */ }

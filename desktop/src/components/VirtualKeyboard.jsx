@@ -82,7 +82,7 @@ export default function VirtualKeyboard({ onVisibilityChange }) {
       // внутри модалок оверлей сам сжимается на высоту клавиатуры.
       // .pay-dialog-overlay — оверлей оплаты (position: fixed), сжимается сам:
       // поднимать под ним .app-shell бессмысленно, поэтому он тоже в списке.
-      document.body.classList.toggle('vkb-lift', !!activeInput && !activeInput.closest('.modal-overlay, .pay-dialog-overlay, .attn-screen'))
+      document.body.classList.toggle('vkb-lift', !!activeInput && !activeInput.closest('.modal-overlay, .pay-dialog-overlay, .pay-method--debt, .attn-screen'))
     } catch { /* no body */ }
   }, [activeInput, onVisibilityChange])
 

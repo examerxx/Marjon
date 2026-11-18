@@ -4048,7 +4048,7 @@ body.vkb-open .login-card {
 }
 .product-card__thumb img { width: 100%; height: 100%; object-fit: cover; }
 .cashier-products .product-card__name { font-size: var(--text-sm); font-weight: 600; line-height: 1.25; }
-.cashier-products .product-card__price { font-size: var(--text-sm); color: var(--color-brand); font-weight: 700; }
+.cashier-products .product-card__price { font-size: var(--text-sm); color: var(--color-brand); font-weight: 600; }
 
 /* Строка корзины кассы — без наложений и переносов */
 .cashier-cart__items .cart-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--color-card); border: 1px solid var(--color-border-light); border-radius: var(--radius-sm); margin-bottom: 6px; }
@@ -4788,11 +4788,105 @@ body.vkb-lift .cashier-cart__items { min-height: 140px; }
 .pay-method__ico { display: inline-flex; flex-shrink: 0; color: var(--color-text-muted); }
 .pay-method__opt:hover:not(:disabled) .pay-method__ico { color: var(--color-brand); }
 .pay-method__label { display: grid; flex: 1; gap: 3px; min-width: 0; }
+.pay-screen__pay .pay-method__ico:has(img) + .pay-method__label {
+  padding-inline-start: 12px;
+}
 .pay-method__reason, .pay-method__notice { color: var(--color-text-secondary); font-size: var(--text-sm); font-weight: 500; }
 .pay-method__opt--blocked:disabled { opacity: 1; background: var(--color-surface-hover); color: var(--color-text-secondary); }
 .pay-method__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Долг — та же карточка, что и выбор способа: итоги, поля клиента, действия. */
-.pay-debt { gap: 10px; }
+.pay-debt { gap: 16px; overflow: visible; }
+.pay-debt__picker-field { position: relative; }
+.pay-debt__add-client {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-brand);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pay-debt__add-client:hover:not(:disabled) { background: var(--color-brand-bg); }
+.pay-debt__add-client:disabled { opacity: .5; cursor: default; }
+.pay-debt__new-client, .pay-debt__new-client label { display: grid; gap: 8px; }
+.pay-debt__new-client .input { width: 100%; }
+.pay-debt__picker-menu {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(100% + 6px);
+  z-index: 1;
+  box-shadow: var(--shadow-lg);
+  border-radius: 12px;
+}
+body.vkb-open .pay-method--debt {
+  bottom: var(--vkb-height, 0px);
+  grid-template-rows: minmax(0, 1fr);
+}
+body.vkb-open .pay-method--debt .pay-debt {
+  max-height: 100%;
+}
+.pay-debt__picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.pay-debt__picker[aria-expanded="true"] {
+  border-color: var(--color-brand);
+  background: var(--color-brand-bg);
+}
+.pay-debt__picker[aria-expanded="true"] svg { transform: rotate(180deg); }
+.pay-debt__clients {
+  max-height: min(220px, 30vh);
+  overflow: auto;
+  border: 1px solid var(--color-brand);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+.pay-debt__clients p { margin: 6px; color: var(--color-text-secondary); }
+.pay-debt__clients ul {
+  margin: 0;
+  padding: 5px;
+  list-style: none;
+}
+.pay-debt__client {
+  position: relative;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  color: var(--color-text-primary);
+  text-align: start;
+  cursor: pointer;
+}
+.pay-debt__client input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.pay-debt__client:hover { background: var(--color-subtle); }
+.pay-debt__client:has(input:checked) {
+  background: var(--color-brand-bg);
+  color: var(--color-brand);
+}
+.pay-debt__client:has(input:focus-visible) { outline: 2px solid var(--color-brand); outline-offset: -2px; }
+.pay-debt__clients small { display: block; margin-top: 2px; color: var(--color-text-secondary); }
 .pay-debt__sum {
   display: flex; flex-direction: column; gap: 4px;
   padding: 10px 14px;
@@ -6433,9 +6527,8 @@ button.cart-item--summary:hover { border-color: var(--color-brand); }
   font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: color-mix(in srgb, var(--color-brand) 80%, #0b2a33);
+  color: var(--color-brand);
 }
-[data-theme="dark"] .cashier-cart__items .cart-item--summary .cart-item__info .cart-item__price { color: var(--color-brand); }
 
 /* Степпер — одна мягкая «таблетка» с круглыми кнопками */
 .cashier-cart__items .cart-item--summary .cart-item__stepper {
@@ -6476,11 +6569,39 @@ button.cart-item--summary:hover { border-color: var(--color-brand); }
 /* Три колонки: название | количество по центру | цена справа; у новых блюд слева акцентная линия */
 .cashier-cart__items .cart-item.cart-item--summary,
 .cashier-cart__items .cart-item.cart-item--summary.cart-item--stepper {
-  grid-template-columns: minmax(0, 1fr) auto minmax(84px, auto);
+  grid-template-columns: 42px minmax(0, 1fr) auto;
   column-gap: 10px;
 }
 .cashier-cart__items .cart-item--summary > .cart-item__stepper,
-.cashier-cart__items .cart-item--summary > .cart-item__qty-badge { justify-self: center; margin-left: 0; }
+.cashier-cart__items .cart-item--summary > .cart-item__qty-badge { justify-self: end; margin-left: 0; }
+.cart-item__photo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  margin-inline-start: -4px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--color-subtle);
+  color: var(--color-text-muted);
+}
+.cart-item__photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cashier-cart__order-meta {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
 .cashier-cart__items .cart-item--summary > .cart-item__price {
   justify-self: end;
   text-align: right;
@@ -6519,11 +6640,11 @@ button.cart-item--summary:hover { border-color: var(--color-brand); }
 .cashier-cart__items .cart-item--summary .cart-item__meta { font-size: 9.5px; line-height: 1.1; }
 .cashier-cart__items .cart-item.cart-item--summary,
 .cashier-cart__items .cart-item.cart-item--summary.cart-item--stepper {
-  box-shadow: inset 3px 0 0 var(--color-brand), 0 1px 2px rgba(16, 42, 67, 0.04);
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--color-brand) 55%, transparent), 0 1px 2px rgba(16, 42, 67, 0.04);
 }
 .cashier-cart__items .cart-item.cart-item--summary.cart-item--stepper.cart-item--draft,
 .cashier-cart__items .cart-item.cart-item--summary.cart-item--draft {
-  box-shadow: inset 3px 0 0 #0fbf5f, 0 1px 2px rgba(16, 42, 67, 0.04);
+  box-shadow: inset 2px 0 0 rgb(15 191 95 / 55%), 0 1px 2px rgba(16, 42, 67, 0.04);
 }
 
 /* Цена в корзине — жирность 500 */
@@ -6674,7 +6795,6 @@ button.cart-item--summary:hover { border-color: var(--color-brand); }
 /* Печать и закрытие — в одну строку внизу */
 .pay-screen__actions { flex-direction: row; gap: 12px; margin-top: 0; }
 .pay-screen__actions .btn--eq { flex: 1 1 0; }
-.pay-screen__actions .pay-order__close { flex: 1.5 1 0; }
 .pay-screen__actions .pay-order__close:disabled { opacity: 0.45; cursor: default; }
 
 /* ── Экран оплаты: контрастное оформление ─────────────────────────────── */
@@ -6723,12 +6843,12 @@ button.cart-item--summary:hover { border-color: var(--color-brand); }
 }
 .pay-screen__pay .pay-method__opt.is-selected,
 .pay-screen__pay .pay-method__opt.is-selected:hover:not(:disabled) {
-  border-color: #0b6f73;
-  background: linear-gradient(135deg, #14a3a3 0%, #0b7f86 100%);
-  color: #ffffff;
-  box-shadow: 0 10px 20px -12px rgba(11, 111, 115, 0.8);
+  border: 1px solid #8bbdb8;
+  border-radius: 13px;
+  background: #e5f3f0;
+  color: #153044;
+  box-shadow: inset 0 1px #fff, 0 2px 0 #c9d6df;
 }
-.pay-screen__pay .pay-method__opt.is-selected .pay-method__ico { color: #ffffff; }
 .pay-screen__pay .pay-method__opt:disabled { opacity: 1; background: #eef2f6; border-color: #c4d0dc; color: #6b7f93; }
 
 /* Сумма и цифры */
@@ -6775,28 +6895,6 @@ button.cart-item--summary:hover { border-color: var(--color-brand); }
 }
 .pay-screen__pay .pay-method__sum strong { color: #0b1f33; font-size: 26px; font-weight: 800; }
 
-.pay-screen__pay .pay-method__opt.is-selected,
-.pay-screen__pay .pay-method__opt.is-selected:hover:not(:disabled) {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 22px;
-  background:
-    radial-gradient(130% 140% at 16% -20%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 55%),
-    linear-gradient(180deg, rgba(64, 213, 213, 0.94) 0%, rgba(29, 181, 181, 0.92) 46%, rgba(17, 138, 138, 0.95) 100%);
-  background-color: rgba(29, 181, 181, 0.55);
-  color: #ffffff;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.14);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.65),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.16),
-    inset 0 0 22px rgba(255, 255, 255, 0.1),
-    0 10px 26px -10px rgba(29, 181, 181, 0.6),
-    0 2px 6px rgba(15, 35, 60, 0.12);
-}
-.pay-screen__pay .pay-method__opt.is-selected .pay-method__ico,
-.pay-screen__pay .pay-method__opt.is-selected .pay-method__name { color: #ffffff; }
 
 /* Мягче рамка и цена с жирностью 500 в «К оплате» и в поле суммы */
 .pay-screen__pay .pay-method__sum,
@@ -6865,7 +6963,10 @@ button.cart-item--summary:hover { border-color: var(--color-brand); }
 
 
 /* Экран оплаты: светлый задний фон (оставлен после отката редизайна) */
-.pay-screen { background: #eef2f7; }
+.pay-screen {
+  --pay-screen-background: #f7f9fc;
+  background: var(--pay-screen-background);
+}
 .pay-screen .pay-screen__head { background: #ffffff; border-bottom: 1px solid #e2e9f0; }
 
 /* Две большие карточки оплаты — снова белые, объёмные (как в 3D-варианте) */
@@ -6969,7 +7070,7 @@ button.cart-item--summary:hover { border-color: var(--color-brand); }
 /* Четыре кнопки под шапкой — одинаковой ширины с равными промежутками */
 .pay-screen__side > .pay-screen__toolbar {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(245px, 1.2fr);
   gap: 10px;
 }
 .pay-screen__side > .pay-screen__toolbar > * { width: 100%; min-width: 0; margin: 0; }
@@ -6999,8 +7100,77 @@ button.cart-item--summary:hover { border-color: var(--color-brand); }
 /* Рамка двух больших карточек оплаты темнее */
 .pay-screen__pay .pay-method__card,
 .pay-screen__pay .pay-amount-pad {
-  border-color: #98adc1;
-  border-bottom-color: #7f97ae;
+  border-color: #d6e1e9;
+  background: linear-gradient(155deg, #fff 15%, #edf3f6);
+  box-shadow: inset 0 1px #fff, 0 3px 0 #c4d3de, 0 10px 18px -12px #28465e80;
+}
+
+.pay-screen__pay .pay-method__sum {
+  background: #fff;
+  border: 1px solid #e0eaf6;
+  color: #344f71;
+  box-shadow: none;
+}
+.pay-screen__pay .pay-method__sum strong { color: #234467; font-variant-numeric: tabular-nums; }
+.pay-screen__pay .pay-amount-pad__field {
+  background: #edf3f7;
+  border: 1px solid #dbe6ee;
+  box-shadow: inset 0 2px 5px #24435c20, 0 1px #fff;
+}
+.pay-screen__pay .pay-amount-pad__field:focus-within {
+  border-color: #5bb5ac;
+  box-shadow: 0 0 0 2px #5bb5ac33;
+}
+.pay-screen__pay .pay-method__list {
+  gap: 10px;
+}
+.pay-screen__pay .pay-method__opt:not(.is-selected) {
+  border-color: #d0dce5;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #fff 30%, #f3f7fa);
+  box-shadow: inset 0 1px #fff, 0 2px 0 #c9d6df, 0 4px 7px #20374f12;
+}
+.pay-screen__pay .pay-method__opt:not(.is-selected):hover:not(:disabled) {
+  background: #e8f4f1;
+}
+.pay-screen__pay .pay-amount-pad__keys .vkb__key {
+  border-color: #ccd9e3;
+  background: linear-gradient(180deg, #fff 25%, #edf3f8);
+  box-shadow: inset 0 1px #fff, 0 3px 0 #bfcfdb, 0 5px 9px #20374f17;
+}
+.pay-screen__pay .pay-amount-pad__keys .vkb__key:hover:not(:disabled) {
+  background: #e9eff5;
+  border-color: #a6b9cc;
+}
+.pay-screen__pay .pay-amount-pad__keys .vkb__key:active:not(:disabled) {
+  border-color: #829ab2;
+}
+.pay-screen__pay .pay-amount-pad__keys .vkb__key:active:not(:disabled),
+.pay-screen__pay .pay-method__opt:not(.is-selected):active:not(:disabled) {
+  background: #cbd9e7;
+  transform: translateY(2px);
+  box-shadow: inset 0 1px 3px #20374f20;
+}
+.pay-screen__pay .pay-method__opt .pay-method__ico {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  color: #216b64;
+}
+.pay-screen__pay .pay-method__opt .pay-method__ico:not(:has(img)) {
+  background: #e7f4f1;
+}
+.pay-screen__pay .pay-method__opt.is-selected .pay-method__ico {
+  color: #fff;
+}
+.pay-screen__pay .pay-method__opt.is-selected .pay-method__ico:not(:has(img)) {
+  background: #ffffff30;
+}
+.pay-screen__pay .pay-amount-pad__keys .vkb__key--medium {
+  background: linear-gradient(180deg, #eaf1f7, #d7e4ee);
 }
 
 /* Заголовок экрана оплаты — снова по центру шапки */
@@ -7009,3 +7179,328 @@ button.cart-item--summary:hover { border-color: var(--color-brand); }
   grid-template-columns: 1fr auto 1fr;
 }
 .pay-screen__head h3 { text-align: center; }
+
+.pay-amount-transfer {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.pay-screen__body { min-height: 0; }
+.pay-screen__side {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  container-type: inline-size;
+}
+.pay-screen__side > .pay-screen__pay {
+  flex: 1 1 0;
+  min-height: 365px;
+  margin: 0;
+}
+.pay-screen__side > .pay-screen__toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--pay-screen-background);
+}
+.pay-screen__pay {
+  column-gap: 14px;
+  padding: 8px;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 5fr);
+  border: 1px solid #cbd9e3;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: inset 0 1px #fff, 0 3px 0 #c4d3de, 0 10px 18px -12px #28465e80;
+}
+.pay-screen__pay--single { grid-template-columns: minmax(0, 1fr); }
+.pay-screen__pay .pay-method__card,
+.pay-screen__pay .pay-amount-pad {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.pay-screen__pay .pay-method__card,
+.pay-screen__pay .pay-amount-pad {
+  border: 1px solid #dce7ef;
+  border-radius: 17px;
+  background: #e2ebf3;
+  box-shadow: inset 0 1px 4px #29496412;
+}
+.pay-screen__pay .pay-method__card,
+.pay-screen__pay .pay-amount-pad { margin: 0; }
+.pay-screen__pay .pay-amount-pad__label { color: #293c37; }
+.pay-amount-pad__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.pay-amount-pad__heading .pay-amount__hint {
+  margin-inline-start: auto;
+  text-align: end;
+}
+.pay-method__back {
+  display: inline-grid;
+  place-items: center;
+  margin-inline-start: auto;
+  min-width: 34px;
+  min-height: 34px;
+}
+.pay-method__ico img {
+  width: 44px;
+  height: 34px;
+  object-fit: contain;
+  border-radius: 3px;
+  translate: 0 -2px;
+}
+.pay-method__ico img.pay-method__custom-image {
+  scale: 1.18;
+}
+.pay-screen__pay .pay-method__ico:has(img) {
+  width: 52px;
+  height: 38px;
+  background: transparent;
+}
+.pay-screen__pay .pay-method__opt.is-selected .pay-method__ico:has(img) {
+  background: transparent;
+}
+.pay-screen__pay .pay-method__ico img {
+  filter: drop-shadow(0 1px 1px #172e4a24);
+}
+.pay-screen__pay .pay-method__opt:not([data-method="cash"]) .pay-method__ico img {
+  filter: brightness(1.4) contrast(.84) saturate(.8) drop-shadow(0 1px 1px #172e4a24);
+}
+.pay-screen__pay .pay-amount-pad__credit { color: #58655d; }
+.pay-screen__pay .pay-amount-pad__credit strong { color: #286b56; }
+.pay-screen__pay .pay-method__sum,
+.pay-screen__pay .pay-amount-pad__field {
+  background: #fff;
+  min-height: 62px;
+  border-radius: 14px;
+  border-color: #cfdee9;
+  box-shadow: inset 0 2px 5px #29496414;
+}
+.pay-screen__pay .pay-method__sum strong { color: #233f35; }
+.pay-screen__pay .pay-amount-pad__field input { color: #233f35; font-variant-numeric: tabular-nums; }
+.pay-screen__pay .pay-amount-pad__field > span { color: #58655d; }
+.pay-screen__pay .pay-amount-pad__keys .vkb__key:not(:hover):not(:active) {
+  border-color: #d4e0eb;
+  background: linear-gradient(#fff, #f4f8fc);
+  box-shadow: inset 0 1px #fff, 0 2px #c2d3e1;
+}
+.pay-screen__pay .pay-amount-pad__keys .vkb__key--medium:not(:hover):not(:active) {
+  background: #dce9f3;
+}
+.pay-screen__pay .pay-method__list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+.pay-screen__pay .pay-method__opt {
+  min-height: 62px;
+  column-gap: 14px;
+  font-weight: 600;
+  min-width: 0;
+  height: auto;
+  padding-inline: 10px;
+}
+.pay-screen__pay .pay-method__opt:has(.pay-method__allocated),
+.pay-screen__pay .pay-method__opt--blocked,
+.pay-screen__pay .pay-method__notice {
+  grid-column: 1 / -1;
+}
+.pay-screen__pay .pay-method__list--amount-entered .pay-method__opt {
+  animation: none;
+  transition: none;
+}
+.pay-screen__pay .pay-method__list--amount-entered .pay-method__opt:active:not(:disabled) {
+  transform: none;
+}
+.pay-screen__pay .pay-method__card,
+.pay-screen__pay .pay-amount-pad {
+  padding: 18px;
+  gap: 12px;
+}
+.pay-screen__pay .pay-method__head,
+.pay-screen__pay .pay-amount-pad__heading {
+  min-height: 34px;
+  flex-shrink: 0;
+  align-items: center;
+}
+.pay-screen__pay .pay-method__sum,
+.pay-screen__pay .pay-amount-pad__field { flex: 0 0 62px; }
+.pay-screen__pay .pay-method__list:not(.pay-method__list--amount-entered) .pay-method__opt.is-selected {
+  border: 1px solid #8bbdb8;
+  border-radius: 13px;
+  background: #e5f3f0;
+  color: #153044;
+  text-shadow: none;
+  box-shadow: inset 0 1px #fff, 0 2px 0 #c9d6df;
+}
+.pay-screen__pay .pay-method__opt.is-selected .pay-method__name { color: inherit; }
+.pay-screen__pay .pay-method__list--amount-entered .pay-method__opt.is-selected,
+.pay-screen__pay .pay-method__list--amount-entered .pay-method__opt:active:not(:disabled) {
+  border: 1px solid #b9cedc;
+  border-radius: 13px;
+  background: #e8f1f6;
+  color: #153044;
+  text-shadow: none;
+  box-shadow: inset 0 1px #fff, 0 2px 0 #c9d6df;
+}
+.pay-screen__pay .pay-method__list--amount-entered .pay-method__opt.is-selected .pay-method__name {
+  color: inherit;
+}
+.pay-screen__pay .pay-method__opt.is-selected .pay-method__allocated {
+  color: #246475;
+}
+.pay-screen__pay .pay-amount-pad__keys {
+  flex: 1 1 auto;
+  min-height: 0;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 12px;
+}
+.pay-screen__pay .pay-amount-pad__keys .vkb__key {
+  height: 100%;
+  min-height: 0;
+  border-radius: 14px;
+  font-weight: 600;
+}
+.pay-amount-pad__credit {
+  margin-top: auto;
+  padding-top: 6px;
+  align-self: flex-end;
+  flex-shrink: 0;
+  color: #526980;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .13em;
+  line-height: 1.3;
+}
+.pay-amount-pad__credit strong { color: #23777d; font-weight: 800; }
+.pay-screen__side > .pay-screen__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  flex-shrink: 0;
+  background: var(--pay-screen-background);
+  border-top: 0;
+  padding-block: 8px;
+}
+@container (max-width: 740px) {
+  .pay-screen__side > .pay-screen__toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (max-width: 480px) {
+  .pay-screen__side > .pay-screen__toolbar > .pay-screen__control:has(.pay-dialog__disc) {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+}
+@media (max-width: 980px) {
+  .pay-screen__receipt-col { flex: 0 0 auto; }
+  .pay-receipt-scroll {
+    max-height: 30dvh;
+    overflow-y: auto;
+    justify-content: flex-start;
+  }
+  .pay-screen__side { flex: 0 0 auto; overflow: visible; }
+}
+
+/* Tighter debt header and clearer payment symbols. */
+.pay-method__card.pay-debt {
+  padding-top: 12px;
+  gap: 12px;
+}
+.pay-debt .pay-method__head {
+  min-height: 32px;
+  margin: 0;
+  padding: 0;
+}
+.pay-debt .pay-method__head .icon-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 6px;
+}
+.pay-screen__pay .pay-method__opt .pay-method__ico:not(:has(img)) {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  color: #15584f;
+  background: #e0f1ed;
+}
+.pay-screen__pay .pay-method__opt .pay-method__ico > svg {
+  width: 30px;
+  height: 30px;
+  stroke-width: 2.2;
+}
+.pay-screen__pay .pay-method__opt.is-selected .pay-method__ico:not(:has(img)) {
+  color: #fff;
+  background: #ffffff30;
+}
+
+.pay-screen__pay .pay-method__opt .pay-method__ico:has(.payment-method-art) {
+  width: 44px;
+  height: 42px;
+  background: transparent;
+}
+.pay-screen__pay .pay-method__opt .pay-method__ico > .payment-method-art {
+  width: 36px;
+  height: 36px;
+  stroke-width: initial;
+}
+
+/* Переключатель в шапке окна ввода (отмена заказа: «Не возвращать продукты»). */
+.prompt-modal .modal__header .prompt-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  margin-right: 14px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.prompt-toggle__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.prompt-toggle__box {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: 1.5px solid #c3cfdd;
+  border-radius: 8px;
+  background: #fff;
+  color: transparent;
+  box-shadow: inset 0 1px 2px rgba(15, 35, 60, 0.06);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.18s ease, color 0.15s ease, transform 0.12s ease;
+}
+.prompt-toggle:active .prompt-toggle__box { transform: scale(0.92); }
+.prompt-toggle__input:checked + .prompt-toggle__box {
+  border-color: transparent;
+  color: #fff;
+  background: linear-gradient(160deg, #3ed8d1 0%, #1fbdb8 45%, #0e9a93 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 4px rgba(31, 201, 201, 0.16), 0 3px 8px -2px rgba(14, 154, 147, 0.45);
+}
+.prompt-toggle__input:focus-visible + .prompt-toggle__box {
+  box-shadow: 0 0 0 4px rgba(31, 201, 201, 0.35);
+}
+.prompt-toggle__label {
+  color: var(--color-text-primary, #243a56);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}

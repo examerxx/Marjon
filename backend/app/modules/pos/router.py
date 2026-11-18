@@ -86,6 +86,18 @@ async def update_order_status(order_id: UUID, data: OrderStatusUpdate, user: Use
     )
 
 
+@router.post("/orders/{order_id}/debt", response_model=OrderResponse)
+async def close_order_as_debt(
+    order_id: UUID, data: OrderStatusUpdate,
+    user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db),
+):
+    if data.status != "completed" or data.counterparty_id is None:
+        from app.shared.exceptions import ValidationError
+
+        raise ValidationError("Выберите клиента для заказа в долг")
+    return await update_order_status(order_id, data, user, db)
+
+
 @router.post("/orders/{order_id}/reopen", response_model=OrderResponse)
 async def reopen_order(
     order_id: UUID, data: OrderReopen | None = None,
@@ -102,8 +114,10 @@ async def reopen_order(
 
 
 @router.delete("/orders/{order_id}", response_model=OrderResponse)
-async def cancel_order(order_id: UUID, password: str | None = Query(None), comment: str | None = Query(None), user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
-    return await OrderService(db, branch_scope=effective_branch_filter(user)).cancel(user.company_id, order_id, password, comment, user)
+async def cancel_order(order_id: UUID, password: str | None = Query(None), comment: str | None = Query(None), consume_stock: bool = Query(False), user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
+    return await OrderService(db, branch_scope=effective_branch_filter(user)).cancel(
+        user.company_id, order_id, password, comment, user, consume_stock=consume_stock
+    )
 
 
 @router.post("/orders/{order_id}/items", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
@@ -169,7 +183,9 @@ async def list_terminals(user: User = Depends(require_company_app_user), db: Asy
 
 @router.post("/shifts/open", response_model=ShiftResponse, status_code=status.HTTP_201_CREATED)
 async def open_shift(data: ShiftOpen, user: User = Depends(require_company_app_user), db: AsyncSession = Depends(get_db)):
-    return await ShiftService(db).open_shift(user.company_id, user.id, data)
+    return await ShiftService(db).open_shift(
+        user.company_id, user.id, data, support_session=getattr(user, "support_session", False)
+    )
 
 
 @router.post("/shifts/close", response_model=ShiftResponse)

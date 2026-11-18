@@ -1,0 +1,86 @@
+.qr-menu { display: grid; gap: 22px; align-content: start; }
+.qr-menu__base { display: grid; gap: 6px; max-width: 560px; }
+.qr-menu__base b { font-size: 13px; }
+.qr-menu__base input {
+  height: 42px; padding: 0 14px; border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, .14); background: transparent; color: inherit; font: inherit;
+}
+.qr-menu__base em { font-style: normal; font-size: 12px; opacity: .65; line-height: 1.4; }
+.qr-menu__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.qr-menu__head h2 { margin: 0; font-size: 18px; }
+.qr-menu__group h3 { margin: 18px 0 10px; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; opacity: .6; }
+.qr-menu__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+.qr-menu__printall {
+  display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px;
+  border: 0; border-radius: 999px; background: #1fbfb3; color: #fff; font: inherit; font-weight: 700; cursor: pointer;
+}
+.qr-card {
+  display: grid; gap: 10px; padding: 14px; border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, .1); background: rgba(255, 255, 255, .55);
+}
+.qr-card--big { grid-template-columns: 180px 1fr; align-items: center; max-width: 560px; }
+.qr-card--big .qr-card__actions { grid-column: 2; }
+.qr-card__img { display: grid; place-items: center; background: #fff; border-radius: 12px; padding: 6px; aspect-ratio: 1; }
+.qr-card__img img { width: 100%; height: 100%; }
+.qr-card__wait { width: 40%; height: 40%; border-radius: 50%; border: 3px solid #1fbfb3; border-right-color: transparent; animation: qr-spin .8s linear infinite; }
+@keyframes qr-spin { to { transform: rotate(360deg); } }
+.qr-card__meta { display: grid; gap: 2px; }
+.qr-card__meta b { font-size: 16px; }
+.qr-card__meta span { font-size: 12px; opacity: .6; }
+.qr-card__actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.qr-card__actions button, .qr-card__actions a {
+  display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 10px; border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, .14); background: transparent; color: inherit; font: inherit; font-size: 12px;
+  font-weight: 600; text-decoration: none; cursor: pointer;
+}
+.qr-card__actions button:disabled { opacity: .4; cursor: default; }
+.qr-card__actions button:hover:not(:disabled), .qr-card__actions a:hover { border-color: #1fbfb3; color: #138a81; }
+@media (max-width: 640px) {
+  .qr-card--big { grid-template-columns: 1fr; }
+  .qr-card--big .qr-card__actions { grid-column: 1; }
+}
+
+/* Карточка заведения: фото и название вместо поля адреса. */
+.qr-brand {
+  display: flex; align-items: center; gap: 16px; max-width: 560px; padding: 14px 16px; border-radius: 20px;
+  border: 1px solid rgba(15, 23, 42, .1); background: linear-gradient(135deg, rgba(31, 191, 179, .12), rgba(255, 255, 255, .5) 60%);
+}
+.qr-brand__logo {
+  flex: none; width: 72px; height: 72px; border-radius: 20px; object-fit: cover; background: #fff;
+  box-shadow: 0 0 0 3px #fff, 0 6px 18px -6px rgba(8, 100, 92, .45);
+}
+.qr-brand__logo--letter {
+  display: grid; place-items: center; background: linear-gradient(135deg, #0e9488, #0a6f68); color: #fff; font-size: 30px; font-weight: 800;
+}
+.qr-brand__text { min-width: 0; display: grid; gap: 4px; }
+.qr-brand__text h2 { margin: 0; font-size: 22px; line-height: 1.15; font-weight: 800; overflow-wrap: anywhere; }
+.qr-brand__text p { margin: 0; font-size: 13px; opacity: .7; line-height: 1.4; }
+.qr-brand__text p b { font-weight: 700; opacity: 1; }
+.qr-brand__edit {
+  margin-left: 8px; padding: 0; border: 0; background: none; color: #0b7a71; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+}
+
+/* Редактирование названия и фото прямо в карточке заведения. */
+.qr-brand__photo { position: relative; flex: none; }
+.qr-brand__camera {
+  position: absolute; right: -6px; bottom: -6px; display: grid; place-items: center; width: 32px; height: 32px; padding: 0;
+  border: 2px solid #fff; border-radius: 50%; background: #0b7a71; color: #fff; cursor: pointer; box-shadow: 0 4px 10px -3px rgba(8, 100, 92, .55);
+}
+.qr-brand__camera:hover:not(:disabled) { background: #0e9488; }
+.qr-brand__camera:disabled { opacity: .7; cursor: default; }
+.qr-brand__camera .qr-card__wait { width: 14px; height: 14px; border-width: 2px; border-color: #fff; border-right-color: transparent; }
+.qr-brand__pencil {
+  display: inline-grid; place-items: center; width: 30px; height: 30px; margin-left: 8px; padding: 0; vertical-align: middle;
+  border: 0; border-radius: 50%; background: transparent; color: inherit; opacity: .55; cursor: pointer;
+}
+.qr-brand__pencil:hover { opacity: 1; background: rgba(15, 23, 42, .06); }
+.qr-brand__form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.qr-brand__form input {
+  flex: 1 1 200px; min-width: 0; height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(15, 23, 42, .2); background: #fff; color: inherit; font: inherit; font-size: 16px; font-weight: 700;
+}
+.qr-brand__form input:focus { outline: 2px solid #1fbfb3; outline-offset: 1px; }
+.qr-brand__save, .qr-brand__cancel { height: 36px; padding: 0 14px; border-radius: 999px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.qr-brand__save { border: 0; background: #1fbfb3; color: #fff; }
+.qr-brand__save:disabled, .qr-brand__cancel:disabled { opacity: .6; cursor: default; }
+.qr-brand__cancel { border: 1px solid rgba(15, 23, 42, .18); background: transparent; color: inherit; }
+.qr-brand__text p.qr-brand__problem { color: #cf4437; opacity: 1; font-weight: 600; }

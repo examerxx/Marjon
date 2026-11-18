@@ -69,8 +69,17 @@ test('timeout never becomes offline success and retry reuses durable key', async
 test('ambiguous attempt cannot silently switch from cash to card', async () => {
   const h = harness(() => Promise.reject(new Error('timeout')))
   await assert.rejects(submitOrderPayment(h.options))
-  assert.throws(() => submitOrderPayment({ ...h.options, method: 'card' }), error => error.paymentErrorKey === 'payment_pending_changed')
+  await assert.rejects(submitOrderPayment({ ...h.options, method: 'card' }), error => error.paymentErrorKey === 'payment_pending_changed')
   assert.equal(h.calls.length, 1)
+})
+test('stale attempt is dropped when the server has no active payment for the order', async () => {
+  const h = harness(() => Promise.reject(new Error('timeout')))
+  await assert.rejects(submitOrderPayment(h.options))
+  h.options.api.get = () => Promise.resolve({ data: [{ status: 'voided' }] })
+  h.options.api.post = (...args) => { h.calls.push(args); return Promise.resolve({ data: { order_id: order.id, status: 'completed', amount: 46000 } }) }
+  await submitOrderPayment({ ...h.options, method: 'card' })
+  assert.equal(h.calls.length, 2)
+  assert.equal(h.store.data.size, 0)
 })
 test('definitive rejection allows correction but never reports success', async () => {
   const h = harness(() => Promise.reject(Object.assign(new Error('total changed'), { response: { status: 422 } })))
@@ -113,6 +122,12 @@ test('VIP closes a complimentary order with no money received', async () => {
   assert.equal(result.status, 'complimentary')
   assert.deepEqual(h.calls[0][1], { order_id: order.id, method: 'VIP', amount: '46000.00' })
   assert.equal(h.store.data.size, 0)
+})
+
+test('partial VIP allocates only the entered amount without recording cash income', () => {
+  assert.deepEqual(buildOrderPayment(order, 'VIP', { partialAmount: 40000 }), {
+    order_id: order.id, method: 'VIP', amount: '40000.00', partial: true,
+  })
 })
 
 test('partial card payment sends only the entered amount and confirms the server balance', async () => {

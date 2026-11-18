@@ -238,3 +238,12 @@ body.dashboard-body .kpi-detail-table--share :is(th, td):nth-child(3) {
 .owner-orders-report .report-order-status { font-size: 13px; font-weight: 600; }
 .owner-average-report th:nth-child(n+2), .owner-average-report td:nth-child(n+2) { text-align: right; white-space: nowrap; }
 .owner-average-report td:nth-child(2) { font-weight: 400; }
+
+.revenue-products__category-text {
+  display: inline;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: inherit;
+}
+.kpi-detail-table .revenue-products__expenses > td { color: #c23a46; font-weight: 600; }

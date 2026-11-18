@@ -122,7 +122,7 @@
   margin: 2px 0 0;
   font-size: 23px;
   line-height: 24px;
-  font-weight: 700;
+  font-weight: 600;
   color: #0b1f3f;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -169,11 +169,13 @@
    прямые скруглённые края и мягкая тень. Печатный шаблон не меняется.
    Селектор намеренно длиннее, чем `.receipt-settings-page .receipt-preview-shell
    .receipt-preview` из receiptSettings.css — иначе его правила побеждают. */
-.receipt-dialog .receipt-dialog__body.receipt-settings-page .receipt-preview {
+.receipt-dialog .receipt-dialog__body.receipt-settings-page .receipt-preview,
+.receipt-dialog .receipt-dialog__body.receipt-settings-page .receipt-preview:hover {
   clip-path: none;
   border-radius: 16px;
   box-shadow: 0 10px 26px rgba(15, 30, 60, 0.14);
   filter: none;
+  transition: none;
 }
 /* The complete paper fits here, so neither the panel nor receipt scrolls. */
 .receipt-dialog .receipt-dialog__body .receipt-fit-viewport {
@@ -203,9 +205,7 @@
 .receipt-dialog:hover,
 .receipt-dialog:focus-within,
 .receipt-dialog .receipt-dialog__body .receipt-preview-shell,
-.receipt-dialog .receipt-dialog__body .receipt-preview-shell:hover,
-.receipt-dialog .receipt-dialog__body .receipt-preview,
-.receipt-dialog .receipt-dialog__body .receipt-preview:hover {
+.receipt-dialog .receipt-dialog__body .receipt-preview-shell:hover {
   box-shadow: none;
   filter: none;
 }
@@ -217,4 +217,15 @@
 @media (max-width: 560px) {
   .receipt-dialog-backdrop { padding: 12px; }
   .receipt-dialog { border-radius: 18px; }
+}
+.receipt-dialog__body { position: relative; }
+.receipt-dialog__signature {
+  position: absolute;
+  top: 12px;
+  right: 22px;
+  z-index: 1;
+  color: #718096;
+  font: 600 10px/1.4 Arial, sans-serif;
+  letter-spacing: 1px;
+  pointer-events: none;
 }

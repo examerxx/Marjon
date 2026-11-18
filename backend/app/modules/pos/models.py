@@ -247,6 +247,7 @@ class CashierShift(TimeStampedModel):
     cashier_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id"), index=True)
     opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    support_session: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     opening_cash: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0"))
     closing_cash: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), nullable=True)
     # open | closed

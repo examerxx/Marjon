@@ -1,6 +1,7 @@
 import { formatMoney, formatNumber } from "../../api/client";
 import { formatDateLabel, todayInputValue, toDateInputValue } from "../../utils/date";
 import { t } from "../../i18n/t";
+import { webDayKey, webTime } from "../../utils/webTime";
 
 // Реальные аналитические преобразования OWNER-дашборда: нормализация строк
 // оплат/заказов/среднего чека, сборка KPI и складской сводки.
@@ -103,6 +104,7 @@ export function paymentMethodLabel(value) {
   const labels = {
     cash: t("dashboard.cash_revenue"),
     card: "Карта",
+    debt: "В долг",
     click: "CLICK",
     payme: "Pay me",
     pay_me: "Pay me",
@@ -296,8 +298,28 @@ export function signed(n) {
   return n > 0 ? `+${n}` : `${n}`;
 }
 
-export function buildRevenueChartSales(rows) {
-  return Array.isArray(rows) ? rows : [];
+export function buildRevenueChartSales(rows, financeRows = [], dateFrom, dateTo) {
+  const sales = Array.isArray(rows) ? rows : [];
+  const repayments = financeRows.filter(row => row.direction === "income" && row.category_name === "Возврат долга");
+  if (!repayments.length) return sales;
+  const hourly = dateFrom === dateTo;
+  const keyOf = row => hourly
+    ? `${webDayKey(row.date)}T${row.chart_label || row.chartLabel || `${webTime(row.date).slice(0, 2)}:00`}`
+    : webDayKey(row.date);
+  const base = sales.length ? sales : hourly
+    ? Array.from({ length: 24 }, (_, hour) => ({ date: dateFrom, chart_label: `${String(hour).padStart(2, "0")}:00`, income: 0, revenue: 0, orders_count: 0 }))
+    : buildZeroRevenueBuckets(dateFrom, dateTo).map(row => ({ ...row, income: 0 }));
+  const buckets = new Map(base.map(row => [keyOf(row), { ...row, income: bucketIncome(row) }]));
+  for (const repayment of repayments) {
+    const day = webDayKey(repayment.date);
+    if (day < dateFrom || day > dateTo) continue;
+    const key = keyOf(repayment);
+    const bucket = buckets.get(key) || { date: day, ...(hourly ? { chart_label: key.slice(11) } : {}), income: 0, revenue: 0, orders_count: 0 };
+    bucket.income += toFiniteNumber(repayment.amount);
+    delete bucket.isDisplayOnly;
+    buckets.set(key, bucket);
+  }
+  return [...buckets.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, row]) => row);
 }
 
 // Денежный приход одного бакета. Бэкенд с базой
@@ -379,8 +401,10 @@ export function buildRealKpis(dash, sales, selectedDate, placeSettings = [], fin
   const nonCashTotal = dash.non_cash_total;
   const financeIncomeTotal = groupFinanceRows(financeRows, "income").reduce((sum, row) => sum + Number(row.amount), 0);
   const financeExpenseTotal = groupFinanceRows(financeRows, "expense").reduce((sum, row) => sum + Number(row.amount), 0);
-  const income = dash.income_total ?? financeIncomeTotal;
-  const expense = dash.expense_total ?? financeExpenseTotal;
+  const repaymentIncome = financeRows.filter(row => row.direction === "income" && row.category_name === "Возврат долга").reduce((sum, row) => sum + toFiniteNumber(row.amount), 0);
+  const income = dash.income_total == null ? financeIncomeTotal : toFiniteNumber(dash.income_total) + repaymentIncome;
+  const expense = financeExpenseTotal;
+  const profit = dash.today_revenue == null ? null : toFiniteNumber(dash.today_revenue) + repaymentIncome - expense;
 
   // Карточки собираются по ИМЕНИ в порядке определения (revenue, orders, avg,
   // income, expense) — на этот порядок опираются финансовые расчёты ниже.
@@ -392,8 +416,8 @@ export function buildRealKpis(dash, sales, selectedDate, placeSettings = [], fin
       icon: "bi-wallet2",
       badge: formatDateLabel(selectedDate),
       label: t("pages.dashboard.analyticsdata.chistaya_pribyl"),
-      numericValue: revenue,
-      value: formatNumber(revenue),
+      numericValue: profit,
+      value: profit == null ? t("common.unavailable") : formatNumber(profit),
       suffix: "UZS",
       note: hasHistory ? `${signed(revChange)}% к вчерашнему дню` : "Нет данных для сравнения",
       noteClass: hasHistory ? noteClassFor(revChange) : "kpi-note--neutral",
@@ -485,10 +509,17 @@ export function buildRealKpis(dash, sales, selectedDate, placeSettings = [], fin
       icon: "bi-arrow-up-right-circle",
       badge: "Расход",
       label: t("pages.dashboard.analyticsdata.denezhnye_rashody"),
-      value: t("common.soon"),
-      suffix: "",
-      comingSoon: true,
-      hideDescription: true,
+      numericValue: expense,
+      value: formatNumber(expense),
+      suffix: "UZS",
+      table: {
+        rows: realExpenseRows({}, expense, financeRows),
+        labelColumn: "Категория",
+        valueColumn: "Расход",
+        shareColumn: "Доля",
+        formatValue: formatMoney,
+        emptyText: "Расходов за период нет",
+      },
       note: "",
       noteClass: "kpi-note--neutral",
       progress: Math.max(8, Math.min(100, Math.round((expense / Math.max(revenue, 1)) * 100))),
@@ -512,17 +543,20 @@ export function buildRealKpis(dash, sales, selectedDate, placeSettings = [], fin
       badge: dash.date_from && dash.date_to && dash.date_from !== dash.date_to
         ? `${formatDateLabel(dash.date_from)} – ${formatDateLabel(dash.date_to)}`
         : formatDateLabel(dash.date_to || selectedDate),
-      numericValue: unknownCost ? null : dash.today_revenue,
-      value: unknownCost ? t("common.unavailable") : formatNumber(dash.today_revenue), suffix: unknownCost ? "" : "UZS",
-      description: reason, note: "", insight: reason,
+      numericValue: unknownCost ? null : profit,
+      value: unknownCost ? t("common.unavailable") : formatNumber(profit), suffix: unknownCost ? "" : "UZS",
+      description: "Приход минус себестоимость и расходы, включая продажи в долг. Остаток кассы не изменяется продажей в долг.", note: "", insight: reason,
+      hideDescription: true,
       productReport: Array.isArray(dash.product_rows) || unavailable ? {
-        rows: dash.product_rows || [], income: dash.income_total, cogs: dash.cogs_total,
-        revenue: dash.today_revenue, unavailable,
+        rows: [...(dash.product_rows || []), ...(repaymentIncome ? [{ product_id: "summary-repayments", name: "Возврат долга", category: "Погашения клиентов", quantity: null, income: repaymentIncome, revenue: repaymentIncome }] : [])],
+        income, cogs: dash.cogs_total, expenses: expense,
+        revenue: profit, unavailable,
       } : null,
       table: { rows: [
-        { name: t("pages.dashboard.dashboarddialogs.denezhnyy_prihod"), amount: dash.income_total },
+        { name: t("pages.dashboard.dashboarddialogs.denezhnyy_prihod"), amount: income },
         { name: t("pages.dashboard.analyticsdata.sebestoimost_oplachennyh_pozitsiy_rychitaetsya"), amount: dash.cogs_total },
-        { name: t("pages.dashboard.analyticsdata.vyruchka_prihod_minus_sebestoimost"), amount: dash.today_revenue },
+        { name: "Расходы, включая продажи в долг", amount: expense },
+        { name: "Чистая прибыль", amount: profit },
       ], labelColumn: t("common.calculation"), valueColumn: "Сумма", showShare: false, formatValue: moneyOrUnknown },
     });
     Object.assign(ordersKpi, { numericValue: unavailable ? null : dash.today_orders,
@@ -543,11 +577,18 @@ export function buildRealKpis(dash, sales, selectedDate, placeSettings = [], fin
       },
       hideDescription: true,
       suffix: unavailable ? "" : "UZS", note: "", description: t("pages.dashboard.analyticsdata.denezhnyy_prihod_kolichestvo_oplachennyh") });
-    Object.assign(incomeKpi, { numericValue: unavailable ? null : dash.income_total,
-      value: unavailable ? t("common.unavailable") : formatNumber(dash.income_total),
-      productReport: revenueKpi.productReport ? { ...revenueKpi.productReport, incomeLast: true } : null,
+    Object.assign(incomeKpi, { numericValue: unavailable ? null : income,
+      value: unavailable ? t("common.unavailable") : formatNumber(income),
+      hideDescription: true,
+      productReport: Array.isArray(dash.product_rows) || unavailable ? {
+        rows: [
+          ...(dash.product_rows || []),
+          ...(repaymentIncome ? [{ product_id: "summary-repayments", name: "Возврат долга", category: "Погашения клиентов", quantity: null, income: repaymentIncome, revenue: repaymentIncome }] : []),
+        ],
+        income, cogs: dash.cogs_total, expenses: expense, revenue: profit, unavailable, incomeLast: true,
+      } : null,
       suffix: unavailable ? "" : "UZS", description: t("pages.dashboard.analyticsdata.podtverzhdennye_oplaty_polnostyu_zavershennyh"),
-      table: { ...incomeKpi.table, rows: unavailable ? [] : realPaymentRows(dash, dash.income_total),
+      table: { ...incomeKpi.table, rows: unavailable ? [] : [...realPaymentRows(dash, dash.income_total), ...(repaymentIncome ? [{ name: "Возврат долга", amount: repaymentIncome }] : [])],
         emptyText: unavailable ? "Не удалось загрузить подтверждённые оплаты" : "Нет оплат завершённых заказов за выбранный период" },
     });
   }

@@ -1,0 +1,131 @@
+/* Приходы поставщика «на потом» в разделе «Кредиторы»: таблица как в журнале приходов (всё по центру). */
+.supplier-purchases__table th,
+.supplier-purchases__table td {
+  text-align: center;
+}
+.supplier-purchases__table td { font-weight: 500; }
+.supplier-purchases__table .supplier-purchases__sum { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Строка прихода открывает окно с составом (как окно «Рецепты»). */
+.supplier-purchases__row { cursor: pointer; }
+.supplier-purchases__row:hover td { background: var(--neutral-50, #f4f7fc); }
+.supplier-purchases__row:focus-visible { outline: 2px solid #0f9f98; outline-offset: -2px; }
+.supplier-purchases__composition { margin: 0; }
+.supplier-purchases__lines th, .supplier-purchases__lines td { text-align: center; }
+.supplier-purchases__lines .supplier-purchases__category { color: #536d8e; font-size: 12px; font-weight: 500; text-transform: uppercase; }
+.supplier-purchases__lines .supplier-purchases__name { font-weight: 700; }
+.supplier-purchases__lines .supplier-purchases__type { color: #5f6e85; font-weight: 400; }
+.supplier-purchases__lines .supplier-purchases__strong { font-weight: 700; font-variant-numeric: tabular-nums; }
+.supplier-purchases__lines tfoot td {
+  border-top: 1px solid var(--neutral-200, #e2e8f0);
+  background: var(--blue-50, #eff6ff);
+  font-weight: 600;
+}
+.supplier-purchases__lines tfoot td:first-child { text-align: left; }
+
+.purchase-view {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.purchase-view__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 20, 40, 0.45);
+  backdrop-filter: blur(4px);
+}
+.purchase-view__card {
+  position: relative;
+  width: min(960px, 100%);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 28px 70px -14px rgba(15, 35, 60, 0.4);
+  overflow: hidden;
+  animation: purchase-view-in 0.18s ease-out;
+}
+@keyframes purchase-view-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+.purchase-view__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--neutral-200, #e2e8f0);
+}
+.purchase-view__facts { display: flex; flex-wrap: wrap; gap: 14px 44px; min-width: 0; }
+.purchase-view__fact { display: grid; gap: 4px; min-width: 0; }
+.purchase-view__fact span { color: #243a56; font-size: 12px; font-weight: 600; }
+.purchase-view__fact strong { color: #0f172a; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.purchase-view__close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--neutral-200, #e2e8f0);
+  border-radius: 50%;
+  background: #fff;
+  color: #243a56;
+  cursor: pointer;
+}
+.purchase-view__close:hover { background: var(--neutral-50, #f4f7fc); }
+.purchase-view__close:focus-visible { outline: 2px solid #0f9f98; outline-offset: 2px; }
+.purchase-view__body { padding: 18px 24px 24px; overflow: auto; }
+html[data-theme="dark"] body.dashboard-body .purchase-view__card { background: var(--theme-panel-face, #0f1b2a); }
+html[data-theme="dark"] body.dashboard-body .purchase-view__fact strong { color: var(--theme-text, #e8eef7); }
+html[data-theme="dark"] body.dashboard-body .purchase-view__fact span { color: var(--theme-muted, #a5b4c8); }
+html[data-theme="dark"] body.dashboard-body .purchase-view__close {
+  background: var(--theme-control, rgba(255, 255, 255, 0.04));
+  border-color: var(--theme-line, rgba(255, 255, 255, 0.12));
+  color: var(--theme-text, #e8eef7);
+}
+.purchase-view .supplier-purchases__lines { width: 100%; border-collapse: collapse; }
+.purchase-view .supplier-purchases__lines th { padding: 14px 16px; background: var(--blue-50, #eff6ff); color: #536d8e; font-size: 12px; font-weight: 500; letter-spacing: .03em; text-transform: uppercase; }
+.purchase-view .supplier-purchases__lines td { padding: 14px 16px; font-size: 14px; border-top: 1px solid var(--neutral-200, #e2e8f0); }
+.purchase-view .supplier-purchases__composition { border: 1px solid var(--neutral-200, #e2e8f0); border-radius: 18px; overflow: hidden; background: #fff; }
+
+/* В «Кредиторах» таблица приходов занимает всё место раскрытой строки: без своей рамки и скругления,
+   задний фон строки и есть таблица. Размер и цвет шапки остаются как есть. */
+.supplier-purchases .orders-report-page.owner-report-view .report-table-wrapper.client-debt-frame {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.supplier-purchases .supplier-purchases__table { background: transparent; }
+.supplier-purchases .supplier-purchases__table tbody td { background: transparent; }
+
+/* Все раскрытые таблицы в «Кредиторах» (приходы поставщика, заказы клиента) — одним видом:
+   светлая заливка, бирюзовая полоса слева, линии сверху и снизу, без своей рамки. Шапки таблиц прежние. */
+.dc-party-orders > td { padding-left: 0; padding-right: 0; }
+.dc-party-orders .wh-expense-reveal__content {
+  padding: 0;
+  background: transparent;
+  border: 2px solid #1fbdb8; /* бирюзовая линия вокруг всей таблицы: слева, справа, сверху и снизу */
+}
+.dc-party-orders .report-table-wrapper.client-debt-frame {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.dc-party-orders .report-table-wrapper.client-debt-frame .report-table { background: transparent; }
+.dc-party-orders .report-table-wrapper.client-debt-frame tbody td { background: transparent; }
+.dc-party-orders .report-table-wrapper.client-debt-frame thead th:first-child,
+.dc-party-orders .report-table-wrapper.client-debt-frame tbody td:first-child { padding-left: 22px; }
+.dc-party-orders .wh-expense-reveal__content > p { margin: 0; padding: 14px 22px; }
+html[data-theme="dark"] body.dashboard-body .dc-party-orders .wh-expense-reveal__content { background: rgba(255, 255, 255, 0.04); }
+/* Вся раскрытая таблица заметно отличается от белых строк: бирюзовая заливка по всему блоку.
+   Шапка остаётся прежнего голубого цвета и отделена линией от строк. */
+.dc-party-orders .report-table-wrapper.client-debt-frame thead th { border-bottom: 1px solid rgba(31, 189, 184, 0.35); }
+.dc-party-orders .supplier-purchases__row:hover td { background: rgba(31, 189, 184, 0.08); }
+html[data-theme="dark"] body.dashboard-body .dc-party-orders .wh-expense-reveal__content { background: transparent; }

@@ -266,19 +266,19 @@
   border-color: var(--theme-accent, #07989e);
   box-shadow: inset 0 0 0 1px var(--theme-accent, #07989e);
 }
-.finance-overview .dc-grouped-table :is(th, td):last-child {
+.finance-overview .dc-grouped-table > :is(thead, tbody) > tr > :is(th, td):last-child {
   width: 34%;
   text-align: right;
   white-space: nowrap;
 }
-.finance-overview .fo-recent .dc-grouped-table tbody td {
+.finance-overview .fo-recent .dc-grouped-table > tbody > tr > td {
   padding-block: 8px;
 }
 .finance-overview .dc-grouped-table .dc-group-row td {
   background: var(--theme-raised, #f1f5fa);
   font-weight: 650;
 }
-.finance-overview .dc-grouped-table .dc-group-row button {
+.finance-overview .dc-grouped-table :is(.dc-group-row, .dc-group-member) button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -289,7 +289,7 @@
   font: inherit;
   cursor: pointer;
 }
-.finance-overview .dc-grouped-table .dc-group-row button:focus-visible {
+.finance-overview .dc-grouped-table :is(.dc-group-row, .dc-group-member) button:focus-visible {
   outline: 2px solid var(--theme-accent, #07989e);
   outline-offset: 2px;
   border-radius: 4px;
@@ -297,29 +297,42 @@
 .finance-overview .dc-grouped-table .dc-group-member td:first-child {
   padding-inline-start: 36px;
 }
-.finance-overview .dc-grouped-table--debtors tbody td:last-child { color: var(--theme-success, #12866d); }
-.finance-overview .dc-grouped-table--creditors tbody td:last-child { color: var(--theme-danger, #d24450); }
+.finance-overview .dc-grouped-table--creditors > tbody > tr:not(.dc-party-orders) > td:last-child { color: var(--theme-danger, #d24450); }
 
-.finance-overview .dc-grouped-table :is(th, td) { font-size: 14px; }
+.finance-overview .dc-grouped-table > :is(thead, tbody) > tr > :is(th, td) { font-size: 14px; }
 .finance-overview .dc-grouped-table .dc-group-chevron { transition: transform 260ms cubic-bezier(.25,.8,.25,1); }
 .finance-overview .dc-grouped-table button[aria-expanded="true"] .dc-group-chevron { transform: rotate(90deg); }
-.finance-overview .fo-recent .dc-grouped-table tbody .wh-expense-reveal td { padding-block: 0; border-bottom-width: 0; }
-.finance-overview .dc-grouped-table .dc-party-orders .wh-expense-reveal__content { display: flex; flex-wrap: wrap; gap: 8px 18px; text-align: left; }
-.finance-overview .dc-party-link {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--theme-accent, #1565ba);
-  font: inherit;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-.finance-overview .dc-party-link:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
-.finance-overview .dc-grouped-table--debtors tbody tr:not(.dc-party-orders) td:last-child { color: #00BA02; font-weight: 400; }
-.finance-overview .dc-grouped-table .dc-party-orders td { color: inherit; }
+.finance-overview .fo-recent .dc-grouped-table > tbody > .wh-expense-reveal > td { padding-block: 0; border-bottom-width: 0; }
+.finance-overview .dc-grouped-table > tbody > .dc-party-orders > td { text-align: left; }
+.finance-overview .dc-grouped-table .dc-party-orders .report-table-wrapper { overflow-x: auto; }
+.finance-overview .dc-grouped-table--debtors > tbody > tr:not(.dc-party-orders) > td:last-child { color: #00BA02; font-weight: 400; }
 @media (prefers-reduced-motion: reduce) {
   .finance-overview .dc-grouped-table .dc-group-chevron,
   .finance-overview .dc-grouped-table .wh-expense-reveal__track { transition: none; }
 }
+.finance-select-label:has(svg), .finance-form .finance-field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.finance-select-label svg { flex-shrink: 0; }
+
+/* «Оплатить» поставщику в разделе «Кредиторы». */
+.finance-overview .dc-amount-cell { display: inline-flex; align-items: center; gap: 14px; }
+.finance-overview .dc-pay-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid rgba(31, 201, 201, 0.45);
+  border-radius: 9px;
+  background: rgba(31, 201, 201, 0.08);
+  color: #0f9f98;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.finance-overview .dc-pay-button:hover:not(:disabled) { background: rgba(31, 201, 201, 0.16); border-color: rgba(31, 201, 201, 0.75); }
+.finance-overview .dc-pay-button:disabled { opacity: 0.55; cursor: default; }

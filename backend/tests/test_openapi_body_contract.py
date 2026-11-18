@@ -87,6 +87,10 @@ def test_all_slowapi_limited_routes_keep_concrete_body_models():
     assert bodyless_limited == {
         "/api/v1/kitchen/display",
         "/api/v1/auth/kitchen/cooks",
+        "/api/v1/public/menu/t/{code}",
+        "/api/v1/public/menu/{slug}",
+        "/api/v1/public/menu/{slug}/table/{token}",
+        "/api/v1/public/menu/{slug}/table/{token}/order",
     }
     limited_routes = [route for route in limited_routes if route.dependant.body_params]
 

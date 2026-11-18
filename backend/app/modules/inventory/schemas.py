@@ -138,6 +138,7 @@ class ProductCreate(BaseSchema):
     subcategory_id: UUID | None = None
     product_type: str = "dish"          # dish | sale
     printer_id: UUID | None = None
+    secondary_printer_id: UUID | None = None
     unit_id: UUID | None = None
     description: str | None = None
     price: Decimal
@@ -163,6 +164,7 @@ class ProductUpdate(BaseSchema):
     subcategory_id: UUID | None = None
     product_type: str | None = None
     printer_id: UUID | None = None
+    secondary_printer_id: UUID | None = None
     unit_id: UUID | None = None
     price: Decimal | None = None
     cost_price: Decimal | None = None
@@ -192,6 +194,7 @@ class ProductResponse(BaseResponseSchema):
     subcategory_id: UUID | None = None
     product_type: str = "dish"
     printer_id: UUID | None = None
+    secondary_printer_id: UUID | None = None
     unit_id: UUID | None = None
     name: str
     description: str | None

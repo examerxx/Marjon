@@ -216,8 +216,8 @@
 .finance-operation-modal .finance-party-panel .finance-select-field { gap: 0; }
 .finance-operation-modal .finance-party-chip:has(input:checked) {
   border-color: transparent;
-  background: var(--nav-glass-accent-face, #1aadb1);
-  box-shadow: var(--nav-glass-accent-shadow, none);
+  background: #16c6c8;
+  box-shadow: none;
   color: white;
 }
 .finance-operation-modal .finance-party-groups .finance-party-chip { align-items:center; justify-content:center; }
@@ -397,4 +397,9 @@
   .finance-operation-modal .finance-form .finance-service-option,
   .finance-service-track,
   .finance-service-track::after { animation: none; transition: none; }
+}
+
+.finance-form .finance-select-field--expanded .finance-select-list {
+  max-height: none;
+  overflow-y: visible;
 }

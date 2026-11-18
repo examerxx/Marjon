@@ -42,6 +42,9 @@ class OrderReportRow(BaseModel):
     # COMPLETED payments only (raw values, never labels) — [] when none.
     service_fee: Decimal
     payment_methods: list[str] = []
+    # Сумма по каждому способу оплаты: [{"method": ..., "amount": ...}], один
+    # способ — одна запись (для колонки «Тип оплаты» в отчёте по заказам).
+    payment_amounts: list[dict] = []
     # Populated only with a product filter: distinct stored per-unit prices of
     # matching order items. Never the current Product.price or an average.
     position_prices: list[Decimal] | None = None
@@ -303,3 +306,7 @@ class DebtCreditRow(BaseModel):
     debit: Decimal   # приход (income)
     credit: Decimal  # расход (expense)
     closing_balance: Decimal
+    # Долг перед поставщиком по приходам «на потом» минус оплаты ему (>= 0), на конец периода.
+    # Отдельно от сальдо: старые приходы/расходы по тому же поставщику могут увести сальдо в плюс,
+    # а долг по приходам от этого не исчезает.
+    payable: Decimal = Decimal("0")

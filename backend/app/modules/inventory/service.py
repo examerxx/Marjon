@@ -26,7 +26,7 @@ from app.modules.printers.models import Printer
 from app.modules.inventory.loss import calc_waste_quantity, loss_label
 from app.modules.inventory.warehouse_models import WasteDocument
 from app.modules.nomenclature.models import Unit
-from app.shared.exceptions import ConflictError, NotFoundError
+from app.shared.exceptions import ConflictError, NotFoundError, ValidationError
 from app.shared.tenant_scope import require_company_resource, require_company_resource_ids
 
 _PRODUCT_LOAD = (
@@ -448,6 +448,10 @@ class ProductService:
         p = await self.get(company_id, product_id)
         await self._validate_relations(company_id, data)
         payload = data.model_dump(exclude_unset=True, exclude={"ingredients"})
+        self._validate_distinct_printers(
+            payload.get("printer_id", p.printer_id),
+            payload.get("secondary_printer_id", p.secondary_printer_id),
+        )
         active = payload.pop("is_active", p.is_active)
         requested = payload.pop("sort_order", None)
         new_type = payload.pop("product_type", p.product_type or "dish") or "dish"
@@ -479,6 +483,11 @@ class ProductService:
         await self.db.commit()
         return await self.get(company_id, product_id)
 
+    @staticmethod
+    def _validate_distinct_printers(primary: UUID | None, secondary: UUID | None) -> None:
+        if primary is not None and primary == secondary:
+            raise ValidationError("Выберите два разных принтера")
+
     async def _validate_relations(
         self, company_id: UUID, data: ProductCreate | ProductUpdate
     ) -> None:
@@ -489,9 +498,10 @@ class ProductService:
             company_id,
             detail="Category not found",
         )
-        await require_company_resource(
-            self.db, Printer, data.printer_id, company_id, detail="Printer not found"
+        await require_company_resource_ids(
+            self.db, Printer, (data.printer_id, data.secondary_printer_id), company_id, detail="Printer not found"
         )
+        self._validate_distinct_printers(data.printer_id, data.secondary_printer_id)
         if data.unit_id is not None:
             unit = (await self.db.execute(
                 select(Unit).where(

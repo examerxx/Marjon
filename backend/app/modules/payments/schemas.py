@@ -58,6 +58,7 @@ class PaymentResponse(BaseResponseSchema):
     change_given: Decimal | None
     fiscal_code: str | None
     remaining_amount: Decimal | None = None
+    vip_amount: Decimal | None = None
 
 
 # ── Payment gateway settings (per-company) ────────────────────────────────────

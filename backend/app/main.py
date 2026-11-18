@@ -59,6 +59,7 @@ from app.modules.payments.router          import router as payments_router
 from app.modules.payments.webhooks        import router as payment_webhooks_router
 from app.modules.payments.internal_router import router as payments_internal_router
 from app.modules.kitchen.router       import router as kitchen_router
+from app.modules.qrmenu.router         import public_router as qrmenu_public_router, admin_router as qrmenu_admin_router
 from app.modules.kitchen.websocket    import kitchen_ws_endpoint
 from app.modules.crm.router           import router as crm_router
 from app.modules.loyalty.router       import router as loyalty_router
@@ -156,7 +157,7 @@ API = "/api/v1"
 routers = [
     auth_router, companies_router, rbac_router,
     inventory_router, pos_router, payments_router, payments_internal_router,
-    kitchen_router, crm_router, loyalty_router,
+    kitchen_router, qrmenu_public_router, qrmenu_admin_router, crm_router, loyalty_router,
     delivery_router, hr_router, analytics_router,
     notifications_router, audit_router,
     fiscal_router, subscriptions_router, printers_router,

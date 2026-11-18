@@ -131,9 +131,10 @@ class PaymentService:
                 select(Payment).where(
                     Payment.company_id == company_id,
                     Payment.order_id == order.id,
-                    Payment.status == "completed",
+                    Payment.status.in_(("completed", "complimentary")),
                 )
             )).scalars().all())
+            previous_payments = [p for p in previous_payments if p.status == "completed" or p.vip_amount is not None]
             is_vip_request = data.method.strip().lower() == "vip"
             # VIP после частичной оплаты: гость уже заплатил часть наличными/картой,
             # остаток закрывается как VIP. Прежние частичные платежи остаются в силе.
@@ -141,11 +142,12 @@ class PaymentService:
                 is_vip_request and not data.partial and previous_payments and order.reopened_at is None
                 and all((payment.provider_data or {}).get("partial") for payment in previous_payments)
             )
+            previous_vip = sum((Decimal((p.provider_data or {}).get("vip_amount", "0")) for p in previous_payments), Decimal("0"))
             if data.partial:
-                if (order.reopened_at is not None or data.method not in ("cash", "card")
+                if (order.reopened_at is not None or data.method.strip().lower() == "mixed"
                     or any(not (payment.provider_data or {}).get("partial") for payment in previous_payments)):
                     raise ValidationError("This order does not support partial payments")
-                remaining = order.total_amount - sum(payment.amount for payment in previous_payments)
+                remaining = order.total_amount - sum(payment.amount for payment in previous_payments) - previous_vip
                 if data.amount <= 0 or data.amount > remaining or data.amount != data.amount.quantize(Decimal("0.01")):
                     raise ValidationError("Payment must be positive and within the remaining balance")
                 closes_order = data.amount == remaining
@@ -159,7 +161,7 @@ class PaymentService:
                 )
 
             is_vip = is_vip_request
-            if is_vip and ((previous_payments and not vip_after_partial) or data.cash_received is not None):
+            if is_vip and ((previous_payments and not (vip_after_partial or data.partial)) or data.cash_received is not None):
                 raise ValidationError("VIP requires an unpaid order without cash received")
             vip_paid_before = sum((payment.amount for payment in previous_payments), Decimal("0")) if vip_after_partial else Decimal("0")
 
@@ -193,6 +195,9 @@ class PaymentService:
             if data.partial:
                 provider_data["partial"] = True
                 provider_data["remaining_amount"] = str(remaining - data.amount)
+            vip_amount = (data.amount if data.partial else order.total_amount - vip_paid_before - previous_vip) if is_vip else Decimal("0")
+            if is_vip and data.partial:
+                provider_data["vip_amount"] = str(vip_amount)
 
             payment = Payment(
                 company_id=company_id,
@@ -230,10 +235,10 @@ class PaymentService:
                 # Идемпотентно (повторная оплата того же заказа не спишет
                 # дважды); минус разрешён. Ошибка списания не должна ронять
                 # оплату — логируем и продолжаем.
-                if is_vip:
+                if previous_vip + vip_amount > 0:
                     self.db.add(FinTransaction(
                         company_id=company_id,
-                        amount=order.total_amount - vip_paid_before,
+                        amount=previous_vip + vip_amount,
                         direction="expense",
                         payment_type_id=VIP_PAYMENT_TYPE_ID,
                         category_id=VIP_EXPENSE_CATEGORY_ID,
@@ -321,8 +326,9 @@ class PaymentService:
             raise ValidationError("Only open orders with partial payments may be reset")
         rows = (await self.db.execute(select(Payment).where(
             Payment.company_id == company_id, Payment.order_id == order_id,
-            Payment.status == "completed",
+            Payment.status.in_(("completed", "complimentary")),
         ))).scalars().all()
+        rows = [row for row in rows if row.status == "completed" or row.vip_amount is not None]
         if rows and ({row.id for row in rows} != expected_ids
                      or any(not (row.provider_data or {}).get("partial") for row in rows)):
             raise ConflictError("Payments changed. Reopen the payment window and try again.")

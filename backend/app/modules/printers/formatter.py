@@ -770,8 +770,11 @@ class EscPosFormatter:
                 # ReceiptPreview.jsx's "restaurantName" block renders only
                 # {restaurantName}, nothing else; there is no separate
                 # branch-name element anywhere in CustomerReceipt.
-                name = str(template.get("restaurantName") or data.company_name)
-                push("header", self._styled_line(template, "restaurantName", name))
+                # Название берётся ТОЛЬКО из настроек чека: название компании сюда не
+                # подставляется (его меняют отдельно, в карточке QR-меню), пустое — не печатаем.
+                name = str(template.get("restaurantName") or "").strip()
+                if name:
+                    push("header", self._styled_line(template, "restaurantName", name))
                 for contact in data.delivery_contacts():
                     push("header", self._wrapped_centered(contact))
             elif block == "orderNumber":

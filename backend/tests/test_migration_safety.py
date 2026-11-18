@@ -77,6 +77,7 @@ _LEGACY_FILENAMES_WITHOUT_REVISION = frozenset({
     "20260809_bi05c1_local_fiscal_integrity.py",
     "20260809_bi05e1_decimal_fingerprint.py",
     "20261017_att01attendance_status.py",
+    "20261108_support_session_shifts.py",  # Already deployed historical server revision.
 })
 
 # Виды add-операций и ключ, которым они идентифицируются.
@@ -415,7 +416,7 @@ def test_new_migration_filenames_contain_their_revision_id(chain: dict[str, _Mig
         name = migration.path.name
         if name in _LEGACY_FILENAMES_WITHOUT_REVISION:
             continue
-        if revision not in migration.path.stem.split("_"):
+        if f"_{revision}_" not in f"{migration.path.stem}_":
             violations.append(name)
     assert not violations, (
         "имя файла миграции не содержит id ревизии отдельным токеном "

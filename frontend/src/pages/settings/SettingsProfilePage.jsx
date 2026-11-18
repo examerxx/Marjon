@@ -9,9 +9,11 @@ import logo from "../../assets/marjon-logo.svg";
 import Icon from "../../components/Icon";
 import Toast from "../../components/Toast";
 import { useAuth } from "../../context/AuthContext";
+import { useOrgOptional } from "../../context/OrgContext";
 import { ordersService } from "../../api/orders";
 import { warehouseService } from "../../api/warehouse";
 import { profileSections } from "./profile/profileSections";
+import QrMenuSection from "./profile/QrMenuSection";
 import { useCompanyProfileForm } from "./profile/useCompanyProfileForm";
 import "./settingsProfileViewport.css";
 import { t } from "../../i18n/t";
@@ -24,6 +26,7 @@ const ORDER_TYPE_ROWS = [
 
 export default function SettingsProfilePage() {
   const { user, applyProfile } = useAuth();
+  const orgContext = useOrgOptional();
   const {
     form,
     activeSection,
@@ -35,6 +38,7 @@ export default function SettingsProfilePage() {
     success,
     successClosing,
     clearSuccess,
+    set: setFormField,
     handleImageChange,
     resetForm,
     handleSave,
@@ -69,11 +73,15 @@ export default function SettingsProfilePage() {
     setShowConfirmPassword,
     passSaving,
     savePassword,
-  } = useCompanyProfileForm(user, applyProfile);
+  } = useCompanyProfileForm(user, (profile) => {
+    applyProfile?.(profile);
+    // Название заведения могло измениться — обновляем его и в карточке QR-меню.
+    orgContext?.reload?.();
+  });
 
   const activeMeta = profileSections.find((section) => section.key === activeSection) || profileSections[0];
   const profilePreview = form.profileLogo || form.companyLogo || logo;
-  const showHeaderActions = activeSection !== "profile";
+  const showHeaderActions = activeSection !== "profile" && activeSection !== "qr";
   // Массовая очистка данных: confirmTarget — какое уточняющее окно открыто
   // (null | "reports" | "purchases"), clearing — идёт ли удаление.
   // Результат показываем честно (без ложного успеха).
@@ -243,14 +251,26 @@ export default function SettingsProfilePage() {
                         <b>{t("pages.settings.settingsprofilepage.zamenit")}</b>
                       </label>
                     </div>
-                    <label className="company-profile-identity-name">
-                      <b>{t("pages.settings.settingsprofilepage.imya_profilya")}</b>
-                      <input
-                        value={profileName}
-                        onChange={(event) => setProfileName(event.target.value)}
-                        placeholder={t("pages.settings.settingsprofilepage.vvedite_imya_profilya")}
-                      />
-                    </label>
+                    <div className="company-profile-identity-fields">
+                      <label className="company-profile-identity-name">
+                        <b>{t("pages.settings.settingsprofilepage.imya_profilya")}</b>
+                        <input
+                          value={profileName}
+                          onChange={(event) => setProfileName(event.target.value)}
+                          placeholder={t("pages.settings.settingsprofilepage.vvedite_imya_profilya")}
+                        />
+                      </label>
+                      <label className="company-profile-identity-name">
+                        <b>Название заведения</b>
+                        <input
+                          value={form.name}
+                          onChange={(event) => setFormField("name", event.target.value)}
+                          maxLength={255}
+                          placeholder="Введите название заведения"
+                        />
+                        <small className="company-profile-identity-hint">Это название видят гости в QR-меню</small>
+                      </label>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -395,6 +415,8 @@ export default function SettingsProfilePage() {
               <p className="company-profile-field-hint">{t("pages.settings.settingsprofilepage.vyklyuchennye_tipy_propadayut_iz_kassy_prilozheniya")}</p>
             </div>
           ) : null}
+
+          {activeSection === "qr" ? <QrMenuSection /> : null}
 
           {activeSection === "profile" ? (
             <form className="company-profile-main company-profile-password-form" onSubmit={savePassword}>

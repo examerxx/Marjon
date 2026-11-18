@@ -1,0 +1,264 @@
+/* Публичное QR-меню. Мобильный экран — основной; тёмная тема по настройке телефона.
+   Размеры в rem: базовый шрифт растёт с шириной экрана, поэтому и на телефоне
+   в «версии для ПК» (когда браузер рисует страницу шире), и на планшете текст читается. */
+:root {
+  --bg: #f2f6f6; --card: #ffffff; --text: #0e1b22; --muted: #62737e;
+  --line: rgba(14, 27, 34, .09); --soft: #eaf2f2;
+  --accent: #14b8a6; --accent-ink: #0b7a71; --accent-soft: rgba(20, 184, 166, .12);
+  /* Белый текст на градиенте: самый светлый край ≥ 3,9:1, тёмный ≥ 5,9:1 (WCAG AA для крупного/жирного). */
+  --grad: linear-gradient(135deg, #0e9488 0%, #0a6f68 100%);
+  --danger: #cf4437; --danger-soft: rgba(207, 68, 55, .1);
+  --shadow: 0 1px 2px rgba(14, 27, 34, .04), 0 8px 22px -12px rgba(14, 27, 34, .16);
+  --wash: radial-gradient(120% 100% at 0% 0%, rgba(20, 184, 166, .2), transparent 62%),
+          radial-gradient(90% 80% at 100% 0%, rgba(205, 168, 80, .12), transparent 58%);
+  color-scheme: light;
+}
+/* Тёмная: по настройке телефона, пока гость не выбрал тему сам (data-theme), и по явному выбору. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a1115; --card: #121c22; --text: #eaf2f5; --muted: #8a9ca7;
+    --line: rgba(255, 255, 255, .08); --soft: #18252c;
+    --accent-ink: #5eead4; --accent-soft: rgba(45, 212, 191, .14);
+    --danger: #ff8a7d; --danger-soft: rgba(255, 138, 125, .13);
+    --shadow: 0 1px 0 rgba(255, 255, 255, .03) inset, 0 10px 26px -14px rgba(0, 0, 0, .7);
+    --wash: radial-gradient(120% 100% at 0% 0%, rgba(20, 184, 166, .16), transparent 62%),
+            radial-gradient(90% 80% at 100% 0%, rgba(205, 168, 80, .07), transparent 58%);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a1115; --card: #121c22; --text: #eaf2f5; --muted: #8a9ca7;
+  --line: rgba(255, 255, 255, .08); --soft: #18252c;
+  --accent-ink: #5eead4; --accent-soft: rgba(45, 212, 191, .14);
+  --danger: #ff8a7d; --danger-soft: rgba(255, 138, 125, .13);
+  --shadow: 0 1px 0 rgba(255, 255, 255, .03) inset, 0 10px 26px -14px rgba(0, 0, 0, .7);
+  --wash: radial-gradient(120% 100% at 0% 0%, rgba(20, 184, 166, .16), transparent 62%),
+          radial-gradient(90% 80% at 100% 0%, rgba(205, 168, 80, .07), transparent 58%);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { font-size: clamp(16px, 0.9vw + 12px, 19px); background: var(--bg); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; position: relative; min-height: 100dvh; color: var(--text);
+  font-family: "Golos Text", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.4; -webkit-tap-highlight-color: transparent; text-rendering: optimizeLegibility;
+}
+body::before { content: ""; position: absolute; inset: 0 0 auto; height: 17rem; background: var(--wash); z-index: -1; pointer-events: none; }
+button { font: inherit; color: inherit; touch-action: manipulation; }
+svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+/* Мобильные принципы: видимый фокус для клавиатуры/ассистивных технологий и мгновенный отклик на касание. */
+:where(button, a, input, summary):focus-visible { outline: .18rem solid var(--accent); outline-offset: .15rem; }
+:where(button):not(:disabled) { transition: transform .12s ease, background .15s ease, color .15s ease, border-color .15s ease; }
+:where(button):active { transform: scale(.97); }
+.qm-order__head:active { transform: none; filter: brightness(.95); }
+.qm-fab:active { transform: translateX(-50%) scale(.98); }
+
+.qm { max-width: 44rem; margin: 0 auto; padding: 0 0 calc(6.5rem + env(safe-area-inset-bottom)); }
+.qm--center { min-height: 100dvh; display: grid; place-items: center; padding: 1.5rem; text-align: center; }
+.qm-wrap { padding: .9rem 1rem 0; }
+.qm-wrap--lift { position: relative; z-index: 1; margin-top: -1.2rem; padding-top: 0; }
+
+/* ── Шапка заведения ─────────────────────────────────────────────
+   Фон — размытое фото блюда (или логотип) под тёмно-зелёной вуалью: шапка «живая»,
+   а белый текст читается при любом фото. Выглядит одинаково в светлой и тёмной теме. */
+.qm-hero {
+  position: relative; isolation: isolate; overflow: hidden; display: grid; gap: .7rem; color: #fff; background: var(--grad);
+  padding: calc(.9rem + env(safe-area-inset-top)) 1.1rem 2.1rem; border-radius: 0 0 1.5rem 1.5rem;
+}
+.qm-hero__bg { position: absolute; inset: -1.5rem; z-index: -2; background: center / cover no-repeat; filter: blur(14px) saturate(1.2); transform: scale(1.06); }
+.qm-hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(3, 38, 35, .5) 0%, rgba(3, 38, 35, .86) 100%); }
+.qm-hero__main { display: flex; align-items: center; gap: .8rem; padding-right: 3.2rem; }
+.qm-hero__text { flex: 1; min-width: 0; display: grid; gap: .3rem; justify-items: start; }
+.qm-hero h1 { margin: 0; font-size: 1.35rem; line-height: 1.12; font-weight: 700; letter-spacing: -.01em; overflow-wrap: anywhere; text-shadow: 0 2px 14px rgba(0, 0, 0, .35); }
+.qm-logo {
+  flex: none; width: 3.6rem; height: 3.6rem; border-radius: 1.1rem; object-fit: cover; background: #fff;
+  box-shadow: 0 10px 26px -6px rgba(0, 0, 0, .45);
+}
+.qm-logo--letter { display: grid; place-items: center; background: var(--grad); color: #fff; font-size: 1.45rem; font-weight: 700; }
+.qm-pill {
+  display: inline-flex; align-items: center; gap: .45rem; padding: .24rem .8rem .24rem .6rem; border-radius: 999px;
+  background: rgba(255, 255, 255, .18); border: 1px solid rgba(255, 255, 255, .3); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  color: #fff; font-size: .8rem; font-weight: 600;
+}
+.qm-pill svg { width: 1rem; height: 1rem; }
+.qm-hero__meta { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.qm-hero__info { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
+.qm-hero__chip, .qm-hero__info li {
+  display: inline-flex; align-items: center; gap: .45rem; max-width: 100%; padding: .26rem .7rem; border-radius: 999px; font-size: .76rem; font-weight: 500;
+  background: rgba(255, 255, 255, .13); border: 1px solid rgba(255, 255, 255, .2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.qm-hero__chip svg, .qm-hero__info svg { flex: none; width: .9rem; height: .9rem; opacity: .9; }
+.qm-hero__info a { color: inherit; text-decoration: none; }
+
+/* Переключатель темы: зона касания 44×44 (Apple HIG / Material), в углу шапки. */
+.qm-theme {
+  position: absolute; top: calc(.7rem + env(safe-area-inset-top)); right: 1.1rem; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; padding: 0;
+  border-radius: 50%; border: 1px solid rgba(255, 255, 255, .3); background: rgba(255, 255, 255, .16); color: #fff; cursor: pointer;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.qm-theme svg { width: 1.3rem; height: 1.3rem; }
+.qm-theme:hover { background: rgba(255, 255, 255, .26); }
+
+/* ── Деньги ────────────────────────────────────────────────────── */
+.qm-money { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 700; }
+.qm-money small { margin-left: .28em; font-size: .72em; font-weight: 600; opacity: .7; }
+
+/* ── Заказ стола ───────────────────────────────────────────────── */
+.qm-order { margin-bottom: 1.1rem; border-radius: 1.4rem; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); overflow: hidden; }
+.qm-order__head {
+  display: flex; align-items: center; gap: .75rem; width: 100%; padding: 1rem 1.1rem; border: 0; cursor: pointer;
+  background: var(--grad); color: #fff; text-align: left;
+}
+.qm-order__ico { flex: none; display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border-radius: .8rem; background: rgba(255, 255, 255, .18); }
+.qm-order__ico svg { width: 1.2rem; height: 1.2rem; }
+.qm-order__title { flex: 1; min-width: 0; display: grid; font-size: 1.05rem; font-weight: 700; line-height: 1.15; }
+.qm-order__title em { display: flex; align-items: center; gap: .4rem; margin-top: .15rem; font-style: normal; font-size: .78rem; font-weight: 600; opacity: .95; }
+.qm-live { width: .5rem; height: .5rem; border-radius: 50%; background: #b7ffe8; box-shadow: 0 0 0 0 rgba(183, 255, 232, .7); animation: qm-pulse 1.8s ease-out infinite; }
+@keyframes qm-pulse { 70% { box-shadow: 0 0 0 .5rem rgba(183, 255, 232, 0); } 100% { box-shadow: 0 0 0 0 rgba(183, 255, 232, 0); } }
+.qm-order__sum { font-size: 1.2rem; font-weight: 700; }
+.qm-order__chev { flex: none; display: grid; place-items: center; width: 1.6rem; opacity: .9; transition: transform .2s ease; }
+.qm-order__chev svg { width: 1.2rem; height: 1.2rem; stroke-width: 2.4; }
+.qm-order__chev.is-open { transform: rotate(180deg); }
+
+/* Плавное раскрытие чека: высота 0 → авто через grid-template-rows, в закрытом виде скрыт полностью. */
+.qm-order__collapse {
+  display: grid; grid-template-rows: 0fr; visibility: hidden;
+  transition: grid-template-rows .32s cubic-bezier(.4, 0, .2, 1), visibility 0s linear .32s;
+}
+.qm-order__collapse.is-open { grid-template-rows: 1fr; visibility: visible; transition-delay: 0s; }
+.qm-order__inner { min-height: 0; overflow: hidden; }
+.qm-order__body { padding: .5rem 1.1rem 1.15rem; }
+
+/* «Как настоящий чек»: шапка Блюдо / Кол-во / Сумма, пунктирные линии, итоги. */
+.qm-rc { font-variant-numeric: tabular-nums; }
+.qm-rc__meta { margin: .25rem 0 .7rem; }
+.qm-rc__meta div { display: flex; justify-content: space-between; gap: 1rem; padding: .22rem 0; font-size: .9rem; }
+.qm-rc__meta dt { color: var(--muted); }
+.qm-rc__meta dd { text-align: right; overflow-wrap: anywhere; }
+.qm-rc__meta dt, .qm-rc__meta dd, .qm-rc__sums dt, .qm-rc__sums dd { margin: 0; }
+.qm-rc__table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+.qm-rc__table th {
+  padding: .5rem 0; font-size: .86rem; font-weight: 700; text-align: left;
+  border-top: 1px dashed var(--muted); border-bottom: 1px dashed var(--muted);
+}
+.qm-rc__table th:nth-child(2), .qm-rc__table td:nth-child(2) { width: 3.9rem; text-align: center; }
+/* «сум» у каждой суммы, как в «Итого». */
+.qm-rc td small, .qm-rc dd small { margin-left: .3em; font-size: .7em; font-weight: 600; opacity: .7; }
+/* Цифры количества стоят ровно под подписью «Кол-во». */
+.qm-rc__table th:nth-child(3), .qm-rc__table td:nth-child(3) { width: 7.8rem; text-align: right; white-space: nowrap; }
+.qm-rc__table td { padding: .5rem 0; vertical-align: top; overflow-wrap: anywhere; }
+.qm-rc__table td:first-child { padding-right: .6rem; }
+.qm-rc__table tbody tr:last-child td { padding-bottom: .65rem; }
+.qm-rc__sums { margin: 0; padding-top: .45rem; border-top: 1px dashed var(--muted); }
+.qm-rc__sums div { display: flex; justify-content: space-between; gap: 1rem; padding: .28rem 0; font-size: .95rem; }
+.qm-rc__strong dd { font-weight: 400; }
+.qm-rc__total {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin-top: .4rem; padding-top: .6rem;
+  border-top: 1px dashed var(--muted); font-size: 1.3rem;
+}
+.qm-rc__total span:first-child { font-weight: 700; }
+.qm-rc__total span:last-child { font-weight: 700; }
+.qm-rc__total small { margin-left: .3em; font-size: .65em; font-weight: 600; opacity: .7; }
+.qm-pay { margin-top: .95rem; padding: .95rem 1rem; border-radius: 1.05rem; background: var(--soft); }
+.qm-pay__bar { height: .45rem; border-radius: 999px; background: var(--line); overflow: hidden; }
+.qm-pay__bar i { display: block; height: 100%; border-radius: inherit; background: var(--grad); transition: width .4s ease; }
+.qm-pay__row, .qm-pay__due { display: flex; justify-content: space-between; align-items: baseline; }
+.qm-pay__row { margin-top: .7rem; font-size: .9rem; color: var(--muted); }
+.qm-pay__due { margin-top: .4rem; font-weight: 700; color: var(--accent-ink); }
+.qm-pay__due .qm-money { font-size: 1.3rem; font-weight: 700; }
+.qm-order__time { margin: .9rem 0 0; text-align: center; font-size: .74rem; color: var(--muted); }
+
+/* ── Поиск и категории ─────────────────────────────────────────── */
+.qm-bar {
+  position: sticky; top: 0; z-index: 20; margin: 0 -1rem; padding: .6rem 1rem .5rem;
+  background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.qm-search {
+  display: flex; align-items: center; gap: .6rem; height: 2.9rem; padding: 0 1rem; border-radius: 1rem;
+  background: var(--card); border: 1px solid var(--line); color: var(--muted); transition: box-shadow .15s ease, border-color .15s ease;
+}
+.qm-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 .2rem var(--accent-soft); }
+.qm-search svg { flex: none; width: 1.15rem; height: 1.15rem; }
+.qm-search input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; font-size: 1rem; }
+.qm-search input::placeholder { color: var(--muted); }
+.qm-search input::-webkit-search-cancel-button { display: none; }
+.qm-search__clear { flex: none; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; margin-right: -.8rem; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; }
+.qm-search__clear svg { width: 1.1rem; height: 1.1rem; }
+.qm-chips { display: flex; gap: .5rem; margin: 0 -1rem; padding: .65rem 1rem .1rem; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding-inline: 1rem; }
+.qm-chips::-webkit-scrollbar { display: none; }
+.qm-chips button {
+  flex: none; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 1.1rem; border-radius: 999px; border: 1px solid var(--line); background: var(--card);
+  color: var(--text); font-size: .86rem; font-weight: 600; white-space: nowrap; cursor: pointer; scroll-snap-align: start;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.qm-chips button.is-active { background: var(--grad); border-color: transparent; color: #fff; box-shadow: 0 6px 14px -8px rgba(11, 122, 113, .8); }
+
+/* ── Блюда ─────────────────────────────────────────────────────── */
+.qm-cat { scroll-margin-top: 8.2rem; }
+.qm-cat h2 { display: flex; align-items: center; gap: .55rem; margin: 1.7rem 0 .8rem; font-size: 1.3rem; font-weight: 700; letter-spacing: -.01em; }
+.qm-cat h2 span { padding: .12rem .55rem; border-radius: 999px; background: var(--soft); color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: 0; }
+.qm-cat ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; }
+
+.qm-item {
+  display: grid; grid-template-columns: auto 1fr; column-gap: .9rem; align-items: center;
+  padding: .7rem; border-radius: 1.2rem; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow);
+}
+.qm-item:not(:has(.qm-item__media)) { grid-template-columns: 1fr; padding: .9rem 1rem; }
+.qm-item__media { grid-row: 1 / span 2; width: 5.6rem; height: 5.6rem; border-radius: .95rem; overflow: hidden; background: var(--soft); }
+.qm-item__media img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .3s ease; }
+.qm-item__media img.is-loaded { opacity: 1; }
+.qm-item__media--empty { display: grid; place-items: center; color: var(--muted); }
+.qm-item__media--empty svg { width: 2rem; height: 2rem; opacity: .6; }
+.qm-item__body { grid-column: 2; align-self: end; min-width: 0; }
+.qm-item:not(:has(.qm-item__media)) .qm-item__body, .qm-item:not(:has(.qm-item__media)) .qm-item__price { grid-column: 1; }
+.qm-item__body h3 { margin: 0; font-size: 1.02rem; line-height: 1.25; font-weight: 700; overflow-wrap: anywhere; }
+.qm-item__body p { margin: .25rem 0 0; font-size: .84rem; line-height: 1.35; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.qm-item__price { grid-column: 2; align-self: start; margin-top: .4rem; font-size: 1.05rem; font-weight: 700; color: var(--accent-ink); }
+.qm-badge { display: inline-block; margin-top: .35rem; padding: .15rem .55rem; border-radius: 999px; background: var(--danger-soft); color: var(--danger); font-size: .72rem; font-weight: 700; }
+.qm-item.is-off .qm-item__media { filter: grayscale(1); opacity: .5; }
+.qm-item.is-off h3, .qm-item.is-off .qm-item__price { color: var(--muted); }
+
+.qm-empty { margin: 3rem 0; text-align: center; color: var(--muted); }
+.qm-foot { margin: 2.2rem 0 .5rem; text-align: center; font-size: .85rem; color: var(--muted); }
+.qm-foot a { color: var(--accent-ink); font-weight: 700; text-decoration: none; }
+
+/* ── Кнопка «Счёт стола» ───────────────────────────────────────── */
+.qm-fab {
+  position: fixed; left: 50%; bottom: calc(1rem + env(safe-area-inset-bottom)); z-index: 30; transform: translateX(-50%);
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: min(calc(100% - 2rem), 26rem); height: 3.5rem;
+  padding: 0 1.25rem; border: 0; border-radius: 999px; background: var(--grad); color: #fff; font-weight: 700; cursor: pointer;
+  box-shadow: 0 14px 30px -10px rgba(8, 100, 92, .55); animation: qm-up .28s ease both;
+}
+.qm-fab span { display: inline-flex; align-items: center; gap: .55rem; }
+.qm-fab svg { width: 1.2rem; height: 1.2rem; }
+.qm-fab .qm-money { font-size: 1.1rem; font-weight: 700; }
+@keyframes qm-up { from { opacity: 0; transform: translate(-50%, 1rem); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* ── Загрузка и ошибки ─────────────────────────────────────────── */
+.qm-skelhero { display: flex; align-items: center; gap: 1rem; padding: calc(1.7rem + env(safe-area-inset-top)) 1.1rem 1.3rem; }
+.qm-skel__logo, .qm-skel__line, .qm-skel__card {
+  display: block; background: linear-gradient(100deg, var(--soft) 30%, var(--line) 50%, var(--soft) 70%) 0 0 / 200% 100%; animation: qm-shimmer 1.3s linear infinite;
+}
+.qm-skel__logo { width: 4.2rem; height: 4.2rem; border-radius: 1.3rem; }
+.qm-skel__line { height: 1rem; margin: .4rem 0; border-radius: .5rem; }
+.qm-skel__card { height: 6.4rem; margin-bottom: .7rem; border-radius: 1.2rem; }
+@keyframes qm-shimmer { to { background-position: -200% 0; } }
+.qm-note { display: grid; justify-items: center; gap: .9rem; color: var(--muted); }
+.qm-note__ico { display: grid; place-items: center; width: 4rem; height: 4rem; border-radius: 50%; background: var(--soft); }
+.qm-note__ico svg { width: 1.7rem; height: 1.7rem; }
+.qm-note p { margin: 0; max-width: 18rem; font-size: 1rem; line-height: 1.45; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* Очень узкие экраны (до 380px): заголовок заказа и плашки шапки без лишних переносов. */
+@media (max-width: 380px) {
+  .qm-order__ico { display: none; }
+  .qm-order__title { white-space: nowrap; }
+  .qm-pill { padding: .24rem .6rem .24rem .5rem; font-size: .76rem; }
+  .qm-hero__chip { padding: .26rem .55rem; font-size: .72rem; }
+  .qm-hero__meta { gap: .3rem; }
+}

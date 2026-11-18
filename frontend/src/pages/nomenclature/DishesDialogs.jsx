@@ -391,24 +391,28 @@ export default function DishesDialogs({
       />
     </div>
   );
-  const printerField = (wide) => (
-    <div className={`dish-form-field${wide ? " dish-form__wide" : ""}`}>
-      <span className="dish-form-field__label" aria-hidden="true">{t("pages.nomenclature.dishesdialogs.printer")}</span>
+  const printerField = (secondary) => {
+    const label = secondary ? t("Дополнительный принтер") : t("pages.nomenclature.dishesdialogs.printer");
+    const otherId = secondary ? selectedPrinterId : form.secondaryPrinterId;
+    return (
+    <div className="dish-form-field">
+      <span className="dish-form-field__label" aria-hidden="true">{label}</span>
       <DishSingleSelect
-        label={t("pages.nomenclature.dishesdialogs.printer")}
-        placeholder={t("pages.nomenclature.dishesdialogs.printer")}
-        options={printerOptions.map((item) => ({
+        label={label}
+        placeholder={label}
+        options={[{ value: "", label: t("Без принтера") }, ...printerOptions.filter(item => item.id !== otherId).map((item) => ({
           value: item.id,
           label: item.active ? item.name : t("staff.printer_inactive", { name: item.name }),
-        }))}
-        value={selectedPrinterId}
-        onChange={pickPrinter}
-        disabled={printersUnavailable}
+        }))]}
+        value={secondary ? form.secondaryPrinterId : selectedPrinterId}
+        onChange={secondary ? (id) => setForm(prev => ({ ...prev, secondaryPrinterId: id })) : pickPrinter}
+        disabled={printersUnavailable || saving}
         loading={printersLoading}
         disabledLabel={t("common.printers_unavailable")}
       />
     </div>
-  );
+    );
+  };
   return (
     <>
       {drawerOpen && createPortal(
@@ -590,22 +594,7 @@ export default function DishesDialogs({
                     {categoryField}
                     {unitField}
                     {printerField(false)}
-                    <div className="dish-form-field">
-                      <span className="dish-form-field__label" aria-hidden="true">{t("pages.nomenclature.dishesdialogs.shag_portsii")}</span>
-                      <DishSingleSelect
-                        label={t("pages.nomenclature.dishesdialogs.shag_portsii")}
-                        placeholder={t("pages.nomenclature.dishesdialogs.tselye")}
-                        options={[
-                          { value: "", label: t("pages.nomenclature.dishesdialogs.tselye_1") },
-                          { value: "0.1", label: "0.1" },
-                          { value: "0.25", label: "0.25" },
-                          { value: "0.5", label: "0.5" },
-                        ]}
-                        value={String(form.portionStep ?? "")}
-                        onChange={(value) => setForm((prev) => ({ ...prev, portionStep: value }))}
-                        disabled={saving}
-                      />
-                    </div>
+                    {printerField(true)}
                   </>
                 ) : (
                   <>
@@ -622,22 +611,7 @@ export default function DishesDialogs({
                     {categoryField}
                     {unitField}
                     {printerField(false)}
-                    <div className="dish-form-field">
-                      <span className="dish-form-field__label" aria-hidden="true">{t("pages.nomenclature.dishesdialogs.shag_portsii")}</span>
-                      <DishSingleSelect
-                        label={t("pages.nomenclature.dishesdialogs.shag_portsii")}
-                        placeholder={t("pages.nomenclature.dishesdialogs.tselye")}
-                        options={[
-                          { value: "", label: t("pages.nomenclature.dishesdialogs.tselye_1") },
-                          { value: "0.1", label: "0.1" },
-                          { value: "0.25", label: "0.25" },
-                          { value: "0.5", label: "0.5" },
-                        ]}
-                        value={String(form.portionStep ?? "")}
-                        onChange={(value) => setForm((prev) => ({ ...prev, portionStep: value }))}
-                        disabled={saving}
-                      />
-                    </div>
+                    {printerField(true)}
                   </>
                 )}
               </div>

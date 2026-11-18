@@ -404,8 +404,10 @@ def render_customer_receipt_raster(data: ReceiptData, template: dict | None, pap
             elif block == "restaurantName":
                 boundary("header")
                 font, align = _font_for(template, helper, "restaurantName")
-                name = str(template.get("restaurantName") or data.company_name)
-                canvas.line_of_text(name, font, align, gap(14))
+                # Название берётся ТОЛЬКО из настроек чека (без подстановки названия компании).
+                name = str(template.get("restaurantName") or "").strip()
+                if name:
+                    canvas.line_of_text(name, font, align, gap(14))
                 for contact in data.delivery_contacts():
                     canvas.line_of_text(contact, _load_font("regular", _SIZE_PT["standard"]), "center", gap(8))
             elif block == "orderNumber":

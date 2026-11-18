@@ -51,6 +51,24 @@ vi.mock("../api/warehouse", () => ({
   },
 }));
 
+// Способы оплаты для окна «Как оплачен приход?» (в данных есть дубль системного и компанейского «Наличными»).
+vi.mock("../api/finance", () => ({
+  financeService: {
+    listPaymentTypes: vi.fn(async () => ({ data: { items: [
+      { id: "pt-sys", name: "Наличными", scope_kind: "system", status: true },
+      { id: "pt-cash", name: "Наличными", scope_kind: "company", status: true },
+      { id: "pt-card", name: "Карта", scope_kind: "company", status: true },
+      { id: "pt-debt", name: "В долг", scope_kind: "system", status: true },
+    ] } })),
+  },
+}));
+
+// «Сохранить» → окно «Как оплачен приход?» → «Сохранить приход» (оплачено сразу, наличными по умолчанию).
+async function confirmPaidPurchase() {
+  const dialog = await screen.findByRole("dialog", { name: "Как оплачен приход?" });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Сохранить приход" }));
+}
+
 vi.mock("../api/nomenclature", () => ({
   nomenclatureService: {
     listIngredients: vi.fn(async () => ({ data: [] })),
@@ -1080,9 +1098,12 @@ describe("Warehouse incoming-journal (Добавить продуктов)", () 
     fireEvent.change(screen.getByLabelText("Количество COCA COLA"), { target: { value: "10" } });
     fireEvent.change(screen.getByLabelText("Цена COCA COLA"), { target: { value: "12000" } });
     fireEvent.click(screen.getByRole("button", { name: /Сохранить/ }));
+    await confirmPaidPurchase();
     await waitFor(() => expect(warehouseService.createPurchase).toHaveBeenCalledWith(
       expect.objectContaining({
         warehouse_id: "wh-1",
+        payment_mode: "paid",
+        payment_type_id: "pt-cash",
         items: [
           { name: "kartoshka", ingredient_id: "ing-1", quantity: 5, unit: "кг", cost_price: 4000 },
           { name: "COCA COLA", product_id: "prod-1", quantity: 10, unit: "шт", cost_price: 12000 },
@@ -1121,6 +1142,7 @@ describe("Warehouse incoming-journal (Добавить продуктов)", () 
     fireEvent.change(screen.getByLabelText("Цена Мясо"), { target: { value: "110000" } });
     fireEvent.change(screen.getByLabelText("Количество Мясо"), { target: { value: "30" } });
     fireEvent.click(screen.getByRole("button", { name: /Сохранить/ }));
+    await confirmPaidPurchase();
     await waitFor(() => expect(warehouseService.createPurchase).toHaveBeenCalledWith(
       expect.objectContaining({
         items: [
@@ -1159,6 +1181,7 @@ describe("Warehouse incoming-journal (Добавить продуктов)", () 
     expect(warehouseService.createPurchase).not.toHaveBeenCalled();
     // Enter — тот же Сохранить, что кнопка.
     fireEvent.keyDown(qty, { key: "Enter" });
+    await confirmPaidPurchase();
     await waitFor(() => expect(warehouseService.createPurchase).toHaveBeenCalledWith(
       expect.objectContaining({
         warehouse_id: "wh-1",
@@ -1168,6 +1191,39 @@ describe("Warehouse incoming-journal (Добавить продуктов)", () 
       }),
     ));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("13d. «Сохранить» спрашивает, как оплачен приход: сразу / на потом (в кредиторы)", async () => {
+    nomenclatureService.listIngredients.mockResolvedValue({
+      data: [{ id: "ing-1", name: "kartoshka", category: "sabzavotlar", unit: "кг", purchase_price: 5000, is_active: true }],
+    });
+    catalogService.listProducts.mockResolvedValue({ data: [] });
+    settingsService.listResource.mockImplementation(async (key) => (
+      key === "suppliers" || key === "counterparties"
+        ? { data: [{ id: "s1", name: "Анвар", full_name: "Анвар", type: "supplier" }] }
+        : { data: [] }
+    ));
+    warehouseService.list.mockResolvedValue({ data: [] });
+    warehouseService.listWarehouses.mockResolvedValue({ data: warehouses });
+    warehouseService.createPurchase.mockResolvedValue({ data: { id: "doc-12" } });
+    const onClose = vi.fn();
+    render(<WarehousePage initialSection="incoming-journal" startCreating onCloseCreate={onClose} />);
+    await screen.findByRole("table", { name: "Создать приход" });
+    fireEvent.click(screen.getByRole("combobox", { name: "Выбор склада" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Главный склад" }));
+    fireEvent.change(screen.getByLabelText("Цена kartoshka"), { target: { value: "1000" } });
+    fireEvent.change(screen.getByLabelText("Количество kartoshka"), { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: /Сохранить/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Как оплачен приход?" });
+    // пока не ответили — документ не сохранён; сумма видна
+    expect(warehouseService.createPurchase).not.toHaveBeenCalled();
+    expect(within(dialog).getByTestId("purchase-total")).toHaveTextContent(/10\s000 UZS/);
+    // без поставщика «на потом» недоступно (кому должны?)
+    expect(within(dialog).getByRole("radio", { name: /Договорились на потом/ })).toBeDisabled();
+    // Отмена закрывает окно, ничего не сохраняя
+    fireEvent.click(within(dialog).getByRole("button", { name: "Отмена" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Как оплачен приход?" })).toBeNull());
+    expect(warehouseService.createPurchase).not.toHaveBeenCalled();
   });
 
   it("17b. journal create opens inline without leaving the list", async () => {

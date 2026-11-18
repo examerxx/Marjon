@@ -22,6 +22,12 @@ function toNumber(value) {
 }
 
 // Ответ /pos/orders/{id} → форма, которую ждёт ReceiptPreview.
+function mergePaymentRows(rows) {
+  const merged = new Map();
+  rows.forEach((row) => merged.set(row.label, (merged.get(row.label) || 0) + row.amount));
+  return [...merged].map(([label, amount]) => ({ label, amount }));
+}
+
 function toReceiptOrder(order, payments) {
   return {
     order_number: order.order_number,
@@ -36,14 +42,19 @@ function toReceiptOrder(order, payments) {
     created_at: order.created_at,
     // VIP-закрытие хранится как платёж на 0 со статусом complimentary: на чеке
     // показываем его как «VIP» на всю сумму заказа, иначе способ не виден.
-    payments: payments.map((payment) => {
-      const isVip = payment.status === "complimentary" || String(payment.method || "").trim().toLowerCase() === "vip";
-      const amount = toNumber(payment.amount);
-      return {
-        label: isVip ? "VIP" : paymentMethodLabel(payment.method),
-        amount: isVip && amount <= 0 ? toNumber(order.total_amount) : amount,
-      };
-    }),
+    // Аннулированные/возвращённые платежи (voided, refunded...) на чек не попадают,
+    // а один способ оплаты показывается одной строкой с общей суммой.
+    payments: mergePaymentRows(payments
+      .filter((payment) => !payment.status || ["completed", "complimentary"].includes(payment.status))
+      .map((payment) => {
+        const isVip = payment.status === "complimentary" || String(payment.method || "").trim().toLowerCase() === "vip";
+        const amount = toNumber(payment.amount);
+        const vipAmount = toNumber(payment.vip_amount);
+        return {
+          label: isVip ? "VIP" : paymentMethodLabel(payment.method),
+          amount: isVip && amount <= 0 ? (vipAmount > 0 ? vipAmount : toNumber(order.total_amount)) : amount,
+        };
+      })),
     // Отменённые позиции на чек не попадают — как и в печати.
     items: (order.items || [])
       .filter((item) => item.status !== "cancelled")
@@ -181,6 +192,7 @@ export default function OrderReceiptDialog({ orderId, orderNumber, onClose, onOp
             разделители) живут под этим классом — так превью здесь совпадает
             с превью на странице настроек один в один. */}
         <div className="receipt-dialog__body receipt-settings-page">
+          <span className="receipt-dialog__signature">POWERED BY MARJON</span>
           {loading ? (
             <div className="receipt-dialog__state" role="status">
               <InlineLoader text="Загрузка чека…" />

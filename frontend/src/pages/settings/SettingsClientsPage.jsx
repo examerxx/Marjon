@@ -1,5 +1,9 @@
+import { useCallback, useEffect, useState } from "react";
 import SettingsResourcePage from "./SettingsResourcePage";
+import "./SettingsClientsTable.css";
+import { formatDebt, loadClientDebts } from "./clients/clientDebts";
 import { CounterpartyStatementView } from "./clients/CounterpartyHistory";
+import SupplierStatementView from "./clients/SupplierStatement";
 import { formatPhoneDisplay, formatTablePhone, normalizePhoneForPayload, parsePhoneInput } from "./clients/phone";
 import { t } from "../../i18n/t";
 
@@ -46,7 +50,30 @@ const titleFor = (form) => {
   return noun;
 };
 
+// Текущий долг клиентов (с учётом погашений); null — ещё грузится или не удалось загрузить.
+function useClientDebts() {
+  const [debts, setDebts] = useState(null);
+  const reload = useCallback((signal) => loadClientDebts({ signal })
+    .then((map) => { if (!signal?.aborted) setDebts(map); })
+    .catch(() => {}), []);
+  useEffect(() => {
+    const controller = new AbortController();
+    reload(controller.signal);
+    return () => controller.abort();
+  }, [reload]);
+  return [debts, () => reload()];
+}
+
+export function debtCell(row, debts) {
+  if (row?.type !== "clients" || !debts) return "-";
+  const debt = debts.get(String(row.id)) || 0;
+  if (debt > 0) return <span className="client-debt-cell is-debt">{formatDebt(debt)}</span>;
+  if (debt < 0) return <span className="client-debt-cell is-overpaid">Переплата {formatDebt(-debt)}</span>;
+  return <span className="client-debt-cell">Нет долга</span>;
+}
+
 function SettingsClientsPage() {
+  const [debts, reloadDebts] = useClientDebts();
   return (
     <SettingsResourcePage
       title={t("pages.settings.settingsclientspage.klienty")}
@@ -63,7 +90,14 @@ function SettingsClientsPage() {
       usePortal
       centeredModal
       hideTypeField
-      renderStatementView={(row, onBack) => <CounterpartyStatementView row={row} onBack={onBack} />}
+      renderStatementView={(row, onBack) => (row.type === "suppliers" ? (
+        // Поставщик: та же структура, но по теме — приходы «на потом» и оплаты поставщику.
+        <SupplierStatementView row={row} onDebtChanged={reloadDebts} />
+      ) : (
+        <CounterpartyStatementView row={row} onBack={onBack}
+          debt={row.type === "clients" && debts ? debts.get(String(row.id)) || 0 : null}
+          onDebtChanged={reloadDebts} />
+      ))}
       requireDeleteConfirm
       deleteConfirmText="Удалить контрагента?"
       searchPlaceholder="Поиск"
@@ -77,6 +111,7 @@ function SettingsClientsPage() {
         // Display-only UZ mask (+998 (XX) XXX-XX-XX); raw canonical value
         // stays untouched for search, edit, and payloads.
         { key: "phone", label: t("pages.settings.settingsclientspage.nomer_telefona"), format: (value) => formatTablePhone(value) },
+        { key: "debt", label: "Долг", format: (_value, row) => debtCell(row, debts) },
         { key: "status", label: t("pages.settings.settingsclientspage.status") },
         { key: "history", label: t("pages.settings.settingsclientspage.istoriya_tranzaktsiy") },
       ]}

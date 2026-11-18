@@ -1,14 +1,16 @@
-import { useState, useEffect, useRef } from 'react'
+import PaymentMethodIcon from './PaymentMethodIcon'
+import { useState, useEffect, useId, useRef } from 'react'
 import {
-  ArrowLeft, Printer, Banknote, CreditCard, CheckCircle, Crown, Delete, X,
-  Phone, MapPin, Wallet, Undo2,
+  ArrowLeft, Printer, CheckCircle, Delete, X,
+  Phone, MapPin, Undo2,
+  ChevronDown, UserRound,
 } from 'lucide-react'
 import { t } from '../shared/i18n'
-import { formatPhone, extractPhoneDigits, fullPhone } from '../shared/phone'
+import { extractPhoneDigits, formatPhone, fullPhone, isPhoneComplete } from '../shared/phone'
 import { formatQty } from '../shared/qty'
 import { sanitizeDecimal, parseNum } from '../shared/numeric'
 import { parseApiDate } from '../shared/time'
-import { finance as financeApi, payments } from '../shared/api'
+import { customers, finance as financeApi, payments } from '../shared/api'
 import { toast } from './Toast'
 import WaiterPicker from './WaiterPicker'
 import logoUrl from '../assets/logo-mark.png'
@@ -85,8 +87,55 @@ export default function PaymentScreen({
   const [printed, setPrinted] = useState(false)
   const [discPct, setDiscPct] = useState('')
   const [debtStep, setDebtStep] = useState('none')
-  const [debtorName, setDebtorName] = useState('')
-  const [debtorPhone, setDebtorPhone] = useState('')
+  const [debtorId, setDebtorId] = useState('')
+  const [debtPickerOpen, setDebtPickerOpen] = useState(false)
+  const debtPickerTrigger = useRef(null)
+  const [debtClients, setDebtClients] = useState(null)
+  const [debtError, setDebtError] = useState(false)
+  const [newClient, setNewClient] = useState(null)
+  const [newClientError, setNewClientError] = useState('')
+  const [savingClient, setSavingClient] = useState(false)
+  const clientSubmitLock = useRef(false)
+  useEffect(() => {
+    if (debtStep !== 'form') return
+    const request = new AbortController()
+    setDebtClients(null)
+    setDebtError(false)
+    setDebtorId('')
+    setDebtPickerOpen(false)
+    setNewClient(null)
+    setNewClientError('')
+    customers.debtClients(request.signal).then((rows) => {
+      if (!request.signal.aborted) setDebtClients(rows)
+    }).catch(() => {
+      if (!request.signal.aborted) setDebtError(true)
+    })
+    return () => request.abort()
+  }, [debtStep])
+  const debtClientGroup = useId()
+  const selectedDebtClient = debtClients?.find((client) => client.id === debtorId)
+
+  async function saveDebtClient(event) {
+    event.preventDefault()
+    const name = newClient.name.trim()
+    if (!name || !isPhoneComplete(newClient.phone) || clientSubmitLock.current) return
+    clientSubmitLock.current = true
+    setSavingClient(true)
+    setNewClientError('')
+    try {
+      const client = await customers.createDebtClient(name, fullPhone(newClient.phone))
+      if (!client?.id || client.type !== 'client') throw new Error('Invalid client response')
+      setDebtClients(previous => [client, ...(previous || []).filter(item => item.id !== client.id)])
+      setDebtorId(client.id)
+      setNewClient(null)
+    } catch (error) {
+      const detail = error?.response?.data?.detail
+      setNewClientError(typeof detail === 'string' ? detail : 'Не удалось добавить клиента.')
+    } finally {
+      clientSubmitLock.current = false
+      setSavingClient(false)
+    }
+  }
   // Выбор способа оплаты — шаг внутри «Закрыть заказ», а не поле в колонке.
   const [askPay, setAskPay] = useState(false)
   const [paymentMethods, setPaymentMethods] = useState([])
@@ -110,6 +159,12 @@ export default function PaymentScreen({
   const total = Number(order?.total_amount || 0)
   const items = (order?.items || []).filter((item) => item.status !== 'cancelled')
   const subtotal = items.reduce((s, it) => s + Number(it.total ?? (Number(it.price) * Number(it.quantity))), 0)
+  const discountAmount = Number(order?.discount_amount || 0)
+  const appliedDiscountPct = subtotal > 0 ? Math.min(100, Math.round(discountAmount / subtotal * 100)) : 0
+
+  useEffect(() => {
+    setDiscPct(appliedDiscountPct > 0 ? String(appliedDiscountPct) : '')
+  }, [order?.id, appliedDiscountPct])
   // Кто участвовал в заказе — те же строки, что печатаются на чеке.
   const receiptStaff = (order?.receipt_staff || []).filter((row) => row && row.name)
   const servicePct = subtotal > 0 ? Math.round(Number(order?.service_fee || 0) / subtotal * 100) : 0
@@ -122,6 +177,7 @@ export default function PaymentScreen({
 
   // ── Введённая сумма ──────────────────────────────────────────────────
   const entered = parseNum(amount)
+  const hidePaymentAmounts = !reopening && (dueNow === 0 || Boolean(selected))
   // Пустое поле = оплата ровно на остаток (так «Закрыть заказ» работает сразу).
   const paid = entered > 0 ? entered : dueNow
   const change = Math.max(0, paid - dueNow)
@@ -144,7 +200,7 @@ export default function PaymentScreen({
       .then(([rows, recorded]) => {
         if (request.signal.aborted) return
         setPaymentMethods(rows)
-        setRecordedPayments(recorded.filter((payment) => payment.status === 'completed'))
+        setRecordedPayments(recorded.filter((payment) => payment.status === 'completed' || (payment.status === 'complimentary' && payment.vip_amount != null)))
         setMethodsStatus('ready')
       })
       .catch(() => {
@@ -159,6 +215,11 @@ export default function PaymentScreen({
     function onKey(e) {
       if (e.key !== 'Escape' || busy) return
       if (resetOpen) { setResetOpen(false); return }
+      if (debtStep === 'form' && debtPickerOpen) {
+        setDebtPickerOpen(false)
+        debtPickerTrigger.current?.focus()
+        return
+      }
       if (confirmation) { setConfirmation(null); setAskPay(true); return }
       if (editingAmount && askPay) {
         setEditingAmount(false)
@@ -171,7 +232,7 @@ export default function PaymentScreen({
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [askPay, busy, debtStep, editingAmount, confirmation, resetOpen])
+  }, [askPay, busy, debtStep, debtPickerOpen, editingAmount, confirmation, resetOpen])
 
   /**
    * Тап по сумме к оплате подставляет полную сумму в поле «Получено».
@@ -202,17 +263,17 @@ export default function PaymentScreen({
   async function applyDiscount() {
     if (!onApplyDiscount) return
     const p = Math.min(100, Math.max(0, Number(discPct) || 0))
-    if (!p) return
+    if (!discPct) return
     const sum = Math.round(subtotal * p / 100)
     // После частичной оплаты скидка не должна опустить итог ниже уже принятого.
-    if (paidBefore > 0 && !reopening && sum * (1 + servicePct / 100) > dueNow) {
+    if (paidBefore > 0 && !reopening && sum - discountAmount > dueNow) {
       toast(t('discount_exceeds_due'), 'error')
       return
     }
     await run('discount', async () => {
       try {
         await onApplyDiscount(order, sum)
-        setDiscPct('')
+        setDiscPct(String(p))
         setPadTarget('amount')
       } catch { toast(t('create_order_error')) }
     })
@@ -234,6 +295,7 @@ export default function PaymentScreen({
   }
 
   function updateAmountInput(value, caret) {
+    setSelected(null)
     const next = sanitizeDecimal(value, 2)
     const rawCaret = sanitizeDecimal(value.slice(0, caret), 2).length
     setAmount(next)
@@ -266,7 +328,17 @@ export default function PaymentScreen({
 
   // Цифра с панели: в скидку (целые проценты, до 100) или в сумму оплаты.
   function pressPadKey(key) {
-    if (padTarget !== 'discount') { pressAmountKey(key); return }
+    if (padTarget !== 'discount') {
+      // Кнопки панели всегда дописывают в КОНЕЦ суммы. Позицию курсора из поля
+      // не берём: без фокуса она сбрасывалась в 0, и «10000» превращалось в «00001».
+      if (busy) return
+      const remove = key === 'delete'
+      const replace = prefilledAmount.current && !remove
+      prefilledAmount.current = false
+      setSelected(null)
+      setAmount((prev) => sanitizeDecimal(remove ? prev.slice(0, -1) : (replace ? '' : prev) + key, 2))
+      return
+    }
     if (act === 'discount') return
     if (key === 'delete') { setDiscPct((v) => v.slice(0, -1)); return }
     if (!/^[0-9]$/.test(key)) return
@@ -276,8 +348,8 @@ export default function PaymentScreen({
     })
   }
 
-  async function completeWithMethod(nextMethod) {
-    if (busy) return
+  async function completeWithMethod(nextMethod, closeOrder = false) {
+    if (!canComplete) return
     if (nextMethod === 'debt') {
       if (!debtAllowed || dueNow <= 0) return
       closePaymentMethods()
@@ -290,38 +362,51 @@ export default function PaymentScreen({
       return
     }
     const moneyMethod = nextMethod === 'cash' || nextMethod === 'card'
-    const paymentAmount = moneyMethod ? Math.min(entered || dueNow, dueNow) : dueNow
-    const partial = !reopening && moneyMethod && (paidBefore > 0 || paymentAmount < dueNow)
-    if (paidBefore > 0 && !reopening && !moneyMethod && nextMethod !== 'VIP') return
+    const vipPartial = nextMethod === 'VIP' && entered > 0 && entered < dueNow
+    // Свои способы оплаты (UZUM и др.) делятся так же, как наличные/карта.
+    const splittable = moneyMethod || (nextMethod !== 'VIP' && nextMethod !== 'debt')
+    const paymentAmount = vipPartial ? entered : splittable ? Math.min(entered || dueNow, dueNow) : dueNow
+    const partial = !reopening && (vipPartial || (splittable && (paidBefore > 0 || paymentAmount < dueNow)))
+    if (paidBefore > 0 && !reopening && !splittable && nextMethod !== 'VIP') return
     if (partial && paymentAmount <= 0) return
-    if (!reopening && paidBefore > 0 && paymentAmount >= dueNow) {
-      setConfirmation({ method: nextMethod, amount: paymentAmount,
-        detail: partial ? { partialAmount: paymentAmount, [nextMethod]: entered || paymentAmount }
-          : entered > 0 && moneyMethod ? { [nextMethod]: entered } : undefined })
+    if (!closeOrder && paymentAmount >= dueNow) {
+      if (nextMethod === 'VIP') {
+        prefilledAmount.current = false
+        setAmount('')
+      } else if (nextMethod === 'card' && paidBefore > 0 && entered === 0) {
+        prefilledAmount.current = true
+        setAmount(String(dueNow))
+      }
+      setSelected(nextMethod)
       return
     }
-    if (partial && paymentAmount < dueNow) animateAmount(nextMethod, paymentAmount)
+    if (closeOrder && paymentAmount < dueNow) return
+
+    setSelected(null)
     setMethod(nextMethod)
     setBusy(true)
     const detail = partial
-      ? { partialAmount: paymentAmount, [nextMethod]: entered || paymentAmount }
+      ? { partialAmount: paymentAmount, expectedRemaining: Math.round((dueNow - paymentAmount) * 100) / 100, [nextMethod]: entered || paymentAmount }
       : entered > 0 && moneyMethod ? { [nextMethod]: entered } : undefined
     try {
       const result = await onComplete(order, nextMethod, detail)
       if (result?.partial) {
+        animateAmount(nextMethod, paymentAmount)
         setRecordedPayments((rows) => [...rows, result.payment])
         prefilledAmount.current = false
         setAmount('')
         setSelected(null)
       }
-    } catch { /* The checkout owner displays the server error. */ }
+    } catch {
+      if (closeOrder) setSelected(nextMethod)
+      // The checkout owner displays the server error.
+    }
     finally { setBusy(false) }
   }
 
   async function doDebtComplete() {
-    if (busy) return
-    const detail = { debt: dueNow, client_name: debtorName.trim() || undefined,
-      client_phone: fullPhone(debtorPhone) || undefined }
+    if (busy || !debtClients?.some((client) => client.id === debtorId)) return
+    const detail = { debt: dueNow, counterparty_id: debtorId }
     if (paidBefore > 0) {
       setConfirmation({ method: 'debt', amount: dueNow, detail })
       setDebtStep('none')
@@ -342,11 +427,11 @@ export default function PaymentScreen({
     const chip = document.createElement('span')
     chip.className = 'pay-amount-transfer'
     chip.textContent = fmt(value)
-    Object.assign(chip.style, { left: source.left + 'px', top: source.top + 'px', width: source.width + 'px' })
+    Object.assign(chip.style, { left: source.right - 16 + 'px', top: source.top + source.height / 2 + 'px' })
     document.body.append(chip)
     const animation = chip.animate([
-      { transform: 'translate(0, 0)', opacity: 1 },
-      { transform: `translate(${target.right - source.right - 16}px, ${target.top - source.top + 16}px)`, opacity: 1 },
+      { transform: 'translate(-100%, -50%)' },
+      { transform: `translate(calc(-100% + ${target.right - source.right}px), calc(-50% + ${target.top + target.height / 2 - source.top - source.height / 2}px))` },
     ], { duration: 260, easing: 'cubic-bezier(.2,.7,.2,1)' })
     animation.finished.then(() => chip.remove(), () => chip.remove())
   }
@@ -381,15 +466,19 @@ export default function PaymentScreen({
 
   const allocated = new Map()
   for (const payment of recordedPayments) {
-    allocated.set(payment.method, (allocated.get(payment.method) || 0) + Number(payment.amount))
+    allocated.set(payment.method, (allocated.get(payment.method) || 0) + Number(payment.vip_amount ?? payment.amount))
   }
   const summary = new Map(allocated)
+  if (selected === 'VIP') {
+    allocated.set('VIP', (allocated.get('VIP') || 0) + dueNow)
+  }
   if (confirmation) summary.set(confirmation.method, (summary.get(confirmation.method) || 0) + confirmation.amount)
 
-  function closeDebt() { setDebtStep('none') }
+  function closeDebt() { if (!clientSubmitLock.current) setDebtStep('none') }
   const spin = <span className="btn-spinner" aria-hidden="true" />
 
-  const icons = { cash: Banknote, card: CreditCard, vip: Crown }
+  const customIcon = new URL('../assets/payment-custom.png', import.meta.url).href
+
   const reservedNames = new Set(['cash', 'card', 'debt', 'vip', 'mixed', 'наличные', 'наличными', 'карта', 'в долг', 'смешанный'])
   const methodOptions = paymentMethods.flatMap((row) => {
     const builtIn = ['cash', 'card', 'vip', 'debt'].includes(row.type) &&
@@ -400,11 +489,11 @@ export default function PaymentScreen({
     const moneyMethod = builtIn && ['cash', 'card'].includes(row.type)
     const blocked = isVip && reopening
       ? t('payment_vip_unpaid_only')
-      : paidBefore > 0 && !reopening && !builtIn ? t('payment_method_after_partial') : ''
-    const MethodIcon = (builtIn && icons[row.type]) || Wallet
+      : ''
+    const icon = builtIn ? <PaymentMethodIcon type={row.type} /> : <img className="pay-method__custom-image" src={customIcon} alt="" />
     return [{
       value: builtIn ? (isVip ? 'VIP' : row.type) : row.name,
-      label: row.name, icon: <MethodIcon size={18} />, blocked,
+      label: row.name, icon, blocked,
       disabled: Boolean(blocked),
     }]
   })
@@ -471,7 +560,7 @@ export default function PaymentScreen({
                 )}
                 {Number(order?.discount_amount) > 0 && (
                   <div className="pay-receipt__row pay-receipt__row--amount">
-                    <span>{t('discount_word')}</span><span /><span>−{fmt(order.discount_amount)}</span>
+                    <span>{t('discount_word')} {appliedDiscountPct}%</span><span /><span>−{fmt(order.discount_amount)}</span>
                   </div>
                 )}
                 {Number(order?.tax_amount) > 0 && (
@@ -580,6 +669,13 @@ export default function PaymentScreen({
             <div className="pay-method__card">
               <div className="pay-method__head">
                 <span className="pay-method__title">{t('choose_payment')}</span>
+                {selected && (
+                  <button type="button" className="pay-method__reset pay-method__back"
+                    disabled={busy} aria-label={t('back')} title={t('back')}
+                    onClick={() => setSelected(null)}>
+                    <ArrowLeft size={18} aria-hidden="true" />
+                  </button>
+                )}
                 {!reopening && paidBefore > 0 && recordedPayments.length > 0 && onResetPayments && (
                   <button type="button" className="pay-method__reset" disabled={busy} onClick={() => setResetOpen(true)}>
                     {t('payment_reset')}
@@ -588,44 +684,56 @@ export default function PaymentScreen({
               </div>
               <button type="button" className="pay-method__sum" ref={amountTriggerRef}
                 disabled={busy || reopening}
-                onClick={() => { prefilledAmount.current = true; setAmount(String(dueNow)) }}>
+                onClick={() => { setSelected(null); prefilledAmount.current = true; setAmount(String(dueNow)) }}>
                 <span>{t('to_pay')}</span>
-                <strong>{fmt(dueNow)} {t('currency')}</strong>
+                {!hidePaymentAmounts && <strong>{fmt(dueNow)} {t('currency')}</strong>}
               </button>
-              <div className="pay-method__list" ref={methodListRef}>
+              <div className={`pay-method__list${entered > 0 ? ' pay-method__list--amount-entered' : ''}`} ref={methodListRef}>
                 {methodsStatus !== 'ready' ? (
                   <p className="pay-method__notice" role={methodsStatus === 'error' ? 'alert' : 'status'}>
                     {t(methodsStatus === 'error' ? 'payment_methods_load_error' : 'loading')}
                   </p>
                 ) : methodOptions.length === 0 ? (
                   <p className="pay-method__notice" role="status">{t('payment_methods_empty')}</p>
-                ) : methodOptions.map((option) => (
+                ) : methodOptions.map((option) => {
+                  const pendingCardAmount = option.value === 'card' && selected === 'card' ? entered : 0
+                  const displayedAmount = (allocated.get(option.value) || 0) + pendingCardAmount
+                  return (
                   <button
                     key={option.value} type="button" data-method={option.value}
-                        className={`pay-method__opt${option.blocked ? ' pay-method__opt--blocked' : ''}${busy && method === option.value ? ' is-selected' : ''}`}
-                    disabled={busy || option.disabled}
-                    onClick={() => { setPadTarget('amount'); setSelected(option.value); completeWithMethod(option.value) }}
+                    className={`pay-method__opt${option.blocked ? ' pay-method__opt--blocked' : ''}${selected === option.value || (busy && method === option.value) ? ' is-selected' : ''}`}
+                    disabled={!canComplete || option.disabled}
+                    onClick={() => { setPadTarget('amount'); setSelected(null); completeWithMethod(option.value) }}
                   >
                     <span className="pay-method__ico">{option.icon}</span>
                     <span className="pay-method__label">
                       <span className="pay-method__name">{option.label}</span>
                       {option.blocked && <span className="pay-method__reason">{option.blocked}</span>}
                     </span>
-                    {allocated.has(option.value) && <strong className="pay-method__allocated" key={allocated.get(option.value)}>
-                      {fmt(allocated.get(option.value))}
+                    {displayedAmount > 0 && <strong className="pay-method__allocated" key={displayedAmount}>
+                      {fmt(displayedAmount)}
                     </strong>}
                     {busy && method === option.value && spin}
                   </button>
-                ))}
+                  )
+                })}
               </div>
             </div>
             {!reopening && (
               <div id="payment-amount-pad" className="pay-amount-pad" role="group" aria-label={t('payment_amount')}>
-                <label className="pay-amount-pad__label" htmlFor="payment-partial-amount">{padTarget === 'discount' ? t('discount_word') : t('payment_amount')}</label>
+                <div className="pay-amount-pad__heading">
+                  <label className="pay-amount-pad__label" htmlFor="payment-partial-amount">{padTarget === 'discount' ? t('discount_word') : t('payment_amount')}</label>
+                  {padTarget !== 'discount' && (change > 0 || short > 0) && (
+                    <div className="pay-amount__hint">
+                      {change > 0 && <span className="pay-amount__hint--change">{t('change')}: {fmt(change)} {t('currency')}</span>}
+                      {short > 0 && <span className="pay-amount__hint--short">{t('not_enough')}: {fmt(short)} {t('currency')}</span>}
+                    </div>
+                  )}
+                </div>
                 <div className="pay-amount-pad__field">
                   <input id="payment-partial-amount" ref={amountInputRef} inputMode="none" data-keyboard="off"
                     readOnly={busy || padTarget === 'discount'}
-                    value={padTarget === 'discount' ? discPct : formatAmountInput(amount)}
+                    value={padTarget === 'discount' ? discPct : hidePaymentAmounts ? '' : formatAmountInput(amount)}
                     onPointerDown={() => { prefilledAmount.current = false; setPadTarget('amount') }}
                     onChange={(event) => updateAmountInput(event.target.value, event.target.selectionStart)}
                     onKeyDown={(event) => {
@@ -641,12 +749,6 @@ export default function PaymentScreen({
                     }} />
                   <span aria-hidden="true">{padTarget === 'discount' ? '%' : t('currency')}</span>
                 </div>
-                {padTarget !== 'discount' && (change > 0 || short > 0) && (
-                  <div className="pay-amount__hint">
-                    {change > 0 && <span className="pay-amount__hint--change">{t('change')}: {fmt(change)} {t('currency')}</span>}
-                    {short > 0 && <span className="pay-amount__hint--short">{t('not_enough')}: {fmt(short)} {t('currency')}</span>}
-                  </div>
-                )}
                 <div className="pay-amount-pad__keys">
                   {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'delete'].map((key) => (
                     <button key={key} type="button" className={`vkb__key${key === 'delete' ? ' vkb__key--medium' : ''}`}
@@ -656,6 +758,7 @@ export default function PaymentScreen({
                     </button>
                   ))}
                 </div>
+                <small className="pay-amount-pad__credit">POWERED BY <strong>MARJON</strong></small>
               </div>
             )}
           </div>
@@ -667,7 +770,7 @@ export default function PaymentScreen({
             </button>
             <button className="btn btn--primary btn--lg pay-order__close btn--eq" disabled={!canComplete || !selected}
               title={!selected ? t('choose_payment') : undefined}
-              onClick={() => completeWithMethod(selected)}>
+              onClick={() => completeWithMethod(selected, true)}>
               {busy ? spin : <CheckCircle size={20} />} {t('complete_order')}
             </button>
           </div>
@@ -715,7 +818,7 @@ export default function PaymentScreen({
           а не отдельный полноэкранный шаг. */}
       {debtStep === 'form' && (
         <div
-          className="pay-method"
+          className="pay-method pay-method--debt"
           role="dialog" aria-modal="true" aria-label={t('debt_title')}
           onMouseDown={(e) => { if (e.target === e.currentTarget) closeDebt() }}
         >
@@ -730,22 +833,66 @@ export default function PaymentScreen({
               <div className="pay-order__change"><span>{t('to_pay_label')}</span><strong>{fmt(total)} {t('currency')}</strong></div>
               <div className="pay-order__change pay-order__change--short"><span>{t('debt_left')}</span><strong>{fmt(dueNow)} {t('currency')}</strong></div>
             </div>
-            <div className="login-field">
-              <label className="login-field__label">{t('debt_client')}</label>
-              <input className="login-field__input" value={debtorName}
-                onChange={(e) => setDebtorName(e.target.value)} placeholder={t('debt_client_ph')} />
+            <div className="login-field pay-debt__picker-field">
+              <button type="button" className="pay-debt__picker" ref={debtPickerTrigger}
+                aria-expanded={debtPickerOpen} aria-controls={debtClientGroup}
+                disabled={Boolean(newClient)}
+                onClick={() => setDebtPickerOpen((open) => !open)}>
+                <span>{selectedDebtClient?.full_name || 'Выбери клиента'}</span>
+                <ChevronDown size={16} aria-hidden="true" />
+              </button>
+              <div id={debtClientGroup} className="pay-debt__picker-menu" hidden={!debtPickerOpen}>
+                <div className="pay-debt__clients" role="group" aria-label="Клиенты">
+                  {debtError ? <p role="alert">Не удалось загрузить клиентов.</p>
+                    : debtClients === null ? <p role="status">Загрузка клиентов…</p>
+                    : !debtClients.length ? <p>Клиенты не найдены</p>
+                    : <ul>{debtClients.map((client) => (
+                      <li key={client.id}>
+                        <label className="pay-debt__client">
+                          <input type="radio" name={debtClientGroup} checked={debtorId === client.id}
+                            onChange={() => {
+                              setDebtorId(client.id)
+                              setDebtPickerOpen(false)
+                              debtPickerTrigger.current?.focus()
+                            }} />
+                          <UserRound size={18} aria-hidden="true" />
+                          <span><strong>{client.full_name}</strong>{client.phone && <small>{formatPhone(client.phone)}</small>}</span>
+                        </label>
+                      </li>
+                    ))}</ul>}
+                  <button type="button" className="pay-debt__add-client" disabled={debtClients === null && !debtError}
+                    onClick={() => {
+                      setDebtPickerOpen(false)
+                      setNewClientError('')
+                      setNewClient({ name: '', phone: '' })
+                    }}>+ Добавить клиента</button>
+                </div>
+              </div>
             </div>
-            <div className="login-field">
-              <label className="login-field__label">{t('debt_phone')}</label>
-              <input className="login-field__input" type="tel" inputMode="tel" value={formatPhone(debtorPhone)}
-                onChange={(e) => setDebtorPhone(extractPhoneDigits(e.target.value))} placeholder="+998 __ ___-__-__" />
-            </div>
+            {newClient && <form className="pay-debt__new-client" onSubmit={saveDebtClient}>
+              <label>Имя<input className="input" autoFocus required maxLength={200} disabled={savingClient}
+                value={newClient.name} onChange={event => setNewClient({ ...newClient, name: event.target.value })} /></label>
+              <label>Номер телефона<input className="input" type="tel" autoComplete="tel" data-keyboard="num" required disabled={savingClient}
+                placeholder="+998" value={newClient.phone ? formatPhone(newClient.phone) : ''}
+                onChange={event => setNewClient({ ...newClient, phone: extractPhoneDigits(event.target.value) })} /></label>
+              {newClientError && <p role="alert">{newClientError}</p>}
+              <div className="pay-debt__actions">
+                <button type="button" className="btn btn--outline" disabled={savingClient} onClick={() => {
+                  setNewClient(null); setDebtPickerOpen(true)
+                }}>Отмена</button>
+                <button type="submit" className="btn btn--primary" disabled={savingClient || !newClient.name.trim() || !isPhoneComplete(newClient.phone)}>
+                  {savingClient ? spin : t('save')}
+                </button>
+              </div>
+            </form>}
+            {!newClient && (
             <div className="pay-debt__actions">
               <button className="btn btn--outline" onClick={closeDebt}>{t('back')}</button>
-              <button className="btn btn--primary" disabled={busy} onClick={doDebtComplete}>
+              <button className="btn btn--primary" disabled={busy || !debtorId} onClick={doDebtComplete}>
                 {busy ? spin : <CheckCircle size={18} />} {t('debt_close')}
               </button>
             </div>
+            )}
           </div>
         </div>
       )}

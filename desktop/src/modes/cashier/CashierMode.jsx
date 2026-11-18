@@ -1,3 +1,4 @@
+import OrderTypeTabs from '../../components/OrderTypeTabs'
 import WaiterPicker from '../../components/WaiterPicker'
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
@@ -613,10 +614,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
         // DEBT-CLIENT-01: имя/телефон должника уходят на сервер — он заводит
         // клиента в справочнике (дашборд → Настройки → Клиенты) и в отчёте
         // по долгам. Раньше эти поля терялись.
-        await orders.updateStatus(order.id, 'completed', {
-          ...(detail?.client_name ? { client_name: detail.client_name } : {}),
-          ...(detail?.client_phone ? { client_phone: detail.client_phone } : {}),
-        })
+        await orders.closeAsDebt(order.id, detail.counterparty_id)
       } else {
         const payment = await payments.confirmOrder(order, method, detail)
         if (detail?.partialAmount !== undefined) {
@@ -647,7 +645,12 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
       setView('floor')
       loadFloor()
     } catch (e) {
-      const reason = e?.paymentErrorKey ? t(e.paymentErrorKey) : e?.response?.data?.detail
+      console.error('[payment]', e)
+      if (method === 'debt' && e?.response?.status === 404 && e.response.data?.detail === 'Not Found') {
+        toast('Для закрытия заказа в долг обновите сервер MARJON.', 'error')
+        throw e
+      }
+      const reason = e?.paymentErrorKey ? t(e.paymentErrorKey) : (e?.response?.data?.detail || e?.message)
       toast(t('close_order_error') + (reason ? ': ' + (typeof reason === 'string' ? reason : t('payment_invalid_amount')) : ''), 'error')
       if ([400, 422].includes(e?.response?.status)) await refreshPayOrder(order)
       throw e
@@ -667,9 +670,12 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
       hint: t('cancel_password_prompt'),
       type: 'password',
       extra: { label: t('cancel_comment'), placeholder: t('cancel_comment_ph') },
+      // Галочка выключена по умолчанию. Включили — блюда считаются потраченными: продукты
+      // по рецептам списываются со склада и обратно не возвращаются.
+      headerToggle: { label: t('cancel_keep_stock'), title: t('cancel_keep_stock_hint') },
       submitLabel: t('cancel_order'),
-      onSubmit: async (pwd, comment) => {
-        await orders.cancel(order.id, pwd, comment || undefined)
+      onSubmit: async (pwd, comment, keepStock) => {
+        await orders.cancel(order.id, pwd, comment || undefined, Boolean(keepStock))
         setPromptCfg(null); setPayExisting(null); setCartEditOpen(false)
         setOrderLines([]); setAddToOrderId(null); setExistingOrder(null); setView('floor')
         loadFloor()
@@ -728,8 +734,8 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
         try {
           const list = await payments.forOrder(upd.id)
           paid = (Array.isArray(list) ? list : [])
-            .filter((p) => p.status === 'completed')
-            .reduce((s, p) => s + Number(p.amount || 0), 0)
+            .filter((p) => p.status === 'completed' || (p.status === 'complimentary' && p.vip_amount != null))
+            .reduce((s, p) => s + Number(p.vip_amount ?? p.amount ?? 0), 0)
         } catch { /* нет связи — сдача посчитается при оплате от серверного итога */ }
         await openExistingOrder(upd, paid)
         toast(t('reopened_toast'))
@@ -879,7 +885,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
 
     return [...orderLines, ...cart].map((item) => {
       const rowStatus = item.orderItemId ? ' cart-item--sent' : ' cart-item--draft'
-      const details = [item.createdAt && fmtTime(item.createdAt), item.addedByName, item.note].filter(Boolean).join(' · ')
+      const photo = item.product.image_url || products.find((product) => product.id === item.product.id)?.image_url
       // Внесённое блюдо кассира: «− N +» по сторонам количества. До создания
       // заказа и у новых строк корзины остаётся обычное число.
       const isSaved = Boolean(item.orderItemId)
@@ -889,8 +895,13 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
       const removed = stepper && isSaved && qty === 0
       const body = (
         <>
+          <span className="cart-item__photo" aria-hidden="true">
+            <Utensils size={16} />
+            {photo && <img src={photo} alt="" loading="lazy" onError={(event) => { event.currentTarget.hidden = true }} />}
+          </span>
           <span className="cart-item__info">
-            <span className="cart-item__name">{item.name}</span>
+            <span className="cart-item__name" title={item.note || item.name}>{item.name}</span>
+            <span className="cart-item__price">{fmt(item.orderItemId ? shownLineTotal(item) : (item.total ?? item.price * item.qty))} {t('currency')}</span>
           </span>
           {stepper ? (
             <span className={`cart-item__stepper${changed ? (qty < item.qty ? ' is-changed is-down' : ' is-changed is-up') : ''}`} onClick={(e) => e.stopPropagation()}>
@@ -910,10 +921,6 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
               {formatQty(item.qty)}
             </span>
           )}
-          <span className="cart-item__side">
-            {details && <span className="cart-item__meta" title={details}>{details}</span>}
-            <span className="cart-item__price">{fmt(item.orderItemId ? shownLineTotal(item) : (item.total ?? item.price * item.qty))}</span>
-          </span>
         </>
       )
       // Со степпером строка — div: кнопки − и + внутри <button> недопустимы.
@@ -1021,8 +1028,8 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
       if (!paid) {
         const list = await payments.forOrder(order.id)
         paid = (Array.isArray(list) ? list : [])
-          .filter((p) => p.status === 'completed')
-          .reduce((s, p) => s + Number(p.amount || 0), 0)
+          .filter((p) => p.status === 'completed' || (p.status === 'complimentary' && p.vip_amount != null))
+          .reduce((s, p) => s + Number(p.vip_amount ?? p.amount ?? 0), 0)
       }
       setPaidBefore(paid)
       setPayExisting(order)
@@ -1265,12 +1272,6 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
   const activeStaffList = staff.filter((u) => u.is_active !== false)
   const hallRoles = activeStaffList.filter((u) => ['waiter', 'cashier'].includes(roleSlugOf(u)))
   const waitersAll = hallRoles.length > 0 ? hallRoles : activeStaffList
-  const belongsToWaiter = (o, w) => {
-    if (!o || !w) return false
-    if (o.waiter_id && String(o.waiter_id) === String(w.id)) return true
-    return Boolean(o.waiter_name && w.name && o.waiter_name === w.name)
-  }
-  const ordersOfWaiter = (w) => orderList.filter((o) => o.order_type === 'dine_in' && belongsToWaiter(o, w))
   // Сайдбар показывает только тех, у кого открыта смена (activeStaffIds).
   // Смена закрыта — имени в рейле нет. Сотрудник за этим терминалом остаётся
   // всегда.
@@ -1318,7 +1319,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
   // Карточка занятого стола/заказа: зелёная шапка, состав заказа, итог.
   const orderCard = (o, { icon: HeadIcon = Utensils } = {}) => {
     const items = (o.items || []).filter((it) => it.status !== 'cancelled')
-    const shown = items.slice(0, 4)
+    const shown = items.slice(0, items.length > 6 ? 5 : 6)
     const label = o.table_number != null
       ? `${t('table')} ${o.table_number}`
       : `#${o.order_number ?? ''}`
@@ -1349,11 +1350,18 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
               const ItemIcon = itemIcon(it.name)
               return (
                 <span className="hcard__item" key={it.id}>
-                  <ItemIcon size={14} /> {formatQty(it.quantity)} × {it.name}
+                  <ItemIcon size={14} />
+                  <span className="hcard__qty">{formatQty(it.quantity)} ×</span>
+                  <span className="hcard__item-name" title={it.name}>{it.name}</span>
                 </span>
               )
             })}
-            {items.length > shown.length && <span className="hcard__more">+{items.length - shown.length}</span>}
+            {items.length > shown.length && (
+              <span className="hcard__more" title={items.slice(shown.length)
+                .map((item) => `${formatQty(item.quantity)} × ${item.name}`).join('\n')}>
+                +{items.length - shown.length}
+              </span>
+            )}
             {items.length === 0 && <span className="hcard__item hcard__item--muted">{t.status(o.status)}</span>}
           </span>
         </span>
@@ -1388,14 +1396,14 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
     ? <span className="hall-type__badge" aria-label={`${count} ${t('orders')}`}>{count > 99 ? '99+' : count}</span>
     : null)
   const typeTabs = searchSlot && view === 'floor' && showTypeTabs && createPortal(
-    <div className="hall-types hall-types--top" role="group" aria-label={t('receipt_order_type')}>
+    <OrderTypeTabs label={t('receipt_order_type')}>
       <button
         type="button"
         className={`hall-type ${orderBoard ? '' : 'is-active'}`}
         onClick={() => setActiveZone('all')}
         aria-pressed={!orderBoard}
       >
-        <LayoutGrid size={16} /> {t('tables')}
+        <LayoutGrid size={16} /> <span className="hall-type__label">{t('tables')}</span>
         {typeBadge(typeCount('dine_in'))}
       </button>
       {showTakeawayTab && (
@@ -1405,7 +1413,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
           onClick={() => setActiveZone('takeaway')}
           aria-pressed={activeZone === 'takeaway'}
         >
-          <ShoppingBag size={16} /> {t('takeaway')}
+          <ShoppingBag size={16} /> <span className="hall-type__label">{t('takeaway')}</span>
           {typeBadge(typeCount('takeaway'))}
         </button>
       )}
@@ -1416,11 +1424,11 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
           onClick={() => setActiveZone('delivery')}
           aria-pressed={activeZone === 'delivery'}
         >
-          <Bike size={16} /> {t('delivery')}
+          <Bike size={16} /> <span className="hall-type__label">{t('delivery')}</span>
           {typeBadge(typeCount('delivery'))}
         </button>
       )}
-    </div>,
+    </OrderTypeTabs>,
     searchSlot,
   )
 
@@ -1794,7 +1802,7 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
                     onClick={() => setWaiterFilter(w.id)}
                   >
                     <span className="hall-item__name">{w.name}</span>
-                    <span className="hall-item__count"><User size={14} /> {ordersOfWaiter(w).length}</span>
+                    <span className="hall-item__count"><User size={14} /> {(orderBoard ? boardOrders : orderList).filter((o) => orderOwnerId(o) === String(w.id)).length}</span>
                   </button>
                 ))}
               </nav>
@@ -1957,6 +1965,11 @@ export default function CashierMode({ user = {}, onBack, onSettings, courier = f
           <aside className="cashier-cart">
             <div className="cashier-cart__header">
               <span className="cashier-cart__head-title">{orderTitle}</span>
+              {existingOrder && (
+                <span className="cashier-cart__order-meta">
+                  {[existingOrder.created_at && fmtTime(existingOrder.created_at), existingOrder.waiter_name].filter(Boolean).join(' · ')}
+                </span>
+              )}
               {!orderReadOnly && existingOrder && (
                 <button type="button" className="cart-edit-trigger" aria-label={t('cart_edit_title')}
                   title={t('cart_edit_title')} onClick={() => { setCartEditWaiter(null); setCartEditOpen(true) }}>

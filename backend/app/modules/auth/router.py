@@ -495,6 +495,7 @@ async def pin_login(
     elif current_user is not None and current_user.company_id is not None:
         _, access_token, refresh_token = await svc.login_by_pin(
             current_user.company_id, data.pin, data.user_id,
+            support_session=getattr(current_user, "support_session", False),
             issue_refresh=not data.verify_only,
         )
     else:

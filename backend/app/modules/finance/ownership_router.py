@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.database.session import get_db
 from app.modules.auth.dependencies import require_company_app_user, require_hq_admin, require_web_owner
 from app.modules.auth.models import User
+from app.modules.finance.debt_repayments import company_client_repayments
+from app.modules.finance.models import Counterparty
 from app.modules.finance.ownership import FinanceDictionaryService, FinanceScope
 from app.modules.organizations.dependencies import get_org_scope
 from app.modules.organizations.models import Organization
@@ -70,6 +72,15 @@ def scoped_dictionary_router(
 ) -> APIRouter:
     router = APIRouter(prefix=prefix, tags=tags)
 
+    async def response_rows(rows, scope, db):
+        responses = [response_schema.model_validate(row) for row in rows]
+        if model is Counterparty and scope.kind == "company":
+            repayments = await company_client_repayments(db, scope.tenant_id, rows)
+            for response in responses:
+                if response.id in repayments:
+                    response.balance = response.balance - repayments[response.id]
+        return responses
+
     @router.get("", response_model=Page[response_schema])
     async def list_items(
         request: Request,
@@ -98,7 +109,7 @@ def scoped_dictionary_router(
             default_sort=default_sort,
         )
         return Page.create(
-            [response_schema.model_validate(row) for row in rows], total, params
+            await response_rows(rows, scope, db), total, params
         )
 
     @router.post("", response_model=response_schema, status_code=status.HTTP_201_CREATED)
@@ -118,9 +129,10 @@ def scoped_dictionary_router(
         scope: FinanceScope = Depends(scope_dep),
         db: AsyncSession = Depends(get_db),
     ):
-        return await FinanceDictionaryService(
+        row = await FinanceDictionaryService(
             model, db, system_enabled=system_enabled
         ).get(resource_id, scope)
+        return (await response_rows([row], scope, db))[0]
 
     @router.patch("/{resource_id}", response_model=response_schema)
     async def update_item(
@@ -130,9 +142,10 @@ def scoped_dictionary_router(
         _writer: User = Depends(write_dep),
         db: AsyncSession = Depends(get_db),
     ):
-        return await FinanceDictionaryService(
+        row = await FinanceDictionaryService(
             model, db, system_enabled=system_enabled
         ).update(resource_id, data, scope)
+        return (await response_rows([row], scope, db))[0]
 
     @router.delete("/{resource_id}", status_code=status.HTTP_204_NO_CONTENT)
     async def delete_item(

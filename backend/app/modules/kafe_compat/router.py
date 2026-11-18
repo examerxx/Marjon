@@ -240,6 +240,8 @@ async def kafe_update_transaction(
         t.direction = data["direction"]
     if data.get("comment") is not None:
         t.comment = data["comment"]
+    if data.get("payment_type_id") is not None:
+        t.payment_type_id = UUID(str(data["payment_type_id"]))
     if data.get("category_id") is not None:
         t.category_id = data["category_id"]
     if data.get("finance_template_id") is not None:
@@ -604,6 +606,25 @@ async def create_counterparty(
         scope,
     )
     return _cp_dict(c)
+
+
+@router.post("/crm/debt-clients", status_code=status.HTTP_201_CREATED, tags=["crm"])
+async def create_debt_client(
+    data: dict,
+    user: User = Depends(_require_cashier_or_manager),
+    scope: FinanceScope = Depends(get_company_finance_scope),
+    db: AsyncSession = Depends(get_db),
+):
+    name = str(data.get("full_name") or "").strip()
+    phone = str(data.get("phone") or "").strip()
+    if not name or len(name) > 200:
+        raise ValidationError("Введите имя клиента")
+    if len(phone) != 13 or not phone.startswith("+998") or not phone[4:].isascii() or not phone[4:].isdigit():
+        raise ValidationError("Введите номер телефона из 9 цифр")
+    client = await FinanceDictionaryService(Counterparty, db, system_enabled=False).create(
+        CounterpartyCreate(full_name=name, phone=phone, type="client"), scope,
+    )
+    return _cp_dict(client)
 
 
 @router.patch("/crm/counterparties/{item_id}", tags=["crm"])

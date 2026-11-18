@@ -83,11 +83,12 @@ async def _order(db, company, branch, product, *, number="1", total=100, paid=0,
     return order
 
 
-async def _debt_audit(db, company, order, *, name="Абдуманноп", phone="+998901112233", counterparty_id=None, debt="100"):
+async def _debt_audit(db, company, order, *, name="Абдуманноп", phone="+998901112233", counterparty_id=None, debt="100", closed_at=None):
     db.add(
         AuditLog(
             company_id=company.id,
             action="order.debt_client",
+            created_at=closed_at or order.created_at,
             entity_type="order",
             entity_id=order.id,
             new_data={

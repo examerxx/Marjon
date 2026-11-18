@@ -122,7 +122,7 @@ def _product_to_response(p: Product) -> ProductResponse:
         id=p.id, created_at=p.created_at, updated_at=p.updated_at,
         company_id=p.company_id, category_id=p.category_id, subcategory_id=p.subcategory_id,
         unit_id=p.unit_id,
-        product_type=p.product_type, printer_id=p.printer_id,
+        product_type=p.product_type, printer_id=p.printer_id, secondary_printer_id=p.secondary_printer_id,
         name=p.name, description=p.description, image_url=p.image_url,
         price=p.price, cost_price=p.cost_price, tax_rate=p.tax_rate, unit=p.unit,
         # Себестоимость = ручная база (cost_price) + состав (recipe_cost).

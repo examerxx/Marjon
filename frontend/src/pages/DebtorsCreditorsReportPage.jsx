@@ -1,5 +1,6 @@
 import { ExpenseDisclosureRow } from "../components/ExpenseDisclosureRow";
-import OrderReceiptDialog from "./dashboard/OrderReceiptDialog";
+import { ClientOrders, SUPPLIER_PAYMENT, useDebtRepayment } from "./settings/clients/CounterpartyHistory";
+import SupplierPurchases from "./warehouse/SupplierPurchases";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { financeService } from "../api/finance";
 import { itemsOf } from "./finance/financeTransactionsData";
@@ -19,6 +20,28 @@ const sections = [
   { key: "all", label: "Сальдо", icon: "bi-bank", tone: "" },
 ];
 
+// Кнопка «Оплатить» у поставщика в разделе «Кредиторы»: окно расхода с поставщиком и категорией
+// «Оплата поставщику» уже подставлены, долг уменьшается по мере ввода суммы.
+// Сколько мы должны контрагенту. У поставщика — не меньше долга по приходам «на потом»: старые приходы
+// и расходы по нему могут уводить итоговое сальдо в плюс, но долг по приходам от этого не пропадает.
+export function owedOf(row) {
+  return Math.max(Number(row.payable) || 0, Math.max(0, -Number(row.closingBalance) || 0));
+}
+
+function SupplierPayButton({ row, onPaid }) {
+  const owed = owedOf(row);
+  const payment = useDebtRepayment({ id: row.id, name: row.name }, owed, onPaid, SUPPLIER_PAYMENT);
+  if (owed <= 0) return null;
+  return <>
+    <button type="button" className="dc-pay-button" disabled={payment.opening}
+      aria-label={`Оплатить поставщику ${row.name}`} title="Оплатить долг поставщику"
+      onClick={() => payment.open()}>
+      <Icon name="bi-cash-coin" size={15} /> Оплатить
+    </button>
+    {payment.drawer}
+  </>;
+}
+
 export default function DebtorsCreditorsReportPage({ finance = false }) {
   const [dateRange, setDateRange] = useState(currentMonthRange);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -26,11 +49,10 @@ export default function DebtorsCreditorsReportPage({ finance = false }) {
   const [partyTypes, setPartyTypes] = useState({});
   const [expandedGroups, setExpandedGroups] = useState({});
   const [selectedParty, setSelectedParty] = useState(null);
-  const [partyOrders, setPartyOrders] = useState(null);
-  const [receipt, setReceipt] = useState(null);
   const [direction, setDirection] = useState("all");
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState([]);
+  const [reloadKey, setReloadKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const beginRequest = useLatestRequest();
@@ -58,6 +80,7 @@ export default function DebtorsCreditorsReportPage({ finance = false }) {
           debit: Number(item.debit),
           credit: Number(item.credit),
           closingBalance: Number(item.closing_balance),
+          payable: Number(item.payable) || 0,
         })));
       })
       .catch((err) => {
@@ -66,7 +89,7 @@ export default function DebtorsCreditorsReportPage({ finance = false }) {
         setError(err.response?.data?.detail || "Не удалось загрузить отчёт по дебету и кредиту.");
       })
       .finally(() => { if (request.isCurrent()) setLoading(false); });
-  }, [beginRequest, dateRange.start, dateRange.end]);
+  }, [beginRequest, dateRange.start, dateRange.end, reloadKey]);
 
   useEffect(() => {
     if (!finance) return;
@@ -89,7 +112,7 @@ export default function DebtorsCreditorsReportPage({ finance = false }) {
 
   const visibleRows = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return rows.filter(row => (!query || row.name.toLowerCase().includes(query)) && (!finance || direction === "all" || (direction === "debtors" ? row.closingBalance > 0 : row.closingBalance < 0)));
+    return rows.filter(row => (!query || row.name.toLowerCase().includes(query)) && (!finance || direction === "all" || (direction === "debtors" ? row.closingBalance > 0 : owedOf(row) > 0)));
   }, [rows, search, finance, direction]);
   const totals = useMemo(() => visibleRows.reduce((acc, row) => ({
     debit: acc.debit + row.debit,
@@ -98,8 +121,10 @@ export default function DebtorsCreditorsReportPage({ finance = false }) {
   }), { debit: 0, credit: 0, closingBalance: 0 }), [visibleRows]);
 
   const receivable = rows.reduce((sum, row) => sum + Math.max(0, row.closingBalance), 0);
-  const payable = rows.reduce((sum, row) => sum + Math.max(0, -row.closingBalance), 0);
+  const payable = rows.reduce((sum, row) => sum + owedOf(row), 0);
 
+  // Что показывать в строке сгруппированной таблицы: кредиторам — сколько мы должны (минус), дебиторам — сальдо.
+  const shown = row => (direction === "creditors" ? -owedOf(row) : row.closingBalance);
   const grouped = finance && direction !== "all";
   const groups = new Map();
   if (grouped) {
@@ -110,24 +135,7 @@ export default function DebtorsCreditorsReportPage({ finance = false }) {
     }
   }
   const summaryValues = { debtors: receivable, creditors: payable, all: receivable - payable };
-  useEffect(() => {
-    if (!selectedParty) return;
-    const controller = new AbortController();
-    setPartyOrders(null);
-    financeService.listCounterpartyOrders(selectedParty, { dateTo: toApiDate(dateRange.end), signal: controller.signal })
-      .then(({ data }) => {
-        if (controller.signal.aborted) return;
-        if (!Array.isArray(data)) throw new Error("Invalid orders response");
-        const orders = data.filter(order => order.order_id && Number(order.debt_amount) > 0);
-        setPartyOrders({ orders });
-        if (orders.length === 1) setReceipt(orders[0]);
-      })
-      .catch(() => { if (!controller.signal.aborted) setPartyOrders({ error: true }); });
-    return () => controller.abort();
-  }, [dateRange.end, selectedParty]);
-
   function toggleParty(id) {
-    setPartyOrders(null);
     setSelectedParty(current => current === id ? null : id);
   }
 
@@ -135,7 +143,6 @@ export default function DebtorsCreditorsReportPage({ finance = false }) {
     setDirection(key);
     setExpandedGroups({});
     setSelectedParty(null);
-    setPartyOrders(null);
   }
 
   function downloadExcel() {
@@ -197,7 +204,7 @@ export default function DebtorsCreditorsReportPage({ finance = false }) {
           {grouped ? <table className={`dc-table dc-grouped-table dc-grouped-table--${direction}`}>
             <thead><tr><th>Контрагент</th><th>{direction === "debtors" ? "Дебет" : "Кредит"}</th></tr></thead>
             <tbody>
-              <tr className="dc-total-row"><td>{direction === "debtors" ? "Итого дебиторка" : "Итого кредиторка"}</td><td>{displayAmount(totals.closingBalance)}</td></tr>
+              <tr className="dc-total-row"><td>{direction === "debtors" ? "Итого дебиторка" : "Итого кредиторка"}</td><td>{displayAmount(visibleRows.reduce((sum, row) => sum + shown(row), 0))}</td></tr>
               {[...groups].map(([label, members]) => {
                 const open = Boolean(expandedGroups[label]);
                 return <Fragment key={label}>
@@ -208,23 +215,30 @@ export default function DebtorsCreditorsReportPage({ finance = false }) {
                     }}>
                       <Icon name="bi-chevron-right" className="dc-group-chevron" size={14} />{label}
                     </button></td>
-                    <td>{displayAmount(members.reduce((sum, row) => sum + row.closingBalance, 0))}</td>
+                    <td>{displayAmount(members.reduce((sum, row) => sum + shown(row), 0))}</td>
                   </tr>
                   {members.map(row => <Fragment key={row.id}>
                     <ExpenseDisclosureRow visible={open} className="dc-group-member">
-                      <td><button type="button" className="dc-party-link" aria-expanded={selectedParty === row.id}
-                        onClick={() => toggleParty(row.id)}>{row.name}</button></td>
-                      <td>{displayAmount(row.closingBalance)}</td>
+                      <td><button type="button" aria-expanded={selectedParty === row.id}
+                        onClick={() => toggleParty(row.id)}>
+                        <Icon name="bi-chevron-right" className="dc-group-chevron" size={14} />{row.name}
+                      </button></td>
+                      <td>
+                        <span className="dc-amount-cell">
+                          {displayAmount(shown(row))}
+                          {direction === "creditors" && partyTypes[row.id] === "supplier"
+                            ? <SupplierPayButton row={row} onPaid={() => setReloadKey(key => key + 1)} /> : null}
+                        </span>
+                      </td>
                     </ExpenseDisclosureRow>
                     <ExpenseDisclosureRow visible={open && selectedParty === row.id} className="dc-party-orders">
                       <td colSpan={2}>
-                        {!partyOrders ? <span role="status">Загрузка заказов…</span>
-                          : partyOrders.error ? <span role="alert">Не удалось загрузить заказы.</span>
-                          : !partyOrders.orders.length ? <span>Связанных заказов в долг нет.</span>
-                          : partyOrders.orders.map(order => <button type="button" className="dc-party-link" key={order.order_id}
-                            onClick={() => setReceipt(order)}>
-                            Чек № {order.order_number} · {displayAmount(order.debt_amount)}
-                          </button>)}
+                        {partyTypes[row.id] === "supplier"
+                          // Поставщик: его приходы «на потом» — из них складывается долг.
+                          ? <SupplierPurchases supplier={row.name} />
+                          // Клиент: остаток по счетам — сальдо раскладываем по его счетам от новых к старым.
+                          : <ClientOrders clientId={row.id} dateTo={toApiDate(dateRange.end)}
+                            debt={partyTypes[row.id] === "client" ? row.closingBalance : null} />}
                       </td>
                     </ExpenseDisclosureRow>
                   </Fragment>)}
@@ -243,8 +257,6 @@ export default function DebtorsCreditorsReportPage({ finance = false }) {
         </div>
         </div>
       </article>
-      {receipt && <OrderReceiptDialog orderId={receipt.order_id} orderNumber={receipt.order_number}
-        onClose={() => setReceipt(null)} />}
     </section>
   );
 }

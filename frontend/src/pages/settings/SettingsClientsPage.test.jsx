@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { settingsService } from "../../api/settings";
+import { financeService } from "../../api/finance";
 import BackButton from "../../components/BackButton";
 import SettingsClientsPage from "./SettingsClientsPage";
 
@@ -16,6 +17,23 @@ vi.mock("../../api/settings", () => ({
 
 vi.mock("../../../api/finance", () => ({
   financeService: { listCounterpartyTransactions: vi.fn(() => Promise.resolve({ data: { items: [], total: 0, page: 1, size: 200, pages: 1 } })) },
+}));
+
+// Текущий долг клиентов приходит из /finance/counterparties (баланс за вычетом погашений).
+vi.mock("../../api/finance", () => ({
+  financeService: {
+    listCounterpartyTransactions: vi.fn(() => Promise.resolve({ data: { items: [], total: 0, page: 1, size: 200, pages: 1 } })),
+    listCounterpartyOrders: vi.fn(() => Promise.resolve({ data: [] })),
+    listCounterparties: vi.fn(() => Promise.resolve({ data: { items: [
+      { id: "c1", type: "client", balance: "550000" },
+      { id: "s1", type: "supplier", balance: "5" },
+    ], total: 2 } })),
+    listPaymentTypes: vi.fn(() => Promise.resolve({ data: { items: [{ id: "cash", name: "Наличные" }] } })),
+    listTransactionCategories: vi.fn(() => Promise.resolve({ data: { items: [{ id: "rep", name: "Возврат долга", kind: "income" }] } })),
+    createTransactionCategory: vi.fn(),
+    createTransaction: vi.fn(() => Promise.resolve({ data: { id: "tx-1" } })),
+  },
+  resolveTransactionSubmission: (previous, payload) => ({ fingerprint: JSON.stringify(payload), idempotencyKey: "key-1" }),
 }));
 
 const SERVER_ROWS = [
@@ -72,11 +90,11 @@ describe("SettingsClientsPage (counterparties V1)", () => {
     const { container } = renderClients();
     await screen.findByText("Real Client");
     const headers = [...container.querySelectorAll("thead th")].map((th) => th.textContent.trim());
-    expect(headers).toEqual(["ФИО", "Номер телефона", "Статус", "История транзакций", "Действия"]);
+    expect(headers).toEqual(["ФИО", "Номер телефона", "Долг", "Статус", "История транзакций", "Действия"]);
     // Local display state: default "Активный" badge with a dot.
     const row = screen.getByText("Real Client").closest("tr");
     const cells = [...row.querySelectorAll("td")].map((td) => td.textContent.trim());
-    expect(cells[2]).toBe("Активный");
+    expect(cells[3]).toBe("Активный");
     const badge = row.querySelector(".settings-status-badge.is-active");
     expect(badge).not.toBeNull();
     expect(badge.querySelector(".settings-status-badge__dot")).not.toBeNull();
@@ -350,7 +368,7 @@ describe("SettingsClientsPage (counterparties V1)", () => {
     // Table shows the chosen option as a local badge with a dot.
     const row = await screen.findByText("Status Guy");
     const cells = [...row.closest("tr").querySelectorAll("td")].map((td) => td.textContent.trim());
-    expect(cells[2]).toBe("Не активный");
+    expect(cells[3]).toBe("Не активный");
     expect(row.closest("tr").querySelector(".settings-status-badge.is-inactive .settings-status-badge__dot")).not.toBeNull();
     // Reopening resets to the visual default: nothing was stored on the server.
     fireEvent.click(screen.getByRole("button", { name: /Добавить/ }));
@@ -497,6 +515,119 @@ describe("SettingsClientsPage (counterparties V1)", () => {
     expect(screen.queryByText("Real Client")).toBeNull();
   });
 
+  it("показывает текущий долг клиента в списке (у поставщика — прочерк)", async () => {
+    renderClients();
+    await screen.findByText("Real Client");
+    const row = screen.getByText("Real Client").closest("tr");
+    await waitFor(() => expect(row.querySelectorAll("td")[2].textContent).toBe("550\u00a0000 сум"));
+    fireEvent.click(screen.getByRole("button", { name: "Поставщики" }));
+    const supplier = (await screen.findByText("Real Supplier")).closest("tr");
+    expect(supplier.querySelectorAll("td")[2].textContent).toBe("-");
+  });
+
+  it("«Погасить долг»: приход на клиента в «Возврат долга», сумма больше долга не проходит", async () => {
+    renderClients();
+    const row = (await screen.findByText("Real Client")).closest("tr");
+    await waitFor(() => expect(row.querySelectorAll("td")[2].textContent).toContain("550"));
+    fireEvent.click(within(row).getByRole("button", { name: /История транзакций/ }));
+    expect(await screen.findByTitle("Погасить общий долг клиента")).toHaveTextContent("Остаток: 550 000 сум");
+    expect(await screen.findByText("Погашения за период")).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle("Погасить общий долг клиента"));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Погашение долга · Real Client")).toBeInTheDocument();
+    const amount = within(dialog).getByPlaceholderText("Введите сумму");
+    // сумма по умолчанию пустая, справа вверху — весь долг; по мере ввода долг уменьшается
+    expect(amount).toHaveValue("550 000");
+    expect(within(dialog).getByTestId("debt-left")).toHaveTextContent("Долг: 0 сум");
+    fireEvent.change(amount, { target: { value: "200000" } });
+    expect(within(dialog).getByTestId("debt-left")).toHaveTextContent("Долг: 350 000 сум");
+    fireEvent.change(amount, { target: { value: "600000" } });
+    expect(within(dialog).getByTestId("debt-left")).toHaveTextContent("Долг: 0 сум");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Погасить" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Сумма больше долга (550 000 сум)");
+    expect(financeService.createTransaction).not.toHaveBeenCalled();
+    fireEvent.change(amount, { target: { value: "200000" } });
+    fireEvent.click(within(dialog).getByRole("combobox", { name: /Способ оплаты/ }));
+    fireEvent.click(screen.getByRole("option", { name: "Наличные" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Погасить" }));
+    await waitFor(() => expect(financeService.createTransaction).toHaveBeenCalledTimes(1));
+    const [payload, key] = financeService.createTransaction.mock.calls[0];
+    expect(payload).toMatchObject({ amount: 200000, direction: "income", counterparty_id: "c1", category_id: "rep", comment: "Погашение долга" });
+    expect(payload.date).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(key).toBe("key-1");
+    // после погашения долги перечитываются
+    await waitFor(() => expect(financeService.listCounterparties.mock.calls.length).toBeGreaterThan(1));
+  });
+
+  it("кнопка в строке счёта погашает именно этот счёт: сумма — его остаток, в комментарии номер заказа", async () => {
+    const orders = [
+      { order_id: "b", order_number: 2, closed_at: "2026-11-02T15:00:00Z", total_amount: "410000", debt_amount: "410000", payment_methods: ["debt"], status: "completed", order_type: "dine_in" },
+      { order_id: "a", order_number: 1, closed_at: "2026-11-01T15:00:00Z", total_amount: "340000", debt_amount: "340000", payment_methods: ["debt"], status: "completed", order_type: "dine_in" },
+    ];
+    financeService.listCounterpartyOrders.mockResolvedValue({ data: orders });
+    renderClients();
+    const row = (await screen.findByText("Real Client")).closest("tr");
+    await waitFor(() => expect(row.querySelectorAll("td")[2].textContent).toContain("550"));
+    fireEvent.click(within(row).getByRole("button", { name: /История транзакций/ }));
+    // долг 550 000: новый счёт № 2 открыт целиком, старый № 1 — на 140 000
+    const payOld = await screen.findByRole("button", { name: /Погасить долг по заказу № 1:/ });
+    expect(payOld).toHaveTextContent("");
+    expect(payOld).not.toBeDisabled();
+    fireEvent.click(payOld);
+    const dialog = await screen.findByRole("dialog");
+    const amount = within(dialog).getByPlaceholderText("Введите сумму");
+    expect(amount).toHaveValue("");
+    // долг здесь — остаток именно этого заказа
+    expect(within(dialog).getByTestId("debt-left")).toHaveTextContent("Долг: 140 000 сум");
+    fireEvent.change(amount, { target: { value: "40000" } });
+    expect(within(dialog).getByTestId("debt-left")).toHaveTextContent("Долг: 100 000 сум");
+    fireEvent.change(amount, { target: { value: "150000" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Погасить" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Сумма больше долга (140 000 сум)");
+    expect(financeService.createTransaction).not.toHaveBeenCalled();
+    expect(within(dialog).getByPlaceholderText("Назначение операции или примечание")).toHaveValue("Погашение по заказу № 1 от 01.11.2026");
+    financeService.listCounterpartyOrders.mockResolvedValue({ data: [] });
+  });
+
+  it("галочки у заказов: без «Тип оплаты» и «Статус»; ниже — история погашений выбранных заказов", async () => {
+    const orders = [
+      { order_id: "b", order_number: 2, closed_at: "2026-11-02T15:00:00Z", total_amount: "410000", debt_amount: "410000", payment_methods: ["debt"], status: "completed", order_type: "dine_in" },
+      { order_id: "a", order_number: 1, closed_at: "2026-11-01T15:00:00Z", total_amount: "340000", debt_amount: "340000", payment_methods: ["debt"], status: "completed", order_type: "dine_in" },
+    ];
+    financeService.listCounterpartyOrders.mockResolvedValue({ data: orders });
+    // одно погашение на 200 000 (общая кнопка) — закрывает старый заказ № 1 частично
+    financeService.listCounterpartyTransactions.mockResolvedValue({ data: { items: [
+      { id: "t1", date: "2026-11-01T18:00:00Z", amount: "200000", direction: "income", category_id: "rep", comment: null },
+    ], total: 1, page: 1, size: 200, pages: 1 } });
+    renderClients();
+    const row = (await screen.findByText("Real Client")).closest("tr");
+    await waitFor(() => expect(row.querySelectorAll("td")[2].textContent).toContain("550"));
+    fireEvent.click(within(row).getByRole("button", { name: /История транзакций/ }));
+    const table = await screen.findByRole("table", { name: "Заказы в долг" });
+    const headers = [...table.querySelectorAll("thead th")].map((th) => th.textContent.trim()).filter(Boolean);
+    expect(headers).toEqual(["№", "Тип", "Дата закрытия", "Место", "Цена всего", "Остаток долга", "Официант", "Кассир"]);
+    expect(screen.getByText("Погашения за период")).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Показать погашения заказа № 1" }));
+    expect(await screen.findByText("История погашений: заказ № 1")).toBeInTheDocument();
+    const history = screen.getByText("История погашений: заказ № 1").closest("section");
+    expect(within(history).getByText("№ 1")).toBeInTheDocument();
+    expect(within(history).getAllByText(/200\s000 UZS/).length).toBeGreaterThan(0);
+    // колонки: № заказа, дата, сумма, остаток после погашения, комментарий
+    expect([...history.querySelectorAll("thead th")].map((th) => th.textContent)).toEqual(["№", "Дата", "Долг", "Сумма", "Остаток", "Способ оплаты", "Комментарий", ""]);
+    expect(history.querySelector("tbody tr").children[2]).toHaveTextContent(/340\s000 UZS/); // долг до погашения
+    expect(history.querySelector("tbody tr").children[4]).toHaveTextContent(/140\s000 UZS/); // остаток после
+    // выбрать можно только один заказ: отметка № 2 снимает № 1
+    expect(screen.queryByRole("checkbox", { name: "Выбрать все заказы" })).toBeNull();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Показать погашения заказа № 2" }));
+    expect(await screen.findByText("История погашений: заказ № 2")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Показать погашения заказа № 1" })).not.toBeChecked();
+    // повторный клик снимает выбор — снова все погашения за период
+    fireEvent.click(screen.getByRole("checkbox", { name: "Показать погашения заказа № 2" }));
+    expect(await screen.findByText("Погашения за период")).toBeInTheDocument();
+    financeService.listCounterpartyOrders.mockResolvedValue({ data: [] });
+    financeService.listCounterpartyTransactions.mockResolvedValue({ data: { items: [], total: 0, page: 1, size: 200, pages: 1 } });
+  });
+
   it("opens history inside the SAME settings-card shell with no local back button", async () => {
     const { container } = renderClients();
     await screen.findByText("Real Client");
@@ -516,8 +647,8 @@ describe("SettingsClientsPage (counterparties V1)", () => {
     expect(screen.queryByRole("button", { name: /Назад/ })).toBeNull();
     expect(screen.queryByText("← Клиенты")).toBeNull();
     // Toolbar: slider modes + Reports period picker, no counterparty filter.
-    expect(container.querySelector(".client-statement-right .staff-tabs.staff-tabs--slider")).not.toBeNull();
-    expect(container.querySelector(".client-statement-right .staff-tabs__indicator")).not.toBeNull();
+    expect(container.querySelector(".client-statement-right .staff-tabs.staff-tabs--slider")).toBeNull();
+    expect(container.querySelector(".client-statement-right .staff-tabs__indicator")).toBeNull();
     expect(container.querySelector(".client-statement-right .report-period-picker")).not.toBeNull();
     expect(container.querySelectorAll("select").length).toBe(0);
   });

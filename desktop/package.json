@@ -1,6 +1,6 @@
 {
   "name": "marjon-desktop",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Marjon POS — desktop terminal for cashiers, waiters and kitchen staff",
   "main": "out/main/index.js",
   "type": "commonjs",
@@ -10,7 +10,8 @@
     "test:payments": "node --test scripts/order-payments.test.mjs",
     "build": "electron-vite build",
     "package": "electron-vite build && electron-builder",
-    "package:dir": "electron-vite build && electron-builder --dir"
+    "package:dir": "electron-vite build && electron-builder --dir",
+    "package:release": "electron-vite build && electron-builder --config electron-builder.release.json --publish never"
   },
   "dependencies": {
     "axios": "^1.7.0",

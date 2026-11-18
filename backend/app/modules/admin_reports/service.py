@@ -6,7 +6,7 @@ from typing import Iterable, Sequence, get_args
 from uuid import UUID
 
 from fastapi.responses import StreamingResponse
-from sqlalchemy import and_, case, exists, func, or_, select
+from sqlalchemy import Numeric, String, and_, case, cast, exists, func, literal, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -22,6 +22,8 @@ from app.modules.admin_reports.schemas import (
     WaiterReportResponse, WaiterReportRow, WaiterReportTotals,
 )
 from app.modules.auth.models import RefreshToken, User
+from app.modules.finance.debt_repayments import client_debt_repayment, supplier_debt_payment
+from app.modules.auth.service import SUPPORT_SESSION_DEVICES
 from app.modules.finance.models import Counterparty, FinTransaction, PaymentType
 from app.modules.finance.ownership import (
     FinanceDictionaryService,
@@ -33,8 +35,9 @@ from app.modules.hr.models import Employee, WorkShift
 from app.modules.companies.models import Branch
 from app.modules.halls.models import Hall, Table
 from app.modules.inventory.models import Category, Product
+from app.modules.inventory.warehouse_models import PurchaseDocument
 from app.modules.payments.models import Payment
-from app.modules.pos.models import Order, OrderItem
+from app.modules.pos.models import CashierShift, Order, OrderItem
 from app.modules.pos.schemas import OrderCreate, OrderStatusUpdate
 from app.modules.rbac.models import Role, UserRole
 from app.shared.pagination import PageParams
@@ -253,8 +256,14 @@ class AdminReportService:
             allow_system=False,
             detail="Counterparty not found",
         )
+        # Оплата долга поставщику уменьшает кредиторку (идёт в дебет), как возврат долга клиентом.
+        supplier_payment = supplier_debt_payment()
+        adds_to_debt = or_(
+            and_(FinTransaction.direction == "income", ~client_debt_repayment()),
+            supplier_payment,
+        )
         signed = case(
-            (FinTransaction.direction == "income", FinTransaction.amount),
+            (adds_to_debt, FinTransaction.amount),
             else_=-FinTransaction.amount,
         )
         opening = func.sum(case(
@@ -264,10 +273,10 @@ class AdminReportService:
         if date_to:
             in_period = in_period & (func.date(FinTransaction.date) <= date_to)
         debit = func.sum(case(
-            (in_period & (FinTransaction.direction == "income"), FinTransaction.amount), else_=0
+            (in_period & adds_to_debt, FinTransaction.amount), else_=0
         ))
         credit = func.sum(case(
-            (in_period & (FinTransaction.direction == "expense"), FinTransaction.amount), else_=0
+            (in_period & or_(and_(FinTransaction.direction == "expense", ~supplier_payment), client_debt_repayment()), FinTransaction.amount), else_=0
         ))
 
         query = (
@@ -297,14 +306,107 @@ class AdminReportService:
         if date_to:
             query = query.where(func.date(FinTransaction.date) <= date_to)
         rows = (await self.db.execute(query)).all()
-        return [
-            DebtCreditRow(
+        result = {
+            r[0]: DebtCreditRow(
                 counterparty_id=r[0], counterparty_name=r[1],
                 opening_balance=r[2] or 0, debit=r[3] or 0, credit=r[4] or 0,
                 closing_balance=(r[2] or 0) + (r[3] or 0) - (r[4] or 0),
             )
             for r in rows
-        ]
+        }
+        debt_date = func.date(AuditLog.created_at)
+        debt_amount = cast(AuditLog.new_data["debt"].as_string(), Numeric(16, 2))
+        debt_query = (
+            select(
+                Counterparty.id,
+                Counterparty.full_name,
+                func.sum(case((debt_date < (date_from or date.min), debt_amount), else_=0)),
+                func.sum(case((debt_date >= (date_from or date.min), debt_amount), else_=0)),
+            )
+            .select_from(AuditLog)
+            .join(Counterparty, cast(Counterparty.id, String) == AuditLog.new_data["counterparty_id"].as_string())
+            .where(
+                AuditLog.company_id == company_id,
+                AuditLog.action == "order.debt_client",
+                Counterparty.company_id == company_id,
+                Counterparty.scope_kind == "company",
+                Counterparty.organization_id.is_(None),
+                Counterparty.deleted_at.is_(None),
+            )
+            .group_by(Counterparty.id, Counterparty.full_name)
+        )
+        if counterparty_id is not None:
+            debt_query = debt_query.where(Counterparty.id == counterparty_id)
+        if date_to:
+            debt_query = debt_query.where(debt_date <= date_to)
+        for party_id, name, opening_debt, period_debt in (await self.db.execute(debt_query)).all():
+            row = result.get(party_id)
+            opening_balance = (row.opening_balance if row else 0) + (opening_debt or 0)
+            debit_amount = (row.debit if row else 0) + (period_debt or 0)
+            credit_amount = row.credit if row else 0
+            result[party_id] = DebtCreditRow(
+                counterparty_id=party_id, counterparty_name=name,
+                opening_balance=opening_balance, debit=debit_amount, credit=credit_amount,
+                closing_balance=opening_balance + debit_amount - credit_amount,
+            )
+        # Приходы товаров «на потом» — долг перед поставщиком: сумма идёт в кредит поставщика
+        # (до начала периода — в начальное сальдо, как кредит это уменьшает).
+        purchase_day = func.coalesce(PurchaseDocument.date, func.substr(cast(PurchaseDocument.created_at, String), 1, 10))
+        from_key = (date_from or date.min).isoformat()
+        purchase_query = (
+            select(
+                Counterparty.id,
+                Counterparty.full_name,
+                func.sum(case((purchase_day < from_key, PurchaseDocument.total_amount), else_=0)),
+                func.sum(case((purchase_day >= from_key, PurchaseDocument.total_amount), else_=0)),
+            )
+            .select_from(PurchaseDocument)
+            .join(Counterparty, and_(
+                func.lower(func.trim(Counterparty.full_name)) == func.lower(func.trim(PurchaseDocument.supplier)),
+                Counterparty.company_id == PurchaseDocument.company_id,
+            ))
+            .where(
+                PurchaseDocument.company_id == company_id,
+                PurchaseDocument.payment_mode == "credit",
+                Counterparty.type == "supplier",
+                Counterparty.scope_kind == "company",
+                Counterparty.organization_id.is_(None),
+                Counterparty.deleted_at.is_(None),
+            )
+            .group_by(Counterparty.id, Counterparty.full_name)
+        )
+        if counterparty_id is not None:
+            purchase_query = purchase_query.where(Counterparty.id == counterparty_id)
+        if date_to:
+            purchase_query = purchase_query.where(purchase_day <= date_to.isoformat())
+        # Оплаты поставщикам (категория «Оплата поставщику») до конца периода — уменьшают долг по приходам.
+        paid_query = (
+            select(FinTransaction.counterparty_id, func.sum(FinTransaction.amount))
+            .join(Counterparty, Counterparty.id == FinTransaction.counterparty_id)
+            .where(
+                FinTransaction.company_id == company_id,
+                FinTransaction.organization_id.is_(None),
+                FinTransaction.deleted_at.is_(None),
+                supplier_payment,
+            )
+            .group_by(FinTransaction.counterparty_id)
+        )
+        if date_to:
+            paid_query = paid_query.where(func.date(FinTransaction.date) <= date_to)
+        paid_to_suppliers = {party: Decimal(str(total or 0)) for party, total in (await self.db.execute(paid_query)).all()}
+        for party_id, name, earlier_credit, period_credit in (await self.db.execute(purchase_query)).all():
+            row = result.get(party_id)
+            opening_balance = (row.opening_balance if row else 0) - (earlier_credit or 0)
+            debit_amount = row.debit if row else 0
+            credit_amount = (row.credit if row else 0) + (period_credit or 0)
+            owed = Decimal(str(earlier_credit or 0)) + Decimal(str(period_credit or 0)) - paid_to_suppliers.get(party_id, Decimal("0"))
+            result[party_id] = DebtCreditRow(
+                counterparty_id=party_id, counterparty_name=name,
+                opening_balance=opening_balance, debit=debit_amount, credit=credit_amount,
+                closing_balance=opening_balance + debit_amount - credit_amount,
+                payable=max(Decimal("0"), owed),
+            )
+        return list(result.values())
 
     def _order_date_filter(self, query, date_from: date | None, date_to: date | None, *, column=Order.created_at):
         if self.web_timezone:
@@ -360,10 +462,18 @@ class AdminReportService:
             event_date = func.greatest(paid_at, completed_at)
         else:
             event_date = Order.created_at
+        was_closed_on_credit = exists(
+            select(AuditLog.id).where(
+                AuditLog.company_id == Order.company_id,
+                AuditLog.entity_id == Order.id,
+                AuditLog.action == "order.debt_client",
+            ).correlate(Order)
+        )
         query = (
             select(
                 Order.id, Order.public_id, Order.order_number, Order.created_at,
                 event_date.label("report_date"),
+                was_closed_on_credit.label("was_closed_on_credit"),
                 Order.status, Order.table_number, Order.hall_name_snapshot,
                 Order.order_type,
                 User.name.label("waiter_name"),
@@ -476,6 +586,7 @@ class AdminReportService:
         cashier_names, payment_methods = await self._order_payment_attribution(
             company_id, [r.id for r in rows]
         )
+        payment_amounts = await self._order_payment_amounts(company_id, [r.id for r in rows])
         position_prices: dict[UUID, list[Decimal]] = {}
         position_totals: dict[UUID, tuple[Decimal, Decimal]] = {}
         if product_id and rows:
@@ -511,13 +622,69 @@ class AdminReportService:
                 order_type=r.order_type,
                 cashier_names=cashier_names.get(r.id, []),
                 service_fee=Decimal(str(r.service_fee if r.service_fee is not None else 0)),
-                payment_methods=payment_methods.get(r.id, []),
+                payment_methods=list(dict.fromkeys([
+                    *payment_methods.get(r.id, []),
+                    *(["debt"] if r.was_closed_on_credit else []),
+                ])),
+                payment_amounts=payment_amounts.get(r.id, []),
                 position_prices=position_prices.get(r.id, []) if product_id else None,
                 position_quantity=position_totals[r.id][0] if r.id in position_totals else None,
                 position_amount=position_totals[r.id][1] if r.id in position_totals else None,
             )
             for r in rows
         ]
+
+    async def _order_payment_amounts(
+        self, company_id: UUID, order_ids: Sequence[UUID]
+    ) -> dict[UUID, list[dict]]:
+        """Сумма по каждому способу оплаты заказа (один способ — одна строка).
+
+        Деньги — Payment.amount completed-платежей. VIP-платёж хранится на 0:
+        его сумма — сохранённый vip_amount, а если его нет (VIP закрыл остаток) —
+        итог заказа минус все остальные суммы.
+        """
+        if not order_ids:
+            return {}
+        totals = {
+            row.id: Decimal(str(row.total_amount or 0))
+            for row in (await self.db.execute(
+                select(Order.id, Order.total_amount).where(
+                    Order.company_id == company_id, Order.id.in_(list(order_ids))
+                )
+            )).all()
+        }
+        pay_rows = (await self.db.execute(
+            select(Payment.order_id, Payment.method, Payment.amount, Payment.status, Payment.provider_data)
+            .where(
+                Payment.company_id == company_id,
+                Payment.status.in_(("completed", "complimentary")),
+                Payment.order_id.in_(list(order_ids)),
+            )
+            .order_by(Payment.created_at.asc(), Payment.id.asc())
+        )).all()
+        per_order: dict[UUID, dict[str, Decimal]] = {}
+        vip_unknown: set[UUID] = set()
+        for row in pay_rows:
+            if row.method is None:
+                continue
+            methods = per_order.setdefault(row.order_id, {})
+            if row.status == "complimentary":
+                stored = (row.provider_data or {}).get("vip_amount")
+                if stored is None:
+                    vip_unknown.add(row.order_id)
+                    methods.setdefault("VIP", Decimal("0"))
+                else:
+                    methods["VIP"] = methods.get("VIP", Decimal("0")) + Decimal(str(stored))
+            else:
+                methods[row.method] = methods.get(row.method, Decimal("0")) + Decimal(str(row.amount or 0))
+        for order_id in vip_unknown:
+            methods = per_order[order_id]
+            others = sum(methods.values(), Decimal("0"))
+            methods["VIP"] = max(Decimal("0"), totals.get(order_id, Decimal("0")) - others)
+        return {
+            order_id: [{"method": method, "amount": amount} for method, amount in methods.items()]
+            for order_id, methods in per_order.items()
+        }
 
     async def _order_payment_attribution(
         self, company_id: UUID, order_ids: Sequence[UUID]
@@ -1578,7 +1745,10 @@ class AdminReportService:
                 User.avatar_url,
             )
             .join(User, User.id == RefreshToken.user_id)
-            .where(User.company_id == company_id)
+            .where(
+                User.company_id == company_id,
+                *(RefreshToken.device_id.is_distinct_from(device) for device in SUPPORT_SESSION_DEVICES),
+            )
             .order_by(RefreshToken.created_at.desc())
             .limit(200)
         )
@@ -1614,12 +1784,40 @@ class AdminReportService:
             .join(Employee, Employee.id == WorkShift.employee_id)
             .join(User, User.id == Employee.user_id)
             .where(WorkShift.company_id == company_id)
-            .order_by(WorkShift.actual_start.desc())
-            .limit(200)
         )
         if branch_id is not None:
             query = query.where(WorkShift.branch_id == branch_id)
-        rows = (await self.db.execute(query)).all()
+        matching_work_shift = exists(
+            select(WorkShift.id)
+            .join(Employee, Employee.id == WorkShift.employee_id)
+            .where(
+                WorkShift.company_id == CashierShift.company_id,
+                WorkShift.branch_id == CashierShift.branch_id,
+                Employee.user_id == CashierShift.cashier_id,
+                WorkShift.actual_start <= func.coalesce(CashierShift.closed_at, func.now()),
+                func.coalesce(WorkShift.actual_end, func.now()) >= CashierShift.opened_at,
+            )
+            .correlate(CashierShift)
+        )
+        cashier_shifts = (
+            select(
+                CashierShift.opened_at, CashierShift.closed_at, CashierShift.status,
+                literal(""), literal(""), User.name, User.avatar_url, literal("Кассир"),
+            )
+            .join(User, User.id == CashierShift.cashier_id)
+            .where(
+                CashierShift.company_id == company_id,
+                CashierShift.support_session.is_(False),
+                User.company_id == company_id,
+                ~matching_work_shift,
+            )
+        )
+        if branch_id is not None:
+            cashier_shifts = cashier_shifts.where(CashierShift.branch_id == branch_id)
+        shifts = query.union_all(cashier_shifts).subquery()
+        rows = (await self.db.execute(
+            select(shifts).order_by(shifts.c.actual_start.desc().nulls_last()).limit(200)
+        )).all()
         result = []
         for r in rows:
             start = self._web_local_stamp(r.actual_start)
@@ -1637,7 +1835,7 @@ class AdminReportService:
                 start=start.strftime("%H:%M") if start else "",
                 end=end.strftime("%H:%M") if end else "",
                 hours=hours,
-                status="Закрыта" if r.status == "completed" else r.status,
+                status={"completed": "Закрыта", "closed": "Закрыта", "open": "Открыта"}.get(r.status, r.status),
                 # ATT-IP-01: приход важнее ухода (открытая смена показывает, откуда
                 # пришли). Нет ни одного — пустая строка, без выдуманных адресов.
                 ip=r.check_in_ip or r.check_out_ip or "",

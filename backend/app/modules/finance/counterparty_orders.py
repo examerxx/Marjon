@@ -45,8 +45,8 @@ def _audit_matches(new_data: object, counterparty_id: UUID, name_key: str, phone
     if not isinstance(new_data, dict):
         return False
     stored_id = str(new_data.get("counterparty_id") or "").strip()
-    if stored_id and stored_id == str(counterparty_id):
-        return True
+    if stored_id:
+        return stored_id == str(counterparty_id)
     if phone_key and _phone_key(new_data.get("client_phone")) == phone_key:
         return True
     stored_name = _name_key(new_data.get("client_name"))
@@ -109,12 +109,38 @@ async def list_counterparty_orders(
         .correlate(Order)
         .scalar_subquery()
     )
+    debt_closed_at = (
+        select(func.max(AuditLog.created_at))
+        .where(
+            AuditLog.company_id == company_id,
+            AuditLog.entity_id == Order.id,
+            AuditLog.action == DEBT_AUDIT_ACTION,
+        )
+        .correlate(Order)
+        .scalar_subquery()
+    )
+    closed_at = func.coalesce(debt_closed_at, Order.created_at)
+    cashier_name = (
+        select(func.coalesce(User.name, User.email))
+        .select_from(Payment)
+        .join(User, and_(User.id == Payment.cashier_id, User.company_id == company_id))
+        .where(
+            Payment.company_id == company_id,
+            Payment.order_id == Order.id,
+            Payment.status == "completed",
+        )
+        .order_by(Payment.created_at.desc(), Payment.id.desc())
+        .limit(1)
+        .correlate(Order)
+        .scalar_subquery()
+    )
     query = (
         select(
             Order.id,
             Order.public_id,
             Order.order_number,
             Order.created_at,
+            closed_at.label("closed_at"),
             Order.status,
             Order.order_type,
             Order.table_number,
@@ -123,13 +149,15 @@ async def list_counterparty_orders(
             items_count.label("items_count"),
             paid_amount.label("paid_amount"),
             User.name.label("waiter_name"),
+            cashier_name.label("cashier_name"),
         )
+        .select_from(Order)
         .outerjoin(User, and_(User.id == Order.waiter_id, User.company_id == company_id))
         .where(Order.company_id == company_id, Order.id.in_(order_ids))
-        .order_by(Order.created_at.desc())
+        .order_by(closed_at.desc())
     )
     if date_from or date_to:
-        query = query.where(*web_date_conditions(Order.created_at, date_from, date_to))
+        query = query.where(*web_date_conditions(closed_at, date_from, date_to))
     rows = (await db.execute(query)).all()
     if not rows:
         return []
@@ -162,6 +190,8 @@ async def list_counterparty_orders(
                 "public_id": row.public_id,
                 "order_number": row.order_number,
                 "created_at": row.created_at,
+                "closed_at": row.closed_at,
+                "cashier_name": row.cashier_name,
                 "status": row.status,
                 "order_type": row.order_type,
                 "table_number": row.table_number,

@@ -78,7 +78,7 @@ def count_dividers(text: str, char: str = "-", width: int | None = None) -> int:
 
 class TestCustomerBasic:
     def test_1_80mm_basic_receipt(self):
-        raw = _fmt(80).format_receipt(_order(), template={})
+        raw = _fmt(80).format_receipt(_order(), template={"restaurantName": "Marjon Cafe"})
         assert raw.startswith(EscPosFormatter.INIT)
         t = dec(raw)
         assert "Marjon Cafe" in t
@@ -89,7 +89,7 @@ class TestCustomerBasic:
     def test_2_58mm_basic_receipt(self):
         f = _fmt(58)
         assert f.cols == 32
-        raw = f.format_receipt(_order(), template={})
+        raw = f.format_receipt(_order(), template={"restaurantName": "Marjon Cafe"})
         t = dec(raw)
         assert "Marjon Cafe" in t
 
@@ -351,7 +351,7 @@ class TestHeaderDividerAndDiscountVat:
         header — matches ReceiptPreview.jsx (previous === 'header' -> null)."""
         raw = _fmt(80).format_receipt(
             _order(),
-            template={"enabled": {"table": False, "waiter": False, "dateTime": False, "orderNumber": False, "address": False, "phone": False}},
+            template={"restaurantName": "Marjon Cafe", "enabled": {"table": False, "waiter": False, "dateTime": False, "orderNumber": False, "address": False, "phone": False}},
         )
         t = dec(raw)
         lines = t.split("\n")
@@ -402,13 +402,13 @@ class TestHeaderDividerAndDiscountVat:
 class TestCustomerBlockOrder:
     def test_custom_block_order_is_honoured(self):
         order_data = _order()
-        default_raw = _fmt(80).format_receipt(order_data, template={})
-        reordered = _fmt(80).format_receipt(order_data, template={"blocks": ["thankYouText", "bottomOrderNumber", "restaurantName", "address", "phone", "orderNumber", "table", "waiter", "dateTime", "items", "discount", "serviceFee", "vat", "total", "paymentMethod", "logo"]})
+        default_raw = _fmt(80).format_receipt(order_data, template={"restaurantName": "Marjon Cafe"})
+        reordered = _fmt(80).format_receipt(order_data, template={"restaurantName": "Marjon Cafe", "blocks": ["thankYouText", "bottomOrderNumber", "restaurantName", "address", "phone", "orderNumber", "table", "waiter", "dateTime", "items", "discount", "serviceFee", "vat", "total", "paymentMethod", "logo"]})
         assert default_raw != reordered
         assert dec(reordered).index("XARIDINGIZ") < dec(reordered).index("Marjon Cafe")
 
     def test_unknown_partial_order_falls_back_to_canonical_for_missing_blocks(self):
-        raw = _fmt(80).format_receipt(_order(), template={"blocks": ["totallyUnknownFutureKey", "restaurantName"]})
+        raw = _fmt(80).format_receipt(_order(), template={"restaurantName": "Marjon Cafe", "blocks": ["totallyUnknownFutureKey", "restaurantName"]})
         assert raw.endswith(EscPosFormatter.CUT)
         assert "Marjon Cafe" in dec(raw)
 
@@ -496,7 +496,7 @@ class TestPhysicalReceiptParityV1:
         address/phone strings are present on the template."""
         raw = _fmt(80).format_receipt(
             _order(),
-            template={"address": "г. Ташкент, ул. Амира Темура, 15", "phone": "+998770702101",
+            template={"restaurantName": "Marjon Cafe", "address": "г. Ташкент, ул. Амира Темура, 15", "phone": "+998770702101",
                       "enabled": {"address": False, "phone": False}},
         )
         t = dec(raw)
@@ -562,7 +562,7 @@ class TestPhysicalReceiptParityV1:
         default block order, not a header placement."""
         raw = _fmt(80).format_receipt(
             _order(),
-            template={"address": "г. Ташкент, ул. Амира Темура, 15", "phone": "+998770702101",
+            template={"restaurantName": "Marjon Cafe", "address": "г. Ташкент, ул. Амира Темура, 15", "phone": "+998770702101",
                       "enabled": {"address": True, "phone": True}},
         )
         t = dec(raw)
@@ -740,3 +740,19 @@ class TestChefBasic:
     def test_waiter_name_none_line_simply_omitted(self):
         raw = dec(_fmt(80).format_kitchen_ticket(_kitchen(waiter_name=None), template={}))
         assert "Официант:" not in raw
+
+
+class TestRestaurantNameComesOnlyFromReceiptSettings:
+    """Название компании НЕ подставляется на чек: его меняют отдельно (карточка QR-меню),
+    а шапка чека берётся только из «Название ресторана» в настройках чека."""
+
+    def test_company_name_is_not_printed_when_receipt_name_is_empty(self):
+        for template in ({}, {"restaurantName": ""}, {"restaurantName": "   "}):
+            raw = _fmt(80).format_receipt(_order(), template=template)
+            assert "Marjon Cafe" not in dec(raw)
+            assert raw.endswith(EscPosFormatter.CUT)
+
+    def test_receipt_name_from_settings_is_printed(self):
+        raw = _fmt(80).format_receipt(_order(), template={"restaurantName": "Cafe Sardor"})
+        assert "Cafe Sardor" in dec(raw)
+        assert "Marjon Cafe" not in dec(raw)

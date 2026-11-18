@@ -3475,3 +3475,8 @@
 /* Пейджер: без подписи, выбор строк ближе к счётчику справа */
 .orders-report-pager { gap: 10px; }
 .orders-report-pager__range { min-width: 0; margin-right: 4px; }
+
+.orders-report-page .report-pay-lines { display: flex; flex-direction: column; gap: 0; line-height: 1.4; color: var(--text-primary); font-weight: 400; }
+.orders-report-page .report-pay-line { display: block; white-space: nowrap; }
+.orders-report-page .report-pay-line b { font-weight: 400; }
+.orders-report-page .report-table tbody tr:has(.report-pay-lines) td { padding-top: 5px; padding-bottom: 5px; }

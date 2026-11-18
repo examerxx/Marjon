@@ -839,3 +839,82 @@ body.dashboard-body .dashboard-shell .dashboard-side-metric__art.is-transparent-
       background-color 160ms ease, box-shadow 160ms ease;
   }
 }
+
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark {
+  display: inline-flex;
+  /* Anchor the symbol to the brand row, not its shrinking text wrapper. */
+  position: absolute;
+  inset: 6px auto auto 8px;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  gap: 0;
+  width: 202px;
+  transition: width 180ms ease;
+  color: #082544;
+  font-family: "Bodoni MT", "Bodoni Bd BT", "Times New Roman", serif;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.25px;
+  cursor: pointer;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark:is(:hover, :focus, :focus-visible, :active) {
+  outline: none;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-brand-symbol {
+  display: block;
+  width: 54px;
+  height: 40px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark__full {
+  display: block;
+  width: 138px;
+  min-width: 0;
+  max-width: 138px;
+  margin-left: 10px;
+  flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  transition: width 250ms ease, max-width 250ms ease, margin 250ms ease,
+    opacity 180ms ease, transform 250ms ease, visibility 180ms ease;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark__full img {
+  display: block;
+  width: 138px;
+  max-width: none;
+  height: 30px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar.is-collapsed .preview-serif-wordmark {
+  width: 54px;
+}
+body.marjon-dark-shell.dashboard-body #dashboardSidebar.is-collapsed .preview-serif-wordmark__full {
+  width: 0;
+  max-width: 0;
+  margin-left: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-10px);
+}
+@media (max-width: 1000px) {
+  body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark { width: 54px; }
+  body.marjon-dark-shell.dashboard-body #dashboardSidebar .preview-serif-wordmark__full {
+    width: 0; max-width: 0; margin-left: 0; opacity: 0; visibility: hidden;
+  }
+}

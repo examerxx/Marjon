@@ -43,6 +43,11 @@ class Payment(TimeStampedModel):
 
 
     @property
+    def vip_amount(self) -> Decimal | None:
+        amount = (self.provider_data or {}).get("vip_amount")
+        return Decimal(amount) if amount is not None else None
+
+    @property
     def remaining_amount(self) -> Decimal | None:
         amount = (self.provider_data or {}).get("remaining_amount")
         return Decimal(amount) if amount is not None else None

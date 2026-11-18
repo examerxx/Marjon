@@ -73,9 +73,15 @@ export const financeService = {
     return api.get("/finance/finance-history", { params: { page, size, ...params } });
   },
 
-  listCounterpartyOrders(counterpartyId, { dateTo, signal } = {}) {
+  listOrderDebtOperations({ dateFrom, dateTo, signal }) {
+    return api.get("/finance/order-debt-operations", {
+      params: { date_from: dateFrom, date_to: dateTo }, signal,
+    });
+  },
+
+  listCounterpartyOrders(counterpartyId, { dateFrom, dateTo, signal } = {}) {
     return api.get(`/finance/counterparties/${counterpartyId}/orders`, {
-      params: definedParams({ date_to: dateTo }),
+      params: definedParams({ date_from: dateFrom, date_to: dateTo }),
       ...(signal ? { signal } : {}),
     });
   },

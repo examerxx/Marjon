@@ -107,6 +107,7 @@ export function mapNomenclatureProduct(item, units = []) {
     // а не имя → id). Null, когда backend не вернул.
     categoryId: item.category_id ? String(item.category_id) : null,
     printerId: item.printer_id ? String(item.printer_id) : null,
+    secondaryPrinterId: item.secondary_printer_id ? String(item.secondary_printer_id) : null,
     chef: "",
     photo: item.image_url || "",
     // V46: шаг порции (null/undefined = целые порции).
@@ -158,7 +159,8 @@ export function buildNomenclatureProductPayload(form, { isUpdate = false } = {})
   // шлём ТОЛЬКО выбранные id; пусто = omit (backend оставляет как есть/null).
   // subcategory_id не шлём никогда (поле удалено из дровера).
   if (form.categoryId) payload.category_id = form.categoryId;
-  if (form.printerId) payload.printer_id = form.printerId;
+  if (form.printerId !== undefined) payload.printer_id = form.printerId || null;
+  if (form.secondaryPrinterId !== undefined) payload.secondary_printer_id = form.secondaryPrinterId || null;
   // V46: шаг порции — шлём только если выбран валидный шаг.
   const step = String(form.portionStep || "").trim().replace(",", ".");
   if (step && ["0.1", "0.25", "0.5"].includes(step)) payload.portion_step = Number(step);

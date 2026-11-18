@@ -4,10 +4,10 @@ import {
   Calendar, Camera, Check, CheckCircle, CheckCircle2, ChevronDown, ChevronLeft,
   ChevronRight, ChevronUp, Circle, CircleArrowDown, CircleArrowUp, Clock,
   ClipboardCheck, ClipboardList, Coffee, Coins, Columns2, Combine, Contact2, CornerDownLeft,
-  CreditCard, Delete, Download, Droplet, Egg, Eye, EyeOff, FileBarChart, FileSpreadsheet,
+  CreditCard, Database, Delete, Download, Droplet, Egg, Eye, EyeOff, FileBarChart, FileSpreadsheet,
   FilePlus, FileText, Filter, Gauge, Gift, Grid3X3, Hash, Headphones, ChefHat,
   History, Image, Info, Languages, LayoutGrid, LayoutPanelTop, LifeBuoy,
-  ListChecks, ListOrdered, Lock, LogOut, MapPin, MessageCircle, MessageSquare,
+  ListChecks, ListOrdered, Lock, LogOut, MapPin, MessageCircle, MessageSquare, MessageSquareMore,
   Minus, Monitor, MoreHorizontal, OctagonX, Package, PackageCheck, PackageOpen,
   Pencil, Phone, PieChart, PlusCircle, Plus, Printer, QrCode, Receipt,
   RefreshCcw, RefreshCw, RotateCcw, RotateCw, Ruler, Search, Send, Settings, Settings2,
@@ -15,7 +15,7 @@ import {
   Tags, Timer, TrendingDown, TrendingUp, Trash2, Upload, User, UserCog, UserPlus,
   Users, Wallet, Wifi, WifiOff, X, Zap, PanelLeft, GitFork, Scissors,
   FileCheck, Banknote, BookOpen, Landmark, Layers, Kanban, Megaphone, Star,
-  Inbox
+  Inbox, SquareCheck
 } from 'lucide-react'
 
 function SidebarCollapseIcon({ size = 16, strokeWidth = 3.2, className, style }) {
@@ -62,6 +62,7 @@ function ExcelExportIcon({ size = 18, strokeWidth = 1.8, className, style }) {
 }
 
 const ICON_MAP = {
+  'bi-database': Database,
   /* ── Navigation ─────────────────── */
   'bi-arrow-left':             ArrowLeft,
   'bi-arrow-down-up':          ArrowDownUp,
@@ -97,6 +98,7 @@ const ICON_MAP = {
   'bi-pencil-square':          Pencil,
   'bi-copy':                   ClipboardList,
   'bi-chat-square':            MessageSquare,
+  'bi-chat-square-dots':       MessageSquareMore,
   'bi-chat-square-text-fill':  MessageSquare,
   'bi-hourglass-split':        Timer,
   'bi-send':                   Send,
@@ -111,6 +113,7 @@ const ICON_MAP = {
 
   /* ── Status / Alerts ────────────── */
   'bi-check2':                 Check,
+  'bi-check2-square':          SquareCheck,
   'bi-check-circle':           CheckCircle,
   'bi-check2-circle':          CheckCircle2,
   'bi-info-circle':            Info,

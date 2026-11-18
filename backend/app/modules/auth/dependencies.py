@@ -93,6 +93,7 @@ async def get_current_user(
     # to (BE-01), so guards can tell an hq_admin session from a regular one
     # even for the same superadmin user.
     user.auth_scope = payload.get("auth_scope", "app")
+    user.support_session = payload.get("support_session") is True
     # Привязка сессии к филиалу (кухонный экран). Отдельный атрибут, а не
     # user.branch_id: у повара филиал живёт в HR-записи, и перезаписывать
     # колонку из токена нельзя.

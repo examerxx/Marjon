@@ -52,6 +52,9 @@ class Product(TimeStampedModel):
     printer_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("printers.id", ondelete="SET NULL"), nullable=True
     )
+    secondary_printer_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("printers.id", ondelete="SET NULL"), nullable=True
+    )
     name: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     image_url: Mapped[str | None] = mapped_column(Text)
