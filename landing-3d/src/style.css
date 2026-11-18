@@ -595,10 +595,10 @@ html.apps-open { overflow: hidden; }
 .app-btn-t b { font-size: 1.08rem; font-weight: 600; letter-spacing: -.01em; color: #fff; white-space: nowrap; }
 
 /* модалка: два телефона (Owner слева, Staff справа) + кнопка скачать */
-.apps { position: fixed; inset: 0; z-index: 160; display: grid; place-items: center; padding: 18px; overflow-y: auto; }
+.apps { position: fixed; inset: 0; z-index: 160; display: flex; padding: 12px; overflow-y: auto; }
 .apps[hidden] { display: none; }
 .apps-bg { position: absolute; inset: 0; background: rgba(5, 6, 8, .7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); animation: appsFade .35s ease; }
-.apps-box { position: relative; width: min(600px, 100%); background: #14171b; border: 1px solid var(--line-2); border-radius: 28px; padding: clamp(20px, 3.4vw, 30px); box-shadow: 0 44px 100px rgba(0, 0, 0, .6); display: grid; gap: 8px; justify-items: center; animation: appsIn .45s var(--ease); }
+.apps-box { position: relative; margin: auto; width: min(700px, 100%); background: #14171b; border: 1px solid var(--line-2); border-radius: 28px; padding: clamp(20px, 3.4vw, 30px); box-shadow: 0 44px 100px rgba(0, 0, 0, .6); display: grid; gap: 8px; justify-items: center; animation: appsIn .45s var(--ease); }
 @keyframes appsFade { from { opacity: 0; } }
 @keyframes appsIn { from { opacity: 0; transform: translateY(20px) scale(.97); } }
 .apps-x { position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line-2); background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer; transition: color .3s, border-color .3s; z-index: 2; }
@@ -606,13 +606,13 @@ html.apps-open { overflow: hidden; }
 .apps-mini { color: var(--mint); letter-spacing: .22em; }
 .apps-t { margin: 0; font-family: var(--display); font-weight: 600; font-size: clamp(1.2rem, 4.6vw, 1.5rem); letter-spacing: -.02em; color: var(--paper); text-align: center; }
 
-.phone-stage { display: flex; justify-content: center; align-items: flex-end; gap: clamp(6px, 3vw, 26px); perspective: 1100px; padding: 10px 4px 4px; width: 100%; }
+.phone-stage { display: flex; justify-content: center; align-items: center; gap: clamp(10px, 4vw, 44px); perspective: 1200px; padding: 6px 4px 2px; width: 100%; }
 .iphone-wrap { display: grid; gap: 12px; justify-items: center; background: none; border: 0; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; opacity: .62; transform: translateY(6px) scale(.94); transition: opacity .45s var(--ease), transform .45s var(--ease); }
 .iphone-wrap:hover { opacity: .9; }
 .iphone-wrap.is-on { opacity: 1; transform: translateY(0) scale(1); }
-.iphone { position: relative; display: block; width: clamp(118px, 32vw, 158px); aspect-ratio: 9 / 19.1; border-radius: 24% / 13.5%; background: linear-gradient(160deg, #3a3e46 0%, #14161a 22%, #05070a 50%, #101318 80%, #2c3037 100%); padding: 4.5%; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .14), inset 0 0 0 4px rgba(0, 0, 0, .55), 0 30px 60px rgba(0, 0, 0, .6), 0 4px 14px rgba(0, 0, 0, .5); transition: box-shadow .45s var(--ease); }
-.phone-l .iphone { transform: rotateY(17deg) rotateZ(-1.6deg); }
-.phone-r .iphone { transform: rotateY(-17deg) rotateZ(1.6deg); }
+.iphone { position: relative; display: block; height: clamp(280px, 47svh, 470px); width: auto; aspect-ratio: 9 / 19.1; border-radius: 24% / 13.5%; background: linear-gradient(160deg, #3a3e46 0%, #14161a 22%, #05070a 50%, #101318 80%, #2c3037 100%); padding: 4.5%; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .14), inset 0 0 0 4px rgba(0, 0, 0, .55), 0 30px 60px rgba(0, 0, 0, .6), 0 4px 14px rgba(0, 0, 0, .5); transition: box-shadow .45s var(--ease); }
+.phone-l .iphone { transform: rotateY(21deg) rotateZ(-2.4deg); }
+.phone-r .iphone { transform: rotateY(-21deg) rotateZ(2.4deg); }
 .iphone-wrap.is-on .iphone { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .2), inset 0 0 0 4px rgba(0, 0, 0, .55), 0 34px 70px rgba(0, 0, 0, .65), 0 0 0 1.5px rgba(63, 227, 196, .65), 0 0 44px rgba(63, 227, 196, .3); }
 /* кнопки на корпусе */
 .iphone::before { content: ""; position: absolute; left: -2.2%; top: 24%; width: 2.4%; height: 5.4%; border-radius: 3px; background: #2c3037; box-shadow: 0 14.5em 0 #2c3037, 0 -2.9em 0 #2c3037; }
@@ -642,7 +642,12 @@ html.apps-open { overflow: hidden; }
   .app-btn-t small { font-size: .54rem; }
   .app-btn-t b { font-size: .92rem; }
   .apps-box { border-radius: 24px; gap: 6px; }
-  .iphone-cap small { font-size: .62rem; }
+  .apps-box { padding: 16px 10px 18px; gap: 6px; }
+  .phone-stage { gap: 4px; padding-top: 2px; }
+  .iphone { height: clamp(230px, 43svh, 400px); }
+  .iphone-cap b { font-size: .84rem; }
+  .iphone-cap small { font-size: .6rem; max-width: 19ch; }
+  .iphone-cap b { font-size: .86rem; }
   .apps-cta { padding: 10px 26px; }
 }
 /* на мобиле вордмарк футера — голубой, одним цветом */
