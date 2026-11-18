@@ -384,16 +384,17 @@ ${demo(t)}
     <p class="mini apps-mini">${t.foot.apps.appstore}</p>
     <h3 class="apps-t" id="apps-t">${t.foot.apps.modalTitle}</h3>
     <div class="phone-stage">
-      <button class="iphone-wrap phone-l is-on" type="button" data-apps-pick="owner" aria-pressed="true">
-        <span class="iphone"><span class="iphone-screen"><img src="/apps/owner.webp" alt="Marjon Owner — Дашборд" width="640" height="1422" loading="lazy" /><i class="iphone-island" aria-hidden="true"></i></span></span>
-        <span class="iphone-cap"><b>${t.foot.apps.owner}</b><small>${t.foot.apps.ownerD}</small></span>
-      </button>
-      <button class="iphone-wrap phone-r" type="button" data-apps-pick="staff" aria-pressed="false">
-        <span class="iphone"><span class="iphone-screen"><img src="/apps/staff.webp" alt="Marjon Staff — стол и меню" width="640" height="1385" loading="lazy" /><i class="iphone-island" aria-hidden="true"></i></span></span>
-        <span class="iphone-cap"><b>${t.foot.apps.staff}</b><small>${t.foot.apps.staffD}</small></span>
-      </button>
+      <div class="apps-col">
+        <div class="iphone"><span class="iphone-screen"><img src="/apps/owner.webp" alt="Marjon Owner — Дашборд" width="640" height="1422" loading="lazy" /><i class="iphone-island" aria-hidden="true"></i></span></div>
+        <div class="iphone-cap"><b>${t.foot.apps.owner}</b><small>${t.foot.apps.ownerD}</small></div>
+        <a class="apps-get" href="https://apps.apple.com/ca/app/marjon-owner/id6808735197" target="_blank" rel="noopener"><svg viewBox="0 0 256 315" width="19" height="23" aria-hidden="true" fill="#fff"><path d="M213.803 167.03c.442 47.58 41.74 63.413 42.197 63.615c-.35 1.116-6.599 22.563-21.757 44.716c-13.104 19.153-26.705 38.235-48.13 38.63c-21.05.388-27.82-12.483-51.888-12.483c-24.061 0-31.582 12.088-51.51 12.871c-20.68.783-36.428-20.71-49.64-39.793c-27-39.033-47.633-110.3-19.928-158.406c13.763-23.89 38.36-39.017 65.056-39.405c20.307-.387 39.475 13.662 51.889 13.662c12.406 0 35.699-16.895 60.186-14.414c10.25.427 39.026 4.14 57.503 31.186c-1.49.923-34.335 20.044-33.978 59.822M174.24 50.199c10.98-13.29 18.369-31.79 16.353-50.199c-15.826.636-34.962 10.546-46.314 23.828c-10.173 11.763-19.082 30.589-16.678 48.633c17.64 1.365 35.66-8.964 46.64-22.262"/></svg><span>${t.foot.apps.dlCta} <b>Marjon Owner</b></span></a>
+      </div>
+      <div class="apps-col">
+        <div class="iphone"><span class="iphone-screen"><img src="/apps/staff.webp" alt="Marjon Staff — стол и меню" width="640" height="1385" loading="lazy" /><i class="iphone-island" aria-hidden="true"></i></span></div>
+        <div class="iphone-cap"><b>${t.foot.apps.staff}</b><small>${t.foot.apps.staffD}</small></div>
+        <a class="apps-get" href="https://apps.apple.com/ca/app/marjon-staff/id6808714517" target="_blank" rel="noopener"><svg viewBox="0 0 256 315" width="19" height="23" aria-hidden="true" fill="#fff"><path d="M213.803 167.03c.442 47.58 41.74 63.413 42.197 63.615c-.35 1.116-6.599 22.563-21.757 44.716c-13.104 19.153-26.705 38.235-48.13 38.63c-21.05.388-27.82-12.483-51.888-12.483c-24.061 0-31.582 12.088-51.51 12.871c-20.68.783-36.428-20.71-49.64-39.793c-27-39.033-47.633-110.3-19.928-158.406c13.763-23.89 38.36-39.017 65.056-39.405c20.307-.387 39.475 13.662 51.889 13.662c12.406 0 35.699-16.895 60.186-14.414c10.25.427 39.026 4.14 57.503 31.186c-1.49.923-34.335 20.044-33.978 59.822M174.24 50.199c10.98-13.29 18.369-31.79 16.353-50.199c-15.826.636-34.962 10.546-46.314 23.828c-10.173 11.763-19.082 30.589-16.678 48.633c17.64 1.365 35.66-8.964 46.64-22.262"/></svg><span>${t.foot.apps.dlCta} <b>Marjon Staff</b></span></a>
+      </div>
     </div>
-    <a class="apps-cta" id="apps-cta" href="https://apps.apple.com/ca/app/marjon-owner/id6808735197" target="_blank" rel="noopener"><svg viewBox="0 0 256 315" width="15" height="19" aria-hidden="true" fill="currentColor"><path d="M213.803 167.03c.442 47.58 41.74 63.413 42.197 63.615c-.35 1.116-6.599 22.563-21.757 44.716c-13.104 19.153-26.705 38.235-48.13 38.63c-21.05.388-27.82-12.483-51.888-12.483c-24.061 0-31.582 12.088-51.51 12.871c-20.68.783-36.428-20.71-49.64-39.793c-27-39.033-47.633-110.3-19.928-158.406c13.763-23.89 38.36-39.017 65.056-39.405c20.307-.387 39.475 13.662 51.889 13.662c12.406 0 35.699-16.895 60.186-14.414c10.25.427 39.026 4.14 57.503 31.186c-1.49.923-34.335 20.044-33.978 59.822M174.24 50.199c10.98-13.29 18.369-31.79 16.353-50.199c-15.826.636-34.962 10.546-46.314 23.828c-10.173 11.763-19.082 30.589-16.678 48.633c17.64 1.365 35.66-8.964 46.64-22.262"/></svg><span>${t.foot.apps.dlCta} <b id="apps-cta-name">Marjon Owner</b></span></a>
   </div>
 </div>
 
