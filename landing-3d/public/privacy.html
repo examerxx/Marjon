@@ -1,150 +1,272 @@
 <!doctype html>
-<html lang="ru" class="no-js">
+<html lang="ru">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Политика конфиденциальности — Marjon</title>
 <meta name="description" content="Политика конфиденциальности Marjon: какие данные собирает платформа и мобильные приложения, как они используются и хранятся." />
-<meta name="theme-color" content="#f2f0e8" />
+<meta name="theme-color" content="#0a0b0c" />
 <link rel="canonical" href="https://marjon.tech/privacy.html" />
 <link rel="alternate" hreflang="ru" href="https://marjon.tech/privacy.html" />
 <link rel="alternate" hreflang="uz" href="https://marjon.tech/uz/privacy.html" />
 <link rel="alternate" hreflang="x-default" href="https://marjon.tech/privacy.html" />
-<link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
-<link rel="apple-touch-icon" href="assets/icon-512.png" />
-
+<link rel="icon" type="image/svg+xml" href="/mark.svg" />
+<link rel="apple-touch-icon" href="/icon-512.png" />
 <meta property="og:type" content="article" />
 <meta property="og:site_name" content="Marjon" />
 <meta property="og:locale" content="ru_RU" />
 <meta property="og:title" content="Политика конфиденциальности — Marjon" />
 <meta property="og:description" content="Какие данные собирает Marjon, как они используются, хранятся и кому передаются." />
 <meta property="og:url" content="https://marjon.tech/privacy.html" />
-<meta property="og:image" content="https://marjon.tech/assets/og-image.png" />
+<meta property="og:image" content="https://marjon.tech/og-image.png" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Политика конфиденциальности — Marjon" />
 <meta name="twitter:description" content="Какие данные собирает Marjon, как они используются, хранятся и кому передаются." />
-<meta name="twitter:image" content="https://marjon.tech/assets/og-image.png" />
+<meta name="twitter:image" content="https://marjon.tech/og-image.png" />
+<link rel="preload" href="/assets/fonts/onest-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="/assets/fonts/onest-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="/assets/fonts/unbounded-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+<style>
+@font-face { font-family: 'Onest Variable'; src: url('/assets/fonts/onest-cyrillic-wght-normal.woff2') format('woff2-variations'); font-weight: 100 900; font-style: normal; font-display: swap; unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+@font-face { font-family: 'Onest Variable'; src: url('/assets/fonts/onest-latin-wght-normal.woff2') format('woff2-variations'); font-weight: 100 900; font-style: normal; font-display: swap; unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Unbounded Variable'; src: url('/assets/fonts/unbounded-cyrillic-wght-normal.woff2') format('woff2-variations'); font-weight: 200 900; font-style: normal; font-display: swap; unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+@font-face { font-family: 'Unbounded Variable'; src: url('/assets/fonts/unbounded-latin-wght-normal.woff2') format('woff2-variations'); font-weight: 200 900; font-style: normal; font-display: swap; unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+:root {
+  --ink: #0a0b0c; --ink-2: #131517; --ink-3: #1b1e21;
+  --paper: #f2f0e8; --paper-2: #e8e5d9; --pearl: #efe9dd;
+  --mint: #3fe3c4; --mint-deep: #00a58f; --mint-ink: #00695c; --coral: #ff6a4d;
+  --text: #f2f0e8; --muted: rgba(242,240,232,.68); --faint: rgba(242,240,232,.56); --ghost: rgba(242,240,232,.42);
+  --line: rgba(242,240,232,.12); --line-2: rgba(242,240,232,.22);
+  --display: "Unbounded Variable","Unbounded","Onest Variable",system-ui,sans-serif;
+  --body: "Onest Variable","Onest","Segoe UI",system-ui,sans-serif;
+  --ease: cubic-bezier(.16,1,.3,1); --pad: clamp(20px,4.2vw,64px); --nav-h: 68px; --r: 22px;
+}
+*,*::before,*::after { box-sizing: border-box; }
+html { overflow-x: clip; -webkit-text-size-adjust: 100%; scroll-padding-top: var(--nav-h); scroll-behavior: smooth; }
+body { margin: 0; background: var(--ink); color: var(--text); font: 400 16px/1.55 var(--body); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: clip; }
+body.menu-open, body.apps-open { overflow: hidden; }
+h1,h2,h3,p,ul,ol,figure { margin: 0; } ul,ol { padding: 0; list-style: none; }
+a { color: inherit; text-decoration: none; } button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+svg,canvas { display: block; } ::selection { background: var(--mint); color: var(--ink); }
+:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; border-radius: 6px; }
+.skip { position: fixed; top: 10px; left: 10px; z-index: 300; padding: 10px 16px; background: var(--paper); color: var(--ink); border-radius: 10px; font-size: 14px; transform: translateY(-200%); } .skip:focus { transform: none; }
+.wrap { width: min(1480px, 100% - var(--pad) * 2); margin-inline: auto; }
+.mini { font-size: .72rem; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); line-height: 1.4; display: inline-flex; align-items: center; gap: 10px; }
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 4px rgba(63,227,196,.16); flex: none; }
+.lede { font-size: clamp(1.02rem,1.15vw,1.2rem); line-height: 1.55; color: var(--muted); max-width: 52ch; }
+.lede b { color: var(--text); font-weight: 500; }
+.card { background: rgba(17,19,21,.66); border: 1px solid var(--line); border-radius: var(--r); padding: clamp(20px,2vw,30px); }
 
-<link rel="preload" href="assets/fonts/onest.woff2" as="font" type="font/woff2" crossorigin />
-<link rel="preload" href="assets/fonts/jbmono.woff2" as="font" type="font/woff2" crossorigin />
-<link rel="stylesheet" href="assets/styles.css" />
+/* ---------- кнопки ---------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 0 26px; border-radius: 999px; font-weight: 500; font-size: 1rem; white-space: nowrap; transition: transform .5s var(--ease), background .3s, color .3s, border-color .3s; }
+.btn .ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .5s var(--ease); }
+.btn:hover .ic { transform: translate(3px,-3px); } .btn:active { transform: scale(.97); }
+.btn-mint { background: var(--mint); color: var(--ink); } .btn-mint:hover { background: #6cf0d6; }
+.btn-line { border: 1px solid var(--line-2); color: var(--text); } .btn-line:hover { border-color: var(--text); }
+.btn-sm { min-height: 40px; padding: 0 18px; font-size: .9rem; }
 
-<script>document.documentElement.classList.replace('no-js', 'js');</script>
+/* ---------- nav ---------- */
+.nav { position: fixed; inset: 0 0 auto 0; z-index: 100; height: var(--nav-h); background: rgba(10,11,12,.72); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid transparent; transition: transform .6s var(--ease), background .4s, border-color .4s; }
+.nav.solid { background: rgba(10,11,12,.88); border-bottom-color: var(--line); }
+.nav-in { height: 100%; width: min(1480px, 100% - var(--pad) * 2); margin-inline: auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 600; font-size: 1.05rem; letter-spacing: -.03em; }
+.mark { width: 34px; height: 23px; }
+.nav-links { display: flex; gap: 30px; font-size: .92rem; }
+.nav-links a, .nav-login { opacity: .72; transition: opacity .3s; }
+.nav-links a:hover, .nav-login:hover { opacity: 1; }
+.nav-tools { display: flex; align-items: center; gap: 18px; font-size: .92rem; }
+.lang { display: flex; padding: 3px; border: 1px solid var(--line-2); border-radius: 999px; font-size: .74rem; font-weight: 500; letter-spacing: .08em; }
+.lang a { padding: 5px 10px; border-radius: 999px; min-width: 36px; text-align: center; }
+.lang a.on { background: var(--text); color: var(--ink); }
+.burger { display: none; width: 44px; height: 44px; position: relative; }
+.burger span { position: absolute; left: 14px; right: 0; height: 1.5px; background: currentColor; transition: transform .5s var(--ease), top .5s var(--ease); }
+.burger span:nth-child(1) { top: 18px; } .burger span:nth-child(2) { top: 26px; }
+body.menu-open .burger span:nth-child(1) { top: 22px; transform: rotate(45deg); }
+body.menu-open .burger span:nth-child(2) { top: 22px; transform: rotate(-45deg); }
+.menu { position: fixed; inset: 0; z-index: 99; background: var(--ink); padding: calc(var(--nav-h) + 24px) var(--pad) 32px; display: flex; flex-direction: column; justify-content: space-between; opacity: 0; visibility: hidden; transition: opacity .4s, visibility .4s; }
+body.menu-open .menu { opacity: 1; visibility: visible; }
+.menu-links a { display: flex; align-items: baseline; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); font-family: var(--display); font-weight: 500; font-size: clamp(1.5rem,7vw,2.4rem); letter-spacing: -.03em; }
+.menu-links i { font: 500 .72rem var(--body); font-style: normal; color: var(--mint); letter-spacing: .1em; }
+.menu-foot { display: grid; gap: 10px; }
+
+/* ---------- doc hero ---------- */
+.doc-hero { position: relative; padding: calc(var(--nav-h) + clamp(48px,8vh,96px)) 0 clamp(36px,6vh,64px); background: radial-gradient(90% 62% at 50% -12%, rgba(63,227,196,.09), transparent 62%); }
+.doc-hero-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid var(--line); margin-bottom: clamp(28px,4.6vh,52px); }
+.doc-date { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
+.doc-h { font-family: var(--display); font-weight: 620; font-size: clamp(2.1rem,6.6vw,4.3rem); line-height: .99; letter-spacing: -.035em; color: var(--paper); max-width: 16ch; text-wrap: balance; }
+.doc-h em { font-style: normal; color: var(--mint); }
+.doc-hero-bottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 40px; margin-top: clamp(24px,4vh,44px); flex-wrap: wrap; }
+.doc-stamp { display: flex; align-items: center; gap: 16px; border: 1px solid var(--line-2); border-radius: 18px; padding: 16px 22px; background: rgba(17,19,21,.55); flex: none; }
+.doc-stamp b { font-family: var(--display); font-weight: 600; font-size: 2.3rem; line-height: 1; color: var(--mint); }
+.doc-stamp span { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); line-height: 1.45; }
+
+/* ---------- doc grid ---------- */
+.doc-body { padding-bottom: clamp(56px,9vh,110px); }
+.doc-grid { display: grid; grid-template-columns: 330px 1fr; gap: clamp(28px,4vw,64px); align-items: start; }
+.doc-side { position: sticky; top: calc(var(--nav-h) + 20px); display: grid; gap: 18px; }
+.doc-toc { border: 1px solid var(--line); border-radius: var(--r); padding: 20px; background: rgba(17,19,21,.4); }
+.doc-toc ol { margin-top: 12px; display: grid; gap: 1px; }
+.doc-toc a { display: flex; gap: 12px; align-items: baseline; padding: 8px 10px; border-radius: 10px; color: var(--muted); font-size: .9rem; line-height: 1.4; transition: background .25s, color .25s; }
+.doc-toc a span { color: var(--mint); font-size: .72rem; font-weight: 500; letter-spacing: .08em; flex: none; }
+.doc-toc a:hover { background: rgba(242,240,232,.05); color: var(--paper); }
+.doc-help { display: grid; gap: 8px; }
+.doc-help p { color: var(--muted); font-size: .92rem; }
+.doc-help a { color: var(--mint); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(63,227,196,.35); }
+.doc-help a:hover { text-decoration-color: var(--mint); }
+
+/* ---------- doc article ---------- */
+.doc { }
+.doc section { scroll-margin-top: calc(var(--nav-h) + 16px); padding: clamp(20px,3vh,32px) 0; border-top: 1px solid var(--line); display: grid; gap: 12px; }
+.doc section:first-child { border-top: 0; padding-top: 0; }
+.doc h2 { display: flex; align-items: baseline; gap: 16px; font-family: var(--body); font-weight: 650; font-size: clamp(1.28rem,1.9vw,1.75rem); line-height: 1.15; letter-spacing: -.02em; color: var(--paper); }
+.doc h2 .num { color: var(--mint); font-size: .78em; font-weight: 600; letter-spacing: .08em; font-variant-numeric: tabular-nums; }
+.doc p { color: var(--muted); line-height: 1.78; max-width: 70ch; }
+.doc strong { color: var(--paper); font-weight: 550; }
+.doc p a, .doc li a { color: var(--mint); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(63,227,196,.35); transition: text-decoration-color .25s; }
+.doc p a:hover, .doc li a:hover { text-decoration-color: var(--mint); }
+.doc ul { display: grid; gap: 10px; }
+.doc li { position: relative; padding-left: 20px; color: var(--muted); line-height: 1.7; max-width: 70ch; }
+.doc li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 6px; height: 6px; border-radius: 50%; background: var(--mint); opacity: .85; }
+.doc-callout { border: 1px solid rgba(63,227,196,.35); background: rgba(63,227,196,.07); border-radius: 16px; padding: 14px 18px; color: #c8f7e9; font-size: .95rem; line-height: 1.6; max-width: 70ch; }
+.doc-end { margin-top: clamp(24px,4vh,44px); border-top: 1px solid var(--line); padding-top: clamp(22px,3.5vh,36px); display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
+.doc-end p { color: var(--muted); margin-top: 6px; max-width: 52ch; }
+
+/* ---------- footer ---------- */
+.foot { position: relative; z-index: 2; padding: clamp(50px,8vh,90px) 0 24px; border-top: 1px solid var(--line); background: linear-gradient(transparent, rgba(10,11,12,.82) 30%); overflow: hidden; }
+.foot-grid { display: grid; grid-template-columns: 1.6fr repeat(3,1fr); gap: 36px; }
+.foot-brand p { margin-top: 16px; max-width: 36ch; color: var(--muted); font-size: .92rem; }
+.foot-col { display: grid; gap: 10px; align-content: start; font-size: .92rem; }
+.foot-col h3 { font: 500 .72rem var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 6px; }
+.foot-col a { color: var(--muted); transition: color .3s; padding: 2px 0; }
+.foot-col a:hover { color: var(--text); }
+.foot-word { font-family: var(--display); font-weight: 700; font-size: min(15.6vw,280px); line-height: .8; letter-spacing: -.055em; margin: clamp(40px,8vh,90px) 0 0; white-space: nowrap; text-align: center; color: var(--paper); user-select: none; }
+.foot-bottom { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 24px; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line); font-size: .78rem; color: var(--faint); }
+.foot-apps { display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+.app-btn { display: inline-flex; align-items: center; gap: 11px; padding: 8px 20px 8px 14px; border: 1px solid rgba(255,255,255,.22); border-radius: 12px; background: #000; color: #fff; cursor: pointer; font: inherit; text-align: left; text-decoration: none; transition: border-color .3s, transform .3s, box-shadow .3s; -webkit-tap-highlight-color: transparent; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+.app-btn:hover { border-color: rgba(255,255,255,.45); transform: translateY(-2px); box-shadow: 0 16px 40px rgba(0,0,0,.5); }
+.app-btn svg { flex: none; }
+.app-btn-t { display: grid; gap: 1px; line-height: 1.18; }
+.app-btn-t small { font-size: .62rem; letter-spacing: .01em; color: rgba(255,255,255,.92); white-space: nowrap; }
+.app-btn-t b { font-size: 1.08rem; font-weight: 600; letter-spacing: -.01em; color: #fff; white-space: nowrap; }
+
+/* ---------- модалка App Store (1:1 с лендингом) ---------- */
+.apps { position: fixed; inset: 0; z-index: 160; display: flex; padding: 12px; overflow-y: auto; }
+.apps[hidden] { display: none; }
+.apps-bg { position: absolute; inset: 0; background: rgba(5,6,8,.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); animation: appsFade .35s ease; }
+.apps-box { position: relative; margin: auto; max-height: 97svh; overflow-y: auto; width: min(700px,100%); background: #14171b; border: 1px solid var(--line-2); border-radius: 28px; padding: clamp(20px,3.4vw,30px); box-shadow: 0 44px 100px rgba(0,0,0,.6); display: grid; gap: 8px; justify-items: center; animation: appsIn .45s var(--ease); }
+@keyframes appsFade { from { opacity: 0; } }
+@keyframes appsIn { from { opacity: 0; transform: translateY(20px) scale(.97); } }
+.apps-x { position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line-2); background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer; transition: color .3s, border-color .3s; z-index: 2; }
+.apps-x:hover { color: var(--paper); border-color: rgba(63,227,196,.55); }
+.apps-mini { color: var(--mint); letter-spacing: .22em; }
+.apps-t { margin: 0; font-family: var(--display); font-weight: 600; font-size: clamp(1.2rem,4.6vw,1.5rem); letter-spacing: -.02em; color: var(--paper); text-align: center; }
+.phone-stage { display: flex; justify-content: center; align-items: center; gap: clamp(10px,4vw,44px); perspective: 1200px; padding: 6px 4px 2px; width: 100%; }
+.apps-col { display: grid; gap: 10px; justify-items: center; align-content: start; -webkit-tap-highlight-color: transparent; }
+.iphone { position: relative; display: block; height: clamp(300px,58svh,520px); width: auto; aspect-ratio: 70.6/146.6; border-radius: 17%/8.2%; background: linear-gradient(155deg,#4a4e57 0%,#23262c 18%,#0b0d10 45%,#14171c 78%,#33373f 100%); padding: 4.2%; box-shadow: inset 0 0 0 1px rgba(255,255,255,.22), inset 0 0 0 3.5px rgba(10,10,12,.8), inset 0 0 22px rgba(0,0,0,.75), 0 30px 60px rgba(0,0,0,.6), 0 4px 14px rgba(0,0,0,.5); }
+.iphone::before { content: ""; position: absolute; left: -2%; top: 22.5%; width: 2%; height: 26%; border-radius: 3px; background: repeating-linear-gradient(180deg,#33373f 0 16%,transparent 16% 32%); }
+.iphone::after { content: ""; position: absolute; right: -2%; top: 29%; width: 2%; height: 7.6%; border-radius: 3px; background: #33373f; }
+.iphone-screen { position: relative; display: block; width: 100%; height: 100%; border-radius: 13.2%/6.4%; overflow: hidden; background: #000; }
+.iphone-screen img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0%; display: block; user-select: none; -webkit-user-drag: none; }
+.iphone-island { position: absolute; top: 1.21%; left: 50%; transform: translateX(-50%); width: 31%; height: 4.19%; border-radius: 999px; background: #000; z-index: 2; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.05); }
+.iphone-island::after { content: ""; position: absolute; top: 50%; right: 11%; width: 8.4%; aspect-ratio: 1; transform: translateY(-50%); border-radius: 50%; background: radial-gradient(circle at 38% 38%, #2a3b52 0%, #0d1420 55%, #05070c 100%); }
+.iphone-cap { display: grid; gap: 2px; justify-items: center; text-align: center; max-width: 22ch; }
+.iphone-cap b { color: var(--paper); font-size: .92rem; font-weight: 600; letter-spacing: -.01em; }
+.iphone-cap small { color: var(--muted); font-size: .7rem; line-height: 1.32; }
+.apps-get { display: inline-flex; align-items: center; gap: 9px; padding: 9px 18px; border-radius: 999px; background: #000; border: 1px solid rgba(255,255,255,.25); color: #fff; text-decoration: none; transition: transform .3s, border-color .3s, box-shadow .3s; -webkit-tap-highlight-color: transparent; box-shadow: 0 12px 34px rgba(0,0,0,.5); }
+.apps-get:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.5); box-shadow: 0 18px 44px rgba(0,0,0,.6); }
+.apps-get span { font-size: .86rem; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
+.apps-get b { font-weight: 600; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1100px) { .nav-links, .nav-login, .nav-tools .btn { display: none; } .burger { display: block; } .foot-grid { grid-template-columns: 1fr 1fr 1fr; } .foot-brand { grid-column: 1 / -1; } }
+@media (max-width: 1000px) { .doc-grid { grid-template-columns: 1fr; } .doc-side { position: static; order: 2; } .doc-toc ol { grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); } }
+@media (max-width: 820px) { .foot-word { font-size: min(21vw, 200px); } }
+@media (max-width: 600px) {
+  :root { --nav-h: 60px; --r: 18px; }
+  .foot-grid { grid-template-columns: 1fr 1fr; }
+  .foot-word { color: #7fc9ff; }
+  .doc-h { font-size: clamp(2.1rem, 11vw, 3.4rem); }
+  .doc-stamp { padding: 12px 16px; } .doc-stamp b { font-size: 1.8rem; }
+  .doc-hero-bottom { align-items: flex-start; flex-direction: column; }
+  .doc-end { flex-direction: column; align-items: flex-start; }
+  .foot-apps { gap: 10px; margin-top: 16px; }
+  .app-btn { flex: 1 1 auto; justify-content: center; gap: 8px; padding: 7px 10px 7px 11px; border-radius: 11px; }
+  .app-btn svg { height: 21px; width: auto; }
+  .app-btn-t small { font-size: .54rem; } .app-btn-t b { font-size: .92rem; }
+  .apps-box { border-radius: 24px; gap: 6px; padding: 16px 10px 18px; }
+  .phone-stage { gap: 4px; }
+  .iphone { height: min(42svh, 355px); }
+  .apps-get { padding: 7px 10px; gap: 5px; } .apps-get span { font-size: .68rem; } .apps-get svg { width: 11px; height: 14px; }
+  .iphone-cap b { font-size: .84rem; } .iphone-cap small { font-size: .6rem; }
+}
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto; } }
+</style>
 </head>
 <body>
-
 <a class="skip" href="#main">Перейти к содержанию</a>
 
-<svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <symbol id="i-arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 17.5 17.5 6.5M8 6.5h9.5V16"/></symbol>
-  <symbol id="i-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></symbol>
-  <symbol id="i-brand" viewBox="55 370 430 290">
-    <defs>
-      <linearGradient id="mj-t1" x1="92" y1="610" x2="302" y2="402" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#14B8A6"/><stop offset="1" stop-color="#11AAA4"/></linearGradient>
-      <linearGradient id="mj-t2" x1="246" y1="610" x2="453" y2="402" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#43CEC7"/><stop offset="1" stop-color="#67D8D2"/></linearGradient>
-    </defs>
-    <rect x="39.71" y="472.12" width="316.08" height="86.27" rx="43.135" transform="rotate(-45 197.75 515.25)" fill="url(#mj-t1)"/>
-    <rect x="193.39" y="472.61" width="314.75" height="85.29" rx="42.645" transform="rotate(-45.44 350.76 515.25)" fill="url(#mj-t2)"/>
-    <path d="M461 525C466 526 470 531 470 537L470 599C470 616 461 629 445 636C434 641 420 641 408 635C394 628 386 615 386 600C386 589 390 580 398 571L439 530C445 524 453 522 461 525Z" fill="currentColor"/>
-  </symbol>
-  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5.5c0 4.6 3 7.7 7 9.5 4-1.8 7-4.9 7-9.5V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></symbol>
-</svg>
-
-<div class="doc-progress" aria-hidden="true"><i></i></div>
-
-<div class="nav-wrap">
-  <nav class="nav" aria-label="Основная навигация">
-    <a class="brand" href="index.html" aria-label="Marjon — на главную">
-      <span class="brand-mark" aria-hidden="true"><svg aria-hidden="true" focusable="false"><use href="#i-brand"/></svg></span>
-      <span>Marjon</span><sup>UZ</sup>
-    </a>
+<header class="nav" id="nav">
+  <nav class="nav-in" aria-label="Основная навигация">
+    <a class="brand" href="/" aria-label="Marjon — на главную"><svg class="mark" viewBox="55 370 430 290" aria-hidden="true" focusable="false">
+  <rect x="39.71" y="472.12" width="316.08" height="86.27" rx="43.135" transform="rotate(-45 197.75 515.25)" fill="#14B8A6"/>
+  <rect x="193.39" y="472.61" width="314.75" height="85.29" rx="42.645" transform="rotate(-45.44 350.76 515.25)" fill="#5fd6cf"/>
+  <path d="M461 525C466 526 470 531 470 537L470 599C470 616 461 629 445 636C434 641 420 641 408 635C394 628 386 615 386 600C386 589 390 580 398 571L439 530C445 524 453 522 461 525Z" fill="#f2f0e8"/>
+</svg><span>Marjon</span></a>
     <div class="nav-links">
-      <a href="index.html#modules">Возможности</a>
-      <a href="index.html#roles">Роли</a>
-      <a href="index.html#platforms">Платформы</a>
-      <a href="index.html#faq">Вопросы</a>
+      <a href="/#modules">Возможности</a>
+      <a href="/#roles">Роли</a>
+      <a href="/#platforms">Платформы</a>
+      <a href="/#faq">Вопросы</a>
     </div>
     <div class="nav-tools">
-      <div class="lang-switch" role="group" aria-label="Язык сайта">
-        <a href="/privacy.html" hreflang="ru" lang="ru" class="is-active" aria-current="page">RU</a>
+      <div class="lang" role="group" aria-label="Язык сайта">
+        <a href="/privacy.html" hreflang="ru" lang="ru" class="on" aria-current="page">RU</a>
         <a href="/uz/privacy.html" hreflang="uz" lang="uz">UZ</a>
       </div>
       <a class="nav-login" href="https://admin.marjon.tech/login">Войти</a>
-      <a class="btn btn-primary btn-sm" href="index.html#contact">
-        Подключить
-        <span class="arr"><svg aria-hidden="true"><use href="#i-arr"/></svg></span>
-      </a>
+      <a class="btn btn-mint btn-sm" href="/#contact">Подключить <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 17.5 17.5 6.5M8 6.5h9.5V16"/></svg></a>
     </div>
-    <button class="burger" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="mobileMenu" data-label-open="Открыть меню" data-label-close="Закрыть меню">
-      <span></span><span></span><span></span>
-    </button>
+    <button class="burger" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="menu" data-open="Открыть меню" data-close="Закрыть меню"><span></span><span></span></button>
   </nav>
-</div>
+</header>
 
-<div class="mobile-menu" id="mobileMenu" aria-hidden="true">
-  <div class="mm-links">
-    <a href="index.html"><span>00</span>На главную</a>
-    <a href="index.html#modules"><span>01</span>Возможности</a>
-    <a href="index.html#roles"><span>02</span>Роли</a>
-    <a href="index.html#platforms"><span>03</span>Платформы</a>
-    <a href="index.html#uzbekistan"><span>04</span>Узбекистан</a>
-    <a href="index.html#faq"><span>05</span>Вопросы</a>
-    <a href="index.html#contact"><span>06</span>Подключить</a>
+<div class="menu" id="menu" aria-hidden="true" inert>
+  <div class="menu-links">
+    <a href="/#modules"><i>01</i>Возможности</a>
+    <a href="/#roles"><i>02</i>Роли</a>
+    <a href="/#platforms"><i>03</i>Платформы</a>
+    <a href="/#faq"><i>04</i>Вопросы</a>
   </div>
-  <div class="mm-foot">
-    <div class="mm-actions">
-      <a class="btn btn-primary" href="mailto:support@marjon.tech?subject=Вопрос%20по%20данным">
-        Написать нам
-        <span class="arr"><svg aria-hidden="true"><use href="#i-arr"/></svg></span>
-      </a>
-      <a class="btn btn-ghost" href="https://admin.marjon.tech/login">
-        Войти в панель
-        <span class="arr"><svg aria-hidden="true"><use href="#i-right"/></svg></span>
-      </a>
-    </div>
-    <div class="mm-aside">
-      <div class="lang-switch" role="group" aria-label="Язык сайта">
-        <a href="/privacy.html" hreflang="ru" lang="ru" class="is-active" aria-current="page">RU</a>
-        <a href="/uz/privacy.html" hreflang="uz" lang="uz">UZ</a>
-      </div>
-      <div class="mono-label">
-        Ташкент · Asia/Tashkent<br />
-        <a href="mailto:support@marjon.tech">support@marjon.tech</a>
-      </div>
-    </div>
+  <div class="menu-foot">
+    <a class="btn btn-mint" href="/#contact">Подключить заведение <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 17.5 17.5 6.5M8 6.5h9.5V16"/></svg></a>
+    <a class="btn btn-line" href="https://admin.marjon.tech/login">Войти</a>
   </div>
 </div>
 
 <main id="main">
-
-<section class="legal-hero">
-  <div class="container">
-    <div class="hero-top reveal">
-      <span class="kicker">Документы · Конфиденциальность</span>
-      <span class="ht-note">Действует с 11.08.2026 · RU</span>
-    </div>
-
-    <h1>
-      <span class="line"><span style="--i:0">Политика</span></span>
-      <span class="line"><span style="--i:1"><span class="muted">конфиденциальности.</span></span></span>
-    </h1>
-
-    <div class="legal-head reveal">
-      <p class="lede">Действует с 11 августа 2026 года · распространяется на веб-панель Marjon, мобильные приложения (включая Marjon Owner) и API на api.marjon.tech</p>
-      <div class="legal-stamp" aria-label="Документ содержит 11 разделов">
-        <b>11</b>
-        <span>разделов<br />RU</span>
+  <section class="doc-hero">
+    <div class="wrap">
+      <div class="doc-hero-top">
+        <p class="mini"><span class="dot"></span>Документы · Конфиденциальность</p>
+        <span class="doc-date">Действует с 11.08.2026 · RU</span>
+      </div>
+      <h1 class="doc-h">Политика <em>конфиденциальности.</em></h1>
+      <div class="doc-hero-bottom">
+        <p class="lede">Действует с 11 августа 2026 года · распространяется на веб-панель Marjon, мобильные приложения (включая Marjon Owner) и API на api.marjon.tech</p>
+        <div class="doc-stamp" aria-label="11">
+          <b>11</b>
+          <span>разделов<br>RU</span>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<section class="legal-body">
-  <div class="container legal-grid">
-    <aside class="legal-side">
-      <nav class="doc-toc" aria-label="Содержание документа">
-        <span class="mono-label">Содержание</span>
-        <ol>
+  <section class="doc-body">
+    <div class="wrap doc-grid">
+      <aside class="doc-side">
+        <nav class="doc-toc" aria-label="Содержание документа">
+          <p class="mini">Содержание</p>
+          <ol>
           <li><a href="#scope"><span>01</span>Кого и что охватывает эта политика</a></li>
           <li><a href="#collect"><span>02</span>Какие данные мы собираем</a></li>
           <li><a href="#use"><span>03</span>Как мы используем данные</a></li>
@@ -156,24 +278,21 @@
           <li><a href="#children"><span>09</span>Возрастные ограничения</a></li>
           <li><a href="#changes"><span>10</span>Изменения политики</a></li>
           <li><a href="#contact"><span>11</span>Контакты</a></li>
-        </ol>
-      </nav>
+          </ol>
+        </nav>
+        <div class="doc-help card">
+          <p class="mini">Вопросы по данным</p>
+          <p>Напишите нам — ответим в рабочее время по Ташкенту.</p>
+          <a href="mailto:support@marjon.tech">support@marjon.tech</a>
+        </div>
+      </aside>
+      <article class="doc">
 
-      <div class="doc-help">
-        <span class="doc-help-ico"><svg aria-hidden="true"><use href="#i-shield"/></svg></span>
-        <span class="mono-label">Вопросы по данным</span>
-        <p>Напишите нам — ответим в рабочее время по Ташкенту.</p>
-        <a href="mailto:support@marjon.tech">support@marjon.tech</a>
-      </div>
-    </aside>
-
-    <article class="doc">
       <section id="scope">
         <h2><span class="num">01</span>Кого и что охватывает эта политика</h2>
         <p>Эта политика описывает, как <strong>Marjon</strong> обрабатывает данные в веб-панели управления заведением, мобильных приложениях (в том числе <strong>Marjon Owner</strong>) и API-сервисе на <strong>api.marjon.tech</strong>. Оператором данных выступает Marjon как поставщик SaaS-платформы для кафе и ресторанов.</p>
         <p>Если вы — гость ресторана, который пользуется Marjon (например, оплачиваете заказ на кассе), эта политика также распространяется на данные заказа, которые заведение вносит в систему для его обслуживания.</p>
       </section>
-
       <section id="collect">
         <h2><span class="num">02</span>Какие данные мы собираем</h2>
         <p>Состав данных зависит от того, кто ими пользуется:</p>
@@ -184,12 +303,10 @@
           <li><strong>Технические данные</strong> — адрес сервера, к которому подключается мобильное приложение, и токен авторизации устройства.</li>
         </ul>
       </section>
-
       <section id="use">
         <h2><span class="num">03</span>Как мы используем данные</h2>
         <p>Данные используются исключительно для работы сервиса: обработка заказов, ведение склада, расчёт зарплат и смен, формирование отчётов, фискализация чеков и приём платежей. Мы не показываем рекламу внутри продукта и не используем данные для профилирования пользователей за пределами их собственного заведения.</p>
       </section>
-
       <section id="share">
         <h2><span class="num">04</span>Кому передаются данные</h2>
         <p>Marjon не продаёт данные и не передаёт их третьим лицам в маркетинговых целях. Данные передаются только тем, кто необходим для оказания самой услуги:</p>
@@ -199,99 +316,119 @@
         </ul>
         <div class="doc-callout">Сторонние SDK для рекламы, аналитики или трекинга пользователей в приложениях Marjon не используются.</div>
       </section>
-
       <section id="storage">
         <h2><span class="num">05</span>Хранение и защита</h2>
         <p>Данные заведений хранятся на серверной инфраструктуре Marjon (api.marjon.tech). Соединение между приложениями и сервером защищено протоколом HTTPS/TLS. Пароли хранятся в хэшированном виде, токены авторизации на устройстве — в защищённом системном хранилище (Keychain на iOS, Keystore/EncryptedSharedPreferences на Android).</p>
       </section>
-
       <section id="mobile">
         <h2><span class="num">06</span>Мобильные приложения</h2>
         <p>Мобильное приложение Marjon Owner запрашивает только разрешение на доступ к сети — для подключения к серверу вашего заведения. Приложение не запрашивает доступ к камере, геолокации, контактам или медиатеке, если это не требуется явно для конкретной функции (например, загрузки фото товара) и всегда с отдельным запросом разрешения у операционной системы.</p>
       </section>
-
       <section id="rights">
         <h2><span class="num">07</span>Ваши права</h2>
         <p>Вы можете запросить доступ к своим данным, их исправление или удаление, написав на <a href="mailto:support@marjon.tech">support@marjon.tech</a>. Владелец заведения может в любой момент запросить выгрузку или полное удаление данных своей организации.</p>
       </section>
-
       <section id="retention">
         <h2><span class="num">08</span>Удаление и сроки хранения</h2>
         <p>После подтверждённого запроса на удаление данные организации удаляются или обезличиваются в течение 30 дней, за исключением сведений, которые законодательство Узбекистана о фискальном учёте требует хранить дольше (например, фискальные чеки).</p>
       </section>
-
       <section id="children">
         <h2><span class="num">09</span>Возрастные ограничения</h2>
         <p>Marjon — инструмент для владельцев и сотрудников заведений общественного питания и не предназначен для лиц младше 18 лет.</p>
       </section>
-
       <section id="changes">
         <h2><span class="num">10</span>Изменения политики</h2>
         <p>При существенных изменениях этой политики мы уведомим пользователей через приложение или на этой странице до вступления изменений в силу. Дата в начале документа всегда отражает актуальную версию.</p>
       </section>
-
       <section id="contact">
         <h2><span class="num">11</span>Контакты</h2>
         <p>По вопросам конфиденциальности и обработки данных: <a href="mailto:support@marjon.tech">support@marjon.tech</a> · <a href="https://marjon.tech">marjon.tech</a></p>
       </section>
-
-      <div class="doc-end reveal">
-        <div>
-          <span class="mono-label">Остались вопросы</span>
-          <p>Напишите на support@marjon.tech или вернитесь на главную — покажем платформу на ваших данных.</p>
+        <div class="doc-end">
+          <div>
+            <p class="mini">Остались вопросы</p>
+            <p>Напишите на support@marjon.tech или вернитесь на главную — покажем платформу на ваших данных.</p>
+          </div>
+          <a class="btn btn-mint btn-sm" href="/">На главную <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 17.5 17.5 6.5M8 6.5h9.5V16"/></svg></a>
         </div>
-        <a class="btn btn-primary btn-sm" href="index.html">
-          На главную
-          <span class="arr"><svg aria-hidden="true"><use href="#i-arr"/></svg></span>
-        </a>
-      </div>
-    </article>
-  </div>
-</section>
-
+      </article>
+    </div>
+  </section>
 </main>
 
-<footer class="footer">
-  <div class="container">
-    <div class="footer-grid">
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
       <div class="foot-brand">
-        <a class="brand" href="index.html" aria-label="Marjon — на главную">
-          <span class="brand-mark" aria-hidden="true"><svg aria-hidden="true" focusable="false"><use href="#i-brand"/></svg></span>
-          <span class="brand-word">Marjon</span><sup>UZ</sup>
-        </a>
+        <a class="brand" href="/" aria-label="Marjon — на главную"><svg class="mark" viewBox="55 370 430 290" aria-hidden="true" focusable="false">
+  <rect x="39.71" y="472.12" width="316.08" height="86.27" rx="43.135" transform="rotate(-45 197.75 515.25)" fill="#14B8A6"/>
+  <rect x="193.39" y="472.61" width="314.75" height="85.29" rx="42.645" transform="rotate(-45.44 350.76 515.25)" fill="#5fd6cf"/>
+  <path d="M461 525C466 526 470 531 470 537L470 599C470 616 461 629 445 636C434 641 420 641 408 635C394 628 386 615 386 600C386 589 390 580 398 571L439 530C445 524 453 522 461 525Z" fill="#f2f0e8"/>
+</svg><span>Marjon</span></a>
         <p>Платформа для автоматизации кафе и ресторанов Узбекистана: касса, кухня, склад, финансы и фискализация.</p>
+        <div class="foot-apps">
+          <a class="app-btn" href="https://play.google.com/store/apps/details?id=uz.marjon.marjon_mobile" target="_blank" rel="noopener" aria-label="Marjon Staff — Google Play"><svg viewBox="0 0 256 283" width="21" height="23" aria-hidden="true"><path fill="#EA4335" d="M119.553 134.916L1.06 259.061a32.14 32.14 0 0 0 47.062 19.071l133.327-75.934z"/><path fill="#FBBC04" d="M239.37 113.814L181.715 80.79l-64.898 56.95l65.162 64.28l57.216-32.67a31.345 31.345 0 0 0 0-55.537z"/><path fill="#4285F4" d="M1.06 23.487A30.6 30.6 0 0 0 0 31.61v219.327a32.3 32.3 0 0 0 1.06 8.124l122.555-120.966z"/><path fill="#34A853" d="m120.436 141.274l61.278-60.483L48.564 4.503A32.85 32.85 0 0 0 32.051 0C17.644-.028 4.978 9.534 1.06 23.399z"/></svg><span class="app-btn-t"><small>GET IT ON</small><b>Google Play</b></span></a>
+          <button class="app-btn" type="button" data-apps-open aria-haspopup="dialog" aria-controls="apps-modal" aria-label="Marjon — App Store"><svg viewBox="0 0 256 315" width="19" height="23" aria-hidden="true" fill="#fff"><path d="M213.803 167.03c.442 47.58 41.74 63.413 42.197 63.615c-.35 1.116-6.599 22.563-21.757 44.716c-13.104 19.153-26.705 38.235-48.13 38.63c-21.05.388-27.82-12.483-51.888-12.483c-24.061 0-31.582 12.088-51.51 12.871c-20.68.783-36.428-20.71-49.64-39.793c-27-39.033-47.633-110.3-19.928-158.406c13.763-23.89 38.36-39.017 65.056-39.405c20.307-.387 39.475 13.662 51.889 13.662c12.406 0 35.699-16.895 60.186-14.414c10.25.427 39.026 4.14 57.503 31.186c-1.49.923-34.335 20.044-33.978 59.822M174.24 50.199c10.98-13.29 18.369-31.79 16.353-50.199c-15.826.636-34.962 10.546-46.314 23.828c-10.173 11.763-19.082 30.589-16.678 48.633c17.64 1.365 35.66-8.964 46.64-22.262"/></svg><span class="app-btn-t"><small>Download on the</small><b>App Store</b></span></button>
+        </div>
       </div>
-      <div class="foot-col">
-        <h3>Продукт</h3>
-        <a href="index.html#modules">Возможности</a>
-        <a href="index.html#roles">Роли</a>
-        <a href="index.html#platforms">Платформы</a>
-        <a href="index.html#integrations">Интеграции</a>
-      </div>
-      <div class="foot-col">
-        <h3>Документы</h3>
-        <a href="privacy.html">Политика конфиденциальности</a>
-        <a href="index.html#faq">Вопросы и ответы</a>
-        <a href="index.html#uzbekistan">Узбекистан</a>
-      </div>
-      <div class="foot-col">
-        <h3>Контакты</h3>
-        <a href="mailto:support@marjon.tech">support@marjon.tech</a>
-        <a href="https://marjon.tech/">marjon.tech</a>
-        <a href="https://admin.marjon.tech/login">Вход в панель</a>
-        <a href="index.html#top">Ташкент · Asia/Tashkent</a>
-      </div>
+      <div class="foot-col"><h3>Продукт</h3><a href="/#modules">Возможности</a><a href="/#roles">Роли</a><a href="/#platforms">Платформы</a><a href="/#integrations">Интеграции</a></div>
+      <div class="foot-col"><h3>Документы</h3><a href="/privacy.html">Политика конфиденциальности</a><a href="/#faq">Вопросы и ответы</a></div>
+      <div class="foot-col"><h3>Контакты</h3><a href="mailto:support@marjon.tech">support@marjon.tech</a><a href="https://admin.marjon.tech/login">Вход в панель</a><a href="/#top">Ташкент · Asia/Tashkent</a></div>
     </div>
-
-    <div class="foot-word" aria-hidden="true"><span>MARJON</span></div>
-
-    <div class="foot-bottom">
-      <span>© <span data-year>2026</span> Marjon. Все права защищены.</span>
-      <span>Сделано для общепита Узбекистана</span>
-    </div>
+    <div class="foot-word" aria-hidden="true">MARJON</div>
+    <div class="foot-bottom"><span>© <span data-year>2026</span> Marjon. Все права защищены.</span><span>Сделано для общепита Узбекистана</span></div>
   </div>
 </footer>
 
-<script src="assets/app.js" defer></script>
+<!-- ПРИЛОЖЕНИЯ: два телефона (Owner / Staff) и кнопки скачать -->
+<div class="apps" id="apps-modal" hidden data-lenis-prevent>
+  <div class="apps-bg" data-apps-close></div>
+  <div class="apps-box" role="dialog" aria-modal="true" aria-labelledby="apps-t" tabindex="-1">
+    <button class="apps-x" type="button" data-apps-close aria-label="Закрыть"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    <p class="mini apps-mini">APP STORE</p>
+    <h3 class="apps-t" id="apps-t">Что скачать?</h3>
+    <div class="phone-stage">
+      <div class="apps-col">
+        <div class="iphone"><span class="iphone-screen"><img src="/apps/owner.webp" alt="Marjon Owner — Дашборд" width="640" height="1422" loading="lazy" /><i class="iphone-island" aria-hidden="true"></i></span></div>
+        <div class="iphone-cap"><b>Marjon Owner</b><small>для владельца: выручка, отчёты, контроль</small></div>
+        <a class="apps-get" href="https://apps.apple.com/ca/app/marjon-owner/id6808735197" target="_blank" rel="noopener"><svg viewBox="0 0 256 315" width="19" height="23" aria-hidden="true" fill="#fff"><path d="M213.803 167.03c.442 47.58 41.74 63.413 42.197 63.615c-.35 1.116-6.599 22.563-21.757 44.716c-13.104 19.153-26.705 38.235-48.13 38.63c-21.05.388-27.82-12.483-51.888-12.483c-24.061 0-31.582 12.088-51.51 12.871c-20.68.783-36.428-20.71-49.64-39.793c-27-39.033-47.633-110.3-19.928-158.406c13.763-23.89 38.36-39.017 65.056-39.405c20.307-.387 39.475 13.662 51.889 13.662c12.406 0 35.699-16.895 60.186-14.414c10.25.427 39.026 4.14 57.503 31.186c-1.49.923-34.335 20.044-33.978 59.822M174.24 50.199c10.98-13.29 18.369-31.79 16.353-50.199c-15.826.636-34.962 10.546-46.314 23.828c-10.173 11.763-19.082 30.589-16.678 48.633c17.64 1.365 35.66-8.964 46.64-22.262"/></svg><span>Скачать <b>Marjon Owner</b></span></a>
+      </div>
+      <div class="apps-col">
+        <div class="iphone"><span class="iphone-screen"><img src="/apps/staff.webp" alt="Marjon Staff" width="640" height="1422" loading="lazy" /><i class="iphone-island" aria-hidden="true"></i></span></div>
+        <div class="iphone-cap"><b>Marjon Staff</b><small>для команды: смены, заказы, кухня</small></div>
+        <a class="apps-get" href="https://apps.apple.com/ca/app/marjon-staff/id6808714517" target="_blank" rel="noopener"><svg viewBox="0 0 256 315" width="19" height="23" aria-hidden="true" fill="#fff"><path d="M213.803 167.03c.442 47.58 41.74 63.413 42.197 63.615c-.35 1.116-6.599 22.563-21.757 44.716c-13.104 19.153-26.705 38.235-48.13 38.63c-21.05.388-27.82-12.483-51.888-12.483c-24.061 0-31.582 12.088-51.51 12.871c-20.68.783-36.428-20.71-49.64-39.793c-27-39.033-47.633-110.3-19.928-158.406c13.763-23.89 38.36-39.017 65.056-39.405c20.307-.387 39.475 13.662 51.889 13.662c12.406 0 35.699-16.895 60.186-14.414c10.25.427 39.026 4.14 57.503 31.186c-1.49.923-34.335 20.044-33.978 59.822M174.24 50.199c10.98-13.29 18.369-31.79 16.353-50.199c-15.826.636-34.962 10.546-46.314 23.828c-10.173 11.763-19.082 30.589-16.678 48.633c17.64 1.365 35.66-8.964 46.64-22.262"/></svg><span>Скачать <b>Marjon Staff</b></span></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var nav = document.getElementById('nav');
+  var onScroll = function () { nav.classList.toggle('solid', window.scrollY > 28); };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  var burger = document.querySelector('.burger');
+  var menu = document.getElementById('menu');
+  var setMenu = function (open) {
+    document.body.classList.toggle('menu-open', open);
+    burger.setAttribute('aria-expanded', String(open));
+    burger.setAttribute('aria-label', open ? burger.dataset.close : burger.dataset.open);
+    menu.setAttribute('aria-hidden', String(!open));
+    if (open) menu.removeAttribute('inert'); else menu.setAttribute('inert', '');
+  };
+  burger.addEventListener('click', function () { setMenu(!document.body.classList.contains('menu-open')); });
+  menu.addEventListener('click', function (e) { if (e.target.closest('a')) setMenu(false); });
+  window.addEventListener('keydown', function (e) { if (e.key === 'Escape') { setMenu(false); closeApps(); } });
+  var modal = document.getElementById('apps-modal');
+  var lastFocus = null;
+  function openApps() { lastFocus = document.activeElement; modal.hidden = false; document.body.classList.add('apps-open'); var x = modal.querySelector('.apps-x'); if (x) x.focus({ preventScroll: true }); }
+  function closeApps() { if (modal.hidden) return; modal.hidden = true; document.body.classList.remove('apps-open'); if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true }); }
+  document.querySelectorAll('[data-apps-open]').forEach(function (b) { b.addEventListener('click', openApps); });
+  modal.querySelectorAll('[data-apps-close]').forEach(function (b) { b.addEventListener('click', closeApps); });
+  var year = document.querySelector('[data-year]');
+  if (year) year.textContent = new Date().getFullYear();
+})();
+</script>
 </body>
 </html>
