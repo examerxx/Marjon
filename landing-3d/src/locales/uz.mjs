@@ -134,6 +134,7 @@ export default {
   foot: {
     about: "O'zbekiston kafe va restoranlarini avtomatlashtirish platformasi: kassa, oshxona, ombor, moliya va fiskallashtirish.",
     apps: { getIt: 'GET IT ON', play: 'Google Play', dl: 'Download on the', appstore: 'App Store',
+      dlCta: 'Yuklab olish',
       modalTitle: 'Nimani yuklab olasiz?', close: 'Yopish',
       owner: 'Marjon Owner', ownerD: 'egasi uchun: tushum, hisobotlar, nazorat',
       staff: 'Marjon Staff', staffD: 'jamoa uchun: smena, buyurtmalar, oshxona' },

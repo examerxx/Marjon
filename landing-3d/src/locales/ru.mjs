@@ -134,6 +134,7 @@ export default {
   foot: {
     about: 'Платформа для автоматизации кафе и ресторанов Узбекистана: касса, кухня, склад, финансы и фискализация.',
     apps: { getIt: 'GET IT ON', play: 'Google Play', dl: 'Download on the', appstore: 'App Store',
+      dlCta: 'Скачать',
       modalTitle: 'Что скачать?', close: 'Закрыть',
       owner: 'Marjon Owner', ownerD: 'для владельца: выручка, отчёты, контроль',
       staff: 'Marjon Staff', staffD: 'для команды: смены, заказы, кухня' },

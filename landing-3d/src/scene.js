@@ -319,7 +319,15 @@ export function createScene(canvas, { low = false, labels = [], addon = null } =
     bgMat.uniforms.uAmt.value = S.glow * S.intro;
     bgMat.uniforms.uTime.value = time;
     rig.getWorldPosition(v).project(camera);
-    bgMat.uniforms.uPos.value.set(v.x * 0.5 + 0.5, v.y * 0.5 + 0.5);
+    const gx = v.x * 0.5 + 0.5, gy = v.y * 0.5 + 0.5;
+    if (portrait > 0.01) {
+      // на портрете зарево прижимаем к центру — фон не выпадает в чёрное на узком экране
+      const cx = 0.5, cy = 0.44, maxR = 0.33, dx = gx - cx, dy = gy - cy, len = Math.hypot(dx, dy);
+      const k = len > maxR ? maxR / len : 1;
+      bgMat.uniforms.uPos.value.set(cx + dx * k, cy + dy * k);
+    } else {
+      bgMat.uniforms.uPos.value.set(gx, gy);
+    }
     key.color.set('#fff1dd').lerp(C.coral, S.coral * 0.7);
     scene.environmentIntensity = 1 - S.coral * 0.45;
     renderer.toneMappingExposure = S.exposure;

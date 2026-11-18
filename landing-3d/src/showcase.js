@@ -106,11 +106,12 @@ export async function initShowcase() {
     gsap.killTweensOf([cur.position, cur.rotation, nxt.position, nxt.rotation]);
     // уходящий уезжает раньше и дальше за край кадра (с отходом вглубь),
     // входящий появляется с задержкой — в кадре они не встречаются
-    gsap.to(cur.position, { x: -2.45 * dir, z: -1.5, duration: 0.6, ease: 'power2.in' });
-    gsap.to(cur.rotation, { y: -1.25 * dir, duration: 0.6, ease: 'power2.in' });
-    gsap.fromTo(nxt.position, { x: 2.45 * dir, z: -1.5 }, { x: 0, z: 0, duration: T, delay: 0.24, ease: 'power3.out' });
-    gsap.fromTo(nxt.rotation, { y: 1.25 * dir }, { y: 0, duration: T, delay: 0.24, ease: 'power3.out' });
-    gsap.delayedCall(T + 0.24, () => { cur.visible = false; cur.position.set(0, 0, 0); cur.rotation.set(0, 0, 0); busy = false; });
+    gsap.to(cur.position, { x: -2.6 * dir, z: -1.7, duration: 0.42, ease: 'power2.in' });
+    gsap.to(cur.rotation, { y: -1.3 * dir, duration: 0.42, ease: 'power2.in' });
+    gsap.fromTo(nxt.position, { x: 2.5 * dir, z: -1.6 }, { x: 0, z: 0, duration: T, delay: 0.16, ease: 'power3.out' });
+    gsap.fromTo(nxt.rotation, { y: 1.25 * dir }, { y: 0, duration: T, delay: 0.16, ease: 'power3.out' });
+    gsap.delayedCall(0.48, () => { cur.visible = false; cur.position.set(0, 0, 0); cur.rotation.set(0, 0, 0); });
+    gsap.delayedCall(T + 0.16, () => { busy = false; });
   };
   setDots(0);
 
