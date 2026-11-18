@@ -248,8 +248,9 @@ main { position: relative; } /* без z-index: иначе mix-blend у H1 не 
 .pain:hover .idx { color: rgba(255, 106, 77, .95); -webkit-text-stroke-color: rgba(255, 106, 77, .95); }
 @media (hover: none) { .pain:hover { transform: none; } }
 
-/* iPhone-переключатель «Проблемы → Одна система» (кружок в овале) */
-.next-switch { width: max-content; display: flex; align-items: center; gap: clamp(14px, 1.8vw, 24px); margin: clamp(34px, 5.5vh, 64px) auto 0; padding: 8px 10px; background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; border-radius: 999px; }
+/* iPhone-переключатель «Проблемы → Одна система»: ровно на стыке секций (высота 0, кнопка по центру границы) */
+.switch-seam { position: relative; height: 0; z-index: 45; }
+.next-switch { position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%); width: max-content; display: flex; align-items: center; gap: clamp(14px, 1.8vw, 24px); padding: 8px 16px; background: rgba(10, 11, 12, .82); border: 1px solid var(--line-2); backdrop-filter: blur(10px); box-shadow: 0 14px 34px rgba(0, 0, 0, .45); border-radius: 999px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .next-switch:focus-visible { outline: 2px solid var(--mint); outline-offset: 4px; }
 .ns-cap { font-size: .7rem; letter-spacing: .18em; text-transform: uppercase; color: var(--text); transition: color .4s, text-shadow .4s; }
 .ns-cap-on { color: var(--faint); }
@@ -262,6 +263,13 @@ main { position: relative; } /* без z-index: иначе mix-blend у H1 не 
 .ns-knob svg { width: 24px; height: 24px; transition: transform .5s cubic-bezier(.34, 1.4, .44, 1); }
 .next-switch.on .ns-knob svg { transform: rotate(180deg); }
 @media (max-width: 560px) { .ns-cap { font-size: .62rem; letter-spacing: .12em; } .ns-track { width: 100px; height: 54px; } .ns-knob { width: 46px; height: 46px; } .next-switch.on .ns-knob { transform: translateX(46px); } }
+
+/* modules (pin): заголовок сверху в зоне видимости; ниже — чистая 3D-динамика (полоса+цифра+название из жемчужин) */
+.mod-top { position: absolute; top: calc(var(--nav-h) + clamp(10px, 2vh, 24px)); left: 0; right: 0; z-index: 3; pointer-events: none; }
+.mod-top .wrap { display: grid; gap: clamp(6px, 1.2vh, 12px); }
+.mod-h2 { font-size: clamp(1.35rem, min(3vw, 4.6vh), 3rem); line-height: 1.02; letter-spacing: -.04em; color: var(--text); text-wrap: balance; }
+.mod-h2 em { font-style: normal; color: var(--mint); }
+.mod-lede { font-size: clamp(.82rem, .95vw, .95rem); max-width: 46ch; color: var(--muted); text-wrap: pretty; }
 
 /* modules (pin): только 3D-динамика — цифра и название каждого модуля выезжают полосой из самой жемчужины (подписи .bl у бусин) */
 .ch-modules { padding: 0; }

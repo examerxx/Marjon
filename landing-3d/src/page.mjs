@@ -222,13 +222,17 @@ export function render(t) {
     <div class="pains">
       ${t.problem.pains.map(([a, b, c], i) => `<article class="card pain" data-r><div class="pain-top"><span class="pain-ic" aria-hidden="true">${painIcons[i]}</span><span class="idx">${pad(i + 1)}</span></div><h3>${a}</h3><p>${b}</p>${c ? `<div class="pain-tag">${c}</div>` : ''}</article>`).join('\n      ')}
     </div>
-    <button class="next-switch" type="button" role="switch" aria-checked="false" aria-label="${t.problem.switch.aria}">
-      <span class="ns-cap ns-cap-off">${t.problem.switch.off}</span>
-      <span class="ns-track" aria-hidden="true"><span class="ns-knob"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span>
-      <span class="ns-cap ns-cap-on">${t.problem.switch.on}</span>
-    </button>
   </div>
 </section>
+
+<!-- переключатель ровно на стыке «Проблема → Манифест» -->
+<div class="switch-seam">
+  <button class="next-switch" type="button" role="switch" aria-checked="false" aria-label="${t.problem.switch.aria}">
+    <span class="ns-cap ns-cap-off">${t.problem.switch.off}</span>
+    <span class="ns-track" aria-hidden="true"><span class="ns-knob"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span>
+    <span class="ns-cap ns-cap-on">${t.problem.switch.on}</span>
+  </button>
+</div>
 
 <!-- 2 · MODULES (pin) -->
 <section class="mani" id="mani" data-nofx>
@@ -241,6 +245,13 @@ ${vband(t.band, 1)}
 
 <section class="ch ch-modules" id="modules" data-ch="2">
   <div class="mod-pin">
+    <div class="mod-top">
+      <div class="wrap">
+        <p class="kicker mod-kick">${t.modules.kicker}</p>
+        <h2 class="h-ch mod-h2">${t.modules.h2.map((l) => `<span class="ln">${l}</span>`).join('')}</h2>
+        <p class="lede mod-lede">${t.modules.lede}</p>
+      </div>
+    </div>
     <div class="mod-bar" aria-hidden="true"><i data-mod-bar></i></div>
     <div class="mod-fallback">
       ${head(t.modules, 'mod-head')}

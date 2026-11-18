@@ -83,19 +83,18 @@ export function initBase({ scrollTo, onRole }) {
 // iPhone-переключатель в конце секции проблем: кружок в овале, «справа налево»
 export function initSwitch({ scrollTo }) {
   const el = $('.next-switch'); if (!el) return;
-  const target = () => $('#modules');
   const problem = () => $('#problem');
+  const modules = () => $('#modules');
   let on = false;
-  const isPast = () => {
-    const mod = target(); if (!mod) return false;
-    const top = mod.getBoundingClientRect().top; // модули пинуются: top упирается в 0
-    return top <= window.innerHeight * 0.12;
-  };
+  // при скролле тумблер сам встаёт в ON, когда граница секций доходит до середины экрана
+  const isPast = () => el.getBoundingClientRect().top <= window.innerHeight * 0.55;
   const sync = () => { const v = isPast(); if (v !== on) { on = v; el.classList.toggle('on', v); el.setAttribute('aria-checked', String(v)); } };
   el.addEventListener('click', () => {
-    const dest = on ? problem() : target();
+    const mani = document.querySelector('.mani');
+    const seamY = mani ? mani.getBoundingClientRect().top + window.scrollY : el.getBoundingClientRect().top + window.scrollY;
+    const deep = window.scrollY > seamY + window.innerHeight * 0.35; // уже прокручены глубоко — возвращаемся к проблемам
+    const dest = deep ? problem() : modules();
     if (!dest) return;
-    on = !on; el.classList.toggle('on', on); el.setAttribute('aria-checked', String(on));
     const top = Math.max(0, dest.getBoundingClientRect().top + window.scrollY - 2);
     scrollTo(top);
   });
