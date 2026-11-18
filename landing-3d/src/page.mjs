@@ -385,11 +385,11 @@ ${demo(t)}
     <h3 class="apps-t" id="apps-t">${t.foot.apps.modalTitle}</h3>
     <div class="phone-stage">
       <button class="iphone-wrap phone-l is-on" type="button" data-apps-pick="owner" aria-pressed="true">
-        <span class="iphone"><span class="iphone-screen"><img src="/apps/owner.webp" alt="Marjon Owner — Дашборд" width="640" height="1422" loading="lazy" /></span></span>
+        <span class="iphone"><span class="iphone-screen"><img src="/apps/owner.webp" alt="Marjon Owner — Дашборд" width="640" height="1422" loading="lazy" /><i class="iphone-island" aria-hidden="true"></i></span></span>
         <span class="iphone-cap"><b>${t.foot.apps.owner}</b><small>${t.foot.apps.ownerD}</small></span>
       </button>
       <button class="iphone-wrap phone-r" type="button" data-apps-pick="staff" aria-pressed="false">
-        <span class="iphone"><span class="iphone-screen"><img src="/apps/staff.webp" alt="Marjon Staff — стол и меню" width="640" height="1385" loading="lazy" /></span></span>
+        <span class="iphone"><span class="iphone-screen"><img src="/apps/staff.webp" alt="Marjon Staff — стол и меню" width="640" height="1385" loading="lazy" /><i class="iphone-island" aria-hidden="true"></i></span></span>
         <span class="iphone-cap"><b>${t.foot.apps.staff}</b><small>${t.foot.apps.staffD}</small></span>
       </button>
     </div>
