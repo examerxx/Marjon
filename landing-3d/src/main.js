@@ -13,6 +13,7 @@ import Lenis from 'lenis';
 import { $, $$, initBase, initMotion, initSwitch } from './ui.js';
 import { initDemo } from './demo.js';
 import { initShowcase } from './showcase.js';
+import { initApps } from './apps.js';
 
 const html = document.documentElement;
 const q = new URLSearchParams(location.search);
@@ -47,6 +48,7 @@ const stopBase = initBase({
 if (reduced) {
   $('#loader')?.remove();
   initShowcase(); // статичный первый слайд, без автосмены
+  initApps();
 } else {
   boot();
 }
@@ -66,6 +68,7 @@ async function boot() {
 
   motion = initMotion({ scrollTo });
   initSwitch({ scrollTo });
+  initApps();
   initDemo(); // после initMotion: pin модулей стоит выше по странице
   initShowcase(); // мобильный hero: 3D-слайдер техники (на десктопе функция сразу снимается)
 
@@ -100,7 +103,7 @@ async function boot() {
     rsY = rsEls.length ? rsEls.map((el) => el.getBoundingClientRect().top + window.scrollY + el.offsetHeight / 2 - vh / 2) : null;
     anchors = [
       [0, 0], [top('#problem'), 1], [motion.pin.start, 2], [motion.pin.end, 2.8], [top('#live'), 3],
-      [top('#roles'), 4], ...(rsY ? [[rsY[rsY.length - 1], 4.5]] : []), [top('#uzbekistan'), 5], [pt, 5.6], [pb - vh, 5.7], [Math.min(top('#contact'), max - 2), 5.96], [max, 6],
+      [top('#roles'), 4], ...(rsY ? [[rsY[rsY.length - 1], 4.5]] : []), [pt, 5.4], [pb - vh, 5.7], [Math.min(top('#contact'), max - 2), 5.96], [max, 6],
     ];
     for (let i = 1; i < anchors.length; i++) anchors[i][0] = Math.max(anchors[i][0], anchors[i - 1][0] + 1);
   };
@@ -127,7 +130,7 @@ async function boot() {
     if (Math.abs(tTarget - tCur) < 0.0004) tCur = tTarget;
     if (dbg && dbg.force != null) tCur = dbg.force; // отладка: показать сцену в заданный момент раскадровки
 
-    const ch = tCur < 0.55 ? 0 : tCur < 1.85 ? 1 : tCur < 2.9 ? 2 : tCur < 3.8 ? 3 : tCur < 4.8 ? 4 : tCur < 5.55 ? 5 : tCur > 5.72 ? 6 : -1;
+    const ch = tCur < 0.55 ? 0 : tCur < 1.85 ? 1 : tCur < 2.9 ? 2 : tCur < 3.8 ? 3 : tCur < 4.8 ? 4 : tCur > 5.72 ? 5 : -1;
     if (ch !== chapter) {
       chapter = ch;
       rail.forEach((r, i) => r.classList.toggle('on', i === ch));

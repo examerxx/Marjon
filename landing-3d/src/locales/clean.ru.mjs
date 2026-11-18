@@ -145,7 +145,7 @@ export default {
     about: 'Система для кафе и ресторанов Узбекистана: касса, кухня, склад, персонал и финансы.',
     cols: [
       ['Продукт', [['#modules', 'Возможности'], ['#roles', 'Роли'], ['#platforms', 'Платформы'], ['#launch', 'Запуск']]],
-      ['Документы', [['privacy.html', 'Политика конфиденциальности'], ['#faq', 'Вопросы и ответы'], ['#uzbekistan', 'Узбекистан']]],
+      ['Документы', [['privacy.html', 'Политика конфиденциальности'], ['#faq', 'Вопросы и ответы']]],
       ['Контакты', [['mailto:support@marjon.tech', 'support@marjon.tech'], ['https://www.instagram.com/marjon_tech', 'Instagram'], ['https://admin.marjon.tech/login', 'Вход в панель'], ['#top', 'Ташкент']]],
     ],
   },

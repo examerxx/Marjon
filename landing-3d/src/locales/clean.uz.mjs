@@ -142,7 +142,7 @@ export default {
     about: "O'zbekiston kafe va restoranlari uchun tizim: kassa, oshxona, ombor, xodimlar va moliya.",
     cols: [
       ['Mahsulot', [['#modules', 'Imkoniyatlar'], ['#roles', 'Rollar'], ['#platforms', 'Platformalar'], ['#launch', 'Ishga tushirish']]],
-      ['Hujjatlar', [['privacy.html', 'Maxfiylik siyosati'], ['#faq', 'Savol-javoblar'], ['#uzbekistan', "O'zbekiston"]]],
+      ['Hujjatlar', [['privacy.html', 'Maxfiylik siyosati'], ['#faq', 'Savol-javoblar']]],
       ['Kontaktlar', [['mailto:support@marjon.tech', 'support@marjon.tech'], ['https://www.instagram.com/marjon_tech', 'Instagram'], ['https://admin.marjon.tech/login', 'Panelga kirish'], ['#top', 'Toshkent']]],
     ],
   },

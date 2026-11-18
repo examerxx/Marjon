@@ -104,11 +104,13 @@ export async function initShowcase() {
     busy = true;
     nxt.visible = true;
     gsap.killTweensOf([cur.position, cur.rotation, nxt.position, nxt.rotation]);
-    gsap.to(cur.position, { x: -2.1 * dir, duration: T, ease: 'power2.in' });
-    gsap.to(cur.rotation, { y: -1.15 * dir, duration: T, ease: 'power2.in' });
-    gsap.fromTo(nxt.position, { x: 2.1 * dir }, { x: 0, duration: T, ease: 'power3.out' });
-    gsap.fromTo(nxt.rotation, { y: 1.15 * dir }, { y: 0, duration: T, ease: 'power3.out' });
-    gsap.delayedCall(T, () => { cur.visible = false; cur.position.x = 0; cur.rotation.y = 0; busy = false; });
+    // уходящий уезжает раньше и дальше за край кадра (с отходом вглубь),
+    // входящий появляется с задержкой — в кадре они не встречаются
+    gsap.to(cur.position, { x: -2.45 * dir, z: -1.5, duration: 0.6, ease: 'power2.in' });
+    gsap.to(cur.rotation, { y: -1.25 * dir, duration: 0.6, ease: 'power2.in' });
+    gsap.fromTo(nxt.position, { x: 2.45 * dir, z: -1.5 }, { x: 0, z: 0, duration: T, delay: 0.24, ease: 'power3.out' });
+    gsap.fromTo(nxt.rotation, { y: 1.25 * dir }, { y: 0, duration: T, delay: 0.24, ease: 'power3.out' });
+    gsap.delayedCall(T + 0.24, () => { cur.visible = false; cur.position.set(0, 0, 0); cur.rotation.set(0, 0, 0); busy = false; });
   };
   setDots(0);
 

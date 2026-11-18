@@ -36,7 +36,7 @@ const init = () => {
 
   // вордмарк футера
   const fw = $('.foot-word');
-  if (fw) { const l = [...fw.textContent.trim()].map((c) => `<span>${c}</span>`).join(''); fw.innerHTML = `<span class="fw-o">${l}</span><span class="fw-f">${l}</span>`; }
+  if (fw && !matchMedia('(max-width: 820px)').matches) { const l = [...fw.textContent.trim()].map((c) => `<span>${c}</span>`).join(''); fw.innerHTML = `<span class="fw-o">${l}</span><span class="fw-f">${l}</span>`; } // на мобиле — один слой, без обводки-подложки
 
   // кинетический заголовок: символы первого экрана (оба слоя — светлый и тёмный)
   const mouse = { x: -9999, y: -9999, on: false };

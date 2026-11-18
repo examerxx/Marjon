@@ -229,7 +229,7 @@ export function render(t) {
 <!-- переключатель ровно на стыке «Проблема → Манифест» -->
 <div class="switch-seam">
   <button class="next-switch" type="button" role="switch" aria-checked="false" aria-label="${t.problem.switch.aria}">
-    <span class="ns-track" aria-hidden="true"><span class="ns-knob"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span>
+    <span class="ns-track" aria-hidden="true"><span class="ns-knob"></span></span>
   </button>
 </div>
 
@@ -307,37 +307,6 @@ ${t.ah ? rolesShow(t) : rolesTabs(t)}
 <!-- ЖИВОЕ ДЕМО: интерфейс сам проходит сценарий (src/demo.mjs) -->
 ${demo(t)}
 
-<!-- 5 · UZBEKISTAN -->
-<section class="ch ch-uz" id="uzbekistan" data-ch="5">
-  <div class="wrap">
-    ${head(t.uz)}
-    <div class="stats">
-      ${t.uz.stats.map((s) => `<div class="stat" data-r><p class="stat-n">${s.pre ? `<i>${s.pre}</i>` : ''}<b data-count="${s.n}" data-dec="0">${s.n}</b>${s.suf ? `<small>${s.suf}</small>` : ''}</p><span>${s.label}</span></div>`).join('\n      ')}
-    </div>
-    <div class="tiles">
-      <article class="tile tile-lang" data-r>
-        <span class="mini"><i class="dot"></i>${t.uz.tiles.lang.k}</span>
-        <div class="tl-words" aria-hidden="true">${t.uz.tiles.lang.words.map((w, i) => `<b style="--i:${i}">${w}</b>`).join('')}</div>
-        <div class="tl-pills" aria-hidden="true"><span>RU</span><span>UZ</span><span>EN</span></div>
-        <p>${t.uz.tiles.lang.t}</p>
-      </article>
-      <article class="tile tile-money" data-r>
-        <span class="mini"><i class="dot"></i>${t.uz.tiles.money.k}</span>
-        <p class="tm-big"><b data-count="214000" data-dec="0">${t.uz.tiles.money.big}</b><small>${t.uz.tiles.money.cur}</small></p>
-        <p>${t.uz.tiles.money.t}</p>
-      </article>
-      <article class="tile tile-off" data-r>
-        <span class="mini"><i class="dot"></i>${t.uz.tiles.off.k}</span>
-        <div class="to-net" aria-hidden="true">
-          <div class="to-bars"><i></i><i></i><i></i><i></i></div>
-          <div class="to-state"><span class="to-on">${t.uz.tiles.off.on}</span><span class="to-wait">${t.uz.tiles.off.wait}</span></div>
-        </div>
-        <p>${t.uz.tiles.off.t}</p>
-      </article>
-    </div>
-  </div>
-</section>
-
 <!-- PAPER -->
 <div class="paper" id="paper">
   <section class="sec sec-shift" id="shift">
@@ -394,6 +363,10 @@ ${demo(t)}
       <div class="foot-brand">
         <a class="brand" href="#top" aria-label="${t.nav.home}">${mark}<span>Marjon</span></a>
         <p>${t.foot.about}</p>
+        <div class="foot-apps">
+          <a class="app-btn" href="https://play.google.com/store/apps/details?id=uz.marjon.marjon_mobile" target="_blank" rel="noopener" aria-label="Marjon Staff — Google Play"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M5.1 3.2a1.14 1.14 0 0 0-.7 1.04v15.5c0 .43.28.82.7 1.04l.14.07 9.5-8.5v-.24L5.24 3.13l-.14.07z"/><path fill="currentColor" opacity=".7" d="M15.6 8.6l-1.6 1.9h-.13l-8.77-8.3L14.5 9.2l1.1-.6z"/><path fill="currentColor" opacity=".85" d="M15.6 15.4l1.1-.6 2.6-1.5a1.5 1.5 0 0 0 0-2.6l-2.6-1.5-2.5 2.1 1.4 4.1z"/><path fill="currentColor" opacity=".6" d="M5.1 20.8l8.6-8.2 1.9 1.8-10.3 6.5c-.07 0-.1-.1-.2-.1z"/></svg><span class="app-btn-t"><small>${t.foot.apps.getIt}</small><b>${t.foot.apps.play}</b></span></a>
+          <button class="app-btn" type="button" data-apps-open aria-haspopup="dialog" aria-controls="apps-modal" aria-label="Marjon — App Store"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M16.7 12.9c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.15-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.9-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3.1 2.5 1.2 0 1.7-.8 3.2-.8s2 .8 3.3.8c1.4 0 2.3-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.6-1-2.8-3.7zM14.3 5.6c.7-.8 1.1-1.9 1-3-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.5z"/></svg><span class="app-btn-t"><small>${t.foot.apps.dl}</small><b>${t.foot.apps.appstore}</b></span></button>
+        </div>
       </div>
       ${t.foot.cols.map(([title, links]) => `<div class="foot-col"><h3>${title}</h3>${links.map(([href, l]) => `<a href="${link(href)}">${l}</a>`).join('')}</div>`).join('\n      ')}
     </div>
@@ -402,6 +375,18 @@ ${demo(t)}
     <div class="foot-bottom"><span>© <span data-year>2026</span> ${t.foot.rights}</span><span>${t.foot.made}</span></div>
   </div>
 </footer>
+
+<!-- ПРИЛОЖЕНИЯ: выбор из двух в App Store -->
+<div class="apps" id="apps-modal" hidden data-lenis-prevent>
+  <div class="apps-bg" data-apps-close></div>
+  <div class="apps-box" role="dialog" aria-modal="true" aria-labelledby="apps-t" tabindex="-1">
+    <button class="apps-x" type="button" data-apps-close aria-label="${t.foot.apps.close}"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    <p class="mini apps-mini">${t.foot.apps.appstore}</p>
+    <h3 class="apps-t" id="apps-t">${t.foot.apps.modalTitle}</h3>
+    <a class="apps-opt" href="https://apps.apple.com/ca/app/marjon-owner/id6808735197" target="_blank" rel="noopener"><span class="ao-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19h16"/><path d="M6 16V9"/><path d="M10.5 16V5"/><path d="M15 16v-6"/><path d="M19.5 16v-3.5"/></svg></span><span class="apps-opt-t"><b>${t.foot.apps.owner}</b><small>${t.foot.apps.ownerD}</small></span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a class="apps-opt" href="https://apps.apple.com/ca/app/marjon-staff/id6808714517" target="_blank" rel="noopener"><span class="ao-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.4"/><path d="M3.5 19c.8-3.2 3.1-4.8 5.5-4.8s4.7 1.6 5.5 4.8"/><circle cx="17" cy="9" r="2.6"/><path d="M15.6 14.4c2.6-.3 4.2 1.1 4.9 4.1"/></svg></span><span class="apps-opt-t"><b>${t.foot.apps.staff}</b><small>${t.foot.apps.staffD}</small></span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+  </div>
+</div>
 
 <!-- ЗАЯВКА: большое белое окно -->
 <div class="lead" id="lead" hidden data-lenis-prevent>

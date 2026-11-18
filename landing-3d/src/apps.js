@@ -1,0 +1,25 @@
+// Футер: кнопка «App Store» открывает выбор из двух приложений (Marjon Owner / Marjon Staff).
+// Закрытие: клик по подложке, по кресту или Escape. Lenis ставится на паузу на время показа.
+export function initApps() {
+  const modal = document.getElementById('apps-modal');
+  if (!modal) return;
+  const opener = document.querySelector('[data-apps-open]');
+  let last = null;
+  const open = () => {
+    last = document.activeElement;
+    modal.hidden = false;
+    document.documentElement.classList.add('apps-open');
+    window.dispatchEvent(new CustomEvent('lead:open')); // останавливает Lenis (см. main.js)
+    modal.querySelector('.apps-x')?.focus({ preventScroll: true });
+  };
+  const close = () => {
+    if (modal.hidden) return;
+    modal.hidden = true;
+    document.documentElement.classList.remove('apps-open');
+    window.dispatchEvent(new CustomEvent('lead:close'));
+    last?.focus?.({ preventScroll: true });
+  };
+  opener?.addEventListener('click', open);
+  modal.querySelectorAll('[data-apps-close]').forEach((el) => el.addEventListener('click', close));
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+}

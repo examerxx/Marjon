@@ -87,7 +87,7 @@ export function initSwitch({ scrollTo }) {
   const modules = () => $('#modules');
   let on = false;
   // при скролле тумблер сам встаёт в ON, когда граница секций доходит до середины экрана
-  const isPast = () => el.getBoundingClientRect().top <= window.innerHeight * 0.55;
+  const isPast = () => el.getBoundingClientRect().top <= window.innerHeight * 0.72;
   const sync = () => { const v = isPast(); if (v !== on) { on = v; el.classList.toggle('on', v); el.setAttribute('aria-checked', String(v)); document.documentElement.classList.toggle('switch-on', v); } };
   el.addEventListener('click', () => {
     const mani = document.querySelector('.mani');
